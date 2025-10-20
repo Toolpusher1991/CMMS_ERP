@@ -1,14 +1,24 @@
 import { useState, useEffect } from "react";
 import { LoginPage } from "@/pages/LoginPage";
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { DashboardPage } from "@/pages/DashboardPage";
-import { UserAdminPage } from "@/pages/UserAdminPage";
+import { RegistrationPage } from "@/pages/RegistrationPage";
+import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
+import { EnhancedUserAdminPage } from "@/pages/EnhancedUserAdminPage";
+import ProjectList from "@/pages/ProjectList";
+import WorkOrderManagement from "@/pages/WorkOrderManagement";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ModeToggle } from "@/components/mode-toggle";
+import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/toaster";
 import { authService } from "@/services/auth.service";
 import type { User } from "@/services/auth.service";
 
+type AuthView = "login" | "register" | "forgot-password";
+type AppPage = "projects" | "users" | "workorders";
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentPage, setCurrentPage] = useState("dashboard");
+  const [authView, setAuthView] = useState<AuthView>("login");
+  const [currentPage, setCurrentPage] = useState<AppPage>("projects");
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,7 +43,6 @@ function App() {
     authService.logout();
     setIsAuthenticated(false);
     setUser(null);
-    setCurrentPage("dashboard");
   };
 
   if (isLoading) {
@@ -47,44 +56,81 @@ function App() {
     );
   }
 
-  const renderPage = () => {
-    switch (currentPage) {
-      case "dashboard":
-        return <DashboardPage />;
-      case "users":
-        return <UserAdminPage />;
-      case "settings":
-        return (
-          <div className="text-center py-20">
-            <h2 className="text-2xl font-bold mb-4">Einstellungen</h2>
-            <p className="text-muted-foreground">Coming soon...</p>
-          </div>
-        );
-      case "profile":
-        return (
-          <div className="text-center py-20">
-            <h2 className="text-2xl font-bold mb-4">Profil</h2>
-            <p className="text-muted-foreground">Coming soon...</p>
-          </div>
-        );
-      default:
-        return <DashboardPage />;
-    }
-  };
-
   if (!isAuthenticated || !user) {
-    return <LoginPage onLogin={handleLogin} />;
+    return (
+      <ThemeProvider defaultTheme="system" storageKey="cmms-erp-theme">
+        {authView === "register" && (
+          <RegistrationPage onBackToLogin={() => setAuthView("login")} />
+        )}
+        {authView === "forgot-password" && (
+          <ForgotPasswordPage onBackToLogin={() => setAuthView("login")} />
+        )}
+        {authView === "login" && (
+          <LoginPage
+            onLogin={handleLogin}
+            onRegister={() => setAuthView("register")}
+            onForgotPassword={() => setAuthView("forgot-password")}
+          />
+        )}
+      </ThemeProvider>
+    );
   }
 
   return (
-    <DashboardLayout
-      currentPage={currentPage}
-      onNavigate={setCurrentPage}
-      onLogout={handleLogout}
-      user={user}
-    >
-      {renderPage()}
-    </DashboardLayout>
+    <ThemeProvider defaultTheme="dark" storageKey="cmms-erp-theme">
+      <div className="min-h-screen bg-background">
+        {/* Simple Header */}
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container flex h-16 items-center justify-between">
+            <div className="flex items-center gap-6">
+              <h1 className="text-xl font-bold">CMMS/ERP System</h1>
+              <nav className="flex gap-2">
+                <Button
+                  variant={currentPage === "projects" ? "default" : "ghost"}
+                  onClick={() => setCurrentPage("projects")}
+                  size="sm"
+                >
+                  Projekte
+                </Button>
+                <Button
+                  variant={currentPage === "workorders" ? "default" : "ghost"}
+                  onClick={() => setCurrentPage("workorders")}
+                  size="sm"
+                >
+                  Work Orders
+                </Button>
+                {user.role === "ADMIN" && (
+                  <Button
+                    variant={currentPage === "users" ? "default" : "ghost"}
+                    onClick={() => setCurrentPage("users")}
+                    size="sm"
+                  >
+                    Benutzerverwaltung
+                  </Button>
+                )}
+              </nav>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">
+                {user.firstName} {user.lastName} ({user.role})
+              </span>
+              <ModeToggle />
+              <Button onClick={handleLogout} variant="outline">
+                Abmelden
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="container py-6">
+          {currentPage === "projects" && <ProjectList />}
+          {currentPage === "workorders" && <WorkOrderManagement />}
+          {currentPage === "users" && <EnhancedUserAdminPage />}
+        </main>
+      </div>
+      <Toaster />
+    </ThemeProvider>
   );
 }
 

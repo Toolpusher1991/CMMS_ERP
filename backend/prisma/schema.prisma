@@ -11,25 +11,44 @@ datasource db {
 }
 
 model User {
-  id                 String         @id @default(uuid())
-  email              String         @unique
-  password           String
-  firstName          String
-  lastName           String
-  role               String         @default("USER") // ADMIN, USER, MANAGER
-  isActive           Boolean        @default(true)
-  loginAttempts      Int            @default(0)
-  lockedUntil        DateTime?
-  lastLoginAttempt   DateTime?
-  emailVerified      Boolean        @default(false)
-  emailVerifyToken   String?
-  passwordResetToken String?
+  id                  String         @id @default(uuid())
+  email               String         @unique
+  password            String
+  firstName           String
+  lastName            String
+  role                String         @default("USER") // ADMIN, USER, MANAGER
+  isActive            Boolean        @default(true)
+  
+  // User Approval Workflow
+  approvalStatus      String         @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedBy          String?
+  approvedByUser      User?          @relation("UserApprovals", fields: [approvedBy], references: [id], onDelete: SetNull)
+  approvedAt          DateTime?
+  rejectionReason     String?
+  
+  // Security Fields
+  loginAttempts       Int            @default(0)
+  lockedUntil         DateTime?
+  lastLoginAttempt    DateTime?
+  lastPasswordChange  DateTime?
+  
+  // Email & 2FA
+  emailVerified       Boolean        @default(false)
+  emailVerifyToken    String?
+  passwordResetToken  String?
   passwordResetExpiry DateTime?
-  twoFactorSecret    String?
-  twoFactorEnabled   Boolean        @default(false)
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-  refreshTokens      RefreshToken[]
+  twoFactorSecret     String?
+  twoFactorEnabled    Boolean        @default(false)
+  
+  // Timestamps
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  
+  // Relations
+  refreshTokens       RefreshToken[]
+  approvedUsers       User[]         @relation("UserApprovals")
+  managedProjects     Project[]      @relation("ProjectManager")
+  createdProjects     Project[]      @relation("ProjectCreator")
 
   @@map("users")
 }
@@ -43,4 +62,48 @@ model RefreshToken {
   createdAt DateTime @default(now())
 
   @@map("refresh_tokens")
+}
+
+model PasswordResetRequest {
+  id          String    @id @default(uuid())
+  email       String
+  userId      String?
+  status      String    @default("PENDING") // PENDING, RESOLVED, CANCELLED
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  note        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("password_reset_requests")
+}
+
+model Project {
+  id              String    @id @default(uuid())
+  projectNumber   String    @unique // T208, T700, T207, T46
+  name            String
+  description     String?
+  status          String    @default("PLANNED") // PLANNED, IN_PROGRESS, COMPLETED, ON_HOLD
+  priority        String    @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  progress        Int       @default(0) // 0-100%
+  
+  // Budget
+  totalBudget     Float     @default(0)
+  spentBudget     Float     @default(0)
+  
+  // Timeline
+  startDate       DateTime?
+  endDate         DateTime?
+  
+  // Manager & Creator
+  managerId       String?
+  manager         User?     @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)
+  createdBy       String
+  creator         User      @relation("ProjectCreator", fields: [createdBy], references: [id])
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("projects")
 }

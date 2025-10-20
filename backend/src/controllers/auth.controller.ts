@@ -80,11 +80,13 @@ export const register = async (
     // Hash password
     const hashedPassword = await bcrypt.hash(validated.password, 12);
 
-    // Create user
+    // Create user with PENDING approval status
     const user = await prisma.user.create({
       data: {
         ...validated,
         password: hashedPassword,
+        approvalStatus: 'PENDING',
+        isActive: false, // User is inactive until approved
       },
       select: {
         id: true,
@@ -93,6 +95,7 @@ export const register = async (
         lastName: true,
         role: true,
         isActive: true,
+        approvalStatus: true,
         createdAt: true,
       },
     });
@@ -101,7 +104,7 @@ export const register = async (
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: 'Registration successful! Your account is pending approval by an administrator.',
       data: user,
     });
   } catch (error) {
@@ -145,6 +148,17 @@ export const login = async (
       await accountLockout.recordFailedAttempt(email, ip);
       securityLogger.loginFailed(email, 'User not found', ip);
       throw new AppError('Invalid credentials', 401);
+    }
+
+    // Check approval status
+    if (user.approvalStatus === 'PENDING') {
+      securityLogger.loginFailed(email, 'Account pending approval', ip);
+      throw new AppError('Your account is pending administrator approval', 403);
+    }
+
+    if (user.approvalStatus === 'REJECTED') {
+      securityLogger.loginFailed(email, 'Account rejected', ip);
+      throw new AppError('Your account registration has been rejected', 403);
     }
 
     if (!user.isActive) {
@@ -326,6 +340,56 @@ export const getMe = async (
       data: user,
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+export const forgotPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const validated = forgotPasswordSchema.parse(req.body);
+    const ip = getClientIp(req);
+
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { email: validated.email },
+    });
+
+    // Create password reset request (even if user doesn't exist for security)
+    await prisma.passwordResetRequest.create({
+      data: {
+        email: validated.email,
+        userId: user?.id,
+        status: 'PENDING',
+      },
+    });
+
+    if (user) {
+      securityLogger.info(
+        `Password reset requested for user ${user.email} (userId: ${user.id}, ip: ${ip})`
+      );
+    } else {
+      securityLogger.warn(
+        `Password reset requested for non-existent email ${validated.email} (ip: ${ip})`
+      );
+    }
+
+    // Always return success to prevent email enumeration
+    res.json({
+      success: true,
+      message: 'If an account with this email exists, an administrator has been notified.',
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return next(new AppError(error.errors[0].message, 400));
+    }
     next(error);
   }
 };

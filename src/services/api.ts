@@ -9,17 +9,19 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  private getAuthHeader(): HeadersInit {
+  private getAuthHeader(skipContentType = false): HeadersInit {
     const token = localStorage.getItem('accessToken');
+    const headers: HeadersInit = {};
+    
     if (token) {
-      return {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      };
+      headers['Authorization'] = `Bearer ${token}`;
     }
-    return {
-      'Content-Type': 'application/json',
-    };
+    
+    if (!skipContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
+    return headers;
   }
 
   private async refreshAccessToken(): Promise<string | null> {
@@ -43,7 +45,7 @@ class ApiClient {
       const newAccessToken = data.data.accessToken;
       localStorage.setItem('accessToken', newAccessToken);
       return newAccessToken;
-    } catch (error) {
+    } catch {
       // If refresh fails, clear tokens and redirect to login
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
@@ -68,8 +70,13 @@ class ApiClient {
     isRetry = false
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    
+    // Check if body is FormData to skip Content-Type header
+    const isFormData = options.body instanceof FormData;
+    const skipContentType = isFormData || options.headers && 'Content-Type' in options.headers;
+    
     const headers = {
-      ...this.getAuthHeader(),
+      ...this.getAuthHeader(skipContentType),
       ...options.headers,
     };
 
@@ -123,10 +130,14 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'GET' });
   }
 
-  async post<T>(endpoint: string, data?: unknown): Promise<T> {
+  async post<T>(endpoint: string, data?: unknown, options?: RequestInit): Promise<T> {
+    // Check if data is FormData - if so, don't stringify
+    const isFormData = data instanceof FormData;
+    
     return this.request<T>(endpoint, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: isFormData ? data as BodyInit : JSON.stringify(data),
+      ...options,
     });
   }
 

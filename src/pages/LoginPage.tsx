@@ -10,13 +10,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { authService } from "@/services/auth.service";
+import { ModeToggle } from "@/components/mode-toggle";
+import { authService, type User } from "@/services/auth.service";
 
 interface LoginPageProps {
-  onLogin?: (user: any) => void;
+  onLogin?: (user: User) => void;
+  onRegister?: () => void;
+  onForgotPassword?: () => void;
 }
 
-export function LoginPage({ onLogin }: LoginPageProps = {}) {
+export function LoginPage({
+  onLogin,
+  onRegister,
+  onForgotPassword,
+}: LoginPageProps = {}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -33,9 +40,10 @@ export function LoginPage({ onLogin }: LoginPageProps = {}) {
       if (response.success && onLogin) {
         onLogin(response.data.user);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { message?: string };
       setError(
-        err.message || "Login fehlgeschlagen. Bitte versuchen Sie es erneut."
+        error.message || "Login fehlgeschlagen. Bitte versuchen Sie es erneut."
       );
       console.error("Login error:", err);
     } finally {
@@ -45,6 +53,9 @@ export function LoginPage({ onLogin }: LoginPageProps = {}) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
+      <div className="absolute top-4 right-4">
+        <ModeToggle />
+      </div>
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
@@ -100,7 +111,7 @@ export function LoginPage({ onLogin }: LoginPageProps = {}) {
                   className="text-sm text-primary hover:underline"
                   onClick={(e) => {
                     e.preventDefault();
-                    alert("Passwort zurücksetzen - Feature kommt bald!");
+                    if (onForgotPassword) onForgotPassword();
                   }}
                 >
                   Vergessen?
@@ -221,7 +232,7 @@ export function LoginPage({ onLogin }: LoginPageProps = {}) {
                 className="text-primary hover:underline font-medium"
                 onClick={(e) => {
                   e.preventDefault();
-                  alert("Registrierung - Feature kommt bald!");
+                  if (onRegister) onRegister();
                 }}
               >
                 Jetzt registrieren

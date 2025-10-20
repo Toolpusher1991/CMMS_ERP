@@ -5,6 +5,7 @@ import {
   refreshAccessToken,
   logout,
   getMe,
+  forgotPassword,
 } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
@@ -15,5 +16,6 @@ router.post('/login', login);
 router.post('/refresh', refreshAccessToken);
 router.post('/logout', authenticate, logout);
 router.get('/me', authenticate, getMe);
+router.post('/forgot-password', forgotPassword);
 
 export default router;

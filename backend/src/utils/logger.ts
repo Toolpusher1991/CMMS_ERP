@@ -64,4 +64,17 @@ export const securityLogger = {
   userDeleted: (userId: string, by: string) => {
     logger.info(`User deleted - User: ${userId}, By: ${by}`);
   },
+  
+  // Generic log methods for other security events
+  info: (message: string) => {
+    logger.info(message);
+  },
+  
+  warn: (message: string) => {
+    logger.warn(message);
+  },
+  
+  error: (message: string) => {
+    logger.error(message);
+  },
 };
