@@ -9,13 +9,15 @@ import userManagementRoutes from './routes/user-management.routes';
 import projectRoutes from './routes/project.routes';
 import fileRoutes from './routes/file.routes';
 import actionRoutes from './routes/actions';
+import rigRoutes from './routes/rigs.routes';
+import equipmentRoutes from './routes/equipment.routes';
 import { errorHandler } from './middleware/error.middleware';
 import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 // Security middleware
 app.use(
@@ -73,6 +75,8 @@ app.use('/api/user-management', userManagementRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/actions', actionRoutes);
+app.use('/api/rigs', rigRoutes);
+app.use('/api/equipment', equipmentRoutes);
 
 // Error handling
 app.use(errorHandler);

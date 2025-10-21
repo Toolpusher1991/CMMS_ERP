@@ -188,3 +188,57 @@ model ActionFile {
 
   @@map("action_files")
 }
+
+model Rig {
+  id                String   @id @default(uuid())
+  name              String   @unique // T700, T46, T350, etc.
+  category          String   // Schwerlast, Mittlere Leistung, Kompakt
+  
+  // Technical Specifications
+  maxDepth          Int      // in meters
+  maxHookLoad       Int      // in tons
+  footprint         String   // Klein, Mittel, Groß
+  rotaryTorque      Int      // in Nm
+  pumpPressure      Int      // in psi
+  
+  // Equipment Details (editierbar durch Admin)
+  drawworks         String   // z.B. "2000 HP"
+  mudPumps          String   // z.B. "2x 2200 HP Triplex"
+  topDrive          String   // z.B. "1000 HP"
+  derrickCapacity   String   // z.B. "1000 t"
+  crewSize          String   // z.B. "45-50"
+  mobilizationTime  String   // z.B. "30-45 Tage"
+  
+  // Pricing
+  dayRate           String   // Tagesrate in EUR
+  
+  // Description
+  description       String
+  applications      String   // JSON array as string
+  technicalSpecs    String
+  
+  // Audit
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  lastEditedBy      String?  // Admin user ID
+  
+  @@map("rigs")
+}
+
+model Equipment {
+  id          String   @id @default(uuid())
+  category    String   // drillPipe, tanks, power, camps, safety, mud, bop, cranes, misc
+  name        String
+  price       String   // Preis in EUR
+  
+  // Dynamic Properties (stored as JSON)
+  properties  String   // JSON object with custom key-value pairs
+  
+  // Audit
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?  // Admin user ID
+  lastEditedBy String? // Admin user ID
+  
+  @@map("equipment")
+}

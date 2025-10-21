@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -37,8 +37,24 @@ import {
   Shield,
   Users,
   BarChart3,
+  Edit,
+  Save,
+  X,
+  Plus,
+  Trash2,
+  RefreshCw,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { rigService } from "@/services/rig.service";
+import { authService } from "@/services/auth.service";
 
 // Types
 interface ProjectRequirements {
@@ -59,7 +75,7 @@ interface ProjectRequirements {
 }
 
 interface Rig {
-  id: number;
+  id: string;
   name: string;
   category: string;
   maxDepth: number;
@@ -88,6 +104,9 @@ interface EquipmentItem {
 
 const RigConfigurator = () => {
   const { toast } = useToast();
+  const [isAdmin] = useState(authService.isAdmin());
+  const [loadingRigs, setLoadingRigs] = useState(false);
+
   const [requirements, setRequirements] = useState<ProjectRequirements>({
     projectName: "",
     clientName: "",
@@ -120,126 +139,56 @@ const RigConfigurator = () => {
     misc: [],
   });
 
-  // Bohranlagen Datenbank
-  const rigs: Rig[] = [
-    {
-      id: 1,
-      name: "T700",
-      category: "Schwerlast",
-      maxDepth: 7000,
-      maxHookLoad: 700,
-      footprint: "Groß",
-      rotaryTorque: 85000,
-      pumpPressure: 7500,
-      drawworks: "2000 HP",
-      mudPumps: "2x 2200 HP Triplex",
-      topDrive: "1000 HP",
-      derrickCapacity: "1000 t",
-      crewSize: "45-50",
-      mobilizationTime: "30-45 Tage",
-      dayRate: "85000",
-      description:
-        "Hochleistungs-Bohranlage für Tiefbohrungen und extreme Lasten",
-      applications: ["Tiefbohrungen", "Offshore", "Hochdruck-Formationen"],
-      technicalSpecs:
-        "API 4F Zertifizierung, DNV-GL Standard, vollautomatisches Pipe Handling",
-    },
-    {
-      id: 2,
-      name: "T46",
-      category: "Schwerlast",
-      maxDepth: 6000,
-      maxHookLoad: 460,
-      footprint: "Groß",
-      rotaryTorque: 65000,
-      pumpPressure: 7000,
-      drawworks: "1500 HP",
-      mudPumps: "2x 1600 HP Triplex",
-      topDrive: "750 HP",
-      derrickCapacity: "650 t",
-      crewSize: "40-45",
-      mobilizationTime: "25-35 Tage",
-      dayRate: "65000",
-      description:
-        "Vielseitige Schwerlast-Bohranlage für mittlere bis tiefe Bohrungen",
-      applications: [
-        "Mittlere Tiefbohrungen",
-        "Onshore",
-        "Standardformationen",
-      ],
-      technicalSpecs: "API 8C Zertifizierung, automatisches Roughneck System",
-    },
-    {
-      id: 3,
-      name: "T350",
-      category: "Mittlere Leistung",
-      maxDepth: 4500,
-      maxHookLoad: 350,
-      footprint: "Mittel",
-      rotaryTorque: 45000,
-      pumpPressure: 5500,
-      drawworks: "1200 HP",
-      mudPumps: "2x 1200 HP Triplex",
-      topDrive: "500 HP",
-      derrickCapacity: "450 t",
-      crewSize: "30-35",
-      mobilizationTime: "20-25 Tage",
-      dayRate: "48000",
-      description: "Ausgewogene Lösung für mittlere Bohrtiefen",
-      applications: ["Mittlere Bohrungen", "Onshore", "Vielseitig einsetzbar"],
-      technicalSpecs: "Kompaktes Design, modularer Aufbau",
-    },
-    {
-      id: 4,
-      name: "T208",
-      category: "Kompakt",
-      maxDepth: 3000,
-      maxHookLoad: 208,
-      footprint: "Klein",
-      rotaryTorque: 28000,
-      pumpPressure: 4500,
-      drawworks: "750 HP",
-      mudPumps: "1x 1000 HP Triplex",
-      topDrive: "350 HP",
-      derrickCapacity: "250 t",
-      crewSize: "20-25",
-      mobilizationTime: "10-15 Tage",
-      dayRate: "32000",
-      description: "Kompakte Bohranlage für begrenzte Platzverhältnisse",
-      applications: [
-        "Flache Bohrungen",
-        "Platzbeschränkte Standorte",
-        "Workover",
-      ],
-      technicalSpecs: "Schnelle Mobilisierung, minimaler Footprint",
-    },
-    {
-      id: 5,
-      name: "T207",
-      category: "Kompakt",
-      maxDepth: 2800,
-      maxHookLoad: 207,
-      footprint: "Klein",
-      rotaryTorque: 25000,
-      pumpPressure: 4200,
-      drawworks: "700 HP",
-      mudPumps: "1x 900 HP Triplex",
-      topDrive: "300 HP",
-      derrickCapacity: "230 t",
-      crewSize: "18-22",
-      mobilizationTime: "8-12 Tage",
-      dayRate: "28000",
-      description: "Platzsparende Lösung für flache bis mittlere Bohrungen",
-      applications: ["Flache Bohrungen", "Enge Standorte", "Wartungsarbeiten"],
-      technicalSpecs: "Containerbasiert, schneller Auf-/Abbau",
-    },
-  ];
+  // Preisverwaltung
+  const [editPriceDialogOpen, setEditPriceDialogOpen] = useState(false);
+  const [editingRig, setEditingRig] = useState<Rig | null>(null);
+  const [editingEquipmentCategory, setEditingEquipmentCategory] = useState<
+    string | null
+  >(null);
+  const [editingEquipmentItem, setEditingEquipmentItem] =
+    useState<EquipmentItem | null>(null);
+  const [tempPrice, setTempPrice] = useState("");
 
-  // Equipment Katalog mit Kategorien
-  const equipmentCategories = {
+  // Equipment Management
+  const [equipmentDialogOpen, setEquipmentDialogOpen] = useState(false);
+  const [equipmentFormMode, setEquipmentFormMode] = useState<"add" | "edit">(
+    "add"
+  );
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [equipmentForm, setEquipmentForm] = useState<Record<string, string>>({
+    id: "",
+    name: "",
+    price: "",
+  });
+
+  // Rig Management (Admin only)
+  const [rigEditDialogOpen, setRigEditDialogOpen] = useState(false);
+  const [editingRigData, setEditingRigData] = useState<Rig | null>(null);
+  const [savingRig, setSavingRig] = useState(false);
+
+  // Bohranlagen Datenbank (wird vom Backend geladen)
+  const [rigs, setRigs] = useState<Rig[]>([]);
+
+  // Icon mapping for equipment categories (not in state, to prevent serialization issues)
+  const equipmentCategoryIcons: Record<
+    string,
+    React.ComponentType<{ className?: string }>
+  > = {
+    drillPipe: Wrench,
+    tanks: Droplets,
+    power: Zap,
+    camps: Users,
+    safety: Shield,
+    mud: Settings,
+    bop: AlertCircle,
+    cranes: Truck,
+    misc: Package,
+  };
+
+  // Equipment Katalog mit Kategorien (jetzt mit State)
+  const [equipmentCategories, setEquipmentCategories] = useState({
     drillPipe: {
       name: "Bohrgestänge & Drill String",
-      icon: Wrench,
       items: [
         {
           id: "dp1",
@@ -277,7 +226,7 @@ const RigConfigurator = () => {
     },
     tanks: {
       name: "Tanks & Silos",
-      icon: Droplets,
+
       items: [
         {
           id: "tank1",
@@ -312,7 +261,7 @@ const RigConfigurator = () => {
     },
     power: {
       name: "Stromversorgung",
-      icon: Zap,
+
       items: [
         {
           id: "pow1",
@@ -339,7 +288,7 @@ const RigConfigurator = () => {
     },
     camps: {
       name: "Unterkünfte & Büros",
-      icon: Users,
+
       items: [
         {
           id: "camp1",
@@ -379,7 +328,7 @@ const RigConfigurator = () => {
     },
     safety: {
       name: "Sicherheit & Gas-Detektion",
-      icon: Shield,
+
       items: [
         {
           id: "gas1",
@@ -413,7 +362,7 @@ const RigConfigurator = () => {
     },
     mud: {
       name: "Spülungssysteme",
-      icon: Settings,
+
       items: [
         {
           id: "mud1",
@@ -454,7 +403,7 @@ const RigConfigurator = () => {
     },
     bop: {
       name: "BOP & Well Control",
-      icon: AlertCircle,
+
       items: [
         {
           id: "bop1",
@@ -487,7 +436,7 @@ const RigConfigurator = () => {
     },
     cranes: {
       name: "Krane & Hebetechnik",
-      icon: Truck,
+
       items: [
         {
           id: "crane1",
@@ -521,7 +470,7 @@ const RigConfigurator = () => {
     },
     misc: {
       name: "Sonstiges",
-      icon: Package,
+
       items: [
         {
           id: "misc1",
@@ -551,60 +500,480 @@ const RigConfigurator = () => {
         },
       ],
     },
+  });
+
+  // LocalStorage: Lade gespeicherte Equipment-Daten beim Start
+  useEffect(() => {
+    const savedEquipment = localStorage.getItem("rigConfigurator_equipment");
+    if (savedEquipment) {
+      try {
+        const parsed = JSON.parse(savedEquipment);
+        setEquipmentCategories(parsed);
+        toast({
+          title: "Daten geladen",
+          description: "Gespeicherte Equipment-Daten wurden wiederhergestellt.",
+        });
+      } catch (error) {
+        console.error("Fehler beim Laden der Equipment-Daten:", error);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Backend: Lade Rigs vom Backend
+  useEffect(() => {
+    const loadRigsFromBackend = async () => {
+      setLoadingRigs(true);
+      try {
+        const result = await rigService.getAllRigs();
+        if (result.success && result.data.length > 0) {
+          setRigs(result.data);
+          toast({
+            title: "Rigs geladen",
+            description: `${result.data.length} Bohranlagen vom Backend geladen.`,
+          });
+        }
+      } catch (error) {
+        console.error("Fehler beim Laden der Rigs:", error);
+        toast({
+          title: "Backend-Fehler",
+          description:
+            "Konnte Rigs nicht vom Backend laden. Fallback auf lokale Daten.",
+          variant: "destructive",
+        });
+        // Fallback: Wenn Backend nicht erreichbar, nutze die ursprünglichen hardcoded Daten
+        setRigs([
+          {
+            id: "t700",
+            name: "T700",
+            category: "Schwerlast",
+            maxDepth: 7000,
+            maxHookLoad: 700,
+            footprint: "Groß",
+            rotaryTorque: 85000,
+            pumpPressure: 7500,
+            drawworks: "2000 HP",
+            mudPumps: "2x 2200 HP Triplex",
+            topDrive: "1000 HP",
+            derrickCapacity: "1000 t",
+            crewSize: "45-50",
+            mobilizationTime: "30-45 Tage",
+            dayRate: "85000",
+            description:
+              "Hochleistungs-Bohranlage für Tiefbohrungen und extreme Lasten",
+            applications: [
+              "Tiefbohrungen",
+              "Offshore",
+              "Hochdruck-Formationen",
+            ],
+            technicalSpecs:
+              "API 4F Zertifizierung, DNV-GL Standard, vollautomatisches Pipe Handling",
+          },
+          {
+            id: "t46",
+            name: "T46",
+            category: "Schwerlast",
+            maxDepth: 6000,
+            maxHookLoad: 460,
+            footprint: "Groß",
+            rotaryTorque: 65000,
+            pumpPressure: 7000,
+            drawworks: "1500 HP",
+            mudPumps: "2x 1600 HP Triplex",
+            topDrive: "750 HP",
+            derrickCapacity: "650 t",
+            crewSize: "40-45",
+            mobilizationTime: "25-35 Tage",
+            dayRate: "65000",
+            description:
+              "Vielseitige Schwerlast-Bohranlage für mittlere bis tiefe Bohrungen",
+            applications: [
+              "Mittlere Tiefbohrungen",
+              "Onshore",
+              "Standardformationen",
+            ],
+            technicalSpecs:
+              "API 8C Zertifizierung, automatisches Roughneck System",
+          },
+          {
+            id: "t350",
+            name: "T350",
+            category: "Mittlere Leistung",
+            maxDepth: 4500,
+            maxHookLoad: 350,
+            footprint: "Mittel",
+            rotaryTorque: 45000,
+            pumpPressure: 5500,
+            drawworks: "1200 HP",
+            mudPumps: "2x 1200 HP Triplex",
+            topDrive: "500 HP",
+            derrickCapacity: "450 t",
+            crewSize: "30-35",
+            mobilizationTime: "20-25 Tage",
+            dayRate: "48000",
+            description: "Ausgewogene Lösung für mittlere Bohrtiefen",
+            applications: [
+              "Mittlere Bohrungen",
+              "Onshore",
+              "Vielseitig einsetzbar",
+            ],
+            technicalSpecs: "Kompaktes Design, modularer Aufbau",
+          },
+          {
+            id: "t208",
+            name: "T208",
+            category: "Kompakt",
+            maxDepth: 3000,
+            maxHookLoad: 208,
+            footprint: "Klein",
+            rotaryTorque: 28000,
+            pumpPressure: 4500,
+            drawworks: "750 HP",
+            mudPumps: "1x 1000 HP Triplex",
+            topDrive: "350 HP",
+            derrickCapacity: "250 t",
+            crewSize: "20-25",
+            mobilizationTime: "10-15 Tage",
+            dayRate: "32000",
+            description: "Kompakte Bohranlage für begrenzte Platzverhältnisse",
+            applications: [
+              "Flache Bohrungen",
+              "Platzbeschränkte Standorte",
+              "Workover",
+            ],
+            technicalSpecs: "Schnelle Mobilisierung, minimaler Footprint",
+          },
+          {
+            id: "t207",
+            name: "T207",
+            category: "Kompakt",
+            maxDepth: 2800,
+            maxHookLoad: 207,
+            footprint: "Klein",
+            rotaryTorque: 25000,
+            pumpPressure: 4200,
+            drawworks: "700 HP",
+            mudPumps: "1x 900 HP Triplex",
+            topDrive: "300 HP",
+            derrickCapacity: "230 t",
+            crewSize: "18-22",
+            mobilizationTime: "8-12 Tage",
+            dayRate: "28000",
+            description:
+              "Platzsparende Lösung für flache bis mittlere Bohrungen",
+            applications: [
+              "Flache Bohrungen",
+              "Enge Standorte",
+              "Wartungsarbeiten",
+            ],
+            technicalSpecs: "Containerbasiert, schneller Auf-/Abbau",
+          },
+        ]);
+      } finally {
+        setLoadingRigs(false);
+      }
+    };
+
+    loadRigsFromBackend();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // LocalStorage: Speichere Equipment-Daten bei Änderungen
+  useEffect(() => {
+    if (Object.keys(equipmentCategories).length > 0) {
+      localStorage.setItem(
+        "rigConfigurator_equipment",
+        JSON.stringify(equipmentCategories)
+      );
+    }
+  }, [equipmentCategories]);
+
+  // Equipment-Management Funktionen
+  const openAddEquipmentDialog = (category: string) => {
+    setSelectedCategory(category);
+    setEquipmentFormMode("add");
+    setEquipmentForm({
+      id: `${category}_${Date.now()}`,
+      name: "",
+      price: "",
+    });
+    setEquipmentDialogOpen(true);
   };
 
-  // Rig Matching Logic
+  const openEditEquipmentDialog = (category: string, item: EquipmentItem) => {
+    setSelectedCategory(category);
+    setEquipmentFormMode("edit");
+    setEquipmentForm({ ...item } as Record<string, string>);
+    setEquipmentDialogOpen(true);
+  };
+
+  const saveEquipmentItem = () => {
+    if (!selectedCategory || !equipmentForm.name || !equipmentForm.price) {
+      toast({
+        title: "Fehler",
+        description: "Bitte füllen Sie alle Pflichtfelder aus.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setEquipmentCategories((prev) => {
+      const category = prev[selectedCategory as keyof typeof prev];
+      if (!category) return prev;
+
+      const updatedCategory = {
+        ...category,
+        items:
+          equipmentFormMode === "add"
+            ? [
+                ...(category as { items: EquipmentItem[] }).items,
+                equipmentForm as EquipmentItem,
+              ]
+            : (category as { items: EquipmentItem[] }).items.map((item) =>
+                item.id === equipmentForm.id
+                  ? (equipmentForm as EquipmentItem)
+                  : item
+              ),
+      };
+
+      return {
+        ...prev,
+        [selectedCategory]: updatedCategory,
+      };
+    });
+
+    toast({
+      title:
+        equipmentFormMode === "add"
+          ? "Equipment hinzugefügt"
+          : "Equipment aktualisiert",
+      description: `${equipmentForm.name} wurde erfolgreich ${
+        equipmentFormMode === "add" ? "hinzugefügt" : "aktualisiert"
+      }.`,
+    });
+
+    closeEquipmentDialog();
+  };
+
+  const deleteEquipmentItem = (category: string, itemId: string) => {
+    if (!confirm("Möchten Sie dieses Equipment wirklich löschen?")) return;
+
+    setEquipmentCategories((prev) => {
+      const cat = prev[category as keyof typeof prev];
+      if (!cat) return prev;
+
+      return {
+        ...prev,
+        [category]: {
+          ...cat,
+          items: (cat as { items: EquipmentItem[] }).items.filter(
+            (item) => item.id !== itemId
+          ),
+        },
+      };
+    });
+
+    toast({
+      title: "Equipment gelöscht",
+      description: "Das Equipment wurde erfolgreich entfernt.",
+    });
+  };
+
+  const closeEquipmentDialog = () => {
+    setEquipmentDialogOpen(false);
+    setSelectedCategory("");
+    setEquipmentForm({ id: "", name: "", price: "" });
+  };
+
+  // Preisbearbeitungs-Funktionen
+  const openRigPriceEdit = (rig: Rig) => {
+    setEditingRig(rig);
+    setTempPrice(rig.dayRate);
+    setEditPriceDialogOpen(true);
+  };
+
+  const savePrice = () => {
+    if (editingRig) {
+      // Rig-Preis aktualisieren
+      setRigs((prevRigs) =>
+        prevRigs.map((r) =>
+          r.id === editingRig.id ? { ...r, dayRate: tempPrice } : r
+        )
+      );
+
+      // Wenn das bearbeitete Rig ausgewählt ist, auch selectedRig aktualisieren
+      if (selectedRig?.id === editingRig.id) {
+        setSelectedRig({ ...editingRig, dayRate: tempPrice });
+      }
+
+      toast({
+        title: "Preis aktualisiert",
+        description: `Tagesrate für ${editingRig.name} wurde auf €${parseFloat(
+          tempPrice
+        ).toLocaleString("de-DE")} gesetzt.`,
+      });
+    } else if (editingEquipmentCategory && editingEquipmentItem) {
+      // Equipment-Preis aktualisieren
+      setEquipmentCategories((prev) => ({
+        ...prev,
+        [editingEquipmentCategory]: {
+          ...prev[editingEquipmentCategory as keyof typeof prev],
+          items: (
+            prev[editingEquipmentCategory as keyof typeof prev] as {
+              items: EquipmentItem[];
+            }
+          ).items.map((item) =>
+            item.id === editingEquipmentItem.id
+              ? { ...item, price: tempPrice }
+              : item
+          ),
+        },
+      }));
+
+      toast({
+        title: "Preis aktualisiert",
+        description: `Preis für ${
+          editingEquipmentItem.name
+        } wurde auf €${parseFloat(tempPrice).toLocaleString("de-DE")} gesetzt.`,
+      });
+    }
+
+    closeEditDialog();
+  };
+
+  const closeEditDialog = () => {
+    setEditPriceDialogOpen(false);
+    setEditingRig(null);
+    setEditingEquipmentCategory(null);
+    setEditingEquipmentItem(null);
+    setTempPrice("");
+  };
+
+  // Rig Edit Functions (Admin only)
+  const openRigEdit = (rig: Rig) => {
+    setEditingRigData({ ...rig });
+    setRigEditDialogOpen(true);
+  };
+
+  const saveRigChanges = async () => {
+    if (!editingRigData || !isAdmin) {
+      toast({
+        title: "Fehler",
+        description: "Nur Administratoren können Rigs bearbeiten.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingRig(true);
+    try {
+      const result = await rigService.updateRig(editingRigData.id, {
+        drawworks: editingRigData.drawworks,
+        mudPumps: editingRigData.mudPumps,
+        topDrive: editingRigData.topDrive,
+        derrickCapacity: editingRigData.derrickCapacity,
+        crewSize: editingRigData.crewSize,
+        mobilizationTime: editingRigData.mobilizationTime,
+        dayRate: editingRigData.dayRate,
+      });
+
+      if (result.success) {
+        // Update local state
+        setRigs((prevRigs) =>
+          prevRigs.map((r) => (r.id === editingRigData.id ? result.data : r))
+        );
+
+        // Update selected rig if necessary
+        if (selectedRig?.id === editingRigData.id) {
+          setSelectedRig(result.data);
+        }
+
+        toast({
+          title: "Erfolgreich gespeichert",
+          description: `Änderungen an ${editingRigData.name} wurden im Backend gespeichert.`,
+        });
+
+        setRigEditDialogOpen(false);
+        setEditingRigData(null);
+      }
+    } catch (error) {
+      console.error("Fehler beim Speichern:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Backend-Fehler. Änderungen wurden nicht gespeichert.";
+      toast({
+        title: "Speichern fehlgeschlagen",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingRig(false);
+    }
+  };
+
+  const closeRigEditDialog = () => {
+    setRigEditDialogOpen(false);
+    setEditingRigData(null);
+  };
+
+  // Rig Matching Logic - Zeige immer alle Rigs
   const matchedRigs = useMemo(() => {
     const depth = parseFloat(requirements.depth) || 0;
     const hookLoad = parseFloat(requirements.hookLoad) || 0;
     const torque = parseFloat(requirements.rotaryTorque) || 0;
     const pressure = parseFloat(requirements.pumpPressure) || 0;
 
+    // Wenn keine Anforderungen eingegeben wurden, zeige alle Rigs ohne Bewertung
     if (depth === 0 && hookLoad === 0 && torque === 0 && pressure === 0) {
-      return [];
+      return rigs.map((rig) => ({
+        ...rig,
+        score: 0,
+        warnings: [],
+        isSuitable: false,
+      }));
     }
 
-    return rigs
-      .map((rig) => {
-        let score = 0;
-        const warnings: string[] = [];
+    const evaluated = rigs.map((rig) => {
+      let score = 0;
+      const warnings: string[] = [];
 
-        if (depth > 0) {
-          if (rig.maxDepth >= depth) score += 25;
-          else warnings.push(`Tiefe überschreitet Maximum (${rig.maxDepth}m)`);
-        }
+      if (depth > 0) {
+        if (rig.maxDepth >= depth) score += 25;
+        else warnings.push(`Tiefe überschreitet Maximum (${rig.maxDepth}m)`);
+      }
 
-        if (hookLoad > 0) {
-          if (rig.maxHookLoad >= hookLoad) score += 25;
-          else warnings.push(`Hakenlast zu hoch (Max: ${rig.maxHookLoad}t)`);
-        }
+      if (hookLoad > 0) {
+        if (rig.maxHookLoad >= hookLoad) score += 25;
+        else warnings.push(`Hakenlast zu hoch (Max: ${rig.maxHookLoad}t)`);
+      }
 
-        if (torque > 0) {
-          if (rig.rotaryTorque >= torque) score += 25;
-          else warnings.push("Drehmoment unzureichend");
-        }
+      if (torque > 0) {
+        if (rig.rotaryTorque >= torque) score += 25;
+        else warnings.push("Drehmoment unzureichend");
+      }
 
-        if (pressure > 0) {
-          if (rig.pumpPressure >= pressure) score += 25;
-          else warnings.push("Pumpendruck zu niedrig");
-        }
+      if (pressure > 0) {
+        if (rig.pumpPressure >= pressure) score += 25;
+        else warnings.push("Pumpendruck zu niedrig");
+      }
 
-        if (
-          requirements.footprint &&
-          rig.footprint !== requirements.footprint
-        ) {
-          score -= 10;
-        }
+      if (requirements.footprint && rig.footprint !== requirements.footprint) {
+        score -= 10;
+      }
 
-        return {
-          ...rig,
-          score,
-          warnings,
-          isSuitable: warnings.length === 0 && score > 0,
-        };
-      })
-      .filter((rig) => rig.score > 0)
-      .sort((a, b) => b.score - a.score);
+      return {
+        ...rig,
+        score,
+        warnings,
+        isSuitable: warnings.length === 0 && score > 0,
+      };
+    });
+
+    // Don't hide rigs with score === 0. Instead always show all rigs
+    // sorted by score so users see best matches first and warnings for
+    // rigs that don't meet the requirements.
+    return evaluated.sort((a, b) => b.score - a.score);
   }, [requirements, rigs]);
 
   // Equipment Toggle
@@ -660,26 +1029,30 @@ const RigConfigurator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
+      <div className="border-b bg-card">
         <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-                <Building2 className="h-8 w-8" />
+                <Building2 className="h-8 w-8 text-primary" />
                 Bohranlagen Konfigurator
               </h1>
-              <p className="text-blue-100">
+              <p className="text-muted-foreground">
                 Professionelle Anlagenkonfiguration für Commerce
               </p>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-blue-200">Gesamtpreis (Tagesrate)</p>
-              <p className="text-3xl font-bold">
-                € {calculateTotal().toLocaleString("de-DE")}
-              </p>
-            </div>
+            <Card className="px-6 py-4">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">
+                  Gesamtpreis (Tagesrate)
+                </p>
+                <p className="text-3xl font-bold text-primary">
+                  € {calculateTotal().toLocaleString("de-DE")}
+                </p>
+              </div>
+            </Card>
           </div>
         </div>
       </div>
@@ -690,22 +1063,21 @@ const RigConfigurator = () => {
           <TabsList className="grid w-full grid-cols-4 h-auto">
             <TabsTrigger
               value="requirements"
-              className="flex flex-col gap-1 py-3"
+              className="flex flex-col gap-1 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <FileText className="h-5 w-5" />
               <span className="text-xs">Anforderungen</span>
             </TabsTrigger>
             <TabsTrigger
               value="rigs"
-              className="flex flex-col gap-1 py-3"
-              disabled={matchedRigs.length === 0}
+              className="flex flex-col gap-1 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <Building2 className="h-5 w-5" />
               <span className="text-xs">Anlagen ({matchedRigs.length})</span>
             </TabsTrigger>
             <TabsTrigger
               value="equipment"
-              className="flex flex-col gap-1 py-3"
+              className="flex flex-col gap-1 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               disabled={!selectedRig}
             >
               <Package className="h-5 w-5" />
@@ -713,7 +1085,7 @@ const RigConfigurator = () => {
             </TabsTrigger>
             <TabsTrigger
               value="summary"
-              className="flex flex-col gap-1 py-3"
+              className="flex flex-col gap-1 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               disabled={!selectedRig}
             >
               <BarChart3 className="h-5 w-5" />
@@ -723,14 +1095,14 @@ const RigConfigurator = () => {
 
           {/* Tab 1: Requirements */}
           <TabsContent value="requirements" className="space-y-6">
-            <Card>
-              <CardHeader>
+            <Card className="border-2">
+              <CardHeader className="bg-muted/50">
                 <CardTitle>Projekt-Anforderungen</CardTitle>
                 <CardDescription>
                   Geben Sie die Projekt-Details und Bohr-Parameter ein
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-6 pt-6">
                 {/* Project Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -950,6 +1322,53 @@ const RigConfigurator = () => {
 
                 <Separator />
 
+                {/* Debug Panel - zeigt geparste Werte */}
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                    🔍 Debug: Geparste Filter-Werte
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <span className="text-blue-600 dark:text-blue-400">
+                        Tiefe:
+                      </span>{" "}
+                      <span className="font-mono font-semibold">
+                        {parseFloat(requirements.depth) || 0} m
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-blue-600 dark:text-blue-400">
+                        Hakenlast:
+                      </span>{" "}
+                      <span className="font-mono font-semibold">
+                        {parseFloat(requirements.hookLoad) || 0} t
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-blue-600 dark:text-blue-400">
+                        Drehmoment:
+                      </span>{" "}
+                      <span className="font-mono font-semibold">
+                        {parseFloat(requirements.rotaryTorque) || 0} Nm
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-blue-600 dark:text-blue-400">
+                        Pumpendruck:
+                      </span>{" "}
+                      <span className="font-mono font-semibold">
+                        {parseFloat(requirements.pumpPressure) || 0} psi
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                    Rigs gefunden: {matchedRigs.length} | Angezeigt werden: alle
+                    Rigs (sortiert nach Passgenauigkeit)
+                  </p>
+                </div>
+
+                <Separator />
+
                 {/* Additional Notes */}
                 <div className="space-y-2">
                   <Label htmlFor="notes">Zusätzliche Anforderungen</Label>
@@ -1008,151 +1427,168 @@ const RigConfigurator = () => {
 
           {/* Tab 2: Rigs */}
           <TabsContent value="rigs" className="space-y-4">
-            {matchedRigs.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <AlertCircle className="h-16 w-16 text-muted-foreground mb-4" />
-                  <p className="text-lg font-semibold">
-                    Keine Anlagen gefunden
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Passen Sie die Anforderungen an
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              matchedRigs.map((rig, index) => (
-                <Card
-                  key={rig.id}
-                  className={`cursor-pointer transition-all ${
-                    selectedRig?.id === rig.id
-                      ? "ring-2 ring-blue-500 shadow-lg"
-                      : "hover:shadow-md"
-                  } ${
-                    rig.isSuitable && index === 0
-                      ? "border-2 border-green-500"
-                      : ""
-                  }`}
-                  onClick={() => setSelectedRig(rig)}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <CardTitle className="text-2xl">{rig.name}</CardTitle>
-                          <Badge variant="secondary">{rig.category}</Badge>
-                          {rig.isSuitable && index === 0 && (
-                            <Badge className="bg-green-500">EMPFEHLUNG</Badge>
-                          )}
-                          {selectedRig?.id === rig.id && (
-                            <Badge className="bg-blue-500">AUSGEWÄHLT</Badge>
-                          )}
-                        </div>
-                        <CardDescription className="text-base">
-                          {rig.description}
-                        </CardDescription>
+            {matchedRigs.map((rig, index) => (
+              <Card
+                key={rig.id}
+                className={`cursor-pointer transition-all border-2 ${
+                  selectedRig?.id === rig.id
+                    ? "ring-2 ring-primary shadow-lg border-primary"
+                    : "hover:shadow-md hover:border-primary/50"
+                } ${
+                  rig.isSuitable && index === 0
+                    ? "border-green-500 bg-green-50/50 dark:bg-green-950/20"
+                    : ""
+                }`}
+                onClick={() => setSelectedRig(rig)}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <CardTitle className="text-2xl">{rig.name}</CardTitle>
+                        <Badge variant="secondary">{rig.category}</Badge>
+                        {rig.isSuitable && index === 0 && (
+                          <Badge className="bg-green-500">EMPFEHLUNG</Badge>
+                        )}
+                        {selectedRig?.id === rig.id && (
+                          <Badge className="bg-blue-500">AUSGEWÄHLT</Badge>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">
-                          Tagesrate
-                        </p>
+                      <CardDescription className="text-base">
+                        {rig.description}
+                      </CardDescription>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">Tagesrate</p>
+                      <div className="flex items-center justify-end gap-2">
                         <p className="text-2xl font-bold text-green-600">
                           € {parseFloat(rig.dayRate).toLocaleString("de-DE")}
                         </p>
+                        {isAdmin && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openRigPriceEdit(rig);
+                              }}
+                              className="h-8 w-8 p-0"
+                              title="Preis bearbeiten"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openRigEdit(rig);
+                              }}
+                              className="h-8 px-3"
+                              title="Rig bearbeiten"
+                            >
+                              <Settings className="h-4 w-4 mr-1" />
+                              Admin
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                      <div className="bg-muted p-3 rounded-lg">
-                        <p className="text-xs text-muted-foreground font-semibold mb-1">
-                          MAX. TIEFE
-                        </p>
-                        <p className="text-lg font-bold">
-                          {rig.maxDepth.toLocaleString()} m
-                        </p>
-                      </div>
-                      <div className="bg-muted p-3 rounded-lg">
-                        <p className="text-xs text-muted-foreground font-semibold mb-1">
-                          HAKENLAST
-                        </p>
-                        <p className="text-lg font-bold">{rig.maxHookLoad} t</p>
-                      </div>
-                      <div className="bg-muted p-3 rounded-lg">
-                        <p className="text-xs text-muted-foreground font-semibold mb-1">
-                          DREHMOMENT
-                        </p>
-                        <p className="text-lg font-bold">
-                          {rig.rotaryTorque.toLocaleString()} Nm
-                        </p>
-                      </div>
-                      <div className="bg-muted p-3 rounded-lg">
-                        <p className="text-xs text-muted-foreground font-semibold mb-1">
-                          PUMPENDRUCK
-                        </p>
-                        <p className="text-lg font-bold">
-                          {rig.pumpPressure.toLocaleString()} psi
-                        </p>
-                      </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
+                      <p className="text-xs text-muted-foreground font-semibold mb-1">
+                        MAX. TIEFE
+                      </p>
+                      <p className="text-lg font-bold text-primary">
+                        {rig.maxDepth.toLocaleString()} m
+                      </p>
                     </div>
+                    <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
+                      <p className="text-xs text-muted-foreground font-semibold mb-1">
+                        HAKENLAST
+                      </p>
+                      <p className="text-lg font-bold text-primary">
+                        {rig.maxHookLoad} t
+                      </p>
+                    </div>
+                    <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
+                      <p className="text-xs text-muted-foreground font-semibold mb-1">
+                        DREHMOMENT
+                      </p>
+                      <p className="text-lg font-bold text-primary">
+                        {rig.rotaryTorque.toLocaleString()} Nm
+                      </p>
+                    </div>
+                    <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
+                      <p className="text-xs text-muted-foreground font-semibold mb-1">
+                        PUMPENDRUCK
+                      </p>
+                      <p className="text-lg font-bold text-primary">
+                        {rig.pumpPressure.toLocaleString()} psi
+                      </p>
+                    </div>
+                  </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Drawworks</p>
-                        <p className="font-semibold">{rig.drawworks}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Mud Pumps</p>
-                        <p className="font-semibold">{rig.mudPumps}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Top Drive</p>
-                        <p className="font-semibold">{rig.topDrive}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Crew Size</p>
-                        <p className="font-semibold">{rig.crewSize}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Mobilisierung</p>
-                        <p className="font-semibold">{rig.mobilizationTime}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Platzbedarf</p>
-                        <p className="font-semibold">{rig.footprint}</p>
-                      </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Drawworks</p>
+                      <p className="font-semibold">{rig.drawworks}</p>
                     </div>
-
-                    {rig.warnings && rig.warnings.length > 0 && (
-                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                        <p className="text-sm font-semibold text-amber-800 mb-1">
-                          ⚠️ Hinweise:
-                        </p>
-                        <ul className="text-sm text-amber-700 list-disc list-inside">
-                          {rig.warnings.map((warning, idx) => (
-                            <li key={idx}>{warning}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    <div className="mt-4 flex gap-2">
-                      {rig.applications.map((app) => (
-                        <Badge key={app} variant="outline">
-                          {app}
-                        </Badge>
-                      ))}
+                    <div>
+                      <p className="text-muted-foreground">Mud Pumps</p>
+                      <p className="font-semibold">{rig.mudPumps}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+                    <div>
+                      <p className="text-muted-foreground">Top Drive</p>
+                      <p className="font-semibold">{rig.topDrive}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Crew Size</p>
+                      <p className="font-semibold">{rig.crewSize}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Mobilisierung</p>
+                      <p className="font-semibold">{rig.mobilizationTime}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Platzbedarf</p>
+                      <p className="font-semibold">{rig.footprint}</p>
+                    </div>
+                  </div>
+
+                  {rig.warnings && rig.warnings.length > 0 && (
+                    <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">
+                        ⚠️ Hinweise:
+                      </p>
+                      <ul className="text-sm text-amber-700 dark:text-amber-300 list-disc list-inside">
+                        {rig.warnings.map((warning, idx) => (
+                          <li key={idx}>{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex gap-2">
+                    {rig.applications.map((app) => (
+                      <Badge key={app} variant="outline">
+                        {app}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </TabsContent>
 
           {/* Tab 3: Equipment */}
           <TabsContent value="equipment" className="space-y-4">
-            <Card>
-              <CardHeader>
+            <Card className="border-2">
+              <CardHeader className="bg-muted/50">
                 <CardTitle>Zusatzausrüstung wählen</CardTitle>
                 <CardDescription>
                   Wählen Sie die benötigte Zusatzausrüstung für Ihr Projekt
@@ -1163,21 +1599,31 @@ const RigConfigurator = () => {
                   <div className="space-y-6">
                     {Object.entries(equipmentCategories).map(
                       ([key, category]) => {
-                        const Icon = category.icon;
+                        const Icon = equipmentCategoryIcons[key] || Package;
                         const selected = selectedEquipment[key] || [];
 
                         return (
                           <div key={key}>
-                            <div className="flex items-center gap-2 mb-3">
-                              <Icon className="h-5 w-5 text-blue-600" />
-                              <h3 className="text-lg font-semibold">
-                                {category.name}
-                              </h3>
-                              {selected.length > 0 && (
-                                <Badge variant="secondary">
-                                  {selected.length} ausgewählt
-                                </Badge>
-                              )}
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <Icon className="h-5 w-5 text-blue-600" />
+                                <h3 className="text-lg font-semibold">
+                                  {category.name}
+                                </h3>
+                                {selected.length > 0 && (
+                                  <Badge variant="secondary">
+                                    {selected.length} ausgewählt
+                                  </Badge>
+                                )}
+                              </div>
+                              <Button
+                                size="sm"
+                                onClick={() => openAddEquipmentDialog(key)}
+                                className="gap-2"
+                              >
+                                <Plus className="h-4 w-4" />
+                                Equipment hinzufügen
+                              </Button>
                             </div>
                             <div className="space-y-2">
                               {category.items.map((item) => {
@@ -1187,10 +1633,10 @@ const RigConfigurator = () => {
                                 return (
                                   <div
                                     key={item.id}
-                                    className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
+                                    className={`flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
                                       isSelected
-                                        ? "bg-blue-50 border-blue-300"
-                                        : "hover:bg-muted/50"
+                                        ? "bg-primary/5 border-primary shadow-sm"
+                                        : "hover:bg-muted/50 hover:border-muted-foreground/20"
                                     }`}
                                     onClick={() => toggleEquipment(key, item)}
                                   >
@@ -1215,15 +1661,48 @@ const RigConfigurator = () => {
                                       </p>
                                     </div>
                                     <div className="text-right flex-shrink-0">
-                                      <p className="font-bold text-green-600">
-                                        €{" "}
-                                        {parseFloat(item.price).toLocaleString(
-                                          "de-DE"
-                                        )}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        /Tag
-                                      </p>
+                                      <div className="flex items-center gap-2">
+                                        <div>
+                                          <p className="font-bold text-green-600">
+                                            €{" "}
+                                            {parseFloat(
+                                              item.price
+                                            ).toLocaleString("de-DE")}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            /Tag
+                                          </p>
+                                        </div>
+                                        <div className="flex gap-1">
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openEditEquipmentDialog(
+                                                key,
+                                                item
+                                              );
+                                            }}
+                                            className="h-8 w-8 p-0"
+                                            title="Equipment bearbeiten"
+                                          >
+                                            <Edit className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              deleteEquipmentItem(key, item.id);
+                                            }}
+                                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                            title="Equipment löschen"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
                                 );
@@ -1242,8 +1721,8 @@ const RigConfigurator = () => {
 
           {/* Tab 4: Summary */}
           <TabsContent value="summary" className="space-y-4">
-            <Card>
-              <CardHeader>
+            <Card className="border-2">
+              <CardHeader className="bg-muted/50">
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle>Konfigurations-Zusammenfassung</CardTitle>
@@ -1252,7 +1731,7 @@ const RigConfigurator = () => {
                       Konfiguration
                     </CardDescription>
                   </div>
-                  <Button onClick={exportConfiguration}>
+                  <Button onClick={exportConfiguration} size="lg">
                     <Download className="mr-2 h-4 w-4" />
                     PDF Export
                   </Button>
@@ -1300,10 +1779,10 @@ const RigConfigurator = () => {
                     <h3 className="text-lg font-semibold mb-3">
                       Ausgewählte Anlage
                     </h3>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="bg-primary/5 border-2 border-primary rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-xl font-bold">{selectedRig.name}</p>
-                        <p className="text-xl font-bold text-green-600">
+                        <p className="text-xl font-bold text-primary">
                           €{" "}
                           {parseFloat(selectedRig.dayRate).toLocaleString(
                             "de-DE"
@@ -1397,7 +1876,7 @@ const RigConfigurator = () => {
                 <Separator />
 
                 {/* Cost Summary */}
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-6">
+                <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-4">
                     Kosten-Übersicht (Tagesraten)
                   </h3>
@@ -1436,17 +1915,17 @@ const RigConfigurator = () => {
                   <Separator className="my-4" />
                   <div className="flex justify-between items-center">
                     <span className="text-xl font-bold">Gesamt Tagesrate</span>
-                    <span className="text-3xl font-bold text-green-700">
+                    <span className="text-3xl font-bold text-primary">
                       € {calculateTotal().toLocaleString("de-DE")}
                     </span>
                   </div>
                   {requirements.projectDuration && (
-                    <div className="mt-4 pt-4 border-t border-green-200">
+                    <div className="mt-4 pt-4 border-t border-primary/20">
                       <div className="flex justify-between items-center">
                         <span className="font-semibold">
                           Projektkosten ({requirements.projectDuration})
                         </span>
-                        <span className="text-xl font-bold text-green-800">
+                        <span className="text-xl font-bold text-primary">
                           €{" "}
                           {(
                             calculateTotal() *
@@ -1465,6 +1944,377 @@ const RigConfigurator = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Preis-Edit Dialog */}
+      <Dialog open={editPriceDialogOpen} onOpenChange={setEditPriceDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Preis bearbeiten</DialogTitle>
+            <DialogDescription>
+              {editingRig && `Tagesrate für ${editingRig.name} anpassen`}
+              {editingEquipmentItem &&
+                `Preis für ${editingEquipmentItem.name} anpassen`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="price">Preis (€)</Label>
+              <Input
+                id="price"
+                type="number"
+                value={tempPrice}
+                onChange={(e) => setTempPrice(e.target.value)}
+                placeholder="z.B. 85000"
+                className="text-lg font-semibold"
+              />
+              <p className="text-sm text-muted-foreground">
+                Formatiert: €{" "}
+                {tempPrice
+                  ? parseFloat(tempPrice).toLocaleString("de-DE")
+                  : "0"}
+                {editingRig && " / Tag"}
+                {editingEquipmentItem && " / Tag"}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeEditDialog}>
+              <X className="mr-2 h-4 w-4" />
+              Abbrechen
+            </Button>
+            <Button
+              onClick={savePrice}
+              disabled={!tempPrice || parseFloat(tempPrice) <= 0}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              Preis speichern
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Equipment Management Dialog */}
+      <Dialog open={equipmentDialogOpen} onOpenChange={setEquipmentDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {equipmentFormMode === "add"
+                ? "Neues Equipment hinzufügen"
+                : "Equipment bearbeiten"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedCategory &&
+                equipmentCategories[
+                  selectedCategory as keyof typeof equipmentCategories
+                ]?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="equipment-name">Name *</Label>
+              <Input
+                id="equipment-name"
+                value={equipmentForm.name}
+                onChange={(e) =>
+                  setEquipmentForm({ ...equipmentForm, name: e.target.value })
+                }
+                placeholder='z.B. 5" Bohrgestänge (Drill Pipe)'
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="equipment-price">Preis (€ / Tag) *</Label>
+              <Input
+                id="equipment-price"
+                type="number"
+                value={equipmentForm.price}
+                onChange={(e) =>
+                  setEquipmentForm({ ...equipmentForm, price: e.target.value })
+                }
+                placeholder="450"
+              />
+              {equipmentForm.price && (
+                <p className="text-sm text-muted-foreground">
+                  Formatiert: €{" "}
+                  {parseFloat(equipmentForm.price).toLocaleString("de-DE")} /
+                  Tag
+                </p>
+              )}
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">
+                Zusätzliche Eigenschaften (optional)
+              </Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Fügen Sie beliebige zusätzliche Informationen hinzu
+              </p>
+
+              {Object.entries(equipmentForm)
+                .filter(
+                  ([key]) => key !== "id" && key !== "name" && key !== "price"
+                )
+                .map(([key, value], index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      placeholder="Eigenschaft (z.B. spec, capacity)"
+                      value={key}
+                      onChange={(e) => {
+                        const newForm = { ...equipmentForm };
+                        delete newForm[key];
+                        newForm[e.target.value] = value;
+                        setEquipmentForm(newForm);
+                      }}
+                      className="flex-1"
+                    />
+                    <Input
+                      placeholder="Wert"
+                      value={value}
+                      onChange={(e) =>
+                        setEquipmentForm({
+                          ...equipmentForm,
+                          [key]: e.target.value,
+                        })
+                      }
+                      className="flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        const newForm = { ...equipmentForm };
+                        delete newForm[key];
+                        setEquipmentForm(newForm);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const newKey = `property_${Date.now()}`;
+                  setEquipmentForm({ ...equipmentForm, [newKey]: "" });
+                }}
+                className="w-full"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Eigenschaft hinzufügen
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeEquipmentDialog}>
+              <X className="mr-2 h-4 w-4" />
+              Abbrechen
+            </Button>
+            <Button
+              onClick={saveEquipmentItem}
+              disabled={!equipmentForm.name || !equipmentForm.price}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {equipmentFormMode === "add" ? "Hinzufügen" : "Speichern"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rig Edit Dialog (Admin only) */}
+      <Dialog open={rigEditDialogOpen} onOpenChange={setRigEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bohranlage bearbeiten</DialogTitle>
+            <DialogDescription>
+              Bearbeiten Sie die technischen Spezifikationen und
+              Equipment-Details für {editingRigData?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingRigData && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="drawworks">
+                    Drawworks <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="drawworks"
+                    value={editingRigData.drawworks}
+                    onChange={(e) =>
+                      setEditingRigData({
+                        ...editingRigData,
+                        drawworks: e.target.value,
+                      })
+                    }
+                    placeholder="z.B. 2000 HP"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="mudPumps">
+                    Mud Pumps <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="mudPumps"
+                    value={editingRigData.mudPumps}
+                    onChange={(e) =>
+                      setEditingRigData({
+                        ...editingRigData,
+                        mudPumps: e.target.value,
+                      })
+                    }
+                    placeholder="z.B. 2x 2200 HP Triplex"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="topDrive">
+                    Top Drive <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="topDrive"
+                    value={editingRigData.topDrive}
+                    onChange={(e) =>
+                      setEditingRigData({
+                        ...editingRigData,
+                        topDrive: e.target.value,
+                      })
+                    }
+                    placeholder="z.B. 1000 HP"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="derrickCapacity">
+                    Derrick Capacity <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="derrickCapacity"
+                    value={editingRigData.derrickCapacity}
+                    onChange={(e) =>
+                      setEditingRigData({
+                        ...editingRigData,
+                        derrickCapacity: e.target.value,
+                      })
+                    }
+                    placeholder="z.B. 1000 t"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="crewSize">
+                    Crew Size <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="crewSize"
+                    value={editingRigData.crewSize}
+                    onChange={(e) =>
+                      setEditingRigData({
+                        ...editingRigData,
+                        crewSize: e.target.value,
+                      })
+                    }
+                    placeholder="z.B. 45-50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="mobilizationTime">
+                    Mobilization Time <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="mobilizationTime"
+                    value={editingRigData.mobilizationTime}
+                    onChange={(e) =>
+                      setEditingRigData({
+                        ...editingRigData,
+                        mobilizationTime: e.target.value,
+                      })
+                    }
+                    placeholder="z.B. 30-45 Tage"
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label htmlFor="dayRate">
+                  Tagesrate (€) <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="dayRate"
+                  type="number"
+                  value={editingRigData.dayRate}
+                  onChange={(e) =>
+                    setEditingRigData({
+                      ...editingRigData,
+                      dayRate: e.target.value,
+                    })
+                  }
+                  placeholder="85000"
+                />
+                {editingRigData.dayRate && (
+                  <p className="text-sm text-muted-foreground">
+                    Formatiert: €{" "}
+                    {parseFloat(editingRigData.dayRate).toLocaleString("de-DE")}{" "}
+                    / Tag
+                  </p>
+                )}
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  ℹ️ Diese Änderungen werden in der Datenbank gespeichert und
+                  sind für alle Benutzer sichtbar.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={closeRigEditDialog}
+              disabled={savingRig}
+            >
+              <X className="mr-2 h-4 w-4" />
+              Abbrechen
+            </Button>
+            <Button
+              onClick={saveRigChanges}
+              disabled={
+                savingRig ||
+                !editingRigData?.drawworks ||
+                !editingRigData?.mudPumps ||
+                !editingRigData?.topDrive ||
+                !editingRigData?.dayRate
+              }
+            >
+              {savingRig ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Wird gespeichert...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Im Backend speichern
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
