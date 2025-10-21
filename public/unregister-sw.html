@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Worker Deregistrieren</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #b91c1c;
+        }
+        .success {
+            background: #10b981;
+        }
+        .success:hover {
+            background: #059669;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .info { background: #dbeafe; color: #1e40af; }
+        .success-msg { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🧹 Service Worker Bereinigung</h1>
+        <p>Diese Seite hilft beim Entfernen alter Service Worker und Cache-Daten.</p>
+        
+        <button onclick="unregisterServiceWorkers()">🗑️ Service Workers entfernen</button>
+        <button onclick="clearCaches()" class="success">🧼 Cache leeren</button>
+        <button onclick="doAll()" style="background: #2563eb;">✨ Alles bereinigen</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = type;
+            status.style.display = 'block';
+        }
+
+        async function unregisterServiceWorkers() {
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    
+                    if (registrations.length === 0) {
+                        showStatus('✅ Keine Service Workers gefunden!', 'success-msg');
+                        return;
+                    }
+
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                    }
+                    
+                    showStatus(`✅ ${registrations.length} Service Worker(s) erfolgreich entfernt!`, 'success-msg');
+                } else {
+                    showStatus('ℹ️ Service Workers werden nicht unterstützt', 'info');
+                }
+            } catch (error) {
+                showStatus('❌ Fehler beim Entfernen: ' + error.message, 'error');
+            }
+        }
+
+        async function clearCaches() {
+            try {
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    
+                    if (cacheNames.length === 0) {
+                        showStatus('✅ Keine Caches gefunden!', 'success-msg');
+                        return;
+                    }
+
+                    await Promise.all(
+                        cacheNames.map(cacheName => caches.delete(cacheName))
+                    );
+                    
+                    showStatus(`✅ ${cacheNames.length} Cache(s) erfolgreich gelöscht!`, 'success-msg');
+                } else {
+                    showStatus('ℹ️ Cache API wird nicht unterstützt', 'info');
+                }
+            } catch (error) {
+                showStatus('❌ Fehler beim Löschen: ' + error.message, 'error');
+            }
+        }
+
+        async function doAll() {
+            showStatus('🔄 Bereinigung läuft...', 'info');
+            
+            await unregisterServiceWorkers();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await clearCaches();
+            
+            setTimeout(() => {
+                showStatus('✅ Bereinigung abgeschlossen! Bitte Seite neu laden (Ctrl+Shift+R)', 'success-msg');
+            }, 1000);
+        }
+
+        // Automatisch beim Laden prüfen
+        window.addEventListener('load', async () => {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                const cacheNames = await caches.keys();
+                
+                if (registrations.length > 0 || cacheNames.length > 0) {
+                    showStatus(`ℹ️ Gefunden: ${registrations.length} Service Worker(s) und ${cacheNames.length} Cache(s)`, 'info');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

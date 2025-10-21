@@ -10,10 +10,19 @@ router.use(authenticate);
 // Projects
 router.get('/', projectController.getProjects);
 router.get('/:id', projectController.getProjectById);
-
-// Not implemented yet (return 501)
 router.post('/', projectController.createProject);
 router.put('/:id', projectController.updateProject);
 router.delete('/:id', projectController.deleteProject);
+
+// Tasks
+router.get('/:id/tasks', projectController.getProjectTasks);
+router.post('/:id/tasks', projectController.createTask);
+router.put('/:id/tasks/:taskId', projectController.updateTask);
+router.delete('/:id/tasks/:taskId', projectController.deleteTask);
+
+// Files
+router.get('/:id/files', projectController.getProjectFiles);
+router.post('/:id/files', projectController.createFile);
+router.delete('/:id/files/:fileId', projectController.deleteFile);
 
 export default router;

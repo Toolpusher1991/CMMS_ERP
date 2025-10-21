@@ -8,6 +8,7 @@ import userRoutes from './routes/user.routes';
 import userManagementRoutes from './routes/user-management.routes';
 import projectRoutes from './routes/project.routes';
 import fileRoutes from './routes/file.routes';
+import actionRoutes from './routes/actions';
 import { errorHandler } from './middleware/error.middleware';
 import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware';
 
@@ -25,7 +26,7 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-inline'"], // unsafe-inline needed for Vite in dev
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'", 'http://localhost:3000', 'http://localhost:5173'],
+        connectSrc: ["'self'", 'http://localhost:3000', 'http://localhost:5173', 'http://192.168.188.20:3000', 'http://192.168.188.20:5173'],
         fontSrc: ["'self'", 'data:'],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
@@ -36,10 +37,13 @@ app.use(
   })
 );
 
+// CORS - sehr permissiv für Development
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'],
+    origin: true, // Erlaubt alle Origins in Development
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     optionsSuccessStatus: 200,
   })
 );
@@ -68,12 +72,15 @@ app.use('/api/users', userRoutes);
 app.use('/api/user-management', userManagementRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/actions', actionRoutes);
 
 // Error handling
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+// Listen on all network interfaces (0.0.0.0) für Netzwerk-Zugriff
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
+  console.log(`🌐 Network: http://0.0.0.0:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV}`);
 });
 

@@ -1,4 +1,23 @@
-const API_BASE_URL = 'http://localhost:3000/api';
+// Automatische API-URL Erkennung
+const getApiBaseUrl = () => {
+  // 1. Wenn .env gesetzt ist, nutze das
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // 2. Wenn im Browser über Netzwerk-IP zugegriffen wird, nutze die gleiche IP
+  const currentHost = window.location.hostname;
+  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+    return `http://${currentHost}:3000`;
+  }
+  
+  // 3. Fallback zu localhost
+  return 'http://localhost:3000';
+};
+
+const API_BASE_URL = `${getApiBaseUrl()}/api`;
+
+console.log('🔧 API Base URL:', API_BASE_URL); // Debug-Ausgabe
 
 class ApiClient {
   private baseUrl: string;

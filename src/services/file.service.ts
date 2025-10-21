@@ -36,7 +36,19 @@ class FileService {
    * Get file URL
    */
   getFileUrl(filename: string): string {
-    return `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/uploads/${filename}`;
+    // Automatische Backend-URL Erkennung
+    let baseUrl = import.meta.env.VITE_API_URL;
+    
+    if (!baseUrl) {
+      const currentHost = window.location.hostname;
+      if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+        baseUrl = `http://${currentHost}:3000`;
+      } else {
+        baseUrl = "http://localhost:3000";
+      }
+    }
+    
+    return `${baseUrl}/uploads/${filename}`;
   }
 
   /**

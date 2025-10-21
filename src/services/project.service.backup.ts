@@ -242,6 +242,49 @@ export const projectService = {
     });
   },
 
+  // Tasks
+  async getProjectTasks(projectId: string): Promise<ProjectTask[]> {
+    const response = await apiClient.request<{ data: ProjectTask[] }>(
+      `/projects/${projectId}/tasks`
+    );
+    return response.data;
+  },
+
+  async createTask(
+    projectId: string,
+    data: Partial<ProjectTask>
+  ): Promise<ProjectTask> {
+    const response = await apiClient.request<{ data: ProjectTask }>(
+      `/projects/${projectId}/tasks`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data;
+  },
+
+  async updateTask(
+    projectId: string,
+    taskId: string,
+    data: Partial<ProjectTask>
+  ): Promise<ProjectTask> {
+    const response = await apiClient.request<{ data: ProjectTask }>(
+      `/projects/${projectId}/tasks/${taskId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data;
+  },
+
+  async deleteTask(projectId: string, taskId: string): Promise<void> {
+    await apiClient.request(`/projects/${projectId}/tasks/${taskId}`, {
+      method: 'DELETE',
+    });
+  },
+
   // Files
   async getProjectFiles(projectId: string): Promise<ProjectFile[]> {
     const response = await apiClient.request<{ data: ProjectFile[] }>(

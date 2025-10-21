@@ -35,6 +35,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -196,6 +206,18 @@ export default function AnlagenProjektManagement() {
     dueDate: "",
   });
 
+  // Delete Confirmation States
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteType, setDeleteType] = useState<"project" | "task" | "file">(
+    "project"
+  );
+  const [deleteTarget, setDeleteTarget] = useState<{
+    projectId?: string;
+    taskId?: string;
+    fileId?: string;
+    name?: string;
+  }>({});
+
   const anlagen: Anlage[] = ["T208", "T207", "T700", "T46"];
   const categories: Category[] = ["Mechanisch", "Elektrisch", "Anlage"];
 
@@ -338,28 +360,83 @@ export default function AnlagenProjektManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Möchten Sie dieses Projekt wirklich löschen?")) return;
+    const project = projects.find((p) => p.id === id);
+    setDeleteType("project");
+    setDeleteTarget({ projectId: id, name: project?.name || "Projekt" });
+    setDeleteDialogOpen(true);
+  };
 
+  const confirmDelete = async () => {
     try {
-      await projectService.deleteProject(id);
-      setProjects(projects.filter((p) => p.id !== id));
+      if (deleteType === "project" && deleteTarget.projectId) {
+        await projectService.deleteProject(deleteTarget.projectId);
+        setProjects(projects.filter((p) => p.id !== deleteTarget.projectId));
 
-      toast({
-        title: "Projekt gelöscht",
-        description: "Das Projekt wurde erfolgreich gelöscht.",
-      });
+        toast({
+          title: "Projekt gelöscht",
+          description: "Das Projekt wurde erfolgreich gelöscht.",
+        });
+      } else if (
+        deleteType === "task" &&
+        deleteTarget.projectId &&
+        deleteTarget.taskId
+      ) {
+        const updatedProjects = projects.map((p) => {
+          if (p.id === deleteTarget.projectId) {
+            return {
+              ...p,
+              tasks: p.tasks.filter((t) => t.id !== deleteTarget.taskId),
+            };
+          }
+          return p;
+        });
+        setProjects(updatedProjects);
+
+        toast({
+          title: "Aufgabe gelöscht",
+          description: "Die Aufgabe wurde erfolgreich gelöscht.",
+        });
+      } else if (
+        deleteType === "file" &&
+        deleteTarget.projectId &&
+        deleteTarget.fileId
+      ) {
+        await fileService.deleteFile(deleteTarget.fileId);
+
+        const updatedProjects = projects.map((p) => {
+          if (p.id === deleteTarget.projectId) {
+            return {
+              ...p,
+              files: p.files.filter((f) => f.id !== deleteTarget.fileId),
+            };
+          }
+          return p;
+        });
+        setProjects(updatedProjects);
+
+        toast({
+          title: "Datei gelöscht",
+          description: "Die Datei wurde erfolgreich gelöscht.",
+        });
+      }
     } catch (err) {
-      console.error("Failed to delete project:", err);
+      console.error(`Failed to delete ${deleteType}:`, err);
 
       toast({
         title: "Fehler",
-        description: "Projekt konnte nicht gelöscht werden.",
+        description: `${
+          deleteType === "project"
+            ? "Projekt"
+            : deleteType === "task"
+            ? "Aufgabe"
+            : "Datei"
+        } konnte nicht gelöscht werden.`,
         variant: "destructive",
       });
-
-      // Fallback: delete locally
-      setProjects(projects.filter((p) => p.id !== id));
     }
+
+    setDeleteDialogOpen(false);
+    setDeleteTarget({});
   };
 
   const handleSubmit = async () => {
@@ -583,20 +660,15 @@ export default function AnlagenProjektManagement() {
   };
 
   const handleDeleteTask = (projectId: string, taskId: string) => {
-    if (!confirm("Möchten Sie diese Aufgabe wirklich löschen?")) return;
-
-    const updatedProjects = projects.map((p) => {
-      if (p.id === projectId) {
-        return { ...p, tasks: p.tasks.filter((t) => t.id !== taskId) };
-      }
-      return p;
+    const project = projects.find((p) => p.id === projectId);
+    const task = project?.tasks.find((t) => t.id === taskId);
+    setDeleteType("task");
+    setDeleteTarget({
+      projectId,
+      taskId,
+      name: task?.title || "Aufgabe",
     });
-    setProjects(updatedProjects);
-
-    toast({
-      title: "Aufgabe gelöscht",
-      description: "Die Aufgabe wurde erfolgreich gelöscht.",
-    });
+    setDeleteDialogOpen(true);
   };
 
   // File Management
@@ -674,34 +746,15 @@ export default function AnlagenProjektManagement() {
   };
 
   const handleDeleteFile = async (projectId: string, fileId: string) => {
-    if (!confirm("Möchten Sie diese Datei wirklich löschen?")) return;
-
-    try {
-      // Delete file from backend
-      await fileService.deleteFile(fileId);
-
-      // Update local state
-      const updatedProjects = projects.map((p) => {
-        if (p.id === projectId) {
-          return { ...p, files: p.files.filter((f) => f.id !== fileId) };
-        }
-        return p;
-      });
-      setProjects(updatedProjects);
-
-      toast({
-        title: "Datei gelöscht",
-        description: "Die Datei wurde erfolgreich gelöscht.",
-      });
-    } catch (error) {
-      console.error("Fehler beim Löschen der Datei:", error);
-
-      toast({
-        title: "Fehler",
-        description: "Fehler beim Löschen der Datei.",
-        variant: "destructive",
-      });
-    }
+    const project = projects.find((p) => p.id === projectId);
+    const file = project?.files.find((f) => f.id === fileId);
+    setDeleteType("file");
+    setDeleteTarget({
+      projectId,
+      fileId,
+      name: file?.name || "Datei",
+    });
+    setDeleteDialogOpen(true);
   };
 
   // Utility Functions
@@ -1806,6 +1859,44 @@ export default function AnlagenProjektManagement() {
           </Tabs>
         </>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleteType === "project" && "Projekt löschen"}
+              {deleteType === "task" && "Aufgabe löschen"}
+              {deleteType === "file" && "Datei löschen"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Möchten Sie{" "}
+              <span className="font-semibold text-foreground">
+                "{deleteTarget.name}"
+              </span>{" "}
+              wirklich löschen?
+              {deleteType === "project" && (
+                <span className="block mt-2 text-destructive">
+                  ⚠️ Alle zugehörigen Aufgaben und Dateien werden ebenfalls
+                  gelöscht.
+                </span>
+              )}
+              <span className="block mt-2">
+                Diese Aktion kann nicht rückgängig gemacht werden.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

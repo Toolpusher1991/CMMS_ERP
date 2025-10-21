@@ -5,6 +5,8 @@ import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { EnhancedUserAdminPage } from "@/pages/EnhancedUserAdminPage";
 import ProjectList from "@/pages/ProjectList";
 import WorkOrderManagement from "@/pages/WorkOrderManagement";
+import ActionTracker from "@/pages/ActionTracker";
+import RigConfigurator from "@/pages/RigConfigurator";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
@@ -13,7 +15,7 @@ import { authService } from "@/services/auth.service";
 import type { User } from "@/services/auth.service";
 
 type AuthView = "login" | "register" | "forgot-password";
-type AppPage = "projects" | "users" | "workorders";
+type AppPage = "projects" | "users" | "workorders" | "actions" | "tender";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -83,7 +85,9 @@ function App() {
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container flex h-16 items-center justify-between">
             <div className="flex items-center gap-6">
-              <h1 className="text-xl font-bold">CMMS/ERP System</h1>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                MaintAIn
+              </h1>
               <nav className="flex gap-2">
                 <Button
                   variant={currentPage === "projects" ? "default" : "ghost"}
@@ -98,6 +102,20 @@ function App() {
                   size="sm"
                 >
                   Work Orders
+                </Button>
+                <Button
+                  variant={currentPage === "actions" ? "default" : "ghost"}
+                  onClick={() => setCurrentPage("actions")}
+                  size="sm"
+                >
+                  Action Tracker
+                </Button>
+                <Button
+                  variant={currentPage === "tender" ? "default" : "ghost"}
+                  onClick={() => setCurrentPage("tender")}
+                  size="sm"
+                >
+                  Bohranlagen
                 </Button>
                 {user.role === "ADMIN" && (
                   <Button
@@ -126,6 +144,8 @@ function App() {
         <main className="container py-6">
           {currentPage === "projects" && <ProjectList />}
           {currentPage === "workorders" && <WorkOrderManagement />}
+          {currentPage === "actions" && <ActionTracker />}
+          {currentPage === "tender" && <RigConfigurator />}
           {currentPage === "users" && <EnhancedUserAdminPage />}
         </main>
       </div>
