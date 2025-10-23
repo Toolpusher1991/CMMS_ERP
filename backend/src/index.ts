@@ -12,6 +12,8 @@ import actionRoutes from './routes/actions';
 import rigRoutes from './routes/rigs.routes';
 import equipmentRoutes from './routes/equipment.routes';
 import failureReportRoutes from './routes/failure-reports.routes';
+import notificationRoutes from './routes/notification.routes';
+import commentRoutes from './routes/comment.routes';
 import { errorHandler } from './middleware/error.middleware';
 import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware';
 
@@ -84,6 +86,8 @@ app.use('/api/actions', actionRoutes);
 app.use('/api/rigs', rigRoutes);
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/failure-reports', failureReportRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/comments', commentRoutes);
 
 // Error handling
 app.use(errorHandler);

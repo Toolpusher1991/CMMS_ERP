@@ -274,3 +274,49 @@ model FailureReport {
   
   @@map("failure_reports")
 }
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // FAILURE_REPORT, ACTION_ASSIGNED, ACTION_COMPLETED, COMMENT_MENTION, etc.
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  
+  // Optional metadata als JSON string
+  metadata  String?  // JSON: { failureReportId, actionId, projectId, etc. }
+  
+  // Link to notification source
+  relatedId String?  // ID of related entity (failureReport, action, etc.)
+  
+  createdAt DateTime @default(now())
+  
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model ActionComment {
+  id        String   @id @default(uuid())
+  actionId  String
+  userId    String
+  text      String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([actionId])
+  @@map("action_comments")
+}
+
+model ProjectComment {
+  id        String   @id @default(uuid())
+  projectId String
+  userId    String
+  text      String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([projectId])
+  @@map("project_comments")
+}

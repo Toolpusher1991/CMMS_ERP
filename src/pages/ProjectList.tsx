@@ -7,6 +7,14 @@ import { authService } from "@/services/auth.service";
 import { userService } from "@/services/user.service";
 import { fileService } from "@/services/file.service";
 import type { User } from "@/services/auth.service";
+import type { Comment } from "@/components/CommentSection";
+import { CommentSection } from "@/components/CommentSection";
+import {
+  getProjectComments,
+  createProjectComment,
+  updateProjectComment,
+  deleteProjectComment,
+} from "@/services/comment.service";
 import {
   Table,
   TableBody,
@@ -181,6 +189,14 @@ export default function AnlagenProjektManagement() {
   const [selectedTaskUserId, setSelectedTaskUserId] = useState<string>("");
   const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  // Comment Management State
+  const [projectComments, setProjectComments] = useState<
+    Record<string, Comment[]>
+  >({});
+  const [loadingComments, setLoadingComments] = useState<
+    Record<string, boolean>
+  >({});
 
   const [formData, setFormData] = useState<Partial<Project>>({
     name: "",
@@ -765,9 +781,67 @@ export default function AnlagenProjektManagement() {
         newSet.delete(projectId);
       } else {
         newSet.add(projectId);
+        // Load comments when expanding row
+        if (!projectComments[projectId]) {
+          loadComments(projectId);
+        }
       }
       return newSet;
     });
+  };
+
+  // Load comments for project
+  const loadComments = async (projectId: string) => {
+    setLoadingComments((prev) => ({ ...prev, [projectId]: true }));
+    try {
+      const comments = await getProjectComments(projectId);
+      setProjectComments((prev) => ({ ...prev, [projectId]: comments }));
+    } catch (error) {
+      toast({
+        title: "Fehler",
+        description: "Kommentare konnten nicht geladen werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingComments((prev) => ({ ...prev, [projectId]: false }));
+    }
+  };
+
+  // Add comment
+  const handleAddComment = async (projectId: string, text: string) => {
+    const newComment = await createProjectComment(projectId, text);
+    setProjectComments((prev) => ({
+      ...prev,
+      [projectId]: [...(prev[projectId] || []), newComment],
+    }));
+  };
+
+  // Update comment
+  const handleUpdateComment = async (
+    projectId: string,
+    commentId: string,
+    text: string
+  ) => {
+    const updatedComment = await updateProjectComment(
+      projectId,
+      commentId,
+      text
+    );
+    setProjectComments((prev) => ({
+      ...prev,
+      [projectId]: (prev[projectId] || []).map((c) =>
+        c.id === commentId ? updatedComment : c
+      ),
+    }));
+  };
+
+  // Delete comment
+  const handleDeleteComment = async (projectId: string, commentId: string) => {
+    await deleteProjectComment(projectId, commentId);
+    setProjectComments((prev) => ({
+      ...prev,
+      [projectId]: (prev[projectId] || []).filter((c) => c.id !== commentId),
+    }));
   };
 
   const getStatusColor = (status: string) => {
@@ -1860,6 +1934,48 @@ export default function AnlagenProjektManagement() {
                                               )}
                                             </CardContent>
                                           </Card>
+
+                                          {/* Comment Section */}
+                                          {(() => {
+                                            const currentUser =
+                                              authService.getCurrentUser();
+                                            if (!currentUser) return null;
+
+                                            return (
+                                              <CommentSection
+                                                comments={
+                                                  projectComments[project.id] ||
+                                                  []
+                                                }
+                                                currentUserId={currentUser.id}
+                                                onAddComment={(text) =>
+                                                  handleAddComment(
+                                                    project.id,
+                                                    text
+                                                  )
+                                                }
+                                                onUpdateComment={(
+                                                  commentId,
+                                                  text
+                                                ) =>
+                                                  handleUpdateComment(
+                                                    project.id,
+                                                    commentId,
+                                                    text
+                                                  )
+                                                }
+                                                onDeleteComment={(commentId) =>
+                                                  handleDeleteComment(
+                                                    project.id,
+                                                    commentId
+                                                  )
+                                                }
+                                                isLoading={
+                                                  loadingComments[project.id]
+                                                }
+                                              />
+                                            );
+                                          })()}
                                         </div>
                                       </TableCell>
                                     </TableRow>

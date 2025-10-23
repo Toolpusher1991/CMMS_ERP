@@ -10,6 +10,7 @@ import RigConfigurator from "@/pages/RigConfigurator";
 import FailureReporting from "@/pages/FailureReporting";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
+import { NotificationBell } from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
 import { authService } from "@/services/auth.service";
@@ -146,6 +147,7 @@ function App() {
               <span className="text-sm text-muted-foreground">
                 {user.firstName} {user.lastName} ({user.role})
               </span>
+              <NotificationBell />
               <ModeToggle />
               <Button onClick={handleLogout} variant="outline">
                 Abmelden

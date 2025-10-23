@@ -1,5 +1,14 @@
 ﻿import React, { useState, useEffect } from "react";
 import { apiClient } from "@/services/api";
+import { authService } from "@/services/auth.service";
+import type { Comment } from "@/components/CommentSection";
+import { CommentSection } from "@/components/CommentSection";
+import {
+  getActionComments,
+  createActionComment,
+  updateActionComment,
+  deleteActionComment,
+} from "@/services/comment.service";
 import {
   Card,
   CardContent,
@@ -75,6 +84,7 @@ interface MaterialItem {
   description: string;
   quantity: number;
   unit: string;
+  status?: "NICHT_BESTELLT" | "BESTELLT" | "UNTERWEGS" | "GELIEFERT";
 }
 
 interface Action {
@@ -131,15 +141,15 @@ const ActionTracker = () => {
   const [isMounted, setIsMounted] = useState(true);
 
   // Material Management State
-  const [materials, setMaterials] = useState<
-    Array<{
-      id: string;
-      mmNumber: string;
-      description: string;
-      quantity: number;
-      unit: string;
-    }>
-  >([]);
+  const [materials, setMaterials] = useState<MaterialItem[]>([]);
+
+  // Comment Management State
+  const [actionComments, setActionComments] = useState<
+    Record<string, Comment[]>
+  >({});
+  const [loadingComments, setLoadingComments] = useState<
+    Record<string, boolean>
+  >({});
 
   const [users, setUsers] = useState<
     Array<{
@@ -171,6 +181,40 @@ const ActionTracker = () => {
       /📸 Photo: ([\w-]+\.(?:jpg|jpeg|png|gif|webp))/i
     );
     return match ? match[1] : null;
+  };
+
+  // Parse materials from description
+  const parseMaterialsFromDescription = (
+    description: string
+  ): MaterialItem[] => {
+    const materialsSection = description.split("--- Materialien ---")[1];
+    if (!materialsSection) return [];
+
+    const lines = materialsSection.trim().split("\n");
+    return lines
+      .filter((line) => line.startsWith("📦"))
+      .map((line, index) => {
+        // Format: 📦 MM-Nr | Beschreibung | Menge Einheit | Status
+        const parts = line
+          .substring(2)
+          .split("|")
+          .map((p) => p.trim());
+        const [mmNumber, description, quantityUnit, status] = parts;
+
+        // Parse quantity and unit
+        const qtyMatch = quantityUnit?.match(/^(\d+)\s*(.+)$/);
+        const quantity = qtyMatch ? parseInt(qtyMatch[1]) : 1;
+        const unit = qtyMatch ? qtyMatch[2] : "Stk";
+
+        return {
+          id: `${Date.now()}-${index}`,
+          mmNumber: mmNumber || "",
+          description: description || "",
+          quantity,
+          unit,
+          status: (status as MaterialItem["status"]) || "NICHT_BESTELLT",
+        };
+      });
   };
 
   // Backend laden
@@ -267,8 +311,62 @@ const ActionTracker = () => {
       newExpanded.delete(id);
     } else {
       newExpanded.add(id);
+      // Load comments when expanding row
+      if (!actionComments[id]) {
+        loadComments(id);
+      }
     }
     setExpandedRows(newExpanded);
+  };
+
+  // Load comments for action
+  const loadComments = async (actionId: string) => {
+    setLoadingComments((prev) => ({ ...prev, [actionId]: true }));
+    try {
+      const comments = await getActionComments(actionId);
+      setActionComments((prev) => ({ ...prev, [actionId]: comments }));
+    } catch (error) {
+      toast({
+        title: "Fehler",
+        description: "Kommentare konnten nicht geladen werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingComments((prev) => ({ ...prev, [actionId]: false }));
+    }
+  };
+
+  // Add comment
+  const handleAddComment = async (actionId: string, text: string) => {
+    const newComment = await createActionComment(actionId, text);
+    setActionComments((prev) => ({
+      ...prev,
+      [actionId]: [...(prev[actionId] || []), newComment],
+    }));
+  };
+
+  // Update comment
+  const handleUpdateComment = async (
+    actionId: string,
+    commentId: string,
+    text: string
+  ) => {
+    const updatedComment = await updateActionComment(actionId, commentId, text);
+    setActionComments((prev) => ({
+      ...prev,
+      [actionId]: (prev[actionId] || []).map((c) =>
+        c.id === commentId ? updatedComment : c
+      ),
+    }));
+  };
+
+  // Delete comment
+  const handleDeleteComment = async (actionId: string, commentId: string) => {
+    await deleteActionComment(actionId, commentId);
+    setActionComments((prev) => ({
+      ...prev,
+      [actionId]: (prev[actionId] || []).filter((c) => c.id !== commentId),
+    }));
   };
 
   const openNewDialog = () => {
@@ -291,32 +389,20 @@ const ActionTracker = () => {
   const openEditDialog = (action: Action) => {
     setIsEditMode(true);
     setPendingFiles([]);
-    
-    // Parse materials from description
-    const parsedMaterials: MaterialItem[] = [];
-    if (action.description) {
-      const materialSection = action.description.split("--- Materialien ---");
-      if (materialSection.length > 1) {
-        const materialLines = materialSection[1].trim().split("\n");
-        materialLines.forEach((line) => {
-          const match = line.match(/📦 (.+?) - (.+?) \((\d+) (.+?)\)/);
-          if (match) {
-            parsedMaterials.push({
-              id: Date.now().toString() + Math.random(),
-              mmNumber: match[1],
-              description: match[2],
-              quantity: parseInt(match[3]),
-              unit: match[4],
-            });
-          }
-        });
-        // Remove material section from description for editing
-        action.description = materialSection[0].trim();
-      }
-    }
-    
+
+    // Parse materials from description using the new format
+    const parsedMaterials = parseMaterialsFromDescription(action.description);
+
+    // Remove material section from description for editing
+    const descriptionWithoutMaterials = action.description
+      .split("--- Materialien ---")[0]
+      .trim();
+
     setMaterials(parsedMaterials);
-    setCurrentAction(action);
+    setCurrentAction({
+      ...action,
+      description: descriptionWithoutMaterials,
+    });
     setIsDialogOpen(true);
   };
 
@@ -343,7 +429,9 @@ const ActionTracker = () => {
         const materialsText = materials
           .map(
             (m) =>
-              `📦 ${m.mmNumber} - ${m.description} (${m.quantity} ${m.unit})`
+              `📦 ${m.mmNumber} | ${m.description} | ${m.quantity} ${
+                m.unit
+              } | ${m.status || "NICHT_BESTELLT"}`
           )
           .join("\n");
         descriptionWithMaterials = currentAction.description
@@ -524,11 +612,31 @@ const ActionTracker = () => {
     }
   };
 
-  const removeFile = (fileId: string) => {
-    setCurrentAction({
-      ...currentAction,
-      files: currentAction.files?.filter((f) => f.id !== fileId) || [],
-    });
+  const removeFile = async (fileId: string) => {
+    try {
+      // If editing an existing action, delete from backend
+      if (isEditMode && currentAction.id) {
+        await apiClient.delete(`/actions/${currentAction.id}/files/${fileId}`);
+
+        toast({
+          title: "Datei gelöscht",
+          description: "Die Datei wurde erfolgreich entfernt.",
+        });
+      }
+
+      // Update local state
+      setCurrentAction({
+        ...currentAction,
+        files: currentAction.files?.filter((f) => f.id !== fileId) || [],
+      });
+    } catch (error) {
+      console.error("Fehler beim Löschen der Datei:", error);
+      toast({
+        title: "Fehler",
+        description: "Datei konnte nicht gelöscht werden.",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredActions = actions.filter((a) => a.plant === activeTab);
@@ -703,149 +811,330 @@ const ActionTracker = () => {
                                 <TableRow>
                                   <TableCell
                                     colSpan={8}
-                                    className="bg-muted/50"
+                                    className="bg-muted/50 p-0"
                                   >
-                                    <div className="p-4 space-y-4">
-                                      <div>
-                                        <Label className="text-sm font-semibold">
-                                          Beschreibung
-                                        </Label>
-                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
-                                          {/* Zeige Beschreibung ohne Foto-Zeile */}
-                                          {action.description
-                                            .split("\n")
-                                            .filter(
-                                              (line) =>
-                                                !line.startsWith("📸 Photo:")
-                                            )
-                                            .join("\n")
-                                            .trim()}
-                                        </p>
-                                        {/* Zeige Foto-Button wenn Foto in Beschreibung vorhanden */}
-                                        {extractPhotoFromDescription(
-                                          action.description
-                                        ) && (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="mt-2"
-                                            onClick={() => {
-                                              const photoFilename =
-                                                extractPhotoFromDescription(
-                                                  action.description
-                                                );
-                                              if (photoFilename) {
-                                                const getApiUrl = () => {
-                                                  const hostname =
-                                                    window.location.hostname;
-                                                  if (
-                                                    hostname !== "localhost" &&
-                                                    hostname !== "127.0.0.1"
-                                                  ) {
-                                                    return `http://${hostname}:5137`;
-                                                  }
-                                                  return "http://localhost:5137";
-                                                };
-                                                setSelectedPhoto(
-                                                  `${getApiUrl()}/uploads/failure-reports/${photoFilename}`
-                                                );
-                                                setPhotoViewDialogOpen(true);
+                                    <div className="p-6 space-y-4">
+                                      {/* Beschreibung Card */}
+                                      <Card>
+                                        <CardHeader className="pb-3">
+                                          <CardTitle className="text-base flex items-center gap-2">
+                                            📋 Beschreibung
+                                          </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                          <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                                            {/* Zeige Beschreibung ohne Foto-Zeile und ohne Material-Abschnitt */}
+                                            {action.description
+                                              .split("--- Materialien ---")[0]
+                                              .split("\n")
+                                              .filter(
+                                                (line) =>
+                                                  !line.startsWith("📸 Photo:")
+                                              )
+                                              .join("\n")
+                                              .trim()}
+                                          </p>
+                                          {/* Zeige Foto-Button wenn Foto in Beschreibung vorhanden */}
+                                          {extractPhotoFromDescription(
+                                            action.description
+                                          ) && (
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              className="mt-3"
+                                              onClick={() => {
+                                                const photoFilename =
+                                                  extractPhotoFromDescription(
+                                                    action.description
+                                                  );
+                                                if (photoFilename) {
+                                                  const getApiUrl = () => {
+                                                    const hostname =
+                                                      window.location.hostname;
+                                                    if (
+                                                      hostname !==
+                                                        "localhost" &&
+                                                      hostname !== "127.0.0.1"
+                                                    ) {
+                                                      return `http://${hostname}:5137`;
+                                                    }
+                                                    return "http://localhost:5137";
+                                                  };
+                                                  setSelectedPhoto(
+                                                    `${getApiUrl()}/uploads/failure-reports/${photoFilename}`
+                                                  );
+                                                  setPhotoViewDialogOpen(true);
+                                                }
+                                              }}
+                                            >
+                                              <Camera className="h-4 w-4 mr-2" />
+                                              Foto vom Failure Report ansehen
+                                            </Button>
+                                          )}
+                                        </CardContent>
+                                      </Card>
+
+                                      {/* Status & Info Grid */}
+                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <Card>
+                                          <CardHeader className="pb-3">
+                                            <CardTitle className="text-sm">
+                                              Status ändern
+                                            </CardTitle>
+                                          </CardHeader>
+                                          <CardContent>
+                                            <Select
+                                              value={action.status}
+                                              onValueChange={(
+                                                value: Action["status"]
+                                              ) =>
+                                                handleStatusChange(
+                                                  action.id,
+                                                  value
+                                                )
                                               }
-                                            }}
-                                          >
-                                            <Camera className="h-4 w-4 mr-2" />
-                                            📸 Foto vom Failure Report ansehen
-                                          </Button>
+                                            >
+                                              <SelectTrigger>
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="OPEN">
+                                                  🔴 Offen
+                                                </SelectItem>
+                                                <SelectItem value="IN_PROGRESS">
+                                                  🟡 In Bearbeitung
+                                                </SelectItem>
+                                                <SelectItem value="COMPLETED">
+                                                  🟢 Abgeschlossen
+                                                </SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </CardContent>
+                                        </Card>
+
+                                        <Card>
+                                          <CardHeader className="pb-3">
+                                            <CardTitle className="text-sm">
+                                              Erstellt
+                                            </CardTitle>
+                                          </CardHeader>
+                                          <CardContent>
+                                            <div className="space-y-1">
+                                              <p className="text-sm font-medium">
+                                                {action.createdAt}
+                                              </p>
+                                              <p className="text-xs text-muted-foreground">
+                                                von {action.createdBy}
+                                              </p>
+                                            </div>
+                                          </CardContent>
+                                        </Card>
+
+                                        {action.completedAt && (
+                                          <Card>
+                                            <CardHeader className="pb-3">
+                                              <CardTitle className="text-sm">
+                                                Abgeschlossen
+                                              </CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                              <p className="text-sm font-medium">
+                                                {action.completedAt}
+                                              </p>
+                                            </CardContent>
+                                          </Card>
                                         )}
                                       </div>
 
-                                      <div className="grid grid-cols-3 gap-4">
-                                        <div>
-                                          <Label className="text-sm font-semibold">
-                                            Status ändern
-                                          </Label>
-                                          <Select
-                                            value={action.status}
-                                            onValueChange={(
-                                              value: Action["status"]
+                                      {/* Angehängte Dateien Card */}
+                                      {action.files.length > 0 && (
+                                        <Card>
+                                          <CardHeader className="pb-3">
+                                            <CardTitle className="text-base flex items-center gap-2">
+                                              📎 Angehängte Dateien
+                                              <Badge
+                                                variant="secondary"
+                                                className="ml-2"
+                                              >
+                                                {action.files.length}
+                                              </Badge>
+                                            </CardTitle>
+                                          </CardHeader>
+                                          <CardContent>
+                                            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                                              {action.files.map((file) => (
+                                                <div
+                                                  key={file.id}
+                                                  className="relative group"
+                                                >
+                                                  <Card className="overflow-hidden hover:shadow-md transition-shadow">
+                                                    {file.isPhoto ? (
+                                                      <img
+                                                        src={file.url}
+                                                        alt={file.name}
+                                                        className="w-full aspect-square object-cover"
+                                                      />
+                                                    ) : (
+                                                      <div className="w-full aspect-square flex items-center justify-center bg-muted">
+                                                        <Paperclip className="h-8 w-8 text-muted-foreground" />
+                                                      </div>
+                                                    )}
+                                                  </Card>
+                                                  <p
+                                                    className="text-xs truncate mt-1 text-center"
+                                                    title={file.name}
+                                                  >
+                                                    {file.name}
+                                                  </p>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </CardContent>
+                                        </Card>
+                                      )}
+
+                                      {/* Material-Liste Card */}
+                                      {(() => {
+                                        const materials =
+                                          parseMaterialsFromDescription(
+                                            action.description
+                                          );
+                                        if (materials.length === 0) return null;
+
+                                        return (
+                                          <Card className="border-2">
+                                            <CardHeader className="bg-muted/50 pb-4">
+                                              <div className="flex items-center justify-between">
+                                                <CardTitle className="text-lg flex items-center gap-2">
+                                                  📦 Bestellte Materialien
+                                                </CardTitle>
+                                                <Badge
+                                                  variant="secondary"
+                                                  className="text-sm"
+                                                >
+                                                  {materials.length}{" "}
+                                                  {materials.length === 1
+                                                    ? "Material"
+                                                    : "Materialien"}
+                                                </Badge>
+                                              </div>
+                                            </CardHeader>
+                                            <CardContent className="pt-4">
+                                              <div className="space-y-2">
+                                                {materials.map((material) => {
+                                                  // Status Badge Farbe & Text
+                                                  const getStatusBadge = (
+                                                    status?: MaterialItem["status"]
+                                                  ) => {
+                                                    switch (status) {
+                                                      case "GELIEFERT":
+                                                        return (
+                                                          <Badge className="bg-green-600 hover:bg-green-700 text-white">
+                                                            🟢 Geliefert
+                                                          </Badge>
+                                                        );
+                                                      case "UNTERWEGS":
+                                                        return (
+                                                          <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
+                                                            🔵 Unterwegs
+                                                          </Badge>
+                                                        );
+                                                      case "BESTELLT":
+                                                        return (
+                                                          <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                                                            🟡 Bestellt
+                                                          </Badge>
+                                                        );
+                                                      default:
+                                                        return (
+                                                          <Badge
+                                                            variant="outline"
+                                                            className="border-2"
+                                                          >
+                                                            ⚪ Nicht bestellt
+                                                          </Badge>
+                                                        );
+                                                    }
+                                                  };
+
+                                                  return (
+                                                    <div
+                                                      key={material.id}
+                                                      className="group p-4 rounded-lg border-2 bg-card hover:bg-muted/30 transition-colors"
+                                                    >
+                                                      <div className="flex items-center justify-between gap-4">
+                                                        <div className="flex-1 min-w-0">
+                                                          <div className="flex items-center gap-3 mb-2">
+                                                            <span className="font-mono text-base font-bold bg-primary/10 text-primary px-3 py-1.5 rounded-md">
+                                                              {
+                                                                material.mmNumber
+                                                              }
+                                                            </span>
+                                                            {getStatusBadge(
+                                                              material.status
+                                                            )}
+                                                          </div>
+                                                          <p className="text-sm leading-relaxed">
+                                                            {
+                                                              material.description
+                                                            }
+                                                          </p>
+                                                        </div>
+                                                        <div className="flex flex-col items-end justify-center bg-muted/50 px-4 py-3 rounded-lg min-w-[80px]">
+                                                          <p className="text-2xl font-bold text-primary">
+                                                            {material.quantity}
+                                                          </p>
+                                                          <p className="text-sm font-medium text-muted-foreground uppercase">
+                                                            {material.unit}
+                                                          </p>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                            </CardContent>
+                                          </Card>
+                                        );
+                                      })()}
+
+                                      {/* Comment Section */}
+                                      {(() => {
+                                        const currentUser =
+                                          authService.getCurrentUser();
+                                        if (!currentUser) return null;
+
+                                        return (
+                                          <CommentSection
+                                            comments={
+                                              actionComments[action.id] || []
+                                            }
+                                            currentUserId={currentUser.id}
+                                            onAddComment={(text) =>
+                                              handleAddComment(action.id, text)
+                                            }
+                                            onUpdateComment={(
+                                              commentId,
+                                              text
                                             ) =>
-                                              handleStatusChange(
+                                              handleUpdateComment(
                                                 action.id,
-                                                value
+                                                commentId,
+                                                text
                                               )
                                             }
-                                          >
-                                            <SelectTrigger className="mt-1">
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="OPEN">
-                                                Offen
-                                              </SelectItem>
-                                              <SelectItem value="IN_PROGRESS">
-                                                In Bearbeitung
-                                              </SelectItem>
-                                              <SelectItem value="COMPLETED">
-                                                Abgeschlossen
-                                              </SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                        <div>
-                                          <Label className="text-sm font-semibold">
-                                            Erstellt
-                                          </Label>
-                                          <p className="text-sm mt-2">
-                                            {action.createdAt} von{" "}
-                                            {action.createdBy}
-                                          </p>
-                                        </div>
-                                        {action.completedAt && (
-                                          <div>
-                                            <Label className="text-sm font-semibold">
-                                              Abgeschlossen am
-                                            </Label>
-                                            <p className="text-sm mt-2">
-                                              {action.completedAt}
-                                            </p>
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {action.files.length > 0 && (
-                                        <div>
-                                          <Label className="text-sm font-semibold mb-2 block">
-                                            Angehängte Dateien (
-                                            {action.files.length})
-                                          </Label>
-                                          <div className="grid grid-cols-6 gap-2">
-                                            {action.files.map((file) => (
-                                              <div
-                                                key={file.id}
-                                                className="relative group border rounded-lg p-2 hover:shadow transition"
-                                              >
-                                                {file.isPhoto ? (
-                                                  <img
-                                                    src={file.url}
-                                                    alt={file.name}
-                                                    className="w-full aspect-square object-cover rounded"
-                                                  />
-                                                ) : (
-                                                  <div className="w-full aspect-square flex items-center justify-center bg-muted rounded">
-                                                    <Paperclip className="h-6 w-6 text-muted-foreground" />
-                                                  </div>
-                                                )}
-                                                <p
-                                                  className="text-xs truncate mt-1"
-                                                  title={file.name}
-                                                >
-                                                  {file.name}
-                                                </p>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
+                                            onDeleteComment={(commentId) =>
+                                              handleDeleteComment(
+                                                action.id,
+                                                commentId
+                                              )
+                                            }
+                                            isLoading={
+                                              loadingComments[action.id]
+                                            }
+                                          />
+                                        );
+                                      })()}
                                     </div>
                                   </TableCell>
                                 </TableRow>
@@ -886,223 +1175,229 @@ const ActionTracker = () => {
             <TabsContent value="details">
               <ScrollArea className="max-h-[60vh] pr-4">
                 <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="plant">Anlage *</Label>
-                <Select
-                  value={currentAction.plant}
-                  onValueChange={(value: Action["plant"]) =>
-                    setCurrentAction({ ...currentAction, plant: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Wählen Sie eine Anlage" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="T208">T208</SelectItem>
-                    <SelectItem value="T207">T207</SelectItem>
-                    <SelectItem value="T700">T700</SelectItem>
-                    <SelectItem value="T46">T46</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="title">Titel *</Label>
-                <Input
-                  id="title"
-                  value={currentAction.title}
-                  onChange={(e) =>
-                    setCurrentAction({
-                      ...currentAction,
-                      title: e.target.value,
-                    })
-                  }
-                  placeholder="z.B. Pumpe P-101 Wartung"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Beschreibung</Label>
-                <Textarea
-                  id="description"
-                  value={currentAction.description}
-                  onChange={(e) =>
-                    setCurrentAction({
-                      ...currentAction,
-                      description: e.target.value,
-                    })
-                  }
-                  placeholder="Detaillierte Beschreibung der Aufgabe..."
-                  rows={4}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="priority">Priorität</Label>
-                  <Select
-                    value={currentAction.priority}
-                    onValueChange={(value: Action["priority"]) =>
-                      setCurrentAction({ ...currentAction, priority: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LOW">Niedrig</SelectItem>
-                      <SelectItem value="MEDIUM">Mittel</SelectItem>
-                      <SelectItem value="HIGH">Hoch</SelectItem>
-                      <SelectItem value="URGENT">Dringend</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={currentAction.status}
-                    onValueChange={(value: Action["status"]) =>
-                      setCurrentAction({ ...currentAction, status: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="OPEN">Offen</SelectItem>
-                      <SelectItem value="IN_PROGRESS">
-                        In Bearbeitung
-                      </SelectItem>
-                      <SelectItem value="COMPLETED">Abgeschlossen</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="assignedTo">Zugewiesen an *</Label>
-                  <Select
-                    value={currentAction.assignedTo}
-                    onValueChange={(value) =>
-                      setCurrentAction({
-                        ...currentAction,
-                        assignedTo: value,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="User auswählen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users
-                        .filter((user) => {
-                          // Admins und Manager können immer ausgewählt werden
-                          if (!user.assignedPlant) return true;
-                          // User muss zur ausgewählten Anlage gehören
-                          return user.assignedPlant === currentAction.plant;
-                        })
-                        .map((user) => (
-                          <SelectItem key={user.id} value={user.email}>
-                            {user.firstName} {user.lastName}
-                            {user.assignedPlant && ` (${user.assignedPlant})`}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dueDate">Fälligkeitsdatum *</Label>
-                  <Input
-                    id="dueDate"
-                    type="date"
-                    value={currentAction.dueDate}
-                    onChange={(e) =>
-                      setCurrentAction({
-                        ...currentAction,
-                        dueDate: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Dateien anhängen</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                      document.getElementById("file-upload")?.click()
-                    }
-                    className="flex-1"
-                  >
-                    <Paperclip className="mr-2 h-4 w-4" />
-                    Dateien auswählen
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                      document.getElementById("camera-upload")?.click()
-                    }
-                  >
-                    <Camera className="mr-2 h-4 w-4" />
-                    Foto aufnehmen
-                  </Button>
-                </div>
-                <input
-                  id="file-upload"
-                  type="file"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                <input
-                  id="camera-upload"
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-
-                {currentAction.files && currentAction.files.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                    {currentAction.files.map((file) => (
-                      <div
-                        key={file.id}
-                        className="relative group border rounded-lg p-2"
-                      >
-                        {file.isPhoto ? (
-                          <img
-                            src={file.url}
-                            alt={file.name}
-                            className="w-full aspect-square object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-full aspect-square flex items-center justify-center bg-slate-100 rounded">
-                            <Paperclip className="h-8 w-8 text-slate-400" />
-                          </div>
-                        )}
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition"
-                          onClick={() => removeFile(file.id)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                        <p className="text-xs truncate mt-1">{file.name}</p>
-                      </div>
-                    ))}
+                  <div className="space-y-2">
+                    <Label htmlFor="plant">Anlage *</Label>
+                    <Select
+                      value={currentAction.plant}
+                      onValueChange={(value: Action["plant"]) =>
+                        setCurrentAction({ ...currentAction, plant: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Wählen Sie eine Anlage" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="T208">T208</SelectItem>
+                        <SelectItem value="T207">T207</SelectItem>
+                        <SelectItem value="T700">T700</SelectItem>
+                        <SelectItem value="T46">T46</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
-              </div>
-            </div>
-          </ScrollArea>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Titel *</Label>
+                    <Input
+                      id="title"
+                      value={currentAction.title}
+                      onChange={(e) =>
+                        setCurrentAction({
+                          ...currentAction,
+                          title: e.target.value,
+                        })
+                      }
+                      placeholder="z.B. Pumpe P-101 Wartung"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Beschreibung</Label>
+                    <Textarea
+                      id="description"
+                      value={currentAction.description}
+                      onChange={(e) =>
+                        setCurrentAction({
+                          ...currentAction,
+                          description: e.target.value,
+                        })
+                      }
+                      placeholder="Detaillierte Beschreibung der Aufgabe..."
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="priority">Priorität</Label>
+                      <Select
+                        value={currentAction.priority}
+                        onValueChange={(value: Action["priority"]) =>
+                          setCurrentAction({
+                            ...currentAction,
+                            priority: value,
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="LOW">Niedrig</SelectItem>
+                          <SelectItem value="MEDIUM">Mittel</SelectItem>
+                          <SelectItem value="HIGH">Hoch</SelectItem>
+                          <SelectItem value="URGENT">Dringend</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select
+                        value={currentAction.status}
+                        onValueChange={(value: Action["status"]) =>
+                          setCurrentAction({ ...currentAction, status: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="OPEN">Offen</SelectItem>
+                          <SelectItem value="IN_PROGRESS">
+                            In Bearbeitung
+                          </SelectItem>
+                          <SelectItem value="COMPLETED">
+                            Abgeschlossen
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="assignedTo">Zugewiesen an *</Label>
+                      <Select
+                        value={currentAction.assignedTo}
+                        onValueChange={(value) =>
+                          setCurrentAction({
+                            ...currentAction,
+                            assignedTo: value,
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="User auswählen" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users
+                            .filter((user) => {
+                              // Admins und Manager können immer ausgewählt werden
+                              if (!user.assignedPlant) return true;
+                              // User muss zur ausgewählten Anlage gehören
+                              return user.assignedPlant === currentAction.plant;
+                            })
+                            .map((user) => (
+                              <SelectItem key={user.id} value={user.email}>
+                                {user.firstName} {user.lastName}
+                                {user.assignedPlant &&
+                                  ` (${user.assignedPlant})`}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dueDate">Fälligkeitsdatum *</Label>
+                      <Input
+                        id="dueDate"
+                        type="date"
+                        value={currentAction.dueDate}
+                        onChange={(e) =>
+                          setCurrentAction({
+                            ...currentAction,
+                            dueDate: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Dateien anhängen</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          document.getElementById("file-upload")?.click()
+                        }
+                        className="flex-1"
+                      >
+                        <Paperclip className="mr-2 h-4 w-4" />
+                        Dateien auswählen
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          document.getElementById("camera-upload")?.click()
+                        }
+                      >
+                        <Camera className="mr-2 h-4 w-4" />
+                        Foto aufnehmen
+                      </Button>
+                    </div>
+                    <input
+                      id="file-upload"
+                      type="file"
+                      multiple
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <input
+                      id="camera-upload"
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+
+                    {currentAction.files && currentAction.files.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {currentAction.files.map((file) => (
+                          <div
+                            key={file.id}
+                            className="relative group border rounded-lg p-2"
+                          >
+                            {file.isPhoto ? (
+                              <img
+                                src={file.url}
+                                alt={file.name}
+                                className="w-full aspect-square object-cover rounded"
+                              />
+                            ) : (
+                              <div className="w-full aspect-square flex items-center justify-center bg-slate-100 rounded">
+                                <Paperclip className="h-8 w-8 text-slate-400" />
+                              </div>
+                            )}
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-1 right-1 h-6 w-6 transition shadow-lg"
+                              onClick={() => removeFile(file.id)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                            <p className="text-xs truncate mt-1">{file.name}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </ScrollArea>
             </TabsContent>
 
             {/* Material Ordering Tab */}
@@ -1120,6 +1415,7 @@ const ActionTracker = () => {
                         description: "",
                         quantity: 1,
                         unit: "Stk",
+                        status: "NICHT_BESTELLT" as const,
                       };
                       setMaterials([...materials, newMaterial]);
                     }}
@@ -1142,6 +1438,7 @@ const ActionTracker = () => {
                           <TableHead>Beschreibung</TableHead>
                           <TableHead className="w-24">Menge</TableHead>
                           <TableHead className="w-24">Einheit</TableHead>
+                          <TableHead className="w-32">Status</TableHead>
                           <TableHead className="w-16"></TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1168,7 +1465,8 @@ const ActionTracker = () => {
                                 value={material.description}
                                 onChange={(e) => {
                                   const newMaterials = [...materials];
-                                  newMaterials[index].description = e.target.value;
+                                  newMaterials[index].description =
+                                    e.target.value;
                                   setMaterials(newMaterials);
                                 }}
                                 placeholder="Beschreibung"
@@ -1182,7 +1480,8 @@ const ActionTracker = () => {
                                 value={material.quantity}
                                 onChange={(e) => {
                                   const newMaterials = [...materials];
-                                  newMaterials[index].quantity = parseInt(e.target.value) || 1;
+                                  newMaterials[index].quantity =
+                                    parseInt(e.target.value) || 1;
                                   setMaterials(newMaterials);
                                 }}
                               />
@@ -1210,12 +1509,43 @@ const ActionTracker = () => {
                               </Select>
                             </TableCell>
                             <TableCell>
+                              <Select
+                                value={material.status || "NICHT_BESTELLT"}
+                                onValueChange={(value) => {
+                                  const newMaterials = [...materials];
+                                  newMaterials[index].status =
+                                    value as MaterialItem["status"];
+                                  setMaterials(newMaterials);
+                                }}
+                              >
+                                <SelectTrigger className="h-9">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="NICHT_BESTELLT">
+                                    ⚪ Nicht bestellt
+                                  </SelectItem>
+                                  <SelectItem value="BESTELLT">
+                                    🟡 Bestellt
+                                  </SelectItem>
+                                  <SelectItem value="UNTERWEGS">
+                                    🔵 Unterwegs
+                                  </SelectItem>
+                                  <SelectItem value="GELIEFERT">
+                                    🟢 Geliefert
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => {
-                                  setMaterials(materials.filter((_, i) => i !== index));
+                                  setMaterials(
+                                    materials.filter((_, i) => i !== index)
+                                  );
                                 }}
                               >
                                 <X className="h-4 w-4" />

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { notifyManagers } from './notification.controller';
 
 const prisma = new PrismaClient();
 
@@ -108,6 +109,15 @@ export const createFailureReport = async (req: AuthRequest, res: Response) => {
         reportedBy: user?.email || 'Unknown',
         reportedByName: user?.email || 'Unknown',
       },
+    });
+
+    // Notify all managers about the new failure report
+    await notifyManagers({
+      id: report.id,
+      title: report.title,
+      plant: report.plant,
+      severity: report.severity,
+      reportedByName: report.reportedByName,
     });
 
     res.status(201).json(report);
