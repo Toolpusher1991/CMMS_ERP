@@ -68,6 +68,56 @@ async function main() {
     console.log('✅ Regular user already exists');
   }
 
+  // Create Rig Personnel (Elektriker, Mechaniker, Toolpusher, Rig Manager, Supply Coordinator)
+  // For each rig: T208, T207, T700, T46
+  
+  const rigs = ['T208', 'T207', 'T700', 'T46'];
+  const roles = [
+    { role: 'Elektriker', email: 'elektriker' },
+    { role: 'Mechaniker', email: 'mechaniker' },
+    { role: 'Toolpusher', email: 'toolpusher' },
+    { role: 'Rig Manager', email: 'rigmanager' },
+    { role: 'Supply Coordinator', email: 'supply' },
+  ];
+
+  const defaultPassword = await bcrypt.hash('rig123', 10);
+  let newUsersCount = 0;
+
+  for (const rig of rigs) {
+    for (const { role, email } of roles) {
+      const userEmail = `${email}.${rig.toLowerCase()}@rigcrew.com`;
+      
+      // Check if user already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email: userEmail },
+      });
+
+      if (!existingUser) {
+        await prisma.user.create({
+          data: {
+            email: userEmail,
+            password: defaultPassword,
+            firstName: role,
+            lastName: rig,
+            role: 'USER',
+            assignedPlant: rig, // User ist spezifisch dieser Anlage zugewiesen
+            isActive: true,
+            approvalStatus: 'APPROVED',
+            approvedAt: new Date(),
+          },
+        });
+        newUsersCount++;
+      }
+    }
+  }
+
+  if (newUsersCount > 0) {
+    console.log(`✅ Created ${newUsersCount} rig crew members across 4 rigs`);
+    console.log('   - Per Rig: Elektriker, Mechaniker, Toolpusher, Rig Manager, Supply Coordinator');
+  } else {
+    console.log('✅ Rig crew members already exist');
+  }
+
   // Seed Projects (T208, T700, T207, T46)
   const existingProjects = await prisma.project.count();
   
@@ -254,8 +304,34 @@ async function main() {
 
   console.log('\n🎉 Database seeding completed!');
   console.log('\n📝 Login credentials:');
-  console.log('Admin: admin@example.com / admin123');
-  console.log('User:  user@example.com / user123');
+  console.log('Admin:     admin@example.com / admin123');
+  console.log('User:      user@example.com / user123');
+  console.log('\n👷 Rig Crew Login (all rigs):');
+  console.log('Password for all crew: rig123');
+  console.log('\nT208 Crew:');
+  console.log('  - elektriker.t208@rigcrew.com');
+  console.log('  - mechaniker.t208@rigcrew.com');
+  console.log('  - toolpusher.t208@rigcrew.com');
+  console.log('  - rigmanager.t208@rigcrew.com');
+  console.log('  - supply.t208@rigcrew.com');
+  console.log('\nT207 Crew:');
+  console.log('  - elektriker.t207@rigcrew.com');
+  console.log('  - mechaniker.t207@rigcrew.com');
+  console.log('  - toolpusher.t207@rigcrew.com');
+  console.log('  - rigmanager.t207@rigcrew.com');
+  console.log('  - supply.t207@rigcrew.com');
+  console.log('\nT700 Crew:');
+  console.log('  - elektriker.t700@rigcrew.com');
+  console.log('  - mechaniker.t700@rigcrew.com');
+  console.log('  - toolpusher.t700@rigcrew.com');
+  console.log('  - rigmanager.t700@rigcrew.com');
+  console.log('  - supply.t700@rigcrew.com');
+  console.log('\nT46 Crew:');
+  console.log('  - elektriker.t46@rigcrew.com');
+  console.log('  - mechaniker.t46@rigcrew.com');
+  console.log('  - toolpusher.t46@rigcrew.com');
+  console.log('  - rigmanager.t46@rigcrew.com');
+  console.log('  - supply.t46@rigcrew.com');
 }
 
 main()

@@ -8,11 +8,11 @@ const getApiBaseUrl = () => {
   // 2. Wenn im Browser über Netzwerk-IP zugegriffen wird, nutze die gleiche IP
   const currentHost = window.location.hostname;
   if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-    return `http://${currentHost}:3000`;
+    return `http://${currentHost}:5137`;
   }
   
-  // 3. Fallback zu localhost
-  return 'http://localhost:3000';
+  // 3. Fallback zu localhost:5137
+  return 'http://localhost:5137';
 };
 
 const API_BASE_URL = `${getApiBaseUrl()}/api`;

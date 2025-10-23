@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
 import * as XLSX from "xlsx";
+import { apiClient } from "@/services/api";
 import {
   Card,
   CardContent,
@@ -12,8 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, FileSpreadsheet, Filter, X } from "lucide-react";
+import { Upload, FileSpreadsheet, Filter, X, Trash2, Plus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface WorkOrder {
   id: string;
@@ -35,6 +37,7 @@ const WorkOrderManagement = () => {
   const [mainWorkCtrFilter, setMainWorkCtrFilter] = useState<string>("all");
   const [availableWorkCtrs, setAvailableWorkCtrs] = useState<string[]>([]);
   const [importStatus, setImportStatus] = useState("");
+  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
 
   // Excel Import Handler mit Main WorkCtr Filter
   const handleFileUpload = useCallback(
@@ -216,6 +219,182 @@ const WorkOrderManagement = () => {
   // Filter zurücksetzen
   const clearFilters = () => {
     setMainWorkCtrFilter("all");
+  };
+
+  // Alle Work Orders löschen
+  const deleteAllWorkOrders = () => {
+    if (
+      window.confirm(
+        `Möchten Sie wirklich alle ${workOrders.length} Work Orders löschen?`
+      )
+    ) {
+      setWorkOrders([]);
+      setFilteredOrders([]);
+      setAvailableWorkCtrs([]);
+      setMainWorkCtrFilter("all");
+      setImportStatus("");
+      setSelectedOrders(new Set());
+
+      toast({
+        title: "✅ Liste gelöscht",
+        description: `Alle Work Orders wurden erfolgreich entfernt.`,
+        duration: 3000,
+      });
+    }
+  };
+
+  // Auswahl-Funktionen
+  const toggleOrderSelection = (orderId: string) => {
+    const newSelection = new Set(selectedOrders);
+    if (newSelection.has(orderId)) {
+      newSelection.delete(orderId);
+    } else {
+      newSelection.add(orderId);
+    }
+    setSelectedOrders(newSelection);
+  };
+
+  const toggleAllOrders = () => {
+    if (selectedOrders.size === filteredOrders.length) {
+      setSelectedOrders(new Set());
+    } else {
+      setSelectedOrders(new Set(filteredOrders.map((order) => order.id)));
+    }
+  };
+
+  const addSelectedToActionTracker = async () => {
+    if (selectedOrders.size === 0) {
+      toast({
+        title: "⚠️ Keine Auswahl",
+        description: "Bitte wählen Sie mindestens einen Work Order aus.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
+    const selectedWorkOrders = workOrders.filter((wo) =>
+      selectedOrders.has(wo.id)
+    );
+
+    try {
+      // Batch-Import: Erstelle für jeden ausgewählten WorkOrder eine Action
+      const createPromises = selectedWorkOrders.map(async (wo) => {
+        // Priorität basierend auf WorkOrder Priority mappen
+        const priorityMap: Record<
+          string,
+          "LOW" | "MEDIUM" | "HIGH" | "URGENT"
+        > = {
+          LOW: "LOW",
+          MEDIUM: "MEDIUM",
+          HIGH: "HIGH",
+          URGENT: "URGENT",
+        };
+
+        // Plant aus MainWorkCtr intelligent ableiten
+        const detectPlant = (
+          workCtr: string
+        ): "T208" | "T207" | "T700" | "T46" => {
+          const wc = workCtr.toUpperCase();
+
+          // Direkte Matches (wenn WorkCtr genau T208, T207, etc. ist)
+          if (wc === "T208") return "T208";
+          if (wc === "T207") return "T207";
+          if (wc === "T700") return "T700";
+          if (wc === "T46") return "T46";
+
+          // WorkCtr enthält Plant-Code (z.B. "T208-MECH", "TP-INSP" für TopSide)
+          if (wc.includes("T208") || wc.includes("208")) return "T208";
+          if (wc.includes("T207") || wc.includes("207")) return "T207";
+          if (wc.includes("T700") || wc.includes("700")) return "T700";
+          if (wc.includes("T46") || wc.includes("46")) return "T46";
+
+          // Spezielle WorkCenter-Typen
+          if (wc.includes("TP-") || wc.startsWith("TP")) return "T208"; // TopSide Inspection → T208
+          if (wc.includes("RM-") || wc.startsWith("RM")) return "T208"; // Rig Maintenance → T208
+          if (wc.includes("ELEC")) return "T208"; // Electrical
+          if (wc.includes("MECH")) return "T208"; // Mechanical
+
+          // Default fallback
+          return "T700";
+        };
+
+        const plant = detectPlant(wo.mainWorkCtr);
+
+        // Datum validieren und formatieren
+        const parseDueDate = (dateStr: string | null): string => {
+          if (!dateStr) {
+            // Kein Datum: 7 Tage ab heute
+            return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split("T")[0];
+          }
+
+          // Versuche Datum zu parsen (Format: DD.MM.YYYY, YYYY-MM-DD, etc.)
+          const parsed = new Date(dateStr);
+          if (!isNaN(parsed.getTime())) {
+            return parsed.toISOString().split("T")[0];
+          }
+
+          // Fallback: 7 Tage ab heute
+          return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0];
+        };
+
+        // Titel optimieren: Max 80 Zeichen, kombiniert und gekürzt
+        const createTitle = (): string => {
+          const base = `${wo.orderType} ${wo.order}`;
+          const descShort = wo.description.substring(0, 50);
+          const combined = `${base}: ${descShort}`;
+
+          // Max 80 Zeichen
+          return combined.length > 80
+            ? combined.substring(0, 77) + "..."
+            : combined;
+        };
+
+        const actionData = {
+          plant,
+          title: createTitle(),
+          description: `${
+            wo.description
+          }\n\n📋 Work Order Details:\n━━━━━━━━━━━━━━━━━━━━━━━━━\n• Order Type: ${
+            wo.orderType
+          }\n• Order Number: ${wo.order}\n• Main WorkCtr: ${
+            wo.mainWorkCtr
+          }\n• Actual Release: ${
+            wo.actualRelease || "N/A"
+          }\n• Basic Start Date: ${wo.basicStartDate || "N/A"}`,
+          status: "OPEN",
+          priority: priorityMap[wo.priority] || "MEDIUM",
+          assignedTo: wo.mainWorkCtr, // WorkCenter als Assignee
+          dueDate: parseDueDate(wo.basicStartDate),
+        };
+
+        return apiClient.post("/actions", actionData);
+      });
+
+      await Promise.all(createPromises);
+
+      toast({
+        title: "✅ Erfolgreich importiert",
+        description: `${selectedOrders.size} Work Order(s) wurden als Actions erstellt.`,
+        duration: 3000,
+      });
+
+      // Auswahl zurücksetzen
+      setSelectedOrders(new Set());
+    } catch (error) {
+      console.error("Fehler beim Import:", error);
+      toast({
+        title: "❌ Import fehlgeschlagen",
+        description:
+          "Actions konnten nicht erstellt werden. Bitte versuchen Sie es erneut.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    }
   };
 
   // Prioritäts-Farben
@@ -425,15 +604,43 @@ const WorkOrderManagement = () => {
       {filteredOrders.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>
-              Work Orders{" "}
-              {mainWorkCtrFilter !== "all" && `- ${mainWorkCtrFilter}`}
-            </CardTitle>
-            <CardDescription>
-              {filteredOrders.length} Work Order
-              {filteredOrders.length !== 1 ? "s" : ""}
-              {mainWorkCtrFilter !== "all" && ` für ${mainWorkCtrFilter}`}
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>
+                  Work Orders{" "}
+                  {mainWorkCtrFilter !== "all" && `- ${mainWorkCtrFilter}`}
+                </CardTitle>
+                <CardDescription>
+                  {filteredOrders.length} Work Order
+                  {filteredOrders.length !== 1 ? "s" : ""}
+                  {mainWorkCtrFilter !== "all" && ` für ${mainWorkCtrFilter}`}
+                  {selectedOrders.size > 0 &&
+                    ` - ${selectedOrders.size} ausgewählt`}
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                {selectedOrders.size > 0 && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={addSelectedToActionTracker}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Zu Actions ({selectedOrders.size})
+                  </Button>
+                )}
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={deleteAllWorkOrders}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Alle löschen
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="border rounded-lg overflow-hidden">
@@ -441,6 +648,16 @@ const WorkOrderManagement = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-800 border-b">
                     <tr>
+                      <th className="px-4 py-3 text-left">
+                        <Checkbox
+                          checked={
+                            selectedOrders.size === filteredOrders.length &&
+                            filteredOrders.length > 0
+                          }
+                          onCheckedChange={toggleAllOrders}
+                          aria-label="Alle auswählen"
+                        />
+                      </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Order Type
                       </th>
@@ -473,6 +690,15 @@ const WorkOrderManagement = () => {
                         key={order.id}
                         className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                       >
+                        <td className="px-4 py-3">
+                          <Checkbox
+                            checked={selectedOrders.has(order.id)}
+                            onCheckedChange={() =>
+                              toggleOrderSelection(order.id)
+                            }
+                            aria-label={`Auswählen ${order.order}`}
+                          />
+                        </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <Badge
                             variant="outline"

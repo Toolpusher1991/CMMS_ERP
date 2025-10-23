@@ -11,6 +11,7 @@ import fileRoutes from './routes/file.routes';
 import actionRoutes from './routes/actions';
 import rigRoutes from './routes/rigs.routes';
 import equipmentRoutes from './routes/equipment.routes';
+import failureReportRoutes from './routes/failure-reports.routes';
 import { errorHandler } from './middleware/error.middleware';
 import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware';
 
@@ -54,8 +55,13 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Serve uploaded files statically with CORS headers
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, '../uploads')));
 
 // Rate limiting
 app.use('/api/', apiLimiter);
@@ -77,6 +83,7 @@ app.use('/api/files', fileRoutes);
 app.use('/api/actions', actionRoutes);
 app.use('/api/rigs', rigRoutes);
 app.use('/api/equipment', equipmentRoutes);
+app.use('/api/failure-reports', failureReportRoutes);
 
 // Error handling
 app.use(errorHandler);

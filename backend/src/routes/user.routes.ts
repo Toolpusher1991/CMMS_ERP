@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { PrismaClient } from '@prisma/client';
 import {
   getAllUsers,
   getUserById,
@@ -13,9 +14,38 @@ import {
 } from '../middleware/ownership.middleware';
 
 const router = Router();
+const prisma = new PrismaClient();
 
 // All routes require authentication
 router.use(authenticate);
+
+// Get users list for assignment (available to all authenticated users)
+router.get('/list', async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        isActive: true,
+        approvalStatus: 'APPROVED',
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        assignedPlant: true,
+      },
+      orderBy: [
+        { assignedPlant: 'asc' },
+        { firstName: 'asc' },
+      ],
+    });
+
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users list:', error);
+    res.status(500).json({ error: 'Failed to fetch users list' });
+  }
+});
 
 // Get all users (Admin and Manager only)
 router.get('/', authorize('ADMIN', 'MANAGER'), getAllUsers);

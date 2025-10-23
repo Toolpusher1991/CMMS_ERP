@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -18,6 +18,9 @@ model User {
   lastName            String
   role                String         @default("USER") // ADMIN, USER, MANAGER
   isActive            Boolean        @default(true)
+  
+  // Plant Assignment - User kann nur auf zugewiesene Anlage zugreifen
+  assignedPlant       String?        // T208, T207, T700, T46, oder null für Admin/alle
   
   // User Approval Workflow
   approvalStatus      String         @default("PENDING") // PENDING, APPROVED, REJECTED
@@ -241,4 +244,33 @@ model Equipment {
   lastEditedBy String? // Admin user ID
   
   @@map("equipment")
+}
+
+model FailureReport {
+  id              String   @id @default(uuid())
+  plant           String   // T208, T207, T700, T46
+  title           String
+  description     String
+  location        String?  // Genauer Ort auf der Anlage
+  severity        String   @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  status          String   @default("REPORTED") // REPORTED, IN_REVIEW, CONVERTED_TO_ACTION, RESOLVED
+  
+  // Photo
+  photoFilename   String?  // Dateiname des Fotos
+  photoPath       String?  // Pfad zum Foto
+  
+  // Reporter Info
+  reportedBy      String   // Email des Melders
+  reportedByName  String   // Name des Melders
+  
+  // Conversion to Action
+  convertedToActionId String? // ID der erstellten Action (falls konvertiert)
+  convertedAt     DateTime?
+  convertedBy     String?
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("failure_reports")
 }

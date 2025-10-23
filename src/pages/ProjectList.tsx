@@ -994,11 +994,20 @@ export default function AnlagenProjektManagement() {
                             <SelectValue placeholder="User wählen" />
                           </SelectTrigger>
                           <SelectContent>
-                            {users.map((user) => (
-                              <SelectItem key={user.id} value={user.id}>
-                                {user.firstName} {user.lastName} ({user.email})
-                              </SelectItem>
-                            ))}
+                            {users
+                              .filter((user) => {
+                                // Admins und Manager können immer ausgewählt werden
+                                if (!user.assignedPlant) return true;
+                                // User muss zur ausgewählten Anlage gehören
+                                return user.assignedPlant === formData.anlage;
+                              })
+                              .map((user) => (
+                                <SelectItem key={user.id} value={user.id}>
+                                  {user.firstName} {user.lastName}
+                                  {user.assignedPlant &&
+                                    ` (${user.assignedPlant})`}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -1177,11 +1186,21 @@ export default function AnlagenProjektManagement() {
                         <SelectValue placeholder="User wählen" />
                       </SelectTrigger>
                       <SelectContent>
-                        {users.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.firstName} {user.lastName} ({user.email})
-                          </SelectItem>
-                        ))}
+                        {users
+                          .filter((user) => {
+                            // Admins und Manager können immer ausgewählt werden
+                            if (!user.assignedPlant) return true;
+                            // User muss zur Anlage des ausgewählten Projekts gehören
+                            return (
+                              user.assignedPlant === selectedProject?.anlage
+                            );
+                          })
+                          .map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.firstName} {user.lastName}
+                              {user.assignedPlant && ` (${user.assignedPlant})`}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>

@@ -38,9 +38,9 @@ const refreshTokenSchema = z.object({
 });
 
 // Token generation helpers
-const generateAccessToken = (userId: string, email: string, role: string) => {
+const generateAccessToken = (userId: string, email: string, role: string, assignedPlant?: string | null) => {
   return jwt.sign(
-    { id: userId, email, role },
+    { id: userId, email, role, assignedPlant },
     process.env.JWT_SECRET!,
     { expiresIn: '15m' } // Short-lived access token
   );
@@ -191,7 +191,7 @@ export const login = async (
     await accountLockout.resetAttempts(email);
 
     // Generate tokens
-    const accessToken = generateAccessToken(user.id, user.email, user.role);
+    const accessToken = generateAccessToken(user.id, user.email, user.role, user.assignedPlant);
     const refreshToken = generateRefreshToken();
 
     // Store refresh token in database

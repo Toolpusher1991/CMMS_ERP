@@ -19,6 +19,7 @@ export interface User {
   lastName: string;
   role: string;
   isActive: boolean;
+  assignedPlant?: string | null;
   createdAt: string;
 }
 

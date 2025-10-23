@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate as authenticateToken, AuthRequest } from '../middleware/auth.middleware';
+import { filterByAssignedPlant, validatePlantAccess } from '../middleware/plant-access.middleware';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -56,7 +57,7 @@ const upload = multer({
 });
 
 // GET all actions
-router.get('/', authenticateToken, async (req: Request, res: Response) => {
+router.get('/', authenticateToken, filterByAssignedPlant, async (req: Request, res: Response) => {
   try {
     const { plant, status, priority } = req.query;
 
@@ -83,7 +84,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 });
 
 // GET single action
-router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
+router.get('/:id', authenticateToken, filterByAssignedPlant, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -98,6 +99,16 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Action not found' });
     }
 
+    // Check plant access
+    const authReq = req as AuthRequest;
+    const user = authReq.user;
+    if (user?.assignedPlant && action.plant !== user.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+      return res.status(403).json({ 
+        error: 'Access denied', 
+        message: `You can only access ${user.assignedPlant} actions` 
+      });
+    }
+
     res.json(action);
   } catch (error) {
     console.error('Error fetching action:', error);
@@ -106,7 +117,7 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
 });
 
 // CREATE new action
-router.post('/', authenticateToken, async (req: Request, res: Response) => {
+router.post('/', authenticateToken, validatePlantAccess, async (req: Request, res: Response) => {
   try {
     const {
       plant,
@@ -153,7 +164,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
 });
 
 // UPDATE action
-router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
+router.put('/:id', authenticateToken, validatePlantAccess, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const {
@@ -172,6 +183,16 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
 
     if (!existingAction) {
       return res.status(404).json({ error: 'Action not found' });
+    }
+
+    // Check plant access for existing action
+    const authReq = req as AuthRequest;
+    const user = authReq.user;
+    if (user?.assignedPlant && existingAction.plant !== user.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+      return res.status(403).json({ 
+        error: 'Access denied', 
+        message: `You can only modify ${user.assignedPlant} actions` 
+      });
     }
 
     const updateData: Record<string, unknown> = {};
@@ -219,6 +240,16 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
 
     if (!existingAction) {
       return res.status(404).json({ error: 'Action not found' });
+    }
+
+    // Check plant access
+    const authReq = req as AuthRequest;
+    const user = authReq.user;
+    if (user?.assignedPlant && existingAction.plant !== user.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+      return res.status(403).json({ 
+        error: 'Access denied', 
+        message: `You can only delete ${user.assignedPlant} actions` 
+      });
     }
 
     // Delete all associated files from filesystem

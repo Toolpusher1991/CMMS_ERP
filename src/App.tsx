@@ -7,6 +7,7 @@ import ProjectList from "@/pages/ProjectList";
 import WorkOrderManagement from "@/pages/WorkOrderManagement";
 import ActionTracker from "@/pages/ActionTracker";
 import RigConfigurator from "@/pages/RigConfigurator";
+import FailureReporting from "@/pages/FailureReporting";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,13 @@ import { authService } from "@/services/auth.service";
 import type { User } from "@/services/auth.service";
 
 type AuthView = "login" | "register" | "forgot-password";
-type AppPage = "projects" | "users" | "workorders" | "actions" | "tender";
+type AppPage =
+  | "projects"
+  | "users"
+  | "workorders"
+  | "actions"
+  | "tender"
+  | "failures";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -111,6 +118,13 @@ function App() {
                   Action Tracker
                 </Button>
                 <Button
+                  variant={currentPage === "failures" ? "default" : "ghost"}
+                  onClick={() => setCurrentPage("failures")}
+                  size="sm"
+                >
+                  Schadensmeldungen
+                </Button>
+                <Button
                   variant={currentPage === "tender" ? "default" : "ghost"}
                   onClick={() => setCurrentPage("tender")}
                   size="sm"
@@ -145,6 +159,7 @@ function App() {
           {currentPage === "projects" && <ProjectList />}
           {currentPage === "workorders" && <WorkOrderManagement />}
           {currentPage === "actions" && <ActionTracker />}
+          {currentPage === "failures" && <FailureReporting />}
           {currentPage === "tender" && <RigConfigurator />}
           {currentPage === "users" && <EnhancedUserAdminPage />}
         </main>

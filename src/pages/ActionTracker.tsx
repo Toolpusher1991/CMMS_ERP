@@ -69,6 +69,14 @@ interface ActionFile {
   isPhoto: boolean;
 }
 
+interface MaterialItem {
+  id: string;
+  mmNumber: string;
+  description: string;
+  quantity: number;
+  unit: string;
+}
+
 interface Action {
   id: string;
   plant: "T208" | "T207" | "T700" | "T46";
@@ -82,6 +90,7 @@ interface Action {
   createdBy: string;
   createdAt: string;
   files: ActionFile[];
+  materials?: MaterialItem[];
 }
 
 interface ApiActionFile {
@@ -116,8 +125,31 @@ const ActionTracker = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [actionToDelete, setActionToDelete] = useState<string | null>(null);
+  const [photoViewDialogOpen, setPhotoViewDialogOpen] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(true);
+
+  // Material Management State
+  const [materials, setMaterials] = useState<
+    Array<{
+      id: string;
+      mmNumber: string;
+      description: string;
+      quantity: number;
+      unit: string;
+    }>
+  >([]);
+
+  const [users, setUsers] = useState<
+    Array<{
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      assignedPlant?: string;
+    }>
+  >([]);
 
   const [currentAction, setCurrentAction] = useState<Partial<Action>>({
     plant: "T208",
@@ -133,16 +165,42 @@ const ActionTracker = () => {
 
   const [actions, setActions] = useState<Action[]>([]);
 
+  // Extrahiere Foto-Dateinamen aus Beschreibung (von Failure Reports)
+  const extractPhotoFromDescription = (description: string): string | null => {
+    const match = description.match(
+      /📸 Photo: ([\w-]+\.(?:jpg|jpeg|png|gif|webp))/i
+    );
+    return match ? match[1] : null;
+  };
+
   // Backend laden
   useEffect(() => {
     setIsMounted(true);
     loadActions();
+    loadUsers();
 
     return () => {
       setIsMounted(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadUsers = async () => {
+    try {
+      const response = await apiClient.request<
+        Array<{
+          id: string;
+          email: string;
+          firstName: string;
+          lastName: string;
+          assignedPlant?: string;
+        }>
+      >("/users/list");
+      setUsers(response);
+    } catch (error) {
+      console.error("Fehler beim Laden der User:", error);
+    }
+  };
 
   const loadActions = async () => {
     try {
@@ -216,6 +274,7 @@ const ActionTracker = () => {
   const openNewDialog = () => {
     setIsEditMode(false);
     setPendingFiles([]);
+    setMaterials([]); // Reset materials for new action
     setCurrentAction({
       plant: activeTab as Action["plant"],
       title: "",
@@ -232,6 +291,31 @@ const ActionTracker = () => {
   const openEditDialog = (action: Action) => {
     setIsEditMode(true);
     setPendingFiles([]);
+    
+    // Parse materials from description
+    const parsedMaterials: MaterialItem[] = [];
+    if (action.description) {
+      const materialSection = action.description.split("--- Materialien ---");
+      if (materialSection.length > 1) {
+        const materialLines = materialSection[1].trim().split("\n");
+        materialLines.forEach((line) => {
+          const match = line.match(/📦 (.+?) - (.+?) \((\d+) (.+?)\)/);
+          if (match) {
+            parsedMaterials.push({
+              id: Date.now().toString() + Math.random(),
+              mmNumber: match[1],
+              description: match[2],
+              quantity: parseInt(match[3]),
+              unit: match[4],
+            });
+          }
+        });
+        // Remove material section from description for editing
+        action.description = materialSection[0].trim();
+      }
+    }
+    
+    setMaterials(parsedMaterials);
     setCurrentAction(action);
     setIsDialogOpen(true);
   };
@@ -253,6 +337,20 @@ const ActionTracker = () => {
     try {
       let actionId: string;
 
+      // Append materials to description if any
+      let descriptionWithMaterials = currentAction.description;
+      if (materials.length > 0) {
+        const materialsText = materials
+          .map(
+            (m) =>
+              `📦 ${m.mmNumber} - ${m.description} (${m.quantity} ${m.unit})`
+          )
+          .join("\n");
+        descriptionWithMaterials = currentAction.description
+          ? `${currentAction.description}\n\n--- Materialien ---\n${materialsText}`
+          : `--- Materialien ---\n${materialsText}`;
+      }
+
       if (isEditMode && currentAction.id) {
         // Update
         await apiClient.request(`/actions/${currentAction.id}`, {
@@ -260,7 +358,7 @@ const ActionTracker = () => {
           body: JSON.stringify({
             plant: currentAction.plant,
             title: currentAction.title,
-            description: currentAction.description,
+            description: descriptionWithMaterials,
             status: currentAction.status,
             priority: currentAction.priority,
             assignedTo: currentAction.assignedTo,
@@ -283,7 +381,7 @@ const ActionTracker = () => {
           body: JSON.stringify({
             plant: currentAction.plant,
             title: currentAction.title,
-            description: currentAction.description,
+            description: descriptionWithMaterials,
             status: currentAction.status,
             priority: currentAction.priority,
             assignedTo: currentAction.assignedTo,
@@ -612,9 +710,53 @@ const ActionTracker = () => {
                                         <Label className="text-sm font-semibold">
                                           Beschreibung
                                         </Label>
-                                        <p className="text-sm text-muted-foreground mt-1">
-                                          {action.description}
+                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
+                                          {/* Zeige Beschreibung ohne Foto-Zeile */}
+                                          {action.description
+                                            .split("\n")
+                                            .filter(
+                                              (line) =>
+                                                !line.startsWith("📸 Photo:")
+                                            )
+                                            .join("\n")
+                                            .trim()}
                                         </p>
+                                        {/* Zeige Foto-Button wenn Foto in Beschreibung vorhanden */}
+                                        {extractPhotoFromDescription(
+                                          action.description
+                                        ) && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="mt-2"
+                                            onClick={() => {
+                                              const photoFilename =
+                                                extractPhotoFromDescription(
+                                                  action.description
+                                                );
+                                              if (photoFilename) {
+                                                const getApiUrl = () => {
+                                                  const hostname =
+                                                    window.location.hostname;
+                                                  if (
+                                                    hostname !== "localhost" &&
+                                                    hostname !== "127.0.0.1"
+                                                  ) {
+                                                    return `http://${hostname}:5137`;
+                                                  }
+                                                  return "http://localhost:5137";
+                                                };
+                                                setSelectedPhoto(
+                                                  `${getApiUrl()}/uploads/failure-reports/${photoFilename}`
+                                                );
+                                                setPhotoViewDialogOpen(true);
+                                              }
+                                            }}
+                                          >
+                                            <Camera className="h-4 w-4 mr-2" />
+                                            📸 Foto vom Failure Report ansehen
+                                          </Button>
+                                        )}
                                       </div>
 
                                       <div className="grid grid-cols-3 gap-4">
@@ -735,8 +877,15 @@ const ActionTracker = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="max-h-[60vh] pr-4">
-            <div className="space-y-4 py-4">
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="details">Action Details</TabsTrigger>
+              <TabsTrigger value="materials">Materialbestellung</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="details">
+              <ScrollArea className="max-h-[60vh] pr-4">
+                <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="plant">Anlage *</Label>
                 <Select
@@ -833,17 +982,34 @@ const ActionTracker = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="assignedTo">Zugewiesen an *</Label>
-                  <Input
-                    id="assignedTo"
+                  <Select
                     value={currentAction.assignedTo}
-                    onChange={(e) =>
+                    onValueChange={(value) =>
                       setCurrentAction({
                         ...currentAction,
-                        assignedTo: e.target.value,
+                        assignedTo: value,
                       })
                     }
-                    placeholder="Name"
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="User auswählen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users
+                        .filter((user) => {
+                          // Admins und Manager können immer ausgewählt werden
+                          if (!user.assignedPlant) return true;
+                          // User muss zur ausgewählten Anlage gehören
+                          return user.assignedPlant === currentAction.plant;
+                        })
+                        .map((user) => (
+                          <SelectItem key={user.id} value={user.email}>
+                            {user.firstName} {user.lastName}
+                            {user.assignedPlant && ` (${user.assignedPlant})`}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="dueDate">Fälligkeitsdatum *</Label>
@@ -937,6 +1103,133 @@ const ActionTracker = () => {
               </div>
             </div>
           </ScrollArea>
+            </TabsContent>
+
+            {/* Material Ordering Tab */}
+            <TabsContent value="materials" className="space-y-4">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium">Materialien</h3>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      const newMaterial = {
+                        id: Date.now().toString(),
+                        mmNumber: "",
+                        description: "",
+                        quantity: 1,
+                        unit: "Stk",
+                      };
+                      setMaterials([...materials, newMaterial]);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Material hinzufügen
+                  </Button>
+                </div>
+
+                {materials.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Noch keine Materialien hinzugefügt
+                  </div>
+                ) : (
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>MM-Nummer</TableHead>
+                          <TableHead>Beschreibung</TableHead>
+                          <TableHead className="w-24">Menge</TableHead>
+                          <TableHead className="w-24">Einheit</TableHead>
+                          <TableHead className="w-16"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {materials.map((material, index) => (
+                          <TableRow key={material.id}>
+                            <TableCell>
+                              <Input
+                                type="text"
+                                className="h-9"
+                                value={material.mmNumber}
+                                onChange={(e) => {
+                                  const newMaterials = [...materials];
+                                  newMaterials[index].mmNumber = e.target.value;
+                                  setMaterials(newMaterials);
+                                }}
+                                placeholder="MM-Nr."
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="text"
+                                className="h-9"
+                                value={material.description}
+                                onChange={(e) => {
+                                  const newMaterials = [...materials];
+                                  newMaterials[index].description = e.target.value;
+                                  setMaterials(newMaterials);
+                                }}
+                                placeholder="Beschreibung"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                min="1"
+                                className="h-9"
+                                value={material.quantity}
+                                onChange={(e) => {
+                                  const newMaterials = [...materials];
+                                  newMaterials[index].quantity = parseInt(e.target.value) || 1;
+                                  setMaterials(newMaterials);
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={material.unit}
+                                onValueChange={(value) => {
+                                  const newMaterials = [...materials];
+                                  newMaterials[index].unit = value;
+                                  setMaterials(newMaterials);
+                                }}
+                              >
+                                <SelectTrigger className="h-9">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Stk">Stk</SelectItem>
+                                  <SelectItem value="L">L</SelectItem>
+                                  <SelectItem value="kg">kg</SelectItem>
+                                  <SelectItem value="m">m</SelectItem>
+                                  <SelectItem value="m²">m²</SelectItem>
+                                  <SelectItem value="m³">m³</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setMaterials(materials.filter((_, i) => i !== index));
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -967,6 +1260,55 @@ const ActionTracker = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Photo View Dialog */}
+      <Dialog open={photoViewDialogOpen} onOpenChange={setPhotoViewDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Foto vom Failure Report</DialogTitle>
+            <DialogDescription>
+              Dieses Foto wurde beim Erstellen des Failure Reports aufgenommen
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center">
+            {selectedPhoto && (
+              <img
+                src={selectedPhoto}
+                alt="Failure Report Foto"
+                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                onError={() => {
+                  console.error("Fehler beim Laden des Fotos:", selectedPhoto);
+                  toast({
+                    title: "Fehler",
+                    description: "Foto konnte nicht geladen werden.",
+                    variant: "destructive",
+                  });
+                }}
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPhotoViewDialogOpen(false);
+                setSelectedPhoto(null);
+              }}
+            >
+              Schließen
+            </Button>
+            {selectedPhoto && (
+              <Button
+                onClick={() => {
+                  window.open(selectedPhoto, "_blank");
+                }}
+              >
+                In neuem Tab öffnen
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

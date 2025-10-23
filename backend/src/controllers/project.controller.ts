@@ -7,7 +7,16 @@ const prisma = new PrismaClient();
 
 export const getProjects = async (req: AuthRequest, res: Response) => {
   try {
+    const user = req.user;
+    
+    // Build where clause based on user's assigned plant
+    const where: { projectNumber?: string } = {};
+    if (user?.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+      where.projectNumber = user.assignedPlant;
+    }
+    
     const projects = await prisma.project.findMany({
+      where,
       include: {
         manager: {
           select: {
@@ -57,6 +66,8 @@ export const getProjects = async (req: AuthRequest, res: Response) => {
 export const getProjectById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const user = req.user;
+    
     const project = await prisma.project.findUnique({
       where: { id },
       include: {
@@ -80,6 +91,14 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
 
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    // Check plant access
+    if (user?.assignedPlant && project.projectNumber !== user.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+      return res.status(403).json({ 
+        success: false, 
+        message: `Access denied. You can only access ${user.assignedPlant} projects` 
+      });
     }
 
     res.json({ success: true, data: project });
@@ -108,6 +127,16 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ 
         success: false, 
         message: 'Project number and name are required' 
+      });
+    }
+
+    const user = req.user;
+    
+    // Check plant access - users can only create projects for their assigned plant
+    if (user?.assignedPlant && projectNumber !== user.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+      return res.status(403).json({ 
+        success: false, 
+        message: `Access denied. You can only create projects for ${user.assignedPlant}` 
       });
     }
 
@@ -175,6 +204,28 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       managerId,
     } = req.body;
 
+    const user = req.user;
+    
+    // First, check if project exists and user has access
+    const existingProject = await prisma.project.findUnique({
+      where: { id },
+    });
+
+    if (!existingProject) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Project not found' 
+      });
+    }
+
+    // Check plant access
+    if (user?.assignedPlant && existingProject.projectNumber !== user.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+      return res.status(403).json({ 
+        success: false, 
+        message: `Access denied. You can only modify ${user.assignedPlant} projects` 
+      });
+    }
+
     const project = await prisma.project.update({
       where: { id },
       data: {
@@ -225,6 +276,27 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
 export const deleteProject = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const user = req.user;
+
+    // First, check if project exists and user has access
+    const existingProject = await prisma.project.findUnique({
+      where: { id },
+    });
+
+    if (!existingProject) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Project not found' 
+      });
+    }
+
+    // Check plant access
+    if (user?.assignedPlant && existingProject.projectNumber !== user.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+      return res.status(403).json({ 
+        success: false, 
+        message: `Access denied. You can only delete ${user.assignedPlant} projects` 
+      });
+    }
 
     await prisma.project.delete({
       where: { id },
