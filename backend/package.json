@@ -28,6 +28,7 @@
     "isomorphic-dompurify": "^2.29.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
+    "openai": "^6.6.0",
     "recharts": "^3.3.0",
     "winston": "^3.18.3",
     "zod": "^3.22.4"

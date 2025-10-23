@@ -14,6 +14,7 @@ import equipmentRoutes from './routes/equipment.routes';
 import failureReportRoutes from './routes/failure-reports.routes';
 import notificationRoutes from './routes/notification.routes';
 import commentRoutes from './routes/comment.routes';
+import chatbotRoutes from './routes/chatbot.routes';
 import { errorHandler } from './middleware/error.middleware';
 import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware';
 
@@ -88,6 +89,7 @@ app.use('/api/equipment', equipmentRoutes);
 app.use('/api/failure-reports', failureReportRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 // Error handling
 app.use(errorHandler);

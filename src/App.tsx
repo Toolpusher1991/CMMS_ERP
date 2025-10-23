@@ -11,6 +11,7 @@ import FailureReporting from "@/pages/FailureReporting";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { NotificationBell } from "@/components/NotificationBell";
+import { FloatingChatButton } from "@/components/FloatingChatButton";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
 import { authService } from "@/services/auth.service";
@@ -165,6 +166,9 @@ function App() {
           {currentPage === "tender" && <RigConfigurator />}
           {currentPage === "users" && <EnhancedUserAdminPage />}
         </main>
+
+        {/* Floating Chatbot */}
+        <FloatingChatButton />
       </div>
       <Toaster />
     </ThemeProvider>
