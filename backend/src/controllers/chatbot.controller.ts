@@ -53,14 +53,8 @@ Halte deine Antworten kurz und prägnant. Nutze Emojis sparsam aber sinnvoll (�
 // Get user context (recent actions, projects, etc.)
 async function getUserContext(userId: string): Promise<string> {
   try {
-    // Get user's recent actions
+    // Get recent actions (all actions for overview)
     const recentActions = await prisma.action.findMany({
-      where: {
-        OR: [
-          { createdBy: userId },
-          { assignedTo: { contains: userId } },
-        ],
-      },
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: {
@@ -150,7 +144,7 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_user_actions',
-      description: 'Ruft die Actions (Wartungsaufgaben) des Benutzers ab. Kann nach Anlage, Status oder Priorität gefiltert werden.',
+      description: 'Ruft alle Actions (Wartungsaufgaben) im System ab. Kann nach Anlage, Status gefiltert werden. Jeder Benutzer kann alle Actions sehen.',
       parameters: {
         type: 'object',
         properties: {
@@ -348,13 +342,9 @@ async function executeFunction(
   try {
     switch (functionName) {
       case 'get_user_actions': {
-        const where: any = {
-          OR: [
-            { createdBy: userId },
-            { assignedTo: { contains: userId } },
-          ],
-        };
+        const where: Record<string, unknown> = {};
         
+        // Jeder kann alle Actions sehen (für Manager-Übersicht)
         if (args.plant) where.plant = args.plant;
         if (args.status) where.status = args.status;
 
