@@ -23,6 +23,9 @@ dotenv.config();
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
+// Trust proxy - wichtig für Render.com (hinter Reverse Proxy)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(
   helmet({
