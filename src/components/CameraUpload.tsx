@@ -21,7 +21,7 @@ interface CameraUploadProps {
 
 export const CameraUpload = ({
   onPhotoCapture,
-  actionId,
+  actionId: _actionId,
   actionTitle,
 }: CameraUploadProps) => {
   const { toast } = useToast();

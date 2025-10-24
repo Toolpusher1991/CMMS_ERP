@@ -87,7 +87,7 @@ const FailureReportingPage = () => {
   const [reportToConvert, setReportToConvert] = useState<FailureReport | null>(
     null
   );
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoading, setIsLoading] = useState(true);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoViewDialogOpen, setPhotoViewDialogOpen] = useState(false);
@@ -313,7 +313,7 @@ const FailureReportingPage = () => {
       const response = await apiClient.post(
         `/failure-reports/${reportToConvert.id}/convert-to-action`,
         convertData
-      );
+      ) as { action: { id: string } };
 
       setReports(
         reports.map((r) =>

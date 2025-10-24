@@ -107,7 +107,7 @@ interface EquipmentItem {
 const RigConfigurator = () => {
   const { toast } = useToast();
   const [isAdmin] = useState(authService.isAdmin());
-  const [loadingRigs, setLoadingRigs] = useState(false);
+  const [_loadingRigs, setLoadingRigs] = useState(false);
 
   const [requirements, setRequirements] = useState<ProjectRequirements>({
     projectName: "",
