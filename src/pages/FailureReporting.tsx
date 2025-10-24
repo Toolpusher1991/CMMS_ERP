@@ -217,9 +217,13 @@ const FailureReportingPage = () => {
       }
 
       // Dynamische API URL - funktioniert auf Desktop und Mobile
+      // Use environment variable or construct correct API URL
       const getApiUrl = () => {
+        if (import.meta.env.VITE_API_URL) {
+          return import.meta.env.VITE_API_URL;
+        }
         const hostname = window.location.hostname;
-        if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+        if (hostname !== "localhost" && hostname !== "127.0.0.1" && !hostname.includes('onrender.com')) {
           return `http://${hostname}:5137/api`;
         }
         return "http://localhost:5137/api";
@@ -310,10 +314,10 @@ const FailureReportingPage = () => {
     }
 
     try {
-      const response = await apiClient.post(
+      const response = (await apiClient.post(
         `/failure-reports/${reportToConvert.id}/convert-to-action`,
         convertData
-      ) as { action: { id: string } };
+      )) as { action: { id: string } };
 
       setReports(
         reports.map((r) =>
