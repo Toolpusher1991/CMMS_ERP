@@ -1,17 +1,17 @@
 // Automatische API-URL Erkennung
 const getApiBaseUrl = () => {
-  // 1. Wenn .env gesetzt ist, nutze das
+  // 1. Production: Nutze immer VITE_API_URL wenn gesetzt (wird beim Build eingefügt)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
   
-  // 2. Wenn im Browser über Netzwerk-IP zugegriffen wird, nutze die gleiche IP
+  // 2. Development: Wenn im Browser über Netzwerk-IP zugegriffen wird
   const currentHost = window.location.hostname;
-  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1' && !currentHost.includes('onrender.com')) {
     return `http://${currentHost}:5137`;
   }
   
-  // 3. Fallback zu localhost:5137
+  // 3. Fallback zu localhost:5137 (Development)
   return 'http://localhost:5137';
 };
 
