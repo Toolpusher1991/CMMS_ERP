@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { apiClient } from "@/services/api";
+import { isMobileDevice } from "@/lib/device-detection";
+import "./FailureReporting.mobile.css";
 import {
   Card,
   CardContent,
@@ -79,6 +81,7 @@ interface FailureReport {
 
 const FailureReportingPage = () => {
   const { toast } = useToast();
+  const isMobile = isMobileDevice();
   const [activeTab, setActiveTab] = useState<string>("T208");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -221,7 +224,10 @@ const FailureReportingPage = () => {
       console.log("📷 Mit Foto:", !!photoFile);
 
       // Don't set Content-Type header - browser will set it automatically with boundary
-      const newReport = (await apiClient.post("/failure-reports", formData)) as FailureReport;
+      const newReport = (await apiClient.post(
+        "/failure-reports",
+        formData
+      )) as FailureReport;
 
       console.log("✅ Report erstellt:", newReport);
       setReports([newReport, ...reports]);
@@ -365,8 +371,217 @@ const FailureReportingPage = () => {
 
   const filteredReports = reports.filter((r) => r.plant === activeTab);
 
+  // Mobile View: Simplified - only creation, no table
+  if (isMobile) {
+    return (
+      <div className="mobile-failure-reporting p-4 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <AlertTriangle className="h-6 w-6" />
+              Schadensmeldung
+            </CardTitle>
+            <CardDescription>
+              Schaden schnell mit Foto dokumentieren
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => setIsDialogOpen(true)}
+              className="w-full h-16 text-lg"
+              size="lg"
+            >
+              <Plus className="h-6 w-6 mr-2" />
+              Neuen Schaden melden
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Show recent reports count */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-primary">
+                {reports.length}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Meldungen insgesamt
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Create Dialog - same as desktop */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Neuer Failure Report</DialogTitle>
+              <DialogDescription>
+                Melde einen Schaden oder Defekt mit Foto-Dokumentation
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="plant">Anlage *</Label>
+                  <Select
+                    value={currentReport.plant}
+                    onValueChange={(value: "T208" | "T207" | "T700" | "T46") =>
+                      setCurrentReport({ ...currentReport, plant: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Anlage wählen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="T208">T208</SelectItem>
+                      <SelectItem value="T207">T207</SelectItem>
+                      <SelectItem value="T700">T700</SelectItem>
+                      <SelectItem value="T46">T46</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="severity">Schweregrad *</Label>
+                  <Select
+                    value={currentReport.severity}
+                    onValueChange={(
+                      value: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+                    ) =>
+                      setCurrentReport({
+                        ...currentReport,
+                        severity: value,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Schweregrad wählen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="LOW">Niedrig</SelectItem>
+                      <SelectItem value="MEDIUM">Mittel</SelectItem>
+                      <SelectItem value="HIGH">Hoch</SelectItem>
+                      <SelectItem value="CRITICAL">Kritisch</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="title">Titel *</Label>
+                <Input
+                  id="title"
+                  value={currentReport.title}
+                  onChange={(e) =>
+                    setCurrentReport({
+                      ...currentReport,
+                      title: e.target.value,
+                    })
+                  }
+                  placeholder="Kurze Beschreibung des Problems"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location">Standort</Label>
+                <Input
+                  id="location"
+                  value={currentReport.location}
+                  onChange={(e) =>
+                    setCurrentReport({
+                      ...currentReport,
+                      location: e.target.value,
+                    })
+                  }
+                  placeholder="z.B. Deck 3, Pumpenraum A"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Beschreibung *</Label>
+                <Textarea
+                  id="description"
+                  value={currentReport.description}
+                  onChange={(e) =>
+                    setCurrentReport({
+                      ...currentReport,
+                      description: e.target.value,
+                    })
+                  }
+                  placeholder="Detaillierte Beschreibung des Schadens"
+                  rows={4}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Foto aufnehmen</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full"
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    {photoPreview ? "Foto ändern" : "Foto aufnehmen"}
+                  </Button>
+                  {photoPreview && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => {
+                        setPhotoPreview(null);
+                        setPhotoFile(null);
+                        if (fileInputRef.current)
+                          fileInputRef.current.value = "";
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handlePhotoCapture}
+                  className="hidden"
+                />
+                {photoPreview && (
+                  <div className="mt-2">
+                    <img
+                      src={photoPreview}
+                      alt="Preview"
+                      className="max-w-full h-auto rounded-md border"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Abbrechen
+              </Button>
+              <Button onClick={handleSubmit}>Report erstellen</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // Desktop View: Full table
   return (
-    <div className="container mx-auto p-4 md:p-6 space-y-6">
+    <div
+      className={`container mx-auto p-4 md:p-6 space-y-6 ${
+        isMobile ? "mobile-failure-reporting" : ""
+      }`}
+    >
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

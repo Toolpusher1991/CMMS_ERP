@@ -90,6 +90,9 @@ model Project {
   priority        String    @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
   progress        Int       @default(0) // 0-100%
   
+  // Plant Assignment - Projekt gehört zu einer Anlage
+  plant           String?   // T208, T207, T700, T46 - null für anlage-übergreifend
+  
   // Budget
   totalBudget     Float     @default(0)
   spentBudget     Float     @default(0)

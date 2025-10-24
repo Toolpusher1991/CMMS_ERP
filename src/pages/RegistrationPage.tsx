@@ -172,14 +172,25 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-2">
+          <div className="flex items-center justify-center mb-4">
+            {/* MaintAIn Logo */}
+            <div className="text-center">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                MaintAIn
+              </h1>
+              <p className="text-xs text-muted-foreground mt-1">
+                Maintenance Intelligence
+              </p>
+            </div>
+          </div>
+          <CardTitle className="text-2xl flex items-center gap-2 justify-center">
             <UserPlus className="h-6 w-6" />
             Registrierung
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-center">
             Erstelle einen neuen Account für das CMMS/ERP System
           </CardDescription>
         </CardHeader>

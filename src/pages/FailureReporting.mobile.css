@@ -1,0 +1,102 @@
+/* Mobile-optimized styles for Failure Reporting */
+
+.mobile-failure-reporting {
+  /* Larger touch targets */
+  --mobile-touch-target: 48px;
+  --mobile-spacing: 16px;
+}
+
+.mobile-failure-reporting button {
+  min-height: var(--mobile-touch-target);
+  min-width: var(--mobile-touch-target);
+  font-size: 16px;
+  padding: 12px 20px;
+}
+
+.mobile-failure-reporting input,
+.mobile-failure-reporting textarea,
+.mobile-failure-reporting select {
+  min-height: var(--mobile-touch-target);
+  font-size: 16px; /* Prevents zoom on iOS */
+  padding: 12px;
+}
+
+.mobile-failure-reporting label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* Card spacing */
+.mobile-failure-reporting .space-y-4 > * + * {
+  margin-top: var(--mobile-spacing);
+}
+
+/* Camera button - make it prominent */
+.mobile-failure-reporting button[aria-label="Foto aufnehmen"],
+.mobile-failure-reporting button:has(svg[class*="Camera"]) {
+  min-height: 60px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Table cells - more padding for touch */
+.mobile-failure-reporting td,
+.mobile-failure-reporting th {
+  padding: 12px 8px;
+}
+
+/* Dialog content - full screen on mobile */
+.mobile-failure-reporting [role="dialog"] {
+  max-width: 100%;
+  max-height: 100vh;
+  margin: 0;
+}
+
+/* Tabs - larger touch targets */
+.mobile-failure-reporting [role="tablist"] button {
+  min-height: 44px;
+  padding: 8px 16px;
+  font-size: 15px;
+}
+
+/* Action buttons spacing */
+.mobile-failure-reporting .flex.gap-2 {
+  gap: 12px;
+}
+
+/* Badge - larger text */
+.mobile-failure-reporting [class*="badge"] {
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+/* Icon sizes */
+.mobile-failure-reporting svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Prevent text selection on buttons */
+.mobile-failure-reporting button {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Smooth scrolling */
+.mobile-failure-reporting {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Photo preview - full width */
+.mobile-failure-reporting img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Form grid - stack on mobile */
+.mobile-failure-reporting .grid {
+  grid-template-columns: 1fr !important;
+  gap: var(--mobile-spacing);
+}

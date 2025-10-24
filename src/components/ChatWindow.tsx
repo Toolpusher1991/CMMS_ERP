@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Loader2, Sparkles,  } from "lucide-react";
+import { Send, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,7 +16,9 @@ interface ChatWindowProps {
   onClose?: () => void;
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose: _onClose }) => {
+export const ChatWindow: React.FC<ChatWindowProps> = ({
+  onClose: _onClose,
+}) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);

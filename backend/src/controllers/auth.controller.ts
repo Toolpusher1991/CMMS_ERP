@@ -67,9 +67,14 @@ export const register = async (
     const validated = registerSchema.parse(req.body);
     const ip = getClientIp(req);
 
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: validated.email },
+    // Check if user exists - case insensitive
+    const existingUser = await prisma.user.findFirst({
+      where: { 
+        email: {
+          equals: validated.email,
+          mode: 'insensitive'
+        }
+      },
     });
 
     if (existingUser) {
@@ -124,8 +129,8 @@ export const login = async (
     const validated = loginSchema.parse(req.body);
     const ip = getClientIp(req);
 
-    // Sanitize input
-    const email = sanitize.email(validated.email);
+    // Sanitize input and normalize to lowercase for case-insensitive comparison
+    const email = sanitize.email(validated.email).toLowerCase();
 
     securityLogger.loginAttempt(email, false, ip);
 
@@ -139,9 +144,14 @@ export const login = async (
       );
     }
 
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email },
+    // Find user - case insensitive search
+    const user = await prisma.user.findFirst({
+      where: { 
+        email: {
+          equals: email,
+          mode: 'insensitive'
+        }
+      },
     });
 
     if (!user) {
@@ -357,9 +367,14 @@ export const forgotPassword = async (
     const validated = forgotPasswordSchema.parse(req.body);
     const ip = getClientIp(req);
 
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email: validated.email },
+    // Find user - case insensitive
+    const user = await prisma.user.findFirst({
+      where: { 
+        email: {
+          equals: validated.email,
+          mode: 'insensitive'
+        }
+      },
     });
 
     // Create password reset request (even if user doesn't exist for security)

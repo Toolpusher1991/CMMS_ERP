@@ -58,11 +58,22 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle2 className="h-6 w-6 text-green-600" />
+            <div className="flex items-center justify-center mb-4">
+              {/* MaintAIn Logo */}
+              <div className="text-center">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                  MaintAIn
+                </h1>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Maintenance Intelligence
+                </p>
+              </div>
+            </div>
+            <div className="mx-auto w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
             <CardTitle className="text-2xl">Anfrage gesendet!</CardTitle>
             <CardDescription>
@@ -95,14 +106,25 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-2">
+          <div className="flex items-center justify-center mb-4">
+            {/* MaintAIn Logo */}
+            <div className="text-center">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                MaintAIn
+              </h1>
+              <p className="text-xs text-muted-foreground mt-1">
+                Maintenance Intelligence
+              </p>
+            </div>
+          </div>
+          <CardTitle className="text-2xl flex items-center gap-2 justify-center">
             <KeyRound className="h-6 w-6" />
             Passwort vergessen
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-center">
             Gib deine E-Mail-Adresse ein und ein Administrator wird
             benachrichtigt
           </CardDescription>

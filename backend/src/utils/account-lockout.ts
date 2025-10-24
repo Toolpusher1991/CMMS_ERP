@@ -34,9 +34,14 @@ export const accountLockout = {
    * Record failed login attempt
    */
   async recordFailedAttempt(email: string, ip?: string): Promise<void> {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: { loginAttempts: true, lockedUntil: true },
+    const user = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: 'insensitive',
+        },
+      },
+      select: { email: true, loginAttempts: true, lockedUntil: true },
     });
 
     if (!user) {
@@ -53,7 +58,7 @@ export const accountLockout = {
       );
 
       await prisma.user.update({
-        where: { email },
+        where: { email: user.email },
         data: {
           loginAttempts: attempts,
           lockedUntil,
@@ -68,7 +73,7 @@ export const accountLockout = {
       );
     } else {
       await prisma.user.update({
-        where: { email },
+        where: { email: user.email },
         data: {
           loginAttempts: attempts,
           lastLoginAttempt: now,
@@ -81,14 +86,26 @@ export const accountLockout = {
    * Reset login attempts on successful login
    */
   async resetAttempts(email: string): Promise<void> {
-    await prisma.user.update({
-      where: { email },
-      data: {
-        loginAttempts: 0,
-        lockedUntil: null,
-        lastLoginAttempt: new Date(),
+    const user = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: 'insensitive',
+        },
       },
+      select: { email: true },
     });
+
+    if (user) {
+      await prisma.user.update({
+        where: { email: user.email },
+        data: {
+          loginAttempts: 0,
+          lockedUntil: null,
+          lastLoginAttempt: new Date(),
+        },
+      });
+    }
   },
 
   /**

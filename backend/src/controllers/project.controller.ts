@@ -10,9 +10,9 @@ export const getProjects = async (req: AuthRequest, res: Response) => {
     const user = req.user;
     
     // Build where clause based on user's assigned plant
-    const where: { projectNumber?: string } = {};
+    const where: { plant?: string | null } = {};
     if (user?.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
-      where.projectNumber = user.assignedPlant;
+      where.plant = user.assignedPlant;
     }
     
     const projects = await prisma.project.findMany({
@@ -94,7 +94,7 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
     }
 
     // Check plant access
-    if (user?.assignedPlant && project.projectNumber !== user.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+    if (user?.assignedPlant && project.plant !== user.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
       return res.status(403).json({ 
         success: false, 
         message: `Access denied. You can only access ${user.assignedPlant} projects` 
@@ -121,6 +121,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       startDate,
       endDate,
       managerId,
+      plant,
     } = req.body;
 
     if (!projectNumber || !name) {
@@ -133,7 +134,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
     const user = req.user;
     
     // Check plant access - users can only create projects for their assigned plant
-    if (user?.assignedPlant && projectNumber !== user.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+    if (user?.assignedPlant && plant && plant !== user.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
       return res.status(403).json({ 
         success: false, 
         message: `Access denied. You can only create projects for ${user.assignedPlant}` 
@@ -148,6 +149,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
         status: status || 'PLANNED',
         priority: priority || 'NORMAL',
         progress: progress || 0,
+        plant,
         totalBudget: totalBudget || 0,
         spentBudget: spentBudget || 0,
         startDate: startDate ? new Date(startDate) : undefined,

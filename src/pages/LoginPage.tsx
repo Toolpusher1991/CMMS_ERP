@@ -58,22 +58,15 @@ export function LoginPage({
       </div>
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-6 w-6 text-primary-foreground"
-              >
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                <polyline points="10 17 15 12 10 7" />
-                <line x1="15" x2="3" y1="12" y2="12" />
-              </svg>
+          <div className="flex items-center justify-center mb-6">
+            {/* MaintAIn Logo */}
+            <div className="text-center">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                MaintAIn
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Maintenance Intelligence
+              </p>
             </div>
           </div>
           <CardTitle className="text-2xl font-bold text-center">
