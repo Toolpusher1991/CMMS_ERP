@@ -217,39 +217,16 @@ const FailureReportingPage = () => {
       }
 
       // Dynamische API URL - funktioniert auf Desktop und Mobile
-      // Use environment variable or construct correct API URL
-      const getApiUrl = () => {
-        if (import.meta.env.VITE_API_URL) {
-          return import.meta.env.VITE_API_URL;
-        }
-        const hostname = window.location.hostname;
-        if (hostname !== "localhost" && hostname !== "127.0.0.1" && !hostname.includes('onrender.com')) {
-          return `http://${hostname}:5137/api`;
-        }
-        return "http://localhost:5137/api";
-      };
-
-      const apiUrl = getApiUrl();
-      console.log("📡 Sende Failure Report an:", apiUrl);
+      console.log("📡 Sende Failure Report");
       console.log("📷 Mit Foto:", !!photoFile);
 
-      const response = await fetch(`${apiUrl}/failure-reports`, {
-        method: "POST",
+      const newReport = await apiClient.post("/failure-reports", formData, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          "Content-Type": "multipart/form-data",
         },
-        body: formData,
       });
 
-      console.log("📥 Response Status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ Server Fehler:", errorText);
-        throw new Error(`Server antwortete mit Status ${response.status}`);
-      }
-
-      const newReport = await response.json();
+      console.log("✅ Report erstellt:", newReport);
       setReports([newReport, ...reports]);
 
       setIsDialogOpen(false);
