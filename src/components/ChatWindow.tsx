@@ -109,6 +109,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
       case "view-actions":
         message = "Zeige mir meine offenen Actions";
         break;
+      case "view-projects":
+        message = "Zeige mir meine Projekte";
+        break;
       case "report-damage":
         message = "Ich möchte einen Schaden melden";
         break;

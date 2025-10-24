@@ -25,7 +25,7 @@ const SYSTEM_PROMPT = `Du bist ein hilfreicher Assistent für ein CMMS/ERP-Syste
 Deine Aufgabe ist es, Benutzern bei folgenden Tätigkeiten zu helfen:
 
 1. **Actions (Wartungsaufgaben)** erstellen, verwalten und anzeigen
-2. **Projekte** erstellen und verwalten  
+2. **Projekte** erstellen, verwalten und anzeigen  
 3. **Schadensberichte (Failure Reports)** erstellen
 4. **Materialien** bestellen und Status verfolgen
 5. **Benachrichtigungen** anzeigen
@@ -35,13 +35,15 @@ Deine Aufgabe ist es, Benutzern bei folgenden Tätigkeiten zu helfen:
 
 **Action Status:** OPEN (Offen), IN_PROGRESS (In Bearbeitung), COMPLETED (Abgeschlossen)
 **Action Priorität:** LOW (Niedrig), MEDIUM (Mittel), HIGH (Hoch), URGENT (Dringend)
+**Projekt Status:** PLANNED (Geplant), IN_PROGRESS (In Bearbeitung), COMPLETED (Abgeschlossen), ON_HOLD (Pausiert)
+**Projekt Priorität:** LOW (Niedrig), NORMAL (Normal), HIGH (Hoch), URGENT (Dringend)
 **Material Status:** NICHT_BESTELLT, BESTELLT, UNTERWEGS, GELIEFERT
 
 Du antwortest immer auf Deutsch und bist freundlich, präzise und hilfreich.
 Wenn du eine Aktion ausführen sollst (z.B. "Erstelle eine Action"), nutze die verfügbaren Funktionen.
 Wenn du Informationen benötigst, frage konkret nach (z.B. "Für welche Anlage soll ich die Action erstellen?").
 
-Halte deine Antworten kurz und prägnant. Nutze Emojis sparsam aber sinnvoll (📋 für Actions, 🔧 für Wartung, ⚠️ für Schäden, etc.).`;
+Halte deine Antworten kurz und prägnant. Nutze Emojis sparsam aber sinnvoll (📋 für Actions, 🔧 für Wartung, ⚠️ für Schäden, 🏗️ für Projekte, etc.).`;
 
 // Get user context (recent actions, projects, etc.)
 async function getUserContext(userId: string): Promise<string> {
@@ -88,6 +90,26 @@ async function getUserContext(userId: string): Promise<string> {
       },
     });
 
+    // Get user's projects
+    const recentProjects = await prisma.project.findMany({
+      where: {
+        OR: [
+          { managerId: userId },
+          { createdBy: userId },
+        ],
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        projectNumber: true,
+        name: true,
+        status: true,
+        priority: true,
+        progress: true,
+      },
+    });
+
     // Build context string
     let context = `\n\n--- BENUTZER-KONTEXT ---\n`;
     
@@ -95,6 +117,13 @@ async function getUserContext(userId: string): Promise<string> {
       context += `\nLetzte Actions:\n`;
       recentActions.forEach(action => {
         context += `- ${action.title} (${action.plant}, Status: ${action.status}, Priorität: ${action.priority})\n`;
+      });
+    }
+
+    if (recentProjects.length > 0) {
+      context += `\nProjekte:\n`;
+      recentProjects.forEach(project => {
+        context += `- ${project.name} (${project.projectNumber}, Status: ${project.status}, Fortschritt: ${project.progress}%)\n`;
       });
     }
 
@@ -227,6 +256,83 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'get_user_projects',
+      description: 'Ruft die Projekte ab, die der Benutzer verwaltet oder erstellt hat. Kann nach Status oder Priorität gefiltert werden.',
+      parameters: {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD'],
+            description: 'Filtere nach Projekt-Status',
+          },
+          priority: {
+            type: 'string',
+            enum: ['LOW', 'NORMAL', 'HIGH', 'URGENT'],
+            description: 'Filtere nach Priorität',
+          },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_project',
+      description: 'Erstellt ein neues Projekt',
+      parameters: {
+        type: 'object',
+        properties: {
+          projectNumber: {
+            type: 'string',
+            description: 'Projekt-Nummer/Kürzel (z.B. T208, T700)',
+          },
+          name: {
+            type: 'string',
+            description: 'Name des Projekts',
+          },
+          description: {
+            type: 'string',
+            description: 'Beschreibung des Projekts',
+          },
+          priority: {
+            type: 'string',
+            enum: ['LOW', 'NORMAL', 'HIGH', 'URGENT'],
+            description: 'Priorität',
+          },
+          startDate: {
+            type: 'string',
+            description: 'Startdatum (YYYY-MM-DD)',
+          },
+          endDate: {
+            type: 'string',
+            description: 'Enddatum (YYYY-MM-DD)',
+          },
+        },
+        required: ['projectNumber', 'name', 'priority'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_project_details',
+      description: 'Ruft detaillierte Informationen zu einem spezifischen Projekt ab',
+      parameters: {
+        type: 'object',
+        properties: {
+          projectNumber: {
+            type: 'string',
+            description: 'Projekt-Nummer (z.B. T208, T700)',
+          },
+        },
+        required: ['projectNumber'],
+      },
+    },
+  },
 ];
 
 // Execute function calls from AI
@@ -334,6 +440,139 @@ async function executeFunction(
           success: true,
           data: report,
           message: `Schadensbericht "${args.title}" erfolgreich erstellt`,
+        });
+      }
+
+      case 'get_user_projects': {
+        const where: Record<string, unknown> = {
+          OR: [
+            { managerId: userId },
+            { createdBy: userId },
+          ],
+        };
+        
+        if (args.status) where.status = args.status;
+        if (args.priority) where.priority = args.priority;
+
+        const projects = await prisma.project.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          include: {
+            manager: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            tasks: {
+              select: {
+                id: true,
+                status: true,
+              },
+            },
+          },
+        });
+
+        // Calculate task statistics
+        const projectsWithStats = projects.map(project => {
+          const totalTasks = project.tasks.length;
+          const completedTasks = project.tasks.filter(t => t.status === 'COMPLETED').length;
+          const taskProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+          return {
+            ...project,
+            totalTasks,
+            completedTasks,
+            taskProgress,
+          };
+        });
+
+        return JSON.stringify({
+          success: true,
+          data: projectsWithStats,
+          count: projectsWithStats.length,
+        });
+      }
+
+      case 'create_project': {
+        const project = await prisma.project.create({
+          data: {
+            projectNumber: args.projectNumber,
+            name: args.name,
+            description: args.description || '',
+            priority: args.priority,
+            status: 'PLANNED',
+            progress: 0,
+            startDate: args.startDate ? new Date(args.startDate) : null,
+            endDate: args.endDate ? new Date(args.endDate) : null,
+            createdBy: userId,
+            managerId: userId, // Creator is also manager by default
+          },
+        });
+
+        return JSON.stringify({
+          success: true,
+          data: project,
+          message: `Projekt "${args.name}" (${args.projectNumber}) erfolgreich erstellt`,
+        });
+      }
+
+      case 'get_project_details': {
+        const project = await prisma.project.findUnique({
+          where: { projectNumber: args.projectNumber },
+          include: {
+            manager: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            creator: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            tasks: {
+              orderBy: { createdAt: 'desc' },
+              take: 20,
+            },
+            files: {
+              orderBy: { uploadedAt: 'desc' },
+              take: 10,
+            },
+          },
+        });
+
+        if (!project) {
+          return JSON.stringify({
+            success: false,
+            error: `Projekt mit Nummer ${args.projectNumber} nicht gefunden`,
+          });
+        }
+
+        // Calculate statistics
+        const totalTasks = project.tasks.length;
+        const completedTasks = project.tasks.filter(t => t.status === 'COMPLETED').length;
+        const inProgressTasks = project.tasks.filter(t => t.status === 'IN_PROGRESS').length;
+        const pendingTasks = project.tasks.filter(t => t.status === 'PENDING').length;
+
+        return JSON.stringify({
+          success: true,
+          data: {
+            ...project,
+            statistics: {
+              totalTasks,
+              completedTasks,
+              inProgressTasks,
+              pendingTasks,
+              taskProgress: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
+            },
+          },
         });
       }
 
@@ -484,6 +723,17 @@ export const getQuickActions = async (
       },
     });
 
+    // Get active projects count
+    const activeProjectsCount = await prisma.project.count({
+      where: {
+        OR: [
+          { managerId: userId },
+          { createdBy: userId },
+        ],
+        status: { in: ['PLANNED', 'IN_PROGRESS'] },
+      },
+    });
+
     const suggestions = [
       {
         id: 'create-action',
@@ -497,6 +747,13 @@ export const getQuickActions = async (
         title: 'Meine Actions',
         description: `${openActionsCount} offene Aufgaben`,
         badge: openActionsCount > 0 ? openActionsCount : undefined,
+      },
+      {
+        id: 'view-projects',
+        icon: '🏗️',
+        title: 'Meine Projekte',
+        description: `${activeProjectsCount} aktive Projekte`,
+        badge: activeProjectsCount > 0 ? activeProjectsCount : undefined,
       },
       {
         id: 'report-damage',
