@@ -95,14 +95,8 @@ async function getUserContext(userId: string): Promise<string> {
       },
     });
 
-    // Get user's projects
+    // Get recent projects (all projects for overview)
     const recentProjects = await prisma.project.findMany({
-      where: {
-        OR: [
-          { managerId: userId },
-          { createdBy: userId },
-        ],
-      },
       orderBy: { updatedAt: 'desc' },
       take: 5,
       select: {
@@ -265,7 +259,7 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_user_projects',
-      description: 'Ruft die Projekte ab, die der Benutzer verwaltet oder erstellt hat. Kann nach Anlage (projectNumber), Status oder Priorität gefiltert werden.',
+      description: 'Ruft alle Projekte im System ab. Kann nach Anlage (projectNumber), Status oder Priorität gefiltert werden. Jeder Benutzer kann alle Projekte sehen.',
       parameters: {
         type: 'object',
         properties: {
@@ -453,13 +447,9 @@ async function executeFunction(
       }
 
       case 'get_user_projects': {
-        const where: Record<string, unknown> = {
-          OR: [
-            { managerId: userId },
-            { createdBy: userId },
-          ],
-        };
+        const where: Record<string, unknown> = {};
         
+        // Jeder kann alle Projekte sehen (für Manager-Übersicht)
         if (args.projectNumber) where.projectNumber = args.projectNumber;
         if (args.status) where.status = args.status;
         if (args.priority) where.priority = args.priority;
