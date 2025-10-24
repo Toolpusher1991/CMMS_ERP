@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -90,6 +91,7 @@ interface MaterialItem {
 interface Action {
   id: string;
   plant: "T208" | "T207" | "T700" | "T46";
+  category?: "ALLGEMEIN" | "RIGMOVE";
   title: string;
   description: string;
   status: "OPEN" | "IN_PROGRESS" | "COMPLETED";
@@ -115,6 +117,7 @@ interface ApiActionFile {
 interface ApiAction {
   id: string;
   plant: string;
+  category?: string;
   title: string;
   description?: string;
   status: string;
@@ -130,6 +133,9 @@ interface ApiAction {
 const ActionTracker = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("T208");
+  const [activeCategoryTab, setActiveCategoryTab] = useState<
+    Record<string, string>
+  >({ T208: "alle", T207: "alle", T700: "alle", T46: "alle" });
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -163,6 +169,7 @@ const ActionTracker = () => {
 
   const [currentAction, setCurrentAction] = useState<Partial<Action>>({
     plant: "T208",
+    category: "ALLGEMEIN",
     title: "",
     description: "",
     status: "OPEN",
@@ -254,6 +261,7 @@ const ActionTracker = () => {
       const loadedActions: Action[] = response.map((item: ApiAction) => ({
         id: item.id,
         plant: item.plant as Action["plant"],
+        category: item.category as Action["category"],
         title: item.title,
         description: item.description || "",
         status: item.status as Action["status"],
@@ -445,6 +453,7 @@ const ActionTracker = () => {
           method: "PUT",
           body: JSON.stringify({
             plant: currentAction.plant,
+            category: currentAction.category,
             title: currentAction.title,
             description: descriptionWithMaterials,
             status: currentAction.status,
@@ -468,6 +477,7 @@ const ActionTracker = () => {
           method: "POST",
           body: JSON.stringify({
             plant: currentAction.plant,
+            category: currentAction.category,
             title: currentAction.title,
             description: descriptionWithMaterials,
             status: currentAction.status,
@@ -639,7 +649,26 @@ const ActionTracker = () => {
     }
   };
 
-  const filteredActions = actions.filter((a) => a.plant === activeTab);
+  // Helper function to get filtered actions based on plant and category
+  const getFilteredActionsForCategory = (
+    plant: string,
+    category: string
+  ): Action[] => {
+    let filtered = actions.filter((a) => a.plant === plant);
+
+    if (category === "allgemein") {
+      // Allgemein: Actions without category or explicitly ALLGEMEIN
+      filtered = filtered.filter(
+        (a) => !a.category || a.category === "ALLGEMEIN"
+      );
+    } else if (category === "rigmoves") {
+      // Rigmoves: Only RIGMOVE category
+      filtered = filtered.filter((a) => a.category === "RIGMOVE");
+    }
+    // "alle" shows all actions for the plant
+
+    return filtered;
+  };
 
   const getActionStats = (plant: string) => {
     const plantActions = actions.filter((a) => a.plant === plant);
@@ -649,6 +678,10 @@ const ActionTracker = () => {
       inProgress: plantActions.filter((a) => a.status === "IN_PROGRESS").length,
       completed: plantActions.filter((a) => a.status === "COMPLETED").length,
     };
+  };
+
+  const getCategoryStats = (plant: string, category: string) => {
+    return getFilteredActionsForCategory(plant, category).length;
   };
 
   return (
@@ -688,9 +721,28 @@ const ActionTracker = () => {
               <TabsList className="grid w-full grid-cols-4">
                 {["T208", "T207", "T700", "T46"].map((plant) => {
                   const stats = getActionStats(plant);
+                  const openCount = stats.open + stats.inProgress;
                   return (
-                    <TabsTrigger key={plant} value={plant}>
-                      {plant} ({stats.total})
+                    <TabsTrigger key={plant} value={plant} className="relative">
+                      <div className="flex items-center gap-2">
+                        <span>{plant}</span>
+                        {openCount > 0 && (
+                          <Badge
+                            variant="destructive"
+                            className="ml-1 px-1.5 py-0 text-xs font-bold"
+                          >
+                            {openCount}
+                          </Badge>
+                        )}
+                        {openCount === 0 && stats.total > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="ml-1 px-1.5 py-0 text-xs"
+                          >
+                            ✓
+                          </Badge>
+                        )}
+                      </div>
                     </TabsTrigger>
                   );
                 })}
@@ -698,453 +750,582 @@ const ActionTracker = () => {
 
               {["T208", "T207", "T700", "T46"].map((plant) => (
                 <TabsContent key={plant} value={plant}>
-                  {filteredActions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <ClipboardList className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold">Keine Actions</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Erstellen Sie die erste Action für {plant}
-                      </p>
-                      <Button onClick={openNewDialog}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Action erstellen
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[50px]"></TableHead>
-                            <TableHead>Titel</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Priorität</TableHead>
-                            <TableHead>Zugewiesen an</TableHead>
-                            <TableHead>Fälligkeitsdatum</TableHead>
-                            <TableHead>Dateien</TableHead>
-                            <TableHead className="w-[100px]">
-                              Aktionen
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredActions.map((action) => (
-                            <React.Fragment key={action.id}>
-                              <TableRow className="cursor-pointer hover:bg-muted/50">
-                                <TableCell onClick={() => toggleRow(action.id)}>
-                                  {expandedRows.has(action.id) ? (
-                                    <ChevronUp className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronDown className="h-4 w-4" />
-                                  )}
-                                </TableCell>
-                                <TableCell
-                                  className="font-medium"
-                                  onClick={() => toggleRow(action.id)}
-                                >
-                                  {action.title}
-                                </TableCell>
-                                <TableCell onClick={() => toggleRow(action.id)}>
-                                  <Badge
-                                    variant={
-                                      action.status === "COMPLETED"
-                                        ? "default"
-                                        : action.status === "IN_PROGRESS"
-                                        ? "secondary"
-                                        : "outline"
-                                    }
-                                  >
-                                    {action.status === "OPEN" && "Offen"}
-                                    {action.status === "IN_PROGRESS" &&
-                                      "In Bearbeitung"}
-                                    {action.status === "COMPLETED" &&
-                                      "Abgeschlossen"}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell onClick={() => toggleRow(action.id)}>
-                                  <Badge
-                                    variant={
-                                      action.priority === "URGENT" ||
-                                      action.priority === "HIGH"
-                                        ? "destructive"
-                                        : "outline"
-                                    }
-                                  >
-                                    {action.priority}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell onClick={() => toggleRow(action.id)}>
-                                  {action.assignedTo}
-                                </TableCell>
-                                <TableCell onClick={() => toggleRow(action.id)}>
-                                  {action.dueDate}
-                                </TableCell>
-                                <TableCell onClick={() => toggleRow(action.id)}>
-                                  {action.files.length > 0 && (
-                                    <span className="flex items-center gap-1 text-sm">
-                                      <Paperclip className="h-3 w-3" />
-                                      {action.files.length}
-                                    </span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => openEditDialog(action)}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleDelete(action.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
+                  {/* Nested Category Tabs */}
+                  <Tabs
+                    value={activeCategoryTab[plant] || "alle"}
+                    onValueChange={(value) =>
+                      setActiveCategoryTab({
+                        ...activeCategoryTab,
+                        [plant]: value,
+                      })
+                    }
+                    className="space-y-4"
+                  >
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="allgemein">
+                        <div className="flex items-center gap-2">
+                          <span>Allgemein</span>
+                          <Badge
+                            variant="outline"
+                            className="px-1.5 py-0 text-xs"
+                          >
+                            {getCategoryStats(plant, "allgemein")}
+                          </Badge>
+                        </div>
+                      </TabsTrigger>
+                      <TabsTrigger value="rigmoves">
+                        <div className="flex items-center gap-2">
+                          <span>Rigmoves</span>
+                          <Badge
+                            variant="outline"
+                            className="px-1.5 py-0 text-xs"
+                          >
+                            {getCategoryStats(plant, "rigmoves")}
+                          </Badge>
+                        </div>
+                      </TabsTrigger>
+                      <TabsTrigger value="alle">
+                        <div className="flex items-center gap-2">
+                          <span>Alle</span>
+                          <Badge
+                            variant="outline"
+                            className="px-1.5 py-0 text-xs"
+                          >
+                            {getCategoryStats(plant, "alle")}
+                          </Badge>
+                        </div>
+                      </TabsTrigger>
+                    </TabsList>
 
-                              {expandedRows.has(action.id) && (
-                                <TableRow>
-                                  <TableCell
-                                    colSpan={8}
-                                    className="bg-muted/50 p-0"
-                                  >
-                                    <div className="p-6 space-y-4">
-                                      {/* Beschreibung Card */}
-                                      <Card>
-                                        <CardHeader className="pb-3">
-                                          <CardTitle className="text-base flex items-center gap-2">
-                                            📋 Beschreibung
-                                          </CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                          <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                                            {/* Zeige Beschreibung ohne Foto-Zeile und ohne Material-Abschnitt */}
-                                            {action.description
-                                              .split("--- Materialien ---")[0]
-                                              .split("\n")
-                                              .filter(
-                                                (line) =>
-                                                  !line.startsWith("📸 Photo:")
-                                              )
-                                              .join("\n")
-                                              .trim()}
-                                          </p>
-                                          {/* Zeige Foto-Button wenn Foto in Beschreibung vorhanden */}
-                                          {extractPhotoFromDescription(
-                                            action.description
-                                          ) && (
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              className="mt-3"
-                                              onClick={() => {
-                                                const photoFilename =
-                                                  extractPhotoFromDescription(
-                                                    action.description
-                                                  );
-                                                if (photoFilename) {
-                                                  const getApiUrl = () => {
-                                                    const hostname =
-                                                      window.location.hostname;
-                                                    if (
-                                                      hostname !==
-                                                        "localhost" &&
-                                                      hostname !== "127.0.0.1"
-                                                    ) {
-                                                      return `http://${hostname}:5137`;
-                                                    }
-                                                    return "http://localhost:5137";
-                                                  };
-                                                  setSelectedPhoto(
-                                                    `${getApiUrl()}/uploads/failure-reports/${photoFilename}`
-                                                  );
-                                                  setPhotoViewDialogOpen(true);
-                                                }
-                                              }}
-                                            >
-                                              <Camera className="h-4 w-4 mr-2" />
-                                              Foto vom Failure Report ansehen
-                                            </Button>
+                    {["allgemein", "rigmoves", "alle"].map((category) => {
+                      const categoryActions = getFilteredActionsForCategory(
+                        plant,
+                        category
+                      );
+                      return (
+                        <TabsContent key={category} value={category}>
+                          {categoryActions.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                              <ClipboardList className="h-12 w-12 text-muted-foreground mb-4" />
+                              <h3 className="text-lg font-semibold">
+                                Keine Actions
+                              </h3>
+                              <p className="text-sm text-muted-foreground mb-4">
+                                Erstellen Sie die erste Action für {plant}
+                              </p>
+                              <Button onClick={openNewDialog}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Action erstellen
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="rounded-md border">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-[50px]"></TableHead>
+                                    <TableHead className="w-[50px]">
+                                      Nr.
+                                    </TableHead>
+                                    <TableHead>Titel</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Priorität</TableHead>
+                                    <TableHead>Zugewiesen an</TableHead>
+                                    <TableHead>Fälligkeitsdatum</TableHead>
+                                    <TableHead>Dateien</TableHead>
+                                    <TableHead className="w-[100px]">
+                                      Aktionen
+                                    </TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {categoryActions.map((action, index) => (
+                                    <React.Fragment key={action.id}>
+                                      <TableRow className="cursor-pointer hover:bg-muted/50">
+                                        <TableCell
+                                          onClick={() => toggleRow(action.id)}
+                                        >
+                                          {expandedRows.has(action.id) ? (
+                                            <ChevronUp className="h-4 w-4" />
+                                          ) : (
+                                            <ChevronDown className="h-4 w-4" />
                                           )}
-                                        </CardContent>
-                                      </Card>
-
-                                      {/* Status & Info Grid */}
-                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <Card>
-                                          <CardHeader className="pb-3">
-                                            <CardTitle className="text-sm">
-                                              Status ändern
-                                            </CardTitle>
-                                          </CardHeader>
-                                          <CardContent>
-                                            <Select
-                                              value={action.status}
-                                              onValueChange={(
-                                                value: Action["status"]
-                                              ) =>
-                                                handleStatusChange(
-                                                  action.id,
-                                                  value
-                                                )
+                                        </TableCell>
+                                        <TableCell
+                                          onClick={() => toggleRow(action.id)}
+                                        >
+                                          <span className="font-medium text-muted-foreground">
+                                            {index + 1}
+                                          </span>
+                                        </TableCell>
+                                        <TableCell
+                                          className="font-medium"
+                                          onClick={() => toggleRow(action.id)}
+                                        >
+                                          {action.title}
+                                        </TableCell>
+                                        <TableCell
+                                          onClick={() => toggleRow(action.id)}
+                                        >
+                                          <Badge
+                                            variant={
+                                              action.status === "COMPLETED"
+                                                ? "default"
+                                                : action.status ===
+                                                  "IN_PROGRESS"
+                                                ? "secondary"
+                                                : "outline"
+                                            }
+                                          >
+                                            {action.status === "OPEN" &&
+                                              "Offen"}
+                                            {action.status === "IN_PROGRESS" &&
+                                              "In Bearbeitung"}
+                                            {action.status === "COMPLETED" &&
+                                              "Abgeschlossen"}
+                                          </Badge>
+                                        </TableCell>
+                                        <TableCell
+                                          onClick={() => toggleRow(action.id)}
+                                        >
+                                          <Badge
+                                            variant={
+                                              action.priority === "URGENT" ||
+                                              action.priority === "HIGH"
+                                                ? "destructive"
+                                                : "outline"
+                                            }
+                                          >
+                                            {action.priority}
+                                          </Badge>
+                                        </TableCell>
+                                        <TableCell
+                                          onClick={() => toggleRow(action.id)}
+                                        >
+                                          {action.assignedTo}
+                                        </TableCell>
+                                        <TableCell
+                                          onClick={() => toggleRow(action.id)}
+                                        >
+                                          {action.dueDate}
+                                        </TableCell>
+                                        <TableCell
+                                          onClick={() => toggleRow(action.id)}
+                                        >
+                                          {action.files.length > 0 && (
+                                            <span className="flex items-center gap-1 text-sm">
+                                              <Paperclip className="h-3 w-3" />
+                                              {action.files.length}
+                                            </span>
+                                          )}
+                                        </TableCell>
+                                        <TableCell>
+                                          <div className="flex items-center gap-1">
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              onClick={() =>
+                                                openEditDialog(action)
                                               }
                                             >
-                                              <SelectTrigger>
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="OPEN">
-                                                  🔴 Offen
-                                                </SelectItem>
-                                                <SelectItem value="IN_PROGRESS">
-                                                  🟡 In Bearbeitung
-                                                </SelectItem>
-                                                <SelectItem value="COMPLETED">
-                                                  🟢 Abgeschlossen
-                                                </SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </CardContent>
-                                        </Card>
+                                              <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              onClick={() =>
+                                                handleDelete(action.id)
+                                              }
+                                            >
+                                              <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                          </div>
+                                        </TableCell>
+                                      </TableRow>
 
-                                        <Card>
-                                          <CardHeader className="pb-3">
-                                            <CardTitle className="text-sm">
-                                              Erstellt
-                                            </CardTitle>
-                                          </CardHeader>
-                                          <CardContent>
-                                            <div className="space-y-1">
-                                              <p className="text-sm font-medium">
-                                                {action.createdAt}
-                                              </p>
-                                              <p className="text-xs text-muted-foreground">
-                                                von {action.createdBy}
-                                              </p>
-                                            </div>
-                                          </CardContent>
-                                        </Card>
-
-                                        {action.completedAt && (
-                                          <Card>
-                                            <CardHeader className="pb-3">
-                                              <CardTitle className="text-sm">
-                                                Abgeschlossen
-                                              </CardTitle>
-                                            </CardHeader>
-                                            <CardContent>
-                                              <p className="text-sm font-medium">
-                                                {action.completedAt}
-                                              </p>
-                                            </CardContent>
-                                          </Card>
-                                        )}
-                                      </div>
-
-                                      {/* Angehängte Dateien Card */}
-                                      {action.files.length > 0 && (
-                                        <Card>
-                                          <CardHeader className="pb-3">
-                                            <CardTitle className="text-base flex items-center gap-2">
-                                              📎 Angehängte Dateien
-                                              <Badge
-                                                variant="secondary"
-                                                className="ml-2"
-                                              >
-                                                {action.files.length}
-                                              </Badge>
-                                            </CardTitle>
-                                          </CardHeader>
-                                          <CardContent>
-                                            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                                              {action.files.map((file) => (
-                                                <div
-                                                  key={file.id}
-                                                  className="relative group"
-                                                >
-                                                  <Card className="overflow-hidden hover:shadow-md transition-shadow">
-                                                    {file.isPhoto ? (
-                                                      <img
-                                                        src={file.url}
-                                                        alt={file.name}
-                                                        className="w-full aspect-square object-cover"
-                                                      />
-                                                    ) : (
-                                                      <div className="w-full aspect-square flex items-center justify-center bg-muted">
-                                                        <Paperclip className="h-8 w-8 text-muted-foreground" />
-                                                      </div>
-                                                    )}
-                                                  </Card>
-                                                  <p
-                                                    className="text-xs truncate mt-1 text-center"
-                                                    title={file.name}
-                                                  >
-                                                    {file.name}
+                                      {expandedRows.has(action.id) && (
+                                        <TableRow>
+                                          <TableCell
+                                            colSpan={8}
+                                            className="bg-muted/50 p-0"
+                                          >
+                                            <div className="p-6 space-y-4">
+                                              {/* Beschreibung Card */}
+                                              <Card>
+                                                <CardHeader className="pb-3">
+                                                  <CardTitle className="text-base flex items-center gap-2">
+                                                    📋 Beschreibung
+                                                  </CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                  <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                                                    {/* Zeige Beschreibung ohne Foto-Zeile und ohne Material-Abschnitt */}
+                                                    {action.description
+                                                      .split(
+                                                        "--- Materialien ---"
+                                                      )[0]
+                                                      .split("\n")
+                                                      .filter(
+                                                        (line) =>
+                                                          !line.startsWith(
+                                                            "📸 Photo:"
+                                                          )
+                                                      )
+                                                      .join("\n")
+                                                      .trim()}
                                                   </p>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </CardContent>
-                                        </Card>
-                                      )}
-
-                                      {/* Material-Liste Card */}
-                                      {(() => {
-                                        const materials =
-                                          parseMaterialsFromDescription(
-                                            action.description
-                                          );
-                                        if (materials.length === 0) return null;
-
-                                        return (
-                                          <Card className="border-2">
-                                            <CardHeader className="bg-muted/50 pb-4">
-                                              <div className="flex items-center justify-between">
-                                                <CardTitle className="text-lg flex items-center gap-2">
-                                                  📦 Bestellte Materialien
-                                                </CardTitle>
-                                                <Badge
-                                                  variant="secondary"
-                                                  className="text-sm"
-                                                >
-                                                  {materials.length}{" "}
-                                                  {materials.length === 1
-                                                    ? "Material"
-                                                    : "Materialien"}
-                                                </Badge>
-                                              </div>
-                                            </CardHeader>
-                                            <CardContent className="pt-4">
-                                              <div className="space-y-2">
-                                                {materials.map((material) => {
-                                                  // Status Badge Farbe & Text
-                                                  const getStatusBadge = (
-                                                    status?: MaterialItem["status"]
-                                                  ) => {
-                                                    switch (status) {
-                                                      case "GELIEFERT":
-                                                        return (
-                                                          <Badge className="bg-green-600 hover:bg-green-700 text-white">
-                                                            🟢 Geliefert
-                                                          </Badge>
-                                                        );
-                                                      case "UNTERWEGS":
-                                                        return (
-                                                          <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
-                                                            🔵 Unterwegs
-                                                          </Badge>
-                                                        );
-                                                      case "BESTELLT":
-                                                        return (
-                                                          <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
-                                                            🟡 Bestellt
-                                                          </Badge>
-                                                        );
-                                                      default:
-                                                        return (
-                                                          <Badge
-                                                            variant="outline"
-                                                            className="border-2"
-                                                          >
-                                                            ⚪ Nicht bestellt
-                                                          </Badge>
-                                                        );
-                                                    }
-                                                  };
-
-                                                  return (
-                                                    <div
-                                                      key={material.id}
-                                                      className="group p-4 rounded-lg border-2 bg-card hover:bg-muted/30 transition-colors"
-                                                    >
-                                                      <div className="flex items-center justify-between gap-4">
-                                                        <div className="flex-1 min-w-0">
-                                                          <div className="flex items-center gap-3 mb-2">
-                                                            <span className="font-mono text-base font-bold bg-primary/10 text-primary px-3 py-1.5 rounded-md">
-                                                              {
-                                                                material.mmNumber
+                                                  {/* Zeige Foto-Button wenn Foto in Beschreibung vorhanden */}
+                                                  {extractPhotoFromDescription(
+                                                    action.description
+                                                  ) && (
+                                                    <Button
+                                                      variant="outline"
+                                                      size="sm"
+                                                      className="mt-3"
+                                                      onClick={() => {
+                                                        const photoFilename =
+                                                          extractPhotoFromDescription(
+                                                            action.description
+                                                          );
+                                                        if (photoFilename) {
+                                                          const getApiUrl =
+                                                            () => {
+                                                              const hostname =
+                                                                window.location
+                                                                  .hostname;
+                                                              if (
+                                                                hostname !==
+                                                                  "localhost" &&
+                                                                hostname !==
+                                                                  "127.0.0.1"
+                                                              ) {
+                                                                return `http://${hostname}:5137`;
                                                               }
-                                                            </span>
-                                                            {getStatusBadge(
-                                                              material.status
-                                                            )}
-                                                          </div>
-                                                          <p className="text-sm leading-relaxed">
-                                                            {
-                                                              material.description
-                                                            }
-                                                          </p>
-                                                        </div>
-                                                        <div className="flex flex-col items-end justify-center bg-muted/50 px-4 py-3 rounded-lg min-w-[80px]">
-                                                          <p className="text-2xl font-bold text-primary">
-                                                            {material.quantity}
-                                                          </p>
-                                                          <p className="text-sm font-medium text-muted-foreground uppercase">
-                                                            {material.unit}
-                                                          </p>
-                                                        </div>
-                                                      </div>
+                                                              return "http://localhost:5137";
+                                                            };
+                                                          setSelectedPhoto(
+                                                            `${getApiUrl()}/uploads/failure-reports/${photoFilename}`
+                                                          );
+                                                          setPhotoViewDialogOpen(
+                                                            true
+                                                          );
+                                                        }
+                                                      }}
+                                                    >
+                                                      <Camera className="h-4 w-4 mr-2" />
+                                                      Foto vom Failure Report
+                                                      ansehen
+                                                    </Button>
+                                                  )}
+                                                </CardContent>
+                                              </Card>
+
+                                              {/* Status & Info Grid */}
+                                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <Card>
+                                                  <CardHeader className="pb-3">
+                                                    <CardTitle className="text-sm">
+                                                      Status ändern
+                                                    </CardTitle>
+                                                  </CardHeader>
+                                                  <CardContent>
+                                                    <Select
+                                                      value={action.status}
+                                                      onValueChange={(
+                                                        value: Action["status"]
+                                                      ) =>
+                                                        handleStatusChange(
+                                                          action.id,
+                                                          value
+                                                        )
+                                                      }
+                                                    >
+                                                      <SelectTrigger>
+                                                        <SelectValue />
+                                                      </SelectTrigger>
+                                                      <SelectContent>
+                                                        <SelectItem value="OPEN">
+                                                          🔴 Offen
+                                                        </SelectItem>
+                                                        <SelectItem value="IN_PROGRESS">
+                                                          🟡 In Bearbeitung
+                                                        </SelectItem>
+                                                        <SelectItem value="COMPLETED">
+                                                          🟢 Abgeschlossen
+                                                        </SelectItem>
+                                                      </SelectContent>
+                                                    </Select>
+                                                  </CardContent>
+                                                </Card>
+
+                                                <Card>
+                                                  <CardHeader className="pb-3">
+                                                    <CardTitle className="text-sm">
+                                                      Erstellt
+                                                    </CardTitle>
+                                                  </CardHeader>
+                                                  <CardContent>
+                                                    <div className="space-y-1">
+                                                      <p className="text-sm font-medium">
+                                                        {action.createdAt}
+                                                      </p>
+                                                      <p className="text-xs text-muted-foreground">
+                                                        von {action.createdBy}
+                                                      </p>
                                                     </div>
-                                                  );
-                                                })}
+                                                  </CardContent>
+                                                </Card>
+
+                                                {action.completedAt && (
+                                                  <Card>
+                                                    <CardHeader className="pb-3">
+                                                      <CardTitle className="text-sm">
+                                                        Abgeschlossen
+                                                      </CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                      <p className="text-sm font-medium">
+                                                        {action.completedAt}
+                                                      </p>
+                                                    </CardContent>
+                                                  </Card>
+                                                )}
                                               </div>
-                                            </CardContent>
-                                          </Card>
-                                        );
-                                      })()}
 
-                                      {/* Comment Section */}
-                                      {(() => {
-                                        const currentUser =
-                                          authService.getCurrentUser();
-                                        if (!currentUser) return null;
+                                              {/* Angehängte Dateien Card */}
+                                              {action.files.length > 0 && (
+                                                <Card>
+                                                  <CardHeader className="pb-3">
+                                                    <CardTitle className="text-base flex items-center gap-2">
+                                                      📎 Angehängte Dateien
+                                                      <Badge
+                                                        variant="secondary"
+                                                        className="ml-2"
+                                                      >
+                                                        {action.files.length}
+                                                      </Badge>
+                                                    </CardTitle>
+                                                  </CardHeader>
+                                                  <CardContent>
+                                                    <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                                                      {action.files.map(
+                                                        (file) => (
+                                                          <div
+                                                            key={file.id}
+                                                            className="relative group"
+                                                          >
+                                                            <Card className="overflow-hidden hover:shadow-md transition-shadow">
+                                                              {file.isPhoto ? (
+                                                                <img
+                                                                  src={file.url}
+                                                                  alt={
+                                                                    file.name
+                                                                  }
+                                                                  className="w-full aspect-square object-cover"
+                                                                />
+                                                              ) : (
+                                                                <div className="w-full aspect-square flex items-center justify-center bg-muted">
+                                                                  <Paperclip className="h-8 w-8 text-muted-foreground" />
+                                                                </div>
+                                                              )}
+                                                            </Card>
+                                                            <p
+                                                              className="text-xs truncate mt-1 text-center"
+                                                              title={file.name}
+                                                            >
+                                                              {file.name}
+                                                            </p>
+                                                          </div>
+                                                        )
+                                                      )}
+                                                    </div>
+                                                  </CardContent>
+                                                </Card>
+                                              )}
 
-                                        return (
-                                          <CommentSection
-                                            comments={
-                                              actionComments[action.id] || []
-                                            }
-                                            currentUserId={currentUser.id}
-                                            onAddComment={(text) =>
-                                              handleAddComment(action.id, text)
-                                            }
-                                            onUpdateComment={(
-                                              commentId,
-                                              text
-                                            ) =>
-                                              handleUpdateComment(
-                                                action.id,
-                                                commentId,
-                                                text
-                                              )
-                                            }
-                                            onDeleteComment={(commentId) =>
-                                              handleDeleteComment(
-                                                action.id,
-                                                commentId
-                                              )
-                                            }
-                                            isLoading={
-                                              loadingComments[action.id]
-                                            }
-                                          />
-                                        );
-                                      })()}
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                            </React.Fragment>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
+                                              {/* Material-Liste Card */}
+                                              {(() => {
+                                                const materials =
+                                                  parseMaterialsFromDescription(
+                                                    action.description
+                                                  );
+                                                if (materials.length === 0)
+                                                  return null;
+
+                                                return (
+                                                  <Card className="border-2">
+                                                    <CardHeader className="bg-muted/50 pb-4">
+                                                      <div className="flex items-center justify-between">
+                                                        <CardTitle className="text-lg flex items-center gap-2">
+                                                          📦 Bestellte
+                                                          Materialien
+                                                        </CardTitle>
+                                                        <Badge
+                                                          variant="secondary"
+                                                          className="text-sm"
+                                                        >
+                                                          {materials.length}{" "}
+                                                          {materials.length ===
+                                                          1
+                                                            ? "Material"
+                                                            : "Materialien"}
+                                                        </Badge>
+                                                      </div>
+                                                    </CardHeader>
+                                                    <CardContent className="pt-4">
+                                                      <div className="space-y-2">
+                                                        {materials.map(
+                                                          (material) => {
+                                                            // Status Badge Farbe & Text
+                                                            const getStatusBadge =
+                                                              (
+                                                                status?: MaterialItem["status"]
+                                                              ) => {
+                                                                switch (
+                                                                  status
+                                                                ) {
+                                                                  case "GELIEFERT":
+                                                                    return (
+                                                                      <Badge className="bg-green-600 hover:bg-green-700 text-white">
+                                                                        🟢
+                                                                        Geliefert
+                                                                      </Badge>
+                                                                    );
+                                                                  case "UNTERWEGS":
+                                                                    return (
+                                                                      <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
+                                                                        🔵
+                                                                        Unterwegs
+                                                                      </Badge>
+                                                                    );
+                                                                  case "BESTELLT":
+                                                                    return (
+                                                                      <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                                                                        🟡
+                                                                        Bestellt
+                                                                      </Badge>
+                                                                    );
+                                                                  default:
+                                                                    return (
+                                                                      <Badge
+                                                                        variant="outline"
+                                                                        className="border-2"
+                                                                      >
+                                                                        ⚪ Nicht
+                                                                        bestellt
+                                                                      </Badge>
+                                                                    );
+                                                                }
+                                                              };
+
+                                                            return (
+                                                              <div
+                                                                key={
+                                                                  material.id
+                                                                }
+                                                                className="group p-4 rounded-lg border-2 bg-card hover:bg-muted/30 transition-colors"
+                                                              >
+                                                                <div className="flex items-center justify-between gap-4">
+                                                                  <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-3 mb-2">
+                                                                      <span className="font-mono text-base font-bold bg-primary/10 text-primary px-3 py-1.5 rounded-md">
+                                                                        {
+                                                                          material.mmNumber
+                                                                        }
+                                                                      </span>
+                                                                      {getStatusBadge(
+                                                                        material.status
+                                                                      )}
+                                                                    </div>
+                                                                    <p className="text-sm leading-relaxed">
+                                                                      {
+                                                                        material.description
+                                                                      }
+                                                                    </p>
+                                                                  </div>
+                                                                  <div className="flex flex-col items-end justify-center bg-muted/50 px-4 py-3 rounded-lg min-w-[80px]">
+                                                                    <p className="text-2xl font-bold text-primary">
+                                                                      {
+                                                                        material.quantity
+                                                                      }
+                                                                    </p>
+                                                                    <p className="text-sm font-medium text-muted-foreground uppercase">
+                                                                      {
+                                                                        material.unit
+                                                                      }
+                                                                    </p>
+                                                                  </div>
+                                                                </div>
+                                                              </div>
+                                                            );
+                                                          }
+                                                        )}
+                                                      </div>
+                                                    </CardContent>
+                                                  </Card>
+                                                );
+                                              })()}
+
+                                              {/* Comment Section */}
+                                              {(() => {
+                                                const currentUser =
+                                                  authService.getCurrentUser();
+                                                if (!currentUser) return null;
+
+                                                return (
+                                                  <CommentSection
+                                                    comments={
+                                                      actionComments[
+                                                        action.id
+                                                      ] || []
+                                                    }
+                                                    currentUserId={
+                                                      currentUser.id
+                                                    }
+                                                    onAddComment={(text) =>
+                                                      handleAddComment(
+                                                        action.id,
+                                                        text
+                                                      )
+                                                    }
+                                                    onUpdateComment={(
+                                                      commentId,
+                                                      text
+                                                    ) =>
+                                                      handleUpdateComment(
+                                                        action.id,
+                                                        commentId,
+                                                        text
+                                                      )
+                                                    }
+                                                    onDeleteComment={(
+                                                      commentId
+                                                    ) =>
+                                                      handleDeleteComment(
+                                                        action.id,
+                                                        commentId
+                                                      )
+                                                    }
+                                                    isLoading={
+                                                      loadingComments[action.id]
+                                                    }
+                                                  />
+                                                );
+                                              })()}
+                                            </div>
+                                          </TableCell>
+                                        </TableRow>
+                                      )}
+                                    </React.Fragment>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          )}
+                        </TabsContent>
+                      );
+                    })}
+                  </Tabs>
                 </TabsContent>
               ))}
             </Tabs>
@@ -1191,6 +1372,27 @@ const ActionTracker = () => {
                         <SelectItem value="T207">T207</SelectItem>
                         <SelectItem value="T700">T700</SelectItem>
                         <SelectItem value="T46">T46</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Kategorie *</Label>
+                    <Select
+                      value={currentAction.category || "ALLGEMEIN"}
+                      onValueChange={(value) =>
+                        setCurrentAction({
+                          ...currentAction,
+                          category: value as Action["category"],
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Wählen Sie eine Kategorie" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALLGEMEIN">Allgemein</SelectItem>
+                        <SelectItem value="RIGMOVE">Rigmove</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1308,16 +1510,21 @@ const ActionTracker = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="dueDate">Fälligkeitsdatum *</Label>
-                      <Input
-                        id="dueDate"
-                        type="date"
-                        value={currentAction.dueDate}
-                        onChange={(e) =>
+                      <DatePicker
+                        date={
+                          currentAction.dueDate
+                            ? new Date(currentAction.dueDate)
+                            : undefined
+                        }
+                        onSelect={(date) =>
                           setCurrentAction({
                             ...currentAction,
-                            dueDate: e.target.value,
+                            dueDate: date
+                              ? date.toISOString().split("T")[0]
+                              : "",
                           })
                         }
+                        placeholder="Fälligkeitsdatum wählen"
                       />
                     </div>
                   </div>

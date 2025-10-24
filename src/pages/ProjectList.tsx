@@ -59,6 +59,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Plus,
   Pencil,
@@ -870,6 +871,44 @@ export default function AnlagenProjektManagement() {
     }
   };
 
+  // Gantt-Diagramm Helper
+  const calculateGanttData = (project: Project) => {
+    const today = new Date();
+    const start = new Date(project.startDate);
+    const end = new Date(project.endDate);
+
+    // Gesamtdauer in Tagen
+    const totalDays = Math.ceil(
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    // Verstrichene Tage
+    const elapsedDays = Math.ceil(
+      (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    // Prozentsatz der verstrichenen Zeit
+    const timeProgress = Math.max(
+      0,
+      Math.min(100, (elapsedDays / totalDays) * 100)
+    );
+
+    // Status basierend auf Vergleich von Zeit und Fortschritt
+    const isOnTrack = project.progress >= timeProgress - 10; // 10% Toleranz
+    const isDelayed = project.progress < timeProgress - 10;
+    const isAhead = project.progress > timeProgress + 10;
+
+    return {
+      totalDays,
+      elapsedDays,
+      timeProgress: Math.round(timeProgress),
+      isOnTrack,
+      isDelayed,
+      isAhead,
+      daysRemaining: totalDays - elapsedDays,
+    };
+  };
+
   const getFilteredProjects = (anlage: Anlage) => {
     return projects.filter((project) => {
       const matchesAnlage = project.anlage === anlage;
@@ -1089,30 +1128,40 @@ export default function AnlagenProjektManagement() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="startDate">Startdatum</Label>
-                        <Input
-                          id="startDate"
-                          type="date"
-                          value={formData.startDate}
-                          onChange={(e) =>
+                        <DatePicker
+                          date={
+                            formData.startDate
+                              ? new Date(formData.startDate)
+                              : undefined
+                          }
+                          onSelect={(date) =>
                             setFormData({
                               ...formData,
-                              startDate: e.target.value,
+                              startDate: date
+                                ? date.toISOString().split("T")[0]
+                                : "",
                             })
                           }
+                          placeholder="Startdatum wählen"
                         />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="endDate">Enddatum</Label>
-                        <Input
-                          id="endDate"
-                          type="date"
-                          value={formData.endDate}
-                          onChange={(e) =>
+                        <DatePicker
+                          date={
+                            formData.endDate
+                              ? new Date(formData.endDate)
+                              : undefined
+                          }
+                          onSelect={(date) =>
                             setFormData({
                               ...formData,
-                              endDate: e.target.value,
+                              endDate: date
+                                ? date.toISOString().split("T")[0]
+                                : "",
                             })
                           }
+                          placeholder="Enddatum wählen"
                         />
                       </div>
                     </div>
@@ -1492,6 +1541,7 @@ export default function AnlagenProjektManagement() {
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-[50px]"></TableHead>
+                            <TableHead className="w-[50px]">Nr.</TableHead>
                             <TableHead>Projektname</TableHead>
                             <TableHead>Kategorie</TableHead>
                             <TableHead>Status</TableHead>
@@ -1511,478 +1561,627 @@ export default function AnlagenProjektManagement() {
                           {getFilteredProjects(anlage).length === 0 ? (
                             <TableRow>
                               <TableCell
-                                colSpan={10}
+                                colSpan={11}
                                 className="text-center text-muted-foreground"
                               >
                                 Keine Projekte gefunden
                               </TableCell>
                             </TableRow>
                           ) : (
-                            getFilteredProjects(anlage).map((project) => {
-                              const isExpanded = expandedRows.has(project.id);
-                              return (
-                                <React.Fragment key={project.id}>
-                                  {/* Hauptzeile */}
-                                  <TableRow className="hover:bg-muted/50">
-                                    <TableCell>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() =>
-                                          toggleRowExpansion(project.id)
-                                        }
-                                      >
-                                        {isExpanded ? (
-                                          <ChevronDown className="h-4 w-4" />
-                                        ) : (
-                                          <ChevronRight className="h-4 w-4" />
-                                        )}
-                                      </Button>
-                                    </TableCell>
-                                    <TableCell className="font-medium">
-                                      {project.name}
-                                      {project.description && (
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                          {project.description.substring(0, 50)}
-                                          {project.description.length > 50 &&
-                                            "..."}
-                                        </p>
-                                      )}
-                                    </TableCell>
-                                    <TableCell>
-                                      <Badge
-                                        className={getCategoryColor(
-                                          project.category
-                                        )}
-                                      >
-                                        {project.category}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                      <Badge
-                                        className={getStatusColor(
-                                          project.status
-                                        )}
-                                      >
-                                        {project.status}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center gap-2">
-                                        <UserIcon className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm">
-                                          {project.assignedUser ||
-                                            "Nicht zugewiesen"}
-                                        </span>
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-7"
-                                        onClick={() =>
-                                          handleOpenTaskDialog(project)
-                                        }
-                                      >
-                                        <ListTodo className="h-3 w-3 mr-1" />
-                                        {
-                                          project.tasks.filter(
-                                            (t) => t.completed
-                                          ).length
-                                        }
-                                        /{project.tasks.length}
-                                      </Button>
-                                    </TableCell>
-                                    <TableCell>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-7"
-                                        onClick={() =>
-                                          handleOpenFileDialog(project)
-                                        }
-                                      >
-                                        <FileText className="h-3 w-3 mr-1" />
-                                        {project.files.length}
-                                      </Button>
-                                    </TableCell>
-                                    <TableCell className="text-right font-medium">
-                                      {formatCurrency(project.budget)}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      <div className="flex items-center justify-end gap-2">
-                                        <div className="w-full max-w-[100px] bg-secondary rounded-full h-2">
-                                          <div
-                                            className="bg-primary h-2 rounded-full transition-all"
-                                            style={{
-                                              width: `${project.progress}%`,
-                                            }}
-                                          />
-                                        </div>
-                                        <span className="text-sm font-medium min-w-[3ch]">
-                                          {project.progress}%
-                                        </span>
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      <div className="flex justify-end gap-1">
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8"
-                                          onClick={() => handleEdit(project)}
-                                          title="Projekt bearbeiten"
-                                        >
-                                          <Pencil className="h-4 w-4" />
-                                        </Button>
+                            getFilteredProjects(anlage).map(
+                              (project, index) => {
+                                const isExpanded = expandedRows.has(project.id);
+                                return (
+                                  <React.Fragment key={project.id}>
+                                    {/* Hauptzeile */}
+                                    <TableRow className="hover:bg-muted/50">
+                                      <TableCell>
                                         <Button
                                           variant="ghost"
                                           size="icon"
                                           className="h-8 w-8"
                                           onClick={() =>
-                                            handleDelete(project.id)
+                                            toggleRowExpansion(project.id)
                                           }
-                                          title="Projekt löschen"
                                         >
-                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                          {isExpanded ? (
+                                            <ChevronDown className="h-4 w-4" />
+                                          ) : (
+                                            <ChevronRight className="h-4 w-4" />
+                                          )}
                                         </Button>
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
+                                      </TableCell>
+                                      <TableCell>
+                                        <span className="font-medium text-muted-foreground">
+                                          {index + 1}
+                                        </span>
+                                      </TableCell>
+                                      <TableCell className="font-medium">
+                                        {project.name}
+                                        {project.description && (
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            {project.description.substring(
+                                              0,
+                                              50
+                                            )}
+                                            {project.description.length > 50 &&
+                                              "..."}
+                                          </p>
+                                        )}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge
+                                          className={getCategoryColor(
+                                            project.category
+                                          )}
+                                        >
+                                          {project.category}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge
+                                          className={getStatusColor(
+                                            project.status
+                                          )}
+                                        >
+                                          {project.status}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex items-center gap-2">
+                                          <UserIcon className="h-4 w-4 text-muted-foreground" />
+                                          <span className="text-sm">
+                                            {project.assignedUser ||
+                                              "Nicht zugewiesen"}
+                                          </span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-7"
+                                          onClick={() =>
+                                            handleOpenTaskDialog(project)
+                                          }
+                                        >
+                                          <ListTodo className="h-3 w-3 mr-1" />
+                                          {
+                                            project.tasks.filter(
+                                              (t) => t.completed
+                                            ).length
+                                          }
+                                          /{project.tasks.length}
+                                        </Button>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-7"
+                                          onClick={() =>
+                                            handleOpenFileDialog(project)
+                                          }
+                                        >
+                                          <FileText className="h-3 w-3 mr-1" />
+                                          {project.files.length}
+                                        </Button>
+                                      </TableCell>
+                                      <TableCell className="text-right font-medium">
+                                        {formatCurrency(project.budget)}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                          <div className="w-full max-w-[100px] bg-secondary rounded-full h-2">
+                                            <div
+                                              className="bg-primary h-2 rounded-full transition-all"
+                                              style={{
+                                                width: `${project.progress}%`,
+                                              }}
+                                            />
+                                          </div>
+                                          <span className="text-sm font-medium min-w-[3ch]">
+                                            {project.progress}%
+                                          </span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <div className="flex justify-end gap-1">
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={() => handleEdit(project)}
+                                            title="Projekt bearbeiten"
+                                          >
+                                            <Pencil className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={() =>
+                                              handleDelete(project.id)
+                                            }
+                                            title="Projekt löschen"
+                                          >
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                          </Button>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
 
-                                  {/* Erweiterte Detailzeile */}
-                                  {isExpanded && (
-                                    <TableRow>
-                                      <TableCell
-                                        colSpan={10}
-                                        className="p-0 bg-muted/30"
-                                      >
-                                        <div className="p-6 space-y-6">
-                                          {/* Projektinformationen */}
-                                          <div className="grid grid-cols-2 gap-6">
-                                            <Card>
-                                              <CardHeader className="pb-3">
-                                                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                                  <AlertCircle className="h-4 w-4" />
-                                                  Projektinformationen
-                                                </CardTitle>
-                                              </CardHeader>
-                                              <CardContent className="space-y-3">
-                                                {project.description && (
-                                                  <div>
-                                                    <p className="text-xs font-medium text-muted-foreground">
-                                                      Beschreibung
-                                                    </p>
-                                                    <p className="text-sm mt-1">
-                                                      {project.description}
-                                                    </p>
+                                    {/* Erweiterte Detailzeile */}
+                                    {isExpanded && (
+                                      <TableRow>
+                                        <TableCell
+                                          colSpan={10}
+                                          className="p-0 bg-muted/30"
+                                        >
+                                          <div className="p-6 space-y-6">
+                                            {/* Projektinformationen */}
+                                            <div className="grid grid-cols-2 gap-6">
+                                              <Card>
+                                                <CardHeader className="pb-3">
+                                                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                                    <AlertCircle className="h-4 w-4" />
+                                                    Projektinformationen
+                                                  </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="space-y-3">
+                                                  {project.description && (
+                                                    <div>
+                                                      <p className="text-xs font-medium text-muted-foreground">
+                                                        Beschreibung
+                                                      </p>
+                                                      <p className="text-sm mt-1">
+                                                        {project.description}
+                                                      </p>
+                                                    </div>
+                                                  )}
+                                                  <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                      <p className="text-xs font-medium text-muted-foreground">
+                                                        Startdatum
+                                                      </p>
+                                                      <p className="text-sm mt-1">
+                                                        {project.startDate
+                                                          ? new Date(
+                                                              project.startDate
+                                                            ).toLocaleDateString(
+                                                              "de-DE"
+                                                            )
+                                                          : "Nicht gesetzt"}
+                                                      </p>
+                                                    </div>
+                                                    <div>
+                                                      <p className="text-xs font-medium text-muted-foreground">
+                                                        Enddatum
+                                                      </p>
+                                                      <p className="text-sm mt-1">
+                                                        {project.endDate
+                                                          ? new Date(
+                                                              project.endDate
+                                                            ).toLocaleDateString(
+                                                              "de-DE"
+                                                            )
+                                                          : "Nicht gesetzt"}
+                                                      </p>
+                                                    </div>
                                                   </div>
-                                                )}
-                                                <div className="grid grid-cols-2 gap-3">
-                                                  <div>
-                                                    <p className="text-xs font-medium text-muted-foreground">
-                                                      Startdatum
-                                                    </p>
-                                                    <p className="text-sm mt-1">
-                                                      {project.startDate
-                                                        ? new Date(
-                                                            project.startDate
-                                                          ).toLocaleDateString(
-                                                            "de-DE"
-                                                          )
-                                                        : "Nicht gesetzt"}
-                                                    </p>
-                                                  </div>
-                                                  <div>
-                                                    <p className="text-xs font-medium text-muted-foreground">
-                                                      Enddatum
-                                                    </p>
-                                                    <p className="text-sm mt-1">
-                                                      {project.endDate
-                                                        ? new Date(
-                                                            project.endDate
-                                                          ).toLocaleDateString(
-                                                            "de-DE"
-                                                          )
-                                                        : "Nicht gesetzt"}
-                                                    </p>
-                                                  </div>
-                                                </div>
-                                                {project.notes && (
-                                                  <div>
-                                                    <p className="text-xs font-medium text-muted-foreground">
-                                                      Notizen
-                                                    </p>
-                                                    <p className="text-sm mt-1">
-                                                      {project.notes}
-                                                    </p>
-                                                  </div>
-                                                )}
-                                              </CardContent>
-                                            </Card>
+                                                  {project.notes && (
+                                                    <div>
+                                                      <p className="text-xs font-medium text-muted-foreground">
+                                                        Notizen
+                                                      </p>
+                                                      <p className="text-sm mt-1">
+                                                        {project.notes}
+                                                      </p>
+                                                    </div>
+                                                  )}
 
-                                            {/* Aufgaben */}
+                                                  {/* Mini Gantt Timeline */}
+                                                  {project.startDate &&
+                                                    project.endDate &&
+                                                    (() => {
+                                                      const gantt =
+                                                        calculateGanttData(
+                                                          project
+                                                        );
+                                                      return (
+                                                        <div className="pt-3 border-t">
+                                                          <div className="flex items-center justify-between mb-2">
+                                                            <p className="text-xs font-medium text-muted-foreground">
+                                                              Projektverlauf
+                                                            </p>
+                                                            <span
+                                                              className={`text-xs font-medium ${
+                                                                gantt.isDelayed
+                                                                  ? "text-red-600"
+                                                                  : gantt.isAhead
+                                                                  ? "text-green-600"
+                                                                  : "text-blue-600"
+                                                              }`}
+                                                            >
+                                                              {gantt.isDelayed
+                                                                ? "⚠️ Verzögert"
+                                                                : gantt.isAhead
+                                                                ? "✓ Vor Plan"
+                                                                : "→ Im Plan"}
+                                                            </span>
+                                                          </div>
+
+                                                          {/* Timeline Bar */}
+                                                          <div className="relative h-6 bg-muted rounded-md overflow-hidden">
+                                                            {/* Fortschrittsbalken */}
+                                                            <div
+                                                              className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all"
+                                                              style={{
+                                                                width: `${project.progress}%`,
+                                                              }}
+                                                            />
+                                                            {/* Zeit-Marker (Heute) */}
+                                                            <div
+                                                              className="absolute top-0 h-full w-0.5 bg-red-500"
+                                                              style={{
+                                                                left: `${gantt.timeProgress}%`,
+                                                              }}
+                                                            >
+                                                              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-red-500 rounded-full" />
+                                                            </div>
+                                                            {/* Prozentanzeige */}
+                                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                              <span className="text-xs font-bold text-white drop-shadow-md">
+                                                                {
+                                                                  project.progress
+                                                                }
+                                                                %
+                                                              </span>
+                                                            </div>
+                                                          </div>
+
+                                                          {/* Legende */}
+                                                          <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                                                            <span>
+                                                              {new Date(
+                                                                project.startDate
+                                                              ).toLocaleDateString(
+                                                                "de-DE",
+                                                                {
+                                                                  day: "2-digit",
+                                                                  month:
+                                                                    "short",
+                                                                }
+                                                              )}
+                                                            </span>
+                                                            <div className="flex items-center gap-3">
+                                                              <span className="flex items-center gap-1">
+                                                                <span className="w-3 h-3 bg-blue-500 rounded-sm" />
+                                                                Fortschritt
+                                                              </span>
+                                                              <span className="flex items-center gap-1">
+                                                                <span className="w-0.5 h-3 bg-red-500" />
+                                                                Heute
+                                                              </span>
+                                                            </div>
+                                                            <span>
+                                                              {new Date(
+                                                                project.endDate
+                                                              ).toLocaleDateString(
+                                                                "de-DE",
+                                                                {
+                                                                  day: "2-digit",
+                                                                  month:
+                                                                    "short",
+                                                                }
+                                                              )}
+                                                            </span>
+                                                          </div>
+
+                                                          {/* Zusätzliche Info */}
+                                                          <div className="mt-2 text-xs text-muted-foreground">
+                                                            {gantt.daysRemaining >
+                                                            0 ? (
+                                                              <span>
+                                                                📅 Noch{" "}
+                                                                {
+                                                                  gantt.daysRemaining
+                                                                }{" "}
+                                                                Tage bis zum
+                                                                Abschluss
+                                                              </span>
+                                                            ) : gantt.daysRemaining ===
+                                                              0 ? (
+                                                              <span className="text-orange-600 font-medium">
+                                                                ⏰ Projekt endet
+                                                                heute!
+                                                              </span>
+                                                            ) : (
+                                                              <span className="text-red-600 font-medium">
+                                                                ⚠️ Projekt
+                                                                überfällig (
+                                                                {Math.abs(
+                                                                  gantt.daysRemaining
+                                                                )}{" "}
+                                                                Tage)
+                                                              </span>
+                                                            )}
+                                                          </div>
+                                                        </div>
+                                                      );
+                                                    })()}
+                                                </CardContent>
+                                              </Card>
+
+                                              {/* Aufgaben */}
+                                              <Card>
+                                                <CardHeader className="pb-3">
+                                                  <div className="flex items-center justify-between">
+                                                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                                      <ListTodo className="h-4 w-4" />
+                                                      Aufgaben (
+                                                      {project.tasks.length})
+                                                    </CardTitle>
+                                                    <Button
+                                                      variant="outline"
+                                                      size="sm"
+                                                      className="h-7"
+                                                      onClick={() =>
+                                                        handleOpenTaskDialog(
+                                                          project
+                                                        )
+                                                      }
+                                                    >
+                                                      <Plus className="h-3 w-3 mr-1" />
+                                                      Neu
+                                                    </Button>
+                                                  </div>
+                                                </CardHeader>
+                                                <CardContent>
+                                                  {project.tasks.length ===
+                                                  0 ? (
+                                                    <p className="text-sm text-muted-foreground text-center py-4">
+                                                      Keine Aufgaben vorhanden
+                                                    </p>
+                                                  ) : (
+                                                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                      {project.tasks.map(
+                                                        (task) => (
+                                                          <div
+                                                            key={task.id}
+                                                            className="flex items-start gap-3 p-2 rounded-md hover:bg-muted/50 group"
+                                                          >
+                                                            <Checkbox
+                                                              checked={
+                                                                task.completed
+                                                              }
+                                                              onCheckedChange={() =>
+                                                                handleToggleTask(
+                                                                  project.id,
+                                                                  task.id
+                                                                )
+                                                              }
+                                                              className="mt-0.5"
+                                                            />
+                                                            <div className="flex-1 min-w-0">
+                                                              <p
+                                                                className={`text-sm font-medium ${
+                                                                  task.completed
+                                                                    ? "line-through text-muted-foreground"
+                                                                    : ""
+                                                                }`}
+                                                              >
+                                                                {task.title}
+                                                              </p>
+                                                              {task.description && (
+                                                                <p className="text-xs text-muted-foreground mt-0.5">
+                                                                  {
+                                                                    task.description
+                                                                  }
+                                                                </p>
+                                                              )}
+                                                              <div className="flex items-center gap-3 mt-1">
+                                                                {task.assignedUser && (
+                                                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                                    <UserIcon className="h-3 w-3" />
+                                                                    {
+                                                                      task.assignedUser
+                                                                    }
+                                                                  </span>
+                                                                )}
+                                                                {task.dueDate && (
+                                                                  <span className="text-xs text-muted-foreground">
+                                                                    Fällig:{" "}
+                                                                    {new Date(
+                                                                      task.dueDate
+                                                                    ).toLocaleDateString(
+                                                                      "de-DE"
+                                                                    )}
+                                                                  </span>
+                                                                )}
+                                                              </div>
+                                                            </div>
+                                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                              <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7"
+                                                                onClick={() =>
+                                                                  handleOpenTaskDialog(
+                                                                    project,
+                                                                    task
+                                                                  )
+                                                                }
+                                                              >
+                                                                <Pencil className="h-3 w-3" />
+                                                              </Button>
+                                                              <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7"
+                                                                onClick={() =>
+                                                                  handleDeleteTask(
+                                                                    project.id,
+                                                                    task.id
+                                                                  )
+                                                                }
+                                                              >
+                                                                <Trash2 className="h-3 w-3 text-destructive" />
+                                                              </Button>
+                                                            </div>
+                                                          </div>
+                                                        )
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                </CardContent>
+                                              </Card>
+                                            </div>
+
+                                            {/* Dateien */}
                                             <Card>
                                               <CardHeader className="pb-3">
                                                 <div className="flex items-center justify-between">
                                                   <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                                    <ListTodo className="h-4 w-4" />
-                                                    Aufgaben (
-                                                    {project.tasks.length})
+                                                    <FileText className="h-4 w-4" />
+                                                    Dateien (
+                                                    {project.files.length})
                                                   </CardTitle>
                                                   <Button
                                                     variant="outline"
                                                     size="sm"
                                                     className="h-7"
                                                     onClick={() =>
-                                                      handleOpenTaskDialog(
+                                                      handleOpenFileDialog(
                                                         project
                                                       )
                                                     }
                                                   >
-                                                    <Plus className="h-3 w-3 mr-1" />
-                                                    Neu
+                                                    <Upload className="h-3 w-3 mr-1" />
+                                                    Hochladen
                                                   </Button>
                                                 </div>
                                               </CardHeader>
                                               <CardContent>
-                                                {project.tasks.length === 0 ? (
+                                                {project.files.length === 0 ? (
                                                   <p className="text-sm text-muted-foreground text-center py-4">
-                                                    Keine Aufgaben vorhanden
+                                                    Keine Dateien vorhanden
                                                   </p>
                                                 ) : (
-                                                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                                                    {project.tasks.map(
-                                                      (task) => (
-                                                        <div
-                                                          key={task.id}
-                                                          className="flex items-start gap-3 p-2 rounded-md hover:bg-muted/50 group"
+                                                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                                    {project.files.map(
+                                                      (file) => (
+                                                        <Card
+                                                          key={file.id}
+                                                          className="group hover:shadow-md transition-shadow"
                                                         >
-                                                          <Checkbox
-                                                            checked={
-                                                              task.completed
-                                                            }
-                                                            onCheckedChange={() =>
-                                                              handleToggleTask(
-                                                                project.id,
-                                                                task.id
-                                                              )
-                                                            }
-                                                            className="mt-0.5"
-                                                          />
-                                                          <div className="flex-1 min-w-0">
-                                                            <p
-                                                              className={`text-sm font-medium ${
-                                                                task.completed
-                                                                  ? "line-through text-muted-foreground"
-                                                                  : ""
-                                                              }`}
-                                                            >
-                                                              {task.title}
-                                                            </p>
-                                                            {task.description && (
-                                                              <p className="text-xs text-muted-foreground mt-0.5">
+                                                          <CardContent className="p-3">
+                                                            <div className="flex items-start justify-between gap-2">
+                                                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                                {getFileIcon(
+                                                                  file.type
+                                                                )}
+                                                                <div className="min-w-0 flex-1">
+                                                                  <p className="text-sm font-medium truncate">
+                                                                    {file.name}
+                                                                  </p>
+                                                                  <p className="text-xs text-muted-foreground">
+                                                                    {formatFileSize(
+                                                                      file.size
+                                                                    )}
+                                                                  </p>
+                                                                </div>
+                                                              </div>
+                                                              <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                onClick={() =>
+                                                                  handleDeleteFile(
+                                                                    project.id,
+                                                                    file.id
+                                                                  )
+                                                                }
+                                                              >
+                                                                <Trash2 className="h-3 w-3 text-destructive" />
+                                                              </Button>
+                                                            </div>
+                                                            <div className="mt-2 text-xs text-muted-foreground">
+                                                              <p>
+                                                                Von:{" "}
                                                                 {
-                                                                  task.description
+                                                                  file.uploadedBy
                                                                 }
                                                               </p>
-                                                            )}
-                                                            <div className="flex items-center gap-3 mt-1">
-                                                              {task.assignedUser && (
-                                                                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                                                  <UserIcon className="h-3 w-3" />
-                                                                  {
-                                                                    task.assignedUser
-                                                                  }
-                                                                </span>
-                                                              )}
-                                                              {task.dueDate && (
-                                                                <span className="text-xs text-muted-foreground">
-                                                                  Fällig:{" "}
-                                                                  {new Date(
-                                                                    task.dueDate
-                                                                  ).toLocaleDateString(
-                                                                    "de-DE"
-                                                                  )}
-                                                                </span>
-                                                              )}
+                                                              <p>
+                                                                {new Date(
+                                                                  file.uploadedAt
+                                                                ).toLocaleDateString(
+                                                                  "de-DE"
+                                                                )}
+                                                              </p>
                                                             </div>
-                                                          </div>
-                                                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <Button
-                                                              variant="ghost"
-                                                              size="icon"
-                                                              className="h-7 w-7"
-                                                              onClick={() =>
-                                                                handleOpenTaskDialog(
-                                                                  project,
-                                                                  task
-                                                                )
-                                                              }
-                                                            >
-                                                              <Pencil className="h-3 w-3" />
-                                                            </Button>
-                                                            <Button
-                                                              variant="ghost"
-                                                              size="icon"
-                                                              className="h-7 w-7"
-                                                              onClick={() =>
-                                                                handleDeleteTask(
-                                                                  project.id,
-                                                                  task.id
-                                                                )
-                                                              }
-                                                            >
-                                                              <Trash2 className="h-3 w-3 text-destructive" />
-                                                            </Button>
-                                                          </div>
-                                                        </div>
+                                                          </CardContent>
+                                                        </Card>
                                                       )
                                                     )}
                                                   </div>
                                                 )}
                                               </CardContent>
                                             </Card>
-                                          </div>
 
-                                          {/* Dateien */}
-                                          <Card>
-                                            <CardHeader className="pb-3">
-                                              <div className="flex items-center justify-between">
-                                                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                                  <FileText className="h-4 w-4" />
-                                                  Dateien (
-                                                  {project.files.length})
-                                                </CardTitle>
-                                                <Button
-                                                  variant="outline"
-                                                  size="sm"
-                                                  className="h-7"
-                                                  onClick={() =>
-                                                    handleOpenFileDialog(
-                                                      project
+                                            {/* Comment Section */}
+                                            {(() => {
+                                              const currentUser =
+                                                authService.getCurrentUser();
+                                              if (!currentUser) return null;
+
+                                              return (
+                                                <CommentSection
+                                                  comments={
+                                                    projectComments[
+                                                      project.id
+                                                    ] || []
+                                                  }
+                                                  currentUserId={currentUser.id}
+                                                  onAddComment={(text) =>
+                                                    handleAddComment(
+                                                      project.id,
+                                                      text
                                                     )
                                                   }
-                                                >
-                                                  <Upload className="h-3 w-3 mr-1" />
-                                                  Hochladen
-                                                </Button>
-                                              </div>
-                                            </CardHeader>
-                                            <CardContent>
-                                              {project.files.length === 0 ? (
-                                                <p className="text-sm text-muted-foreground text-center py-4">
-                                                  Keine Dateien vorhanden
-                                                </p>
-                                              ) : (
-                                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                                                  {project.files.map((file) => (
-                                                    <Card
-                                                      key={file.id}
-                                                      className="group hover:shadow-md transition-shadow"
-                                                    >
-                                                      <CardContent className="p-3">
-                                                        <div className="flex items-start justify-between gap-2">
-                                                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                            {getFileIcon(
-                                                              file.type
-                                                            )}
-                                                            <div className="min-w-0 flex-1">
-                                                              <p className="text-sm font-medium truncate">
-                                                                {file.name}
-                                                              </p>
-                                                              <p className="text-xs text-muted-foreground">
-                                                                {formatFileSize(
-                                                                  file.size
-                                                                )}
-                                                              </p>
-                                                            </div>
-                                                          </div>
-                                                          <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            onClick={() =>
-                                                              handleDeleteFile(
-                                                                project.id,
-                                                                file.id
-                                                              )
-                                                            }
-                                                          >
-                                                            <Trash2 className="h-3 w-3 text-destructive" />
-                                                          </Button>
-                                                        </div>
-                                                        <div className="mt-2 text-xs text-muted-foreground">
-                                                          <p>
-                                                            Von:{" "}
-                                                            {file.uploadedBy}
-                                                          </p>
-                                                          <p>
-                                                            {new Date(
-                                                              file.uploadedAt
-                                                            ).toLocaleDateString(
-                                                              "de-DE"
-                                                            )}
-                                                          </p>
-                                                        </div>
-                                                      </CardContent>
-                                                    </Card>
-                                                  ))}
-                                                </div>
-                                              )}
-                                            </CardContent>
-                                          </Card>
-
-                                          {/* Comment Section */}
-                                          {(() => {
-                                            const currentUser =
-                                              authService.getCurrentUser();
-                                            if (!currentUser) return null;
-
-                                            return (
-                                              <CommentSection
-                                                comments={
-                                                  projectComments[project.id] ||
-                                                  []
-                                                }
-                                                currentUserId={currentUser.id}
-                                                onAddComment={(text) =>
-                                                  handleAddComment(
-                                                    project.id,
-                                                    text
-                                                  )
-                                                }
-                                                onUpdateComment={(
-                                                  commentId,
-                                                  text
-                                                ) =>
-                                                  handleUpdateComment(
-                                                    project.id,
+                                                  onUpdateComment={(
                                                     commentId,
                                                     text
-                                                  )
-                                                }
-                                                onDeleteComment={(commentId) =>
-                                                  handleDeleteComment(
-                                                    project.id,
+                                                  ) =>
+                                                    handleUpdateComment(
+                                                      project.id,
+                                                      commentId,
+                                                      text
+                                                    )
+                                                  }
+                                                  onDeleteComment={(
                                                     commentId
-                                                  )
-                                                }
-                                                isLoading={
-                                                  loadingComments[project.id]
-                                                }
-                                              />
-                                            );
-                                          })()}
-                                        </div>
-                                      </TableCell>
-                                    </TableRow>
-                                  )}
-                                </React.Fragment>
-                              );
-                            })
+                                                  ) =>
+                                                    handleDeleteComment(
+                                                      project.id,
+                                                      commentId
+                                                    )
+                                                  }
+                                                  isLoading={
+                                                    loadingComments[project.id]
+                                                  }
+                                                />
+                                              );
+                                            })()}
+                                          </div>
+                                        </TableCell>
+                                      </TableRow>
+                                    )}
+                                  </React.Fragment>
+                                );
+                              }
+                            )
                           )}
                         </TableBody>
                       </Table>

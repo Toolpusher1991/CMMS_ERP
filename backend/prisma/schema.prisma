@@ -155,6 +155,7 @@ model File {
 model Action {
   id              String       @id @default(uuid())
   plant           String       // T208, T207, T700, T46
+  category        String?      @default("ALLGEMEIN") // ALLGEMEIN, RIGMOVE
   title           String
   description     String?
   status          String       @default("OPEN") // OPEN, IN_PROGRESS, COMPLETED

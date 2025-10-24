@@ -422,6 +422,7 @@ const FailureReportingPage = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[50px]">Nr.</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Titel</TableHead>
                         <TableHead>Schwere</TableHead>
@@ -434,13 +435,18 @@ const FailureReportingPage = () => {
                     <TableBody>
                       {filteredReports.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center">
+                          <TableCell colSpan={8} className="text-center">
                             Keine Failure Reports für {plant}
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredReports.map((report) => (
+                        filteredReports.map((report, index) => (
                           <TableRow key={report.id}>
+                            <TableCell>
+                              <span className="font-medium text-muted-foreground">
+                                {index + 1}
+                              </span>
+                            </TableCell>
                             <TableCell>
                               {getStatusBadge(report.status)}
                             </TableCell>

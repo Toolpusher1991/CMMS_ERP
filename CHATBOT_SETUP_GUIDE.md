@@ -5,7 +5,7 @@
 Der **MaintAIn Assistant** ist ein KI-gestützter Chatbot, der auf **OpenAI GPT-4o-mini** basiert und dir bei folgenden Aufgaben hilft:
 
 - ✅ **Actions erstellen** und verwalten
-- ✅ **Schadensberichte** erstellen  
+- ✅ **Schadensberichte** erstellen
 - ✅ **Materialien** anzeigen und bestellen
 - ✅ **Benachrichtigungen** anzeigen
 - ✅ **Informationen abrufen** über offene Actions, Projekte, etc.
@@ -64,6 +64,7 @@ npm run dev
 ```
 
 Du solltest sehen:
+
 ```
 🚀 Server is running on http://localhost:5137
 ```
@@ -80,11 +81,13 @@ Du solltest sehen:
 ### Beispiel-Rechnung
 
 **Typische Chat-Nachricht:**
+
 - Frage: "Zeige mir meine offenen Actions" = ~50 Tokens
 - Antwort: ~200 Tokens
 - **Gesamt:** ~250 Tokens
 
 **Monatliche Nutzung (100 Nachrichten/Monat):**
+
 - 100 Nachrichten × 250 Tokens = 25.000 Tokens
 - Input-Kosten: (25.000 / 1.000.000) × $0.15 = **$0.00375**
 - Output-Kosten: (25.000 / 1.000.000) × $0.60 = **$0.015**
@@ -95,11 +98,13 @@ Du solltest sehen:
 Um unerwartete Kosten zu vermeiden:
 
 1. **Usage Limit setzen:**
+
    - Gehe zu: https://platform.openai.com/settings/organization/limits
    - Setze **"Monthly budget"** auf z.B. **$5**
    - Bei Erreichen wird API automatisch deaktiviert
 
 2. **Email-Benachrichtigungen:**
+
    - Automatische Warnung bei 80% und 100% des Limits
 
 3. **Monitoring:**
@@ -138,6 +143,7 @@ Probiere diese Fragen aus:
 ```
 
 **Erwartetes Ergebnis:**
+
 - Bot antwortet auf Deutsch 🇩🇪
 - Bei "Erstelle Action": Fragt nach fehlenden Details (Priorität, Zuständiger, etc.)
 - Bei "Zeige Actions": Listet deine Actions auf
@@ -149,6 +155,7 @@ Probiere diese Fragen aus:
 ### Problem: "OpenAI API key not configured"
 
 **Lösung:**
+
 1. Prüfe ob `.env` Datei korrekt ist
 2. Backend neu starten: `npm run dev`
 3. Prüfe Browser-Console (F12) auf Fehler
@@ -156,6 +163,7 @@ Probiere diese Fragen aus:
 ### Problem: "401 Unauthorized" / "Invalid API key"
 
 **Lösung:**
+
 1. API Key erneut erstellen: https://platform.openai.com/api-keys
 2. Prüfe ob Key mit `sk-proj-` oder `sk-` beginnt
 3. Keine Leerzeichen vor/nach dem Key in `.env`!
@@ -163,6 +171,7 @@ Probiere diese Fragen aus:
 ### Problem: "Rate limit exceeded"
 
 **Lösung:**
+
 - Zu viele Anfragen in kurzer Zeit
 - Warte 60 Sekunden und versuche erneut
 - Prüfe: https://platform.openai.com/usage
@@ -170,6 +179,7 @@ Probiere diese Fragen aus:
 ### Problem: "Insufficient quota"
 
 **Lösung:**
+
 1. Zahlungsmethode hinzufügen (siehe Schritt 1.2)
 2. Oder: Guthaben aufladen unter "Billing"
 
@@ -198,6 +208,7 @@ Probiere diese Fragen aus:
 ### Was der Bot kann:
 
 #### 1. **Actions verwalten**
+
 ```
 User: "Zeige mir alle Actions in T208"
 Bot: "Hier sind deine Actions in T208: ..."
@@ -207,6 +218,7 @@ Bot: "Gerne! Für welche Anlage? (T208, T207, T700, T46)"
 ```
 
 #### 2. **Schadensberichte erstellen**
+
 ```
 User: "Ich möchte einen Schaden melden"
 Bot: "Für welche Anlage möchtest du den Schaden melden?"
@@ -216,6 +228,7 @@ Bot: "Wie schwer ist der Schaden? (LOW, MEDIUM, HIGH, CRITICAL)"
 ```
 
 #### 3. **Informationen abrufen**
+
 ```
 User: "Wie viele offene Actions habe ich?"
 Bot: "Du hast aktuell 3 offene Actions: ..."
@@ -225,6 +238,7 @@ Bot: "Du hast 2 ungelesene Benachrichtigungen: ..."
 ```
 
 #### 4. **Materialien**
+
 ```
 User: "Welche Materialien sind unterwegs?"
 Bot: "Hier sind die Materialien mit Status UNTERWEGS: ..."
@@ -250,6 +264,7 @@ const SYSTEM_PROMPT = `Du bist ein hilfreicher Assistent...`;
 ```
 
 Du kannst hier ändern:
+
 - Sprache/Ton (förmlich vs. locker)
 - Verfügbare Features
 - Beispiel-Antworten

@@ -43,6 +43,7 @@ import {
   Plus,
   Trash2,
   RefreshCw,
+  ClipboardList,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -55,6 +56,7 @@ import {
 } from "@/components/ui/dialog";
 import { rigService } from "@/services/rig.service";
 import { authService } from "@/services/auth.service";
+import { apiClient } from "@/services/api";
 
 // Types
 interface ProjectRequirements {
@@ -160,6 +162,20 @@ const RigConfigurator = () => {
     name: "",
     price: "",
   });
+
+  // Quick Action Dialog
+  const [quickActionDialogOpen, setQuickActionDialogOpen] = useState(false);
+  const [quickActionEquipment, setQuickActionEquipment] = useState<{
+    categoryName: string;
+    equipmentName: string;
+  } | null>(null);
+  const [quickActionForm, setQuickActionForm] = useState({
+    assignedTo: "",
+    description: "",
+  });
+  const [users, setUsers] = useState<
+    Array<{ id: string; email: string; firstName: string; lastName: string }>
+  >([]);
 
   // Rig Management (Admin only)
   const [rigEditDialogOpen, setRigEditDialogOpen] = useState(false);
@@ -678,6 +694,26 @@ const RigConfigurator = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Load users for quick action assignment
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const response = await apiClient.request<
+          Array<{
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+          }>
+        >("/users/list");
+        setUsers(response);
+      } catch (error) {
+        console.error("Fehler beim Laden der User:", error);
+      }
+    };
+    loadUsers();
+  }, []);
+
   // LocalStorage: Speichere Equipment-Daten bei Änderungen
   useEffect(() => {
     if (Object.keys(equipmentCategories).length > 0) {
@@ -783,6 +819,69 @@ const RigConfigurator = () => {
     setEquipmentDialogOpen(false);
     setSelectedCategory("");
     setEquipmentForm({ id: "", name: "", price: "" });
+  };
+
+  // Quick Action Functions
+  const openQuickActionDialog = (
+    categoryKey: string,
+    equipmentItem: EquipmentItem
+  ) => {
+    const categoryName =
+      equipmentCategories[categoryKey as keyof typeof equipmentCategories]
+        ?.name || categoryKey;
+    setQuickActionEquipment({
+      categoryName,
+      equipmentName: equipmentItem.name,
+    });
+    setQuickActionForm({
+      assignedTo: "",
+      description: `Tender-Arbeit für ${equipmentItem.name}`,
+    });
+    setQuickActionDialogOpen(true);
+  };
+
+  const createQuickAction = async () => {
+    if (!quickActionForm.assignedTo || !quickActionEquipment) {
+      toast({
+        title: "Fehler",
+        description: "Bitte wählen Sie einen Benutzer aus.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await apiClient.request("/actions", {
+        method: "POST",
+        body: JSON.stringify({
+          plant: requirements.location || "T208",
+          category: "ALLGEMEIN",
+          title: `Tender: ${quickActionEquipment.equipmentName}`,
+          description: quickActionForm.description,
+          status: "OPEN",
+          priority: "MEDIUM",
+          assignedTo: quickActionForm.assignedTo,
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0], // 7 Tage
+        }),
+      });
+
+      toast({
+        title: "Action erstellt",
+        description: `Tender-Aufgabe für ${quickActionEquipment.equipmentName} wurde erstellt.`,
+      });
+
+      setQuickActionDialogOpen(false);
+      setQuickActionForm({ assignedTo: "", description: "" });
+      setQuickActionEquipment(null);
+    } catch (error) {
+      toast({
+        title: "Fehler",
+        description: "Action konnte nicht erstellt werden.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Preisbearbeitungs-Funktionen
@@ -1322,53 +1421,6 @@ const RigConfigurator = () => {
 
                 <Separator />
 
-                {/* Debug Panel - zeigt geparste Werte */}
-                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                    🔍 Debug: Geparste Filter-Werte
-                  </p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                    <div>
-                      <span className="text-blue-600 dark:text-blue-400">
-                        Tiefe:
-                      </span>{" "}
-                      <span className="font-mono font-semibold">
-                        {parseFloat(requirements.depth) || 0} m
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-blue-600 dark:text-blue-400">
-                        Hakenlast:
-                      </span>{" "}
-                      <span className="font-mono font-semibold">
-                        {parseFloat(requirements.hookLoad) || 0} t
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-blue-600 dark:text-blue-400">
-                        Drehmoment:
-                      </span>{" "}
-                      <span className="font-mono font-semibold">
-                        {parseFloat(requirements.rotaryTorque) || 0} Nm
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-blue-600 dark:text-blue-400">
-                        Pumpendruck:
-                      </span>{" "}
-                      <span className="font-mono font-semibold">
-                        {parseFloat(requirements.pumpPressure) || 0} psi
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                    Rigs gefunden: {matchedRigs.length} | Angezeigt werden: alle
-                    Rigs (sortiert nach Passgenauigkeit)
-                  </p>
-                </div>
-
-                <Separator />
-
                 {/* Additional Notes */}
                 <div className="space-y-2">
                   <Label htmlFor="notes">Zusätzliche Anforderungen</Label>
@@ -1674,6 +1726,18 @@ const RigConfigurator = () => {
                                           </p>
                                         </div>
                                         <div className="flex gap-1">
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openQuickActionDialog(key, item);
+                                            }}
+                                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                                            title="Tender-Aufgabe erstellen"
+                                          >
+                                            <ClipboardList className="h-4 w-4" />
+                                          </Button>
                                           <Button
                                             size="sm"
                                             variant="ghost"
@@ -2311,6 +2375,100 @@ const RigConfigurator = () => {
                   Im Backend speichern
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Action Dialog */}
+      <Dialog
+        open={quickActionDialogOpen}
+        onOpenChange={setQuickActionDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Tender-Aufgabe erstellen</DialogTitle>
+            <DialogDescription>
+              Erstelle eine neue Aufgabe für{" "}
+              {quickActionEquipment?.equipmentName}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Equipment</Label>
+              <div className="p-3 bg-muted rounded-md">
+                <p className="font-medium">
+                  {quickActionEquipment?.equipmentName}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {quickActionEquipment?.categoryName}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="assignedTo">Zuweisen an *</Label>
+              <Select
+                value={quickActionForm.assignedTo}
+                onValueChange={(value) =>
+                  setQuickActionForm({ ...quickActionForm, assignedTo: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Benutzer auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.email}>
+                      {user.firstName} {user.lastName} ({user.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Aufgabenbeschreibung *</Label>
+              <Textarea
+                id="description"
+                value={quickActionForm.description}
+                onChange={(e) =>
+                  setQuickActionForm({
+                    ...quickActionForm,
+                    description: e.target.value,
+                  })
+                }
+                placeholder="z.B. @Philip Bitte Preise für die Tanks kalkulieren"
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">
+                Tipp: Verwende @ um Personen zu erwähnen
+              </p>
+            </div>
+
+            <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-md border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-blue-900 dark:text-blue-100">
+                <strong>Hinweis:</strong> Die Aufgabe wird automatisch dem
+                Action Tracker mit einer Frist von 7 Tagen hinzugefügt.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setQuickActionDialogOpen(false);
+                setQuickActionForm({ assignedTo: "", description: "" });
+                setQuickActionEquipment(null);
+              }}
+            >
+              Abbrechen
+            </Button>
+            <Button onClick={createQuickAction}>
+              <ClipboardList className="mr-2 h-4 w-4" />
+              Action erstellen
             </Button>
           </DialogFooter>
         </DialogContent>

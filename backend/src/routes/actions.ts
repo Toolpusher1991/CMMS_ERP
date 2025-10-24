@@ -121,6 +121,7 @@ router.post('/', authenticateToken, validatePlantAccess, async (req: Request, re
   try {
     const {
       plant,
+      category,
       title,
       description,
       status,
@@ -143,6 +144,7 @@ router.post('/', authenticateToken, validatePlantAccess, async (req: Request, re
     const action = await prisma.action.create({
       data: {
         plant,
+        category: category || 'ALLGEMEIN',
         title,
         description,
         status: status || 'OPEN',
@@ -169,6 +171,7 @@ router.put('/:id', authenticateToken, validatePlantAccess, async (req: Request, 
     const { id } = req.params;
     const {
       plant,
+      category,
       title,
       description,
       status,
@@ -197,6 +200,7 @@ router.put('/:id', authenticateToken, validatePlantAccess, async (req: Request, 
 
     const updateData: Record<string, unknown> = {};
     if (plant !== undefined) updateData.plant = plant;
+    if (category !== undefined) updateData.category = category;
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (status !== undefined) updateData.status = status;
