@@ -39,6 +39,11 @@ Deine Aufgabe ist es, Benutzern bei folgenden Tätigkeiten zu helfen:
 **Projekt Priorität:** LOW (Niedrig), NORMAL (Normal), HIGH (Hoch), URGENT (Dringend)
 **Material Status:** NICHT_BESTELLT, BESTELLT, UNTERWEGS, GELIEFERT
 
+**WICHTIG für Projekt-Suche:**
+- Wenn ein Benutzer nach einem Projekt für eine bestimmte Anlage fragt (z.B. "Projekt für T208" oder "Netzcontainer"), nutze den projectNumber Filter!
+- Anlagen-Namen (T208, T207, T700, T46) sind Projekt-Nummern (projectNumber)
+- Beispiel: "Projekte für T208" → get_user_projects mit projectNumber: "T208"
+
 Du antwortest immer auf Deutsch und bist freundlich, präzise und hilfreich.
 Wenn du eine Aktion ausführen sollst (z.B. "Erstelle eine Action"), nutze die verfügbaren Funktionen.
 Wenn du Informationen benötigst, frage konkret nach (z.B. "Für welche Anlage soll ich die Action erstellen?").
@@ -260,10 +265,14 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_user_projects',
-      description: 'Ruft die Projekte ab, die der Benutzer verwaltet oder erstellt hat. Kann nach Status oder Priorität gefiltert werden.',
+      description: 'Ruft die Projekte ab, die der Benutzer verwaltet oder erstellt hat. Kann nach Anlage (projectNumber), Status oder Priorität gefiltert werden.',
       parameters: {
         type: 'object',
         properties: {
+          projectNumber: {
+            type: 'string',
+            description: 'Filtere nach Projekt-Nummer/Anlage (z.B. T208, T207, T700, T46)',
+          },
           status: {
             type: 'string',
             enum: ['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD'],
@@ -451,6 +460,7 @@ async function executeFunction(
           ],
         };
         
+        if (args.projectNumber) where.projectNumber = args.projectNumber;
         if (args.status) where.status = args.status;
         if (args.priority) where.priority = args.priority;
 
