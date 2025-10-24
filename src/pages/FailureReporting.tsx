@@ -220,11 +220,11 @@ const FailureReportingPage = () => {
       console.log("📡 Sende Failure Report");
       console.log("📷 Mit Foto:", !!photoFile);
 
-      const newReport = await apiClient.post("/failure-reports", formData, {
+      const newReport = (await apiClient.post("/failure-reports", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-      });
+      })) as FailureReport;
 
       console.log("✅ Report erstellt:", newReport);
       setReports([newReport, ...reports]);
