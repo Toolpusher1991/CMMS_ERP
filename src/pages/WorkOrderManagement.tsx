@@ -645,10 +645,10 @@ const WorkOrderManagement = () => {
           <CardContent>
             <div className="border rounded-lg overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-800 border-b">
                     <tr>
-                      <th className="px-4 py-3 text-left">
+                      <th className="px-3 py-2 text-left">
                         <Checkbox
                           checked={
                             selectedOrders.size === filteredOrders.length &&
@@ -658,28 +658,28 @@ const WorkOrderManagement = () => {
                           aria-label="Alle auswählen"
                         />
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
                         Order Type
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
                         Main WorkCtr
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
                         Order
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
                         Description
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
                         Priority
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
                         Category
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
                         Actual Release
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
                         Start Date
                       </th>
                     </tr>
@@ -690,7 +690,7 @@ const WorkOrderManagement = () => {
                         key={order.id}
                         className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                       >
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2">
                           <Checkbox
                             checked={selectedOrders.has(order.id)}
                             onCheckedChange={() =>
@@ -699,33 +699,33 @@ const WorkOrderManagement = () => {
                             aria-label={`Auswählen ${order.order}`}
                           />
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td className="px-3 py-2 whitespace-nowrap">
                           <Badge
                             variant="outline"
-                            className="font-mono text-xs"
+                            className="font-mono text-[10px]"
                           >
                             {order.orderType}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-semibold">
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-semibold text-[10px]">
                             {order.mainWorkCtr}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap font-mono text-sm font-medium">
+                        <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium">
                           {order.order}
                         </td>
                         <td
-                          className="px-4 py-3 text-sm max-w-md truncate"
+                          className="px-3 py-2 text-xs max-w-md truncate"
                           title={order.description}
                         >
                           {order.description}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td className="px-3 py-2 whitespace-nowrap">
                           <Badge
                             className={`${getPriorityColor(
                               order.priority
-                            )} text-xs`}
+                            )} text-[10px]`}
                           >
                             {order.priority}
                           </Badge>

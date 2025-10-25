@@ -1440,14 +1440,14 @@ export default function AnlagenProjektManagement() {
           </Dialog>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Filter className="h-5 w-5" />
-                  <span className="font-semibold">Filter</span>
+                  <Filter className="h-4 w-4" />
+                  <span className="font-semibold text-sm">Filter</span>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-3">
                 <div className="space-y-2">
                   <Label>Suche</Label>
                   <Input
@@ -1530,39 +1530,41 @@ export default function AnlagenProjektManagement() {
             </TabsList>
 
             {anlagen.map((anlage) => (
-              <TabsContent key={anlage} value={anlage} className="space-y-4">
+              <TabsContent key={anlage} value={anlage} className="space-y-3">
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle>Anlage {anlage}</CardTitle>
+                      <CardTitle className="text-lg">Anlage {anlage}</CardTitle>
                       <div className="text-right">
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           Gesamt-Budget
                         </p>
-                        <p className="text-2xl font-bold">
+                        <p className="text-xl font-bold">
                           {formatCurrency(getTotalBudget(anlage))}
                         </p>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0">
                     <div className="rounded-md border">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-[50px]"></TableHead>
-                            <TableHead className="w-[50px]">Nr.</TableHead>
-                            <TableHead>Projektname</TableHead>
-                            <TableHead>Kategorie</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>User</TableHead>
-                            <TableHead>Aufgaben</TableHead>
-                            <TableHead>Dateien</TableHead>
-                            <TableHead className="text-right">Budget</TableHead>
-                            <TableHead className="text-right">
+                            <TableHead className="w-[40px] py-2"></TableHead>
+                            <TableHead className="w-[40px] py-2">Nr.</TableHead>
+                            <TableHead className="py-2">Projektname</TableHead>
+                            <TableHead className="py-2">Kategorie</TableHead>
+                            <TableHead className="py-2">Status</TableHead>
+                            <TableHead className="py-2">User</TableHead>
+                            <TableHead className="py-2">Aufgaben</TableHead>
+                            <TableHead className="py-2">Dateien</TableHead>
+                            <TableHead className="text-right py-2">
+                              Budget
+                            </TableHead>
+                            <TableHead className="text-right py-2">
                               Fortschritt
                             </TableHead>
-                            <TableHead className="text-right">
+                            <TableHead className="text-right py-2">
                               Aktionen
                             </TableHead>
                           </TableRow>
@@ -1585,45 +1587,42 @@ export default function AnlagenProjektManagement() {
                                   <React.Fragment key={project.id}>
                                     {/* Hauptzeile */}
                                     <TableRow className="hover:bg-muted/50">
-                                      <TableCell>
+                                      <TableCell className="py-2">
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="h-8 w-8"
+                                          className="h-6 w-6"
                                           onClick={() =>
                                             toggleRowExpansion(project.id)
                                           }
                                         >
                                           {isExpanded ? (
-                                            <ChevronDown className="h-4 w-4" />
+                                            <ChevronDown className="h-3.5 w-3.5" />
                                           ) : (
-                                            <ChevronRight className="h-4 w-4" />
+                                            <ChevronRight className="h-3.5 w-3.5" />
                                           )}
                                         </Button>
                                       </TableCell>
-                                      <TableCell>
-                                        <span className="font-medium text-muted-foreground">
+                                      <TableCell className="py-2">
+                                        <span className="font-medium text-muted-foreground text-sm">
                                           {index + 1}
                                         </span>
                                       </TableCell>
-                                      <TableCell className="font-medium">
-                                        {project.name}
+                                      <TableCell className="font-medium py-2">
+                                        <div className="text-sm">
+                                          {project.name}
+                                        </div>
                                         {project.description && (
-                                          <p className="text-xs text-muted-foreground mt-1">
-                                            {project.description.substring(
-                                              0,
-                                              50
-                                            )}
-                                            {project.description.length > 50 &&
-                                              "..."}
+                                          <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                                            {project.description}
                                           </p>
                                         )}
                                       </TableCell>
-                                      <TableCell>
+                                      <TableCell className="py-2">
                                         <Badge
-                                          className={getCategoryColor(
+                                          className={`text-xs ${getCategoryColor(
                                             project.category
-                                          )}
+                                          )}`}
                                         >
                                           {project.category}
                                         </Badge>

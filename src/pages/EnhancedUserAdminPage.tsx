@@ -473,12 +473,14 @@ export function EnhancedUserAdminPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>E-Mail</TableHead>
-                      <TableHead>Rolle</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Erstellt</TableHead>
-                      <TableHead className="text-right">Aktionen</TableHead>
+                      <TableHead className="py-2">Name</TableHead>
+                      <TableHead className="py-2">E-Mail</TableHead>
+                      <TableHead className="py-2">Rolle</TableHead>
+                      <TableHead className="py-2">Status</TableHead>
+                      <TableHead className="py-2">Erstellt</TableHead>
+                      <TableHead className="text-right py-2">
+                        Aktionen
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -494,35 +496,37 @@ export function EnhancedUserAdminPage() {
                     ) : (
                       filteredUsers.map((user) => (
                         <TableRow key={user.id}>
-                          <TableCell className="font-medium">
+                          <TableCell className="font-medium py-2 text-sm">
                             {user.firstName} {user.lastName}
                           </TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>
+                          <TableCell className="py-2 text-sm">
+                            {user.email}
+                          </TableCell>
+                          <TableCell className="py-2">
                             <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeColor(
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getRoleBadgeColor(
                                 user.role
                               )}`}
                             >
                               {user.role}
                             </span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-2">
                             <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeColor(
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusBadgeColor(
                                 user.isActive
                               )}`}
                             >
                               {user.isActive ? "✓ Aktiv" : "✗ Inaktiv"}
                             </span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-2 text-xs">
                             {new Date(user.createdAt).toLocaleDateString(
                               "de-DE"
                             )}
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
+                          <TableCell className="text-right py-2">
+                            <div className="flex justify-end gap-1">
                               <Button
                                 variant="outline"
                                 size="sm"

@@ -374,7 +374,7 @@ const FailureReportingPage = () => {
   // Mobile View: Simplified - only creation, no table
   if (isMobile) {
     return (
-      <div className="mobile-failure-reporting p-4 space-y-6">
+      <div className="mobile-failure-reporting p-3 space-y-3">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -577,7 +577,7 @@ const FailureReportingPage = () => {
 
   // Desktop View: Full table
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3 sm:space-y-4">
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

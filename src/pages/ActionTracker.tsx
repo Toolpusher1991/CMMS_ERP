@@ -1153,16 +1153,16 @@ const ActionTracker = () => {
                                                   return null;
 
                                                 return (
-                                                  <Card className="border-2">
-                                                    <CardHeader className="bg-muted/50 pb-4">
+                                                  <Card className="border">
+                                                    <CardHeader className="bg-muted/50 pb-2 pt-3">
                                                       <div className="flex items-center justify-between">
-                                                        <CardTitle className="text-lg flex items-center gap-2">
+                                                        <CardTitle className="text-base flex items-center gap-2">
                                                           📦 Bestellte
                                                           Materialien
                                                         </CardTitle>
                                                         <Badge
                                                           variant="secondary"
-                                                          className="text-sm"
+                                                          className="text-xs"
                                                         >
                                                           {materials.length}{" "}
                                                           {materials.length ===
@@ -1172,8 +1172,8 @@ const ActionTracker = () => {
                                                         </Badge>
                                                       </div>
                                                     </CardHeader>
-                                                    <CardContent className="pt-4">
-                                                      <div className="space-y-2">
+                                                    <CardContent className="pt-3">
+                                                      <div className="space-y-1.5">
                                                         {materials.map(
                                                           (material) => {
                                                             // Status Badge Farbe & Text
@@ -1223,12 +1223,12 @@ const ActionTracker = () => {
                                                                 key={
                                                                   material.id
                                                                 }
-                                                                className="group p-4 rounded-lg border-2 bg-card hover:bg-muted/30 transition-colors"
+                                                                className="group p-2.5 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
                                                               >
-                                                                <div className="flex items-center justify-between gap-4">
+                                                                <div className="flex items-center justify-between gap-3">
                                                                   <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center gap-3 mb-2">
-                                                                      <span className="font-mono text-base font-bold bg-primary/10 text-primary px-3 py-1.5 rounded-md">
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                      <span className="font-mono text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">
                                                                         {
                                                                           material.mmNumber
                                                                         }
@@ -1237,19 +1237,19 @@ const ActionTracker = () => {
                                                                         material.status
                                                                       )}
                                                                     </div>
-                                                                    <p className="text-sm leading-relaxed">
+                                                                    <p className="text-xs line-clamp-1">
                                                                       {
                                                                         material.description
                                                                       }
                                                                     </p>
                                                                   </div>
-                                                                  <div className="flex flex-col items-end justify-center bg-muted/50 px-4 py-3 rounded-lg min-w-[80px]">
-                                                                    <p className="text-2xl font-bold text-primary">
+                                                                  <div className="flex flex-col items-end justify-center bg-muted/50 px-2.5 py-2 rounded min-w-[60px]">
+                                                                    <p className="text-lg font-bold text-primary">
                                                                       {
                                                                         material.quantity
                                                                       }
                                                                     </p>
-                                                                    <p className="text-sm font-medium text-muted-foreground uppercase">
+                                                                    <p className="text-[10px] font-medium text-muted-foreground uppercase">
                                                                       {
                                                                         material.unit
                                                                       }
