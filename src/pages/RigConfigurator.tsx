@@ -44,6 +44,7 @@ import {
   Trash2,
   RefreshCw,
   ClipboardList,
+  FileDown,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -57,6 +58,7 @@ import {
 import { rigService } from "@/services/rig.service";
 import { authService } from "@/services/auth.service";
 import { apiClient } from "@/services/api";
+import { rigQuoteExportService } from "@/services/rig-quote-export.service";
 
 // Types
 interface ProjectRequirements {
@@ -1107,24 +1109,41 @@ const RigConfigurator = () => {
   const exportConfiguration = () => {
     if (!selectedRig) {
       toast({
-        title: "Keine Anlage ausgewählt",
+        title: "❌ Keine Anlage ausgewählt",
         description: "Bitte wählen Sie zuerst eine Bohranlage aus.",
         variant: "destructive",
       });
       return;
     }
 
-    toast({
-      title: "Konfiguration wird exportiert",
-      description: "PDF-Export wird generiert...",
-    });
+    try {
+      const filename = `Angebot-${requirements.clientName || 'Kunde'}-${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      rigQuoteExportService.generateQuote(
+        {
+          projectName: requirements.projectName,
+          clientName: requirements.clientName,
+          location: requirements.location,
+          projectDuration: requirements.projectDuration,
+          selectedRig: selectedRig,
+          selectedEquipment: selectedEquipment,
+          additionalNotes: requirements.additionalNotes,
+        },
+        filename
+      );
 
-    // TODO: Implement actual PDF generation
-    console.log("Export Configuration:", {
-      requirements,
-      selectedRig,
-      selectedEquipment,
-    });
+      toast({
+        title: "✅ Angebot erstellt",
+        description: `PDF wurde erfolgreich generiert: ${filename}`,
+      });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({
+        title: "❌ Export fehlgeschlagen",
+        description: "PDF konnte nicht erstellt werden.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -1794,13 +1813,16 @@ const RigConfigurator = () => {
                   <div>
                     <CardTitle>Konfigurations-Zusammenfassung</CardTitle>
                     <CardDescription>
-                      Überprüfen Sie Ihre Auswahl und exportieren Sie die
-                      Konfiguration
+                      Überprüfen Sie Ihre Auswahl und erstellen Sie ein professionelles Angebot
                     </CardDescription>
                   </div>
-                  <Button onClick={exportConfiguration} size="lg">
-                    <Download className="mr-2 h-4 w-4" />
-                    PDF Export
+                  <Button 
+                    onClick={exportConfiguration} 
+                    size="lg"
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <FileDown className="mr-2 h-5 w-5" />
+                    Angebot als PDF erstellen
                   </Button>
                 </div>
               </CardHeader>
