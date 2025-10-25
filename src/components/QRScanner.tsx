@@ -59,7 +59,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
           onScan(decodedText);
           stopScanner();
         },
-        (errorMessage) => {
+        () => {
           // Scanning... (normal, kein Error)
         }
       );

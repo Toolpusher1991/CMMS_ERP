@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Camera, LogOut, FileText } from "lucide-react";
+import { Camera, LogOut, FileText, User } from "lucide-react";
 
 interface MobileLayoutProps {
   children?: React.ReactNode;
