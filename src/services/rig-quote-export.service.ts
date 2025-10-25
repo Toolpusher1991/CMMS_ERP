@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 interface Rig {
   name: string;
@@ -8,6 +7,16 @@ interface Rig {
   maxHookLoad: number;
   dayRate: string;
   description: string;
+  drawworks?: string;
+  mudPumps?: string;
+  topDrive?: string;
+  derrickCapacity?: string;
+  crewSize?: string;
+  mobilizationTime?: string;
+  footprint?: string;
+  rotaryTorque?: number;
+  pumpPressure?: number;
+  applications?: string[];
 }
 
 interface EquipmentItem {
@@ -29,281 +38,519 @@ interface QuoteData {
 }
 
 class RigQuoteExportService {
-  /**
-   * Generate a professional quote PDF for rig configuration
-   */
+  private addText(doc: jsPDF, text: string, x: number, y: number, maxWidth: number): number {
+    const lines = doc.splitTextToSize(text, maxWidth);
+    doc.text(lines, x, y);
+    return lines.length * 5; // Return height used
+  }
+
   generateQuote(quoteData: QuoteData, filename: string = 'rig-quote.pdf') {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
     let yPosition = 20;
 
-    // ===== HEADER =====
-    doc.setFillColor(34, 139, 230);
-    doc.rect(0, 0, pageWidth, 40, 'F');
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(28);
-    doc.setFont('helvetica', 'bold');
-    doc.text('MaintAIn CMMS', pageWidth / 2, 18, { align: 'center' });
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Bohranlagen Angebot', pageWidth / 2, 30, { align: 'center' });
-
-    yPosition = 50;
-
-    // ===== QUOTE INFO =====
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    // ===== PAGE 1: HEADER & INTRODUCTION =====
     
+    // Header mit Logo-Bereich
+    doc.setFillColor(34, 139, 230);
+    doc.rect(0, 0, pageWidth, 50, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(32);
+    doc.setFont('helvetica', 'bold');
+    doc.text('MaintAIn', margin, 25);
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('CMMS | Professionelle Bohranlagen-Lösungen', margin, 35);
+    
+    // Angebotsnummer & Datum
     const quoteNumber = `AN-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-    const quoteDate = new Date().toLocaleDateString('de-DE');
+    const quoteDate = new Date().toLocaleDateString('de-DE', { 
+      day: '2-digit', 
+      month: 'long', 
+      year: 'numeric' 
+    });
+    
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Angebotsnummer: ${quoteNumber}`, pageWidth - margin, 25, { align: 'right' });
+    doc.text(`Datum: ${quoteDate}`, pageWidth - margin, 32, { align: 'right' });
 
-    doc.text(`Angebotsnummer: ${quoteNumber}`, 14, yPosition);
-    doc.text(`Datum: ${quoteDate}`, pageWidth - 14, yPosition, { align: 'right' });
+    yPosition = 65;
+
+    // Titel
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`ANGEBOT - ${quoteData.selectedRig?.name.toUpperCase() || 'HOCHLEISTUNGS-BOHRANLAGE'}`, margin, yPosition);
+    yPosition += 15;
+
+    // Anrede
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Sehr geehrte Damen und Herren,', margin, yPosition);
     yPosition += 10;
 
-    // ===== CLIENT INFO =====
-    doc.setFontSize(12);
+    // Einleitungstext
+    const introText = 'vielen Dank für Ihr Interesse an unseren professionellen Bohranlagen-Lösungen. Wir freuen uns, Ihnen folgendes Angebot für eine vollausgestattete Hochleistungs-Bohranlage unterbreiten zu dürfen:';
+    yPosition += this.addText(doc, introText, margin, yPosition, pageWidth - 2 * margin);
+    yPosition += 10;
+
+    // Kunde & Projekt Info
+    if (quoteData.clientName || quoteData.projectName) {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PROJEKT-INFORMATIONEN:', margin, yPosition);
+      yPosition += 7;
+      
+      doc.setFont('helvetica', 'normal');
+      if (quoteData.clientName) {
+        doc.text(`Kunde: ${quoteData.clientName}`, margin + 5, yPosition);
+        yPosition += 6;
+      }
+      if (quoteData.projectName) {
+        doc.text(`Projekt: ${quoteData.projectName}`, margin + 5, yPosition);
+        yPosition += 6;
+      }
+      if (quoteData.location) {
+        doc.text(`Standort: ${quoteData.location}`, margin + 5, yPosition);
+        yPosition += 6;
+      }
+      if (quoteData.projectDuration) {
+        doc.text(`Projektdauer: ${quoteData.projectDuration}`, margin + 5, yPosition);
+        yPosition += 6;
+      }
+      yPosition += 8;
+    }
+
+    if (!quoteData.selectedRig) {
+      doc.save(filename);
+      return;
+    }
+
+    const rig = quoteData.selectedRig;
+
+    // ===== ANGEBOTENE AUSRÜSTUNG =====
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin - 5, yPosition - 5, pageWidth - 2 * margin + 10, 10, 'F');
+    
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Kundeninformationen', 14, yPosition);
+    doc.setTextColor(34, 139, 230);
+    doc.text('ANGEBOTENE AUSRÜSTUNG', margin, yPosition);
+    yPosition += 12;
+
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Bohranlage: ${rig.name}`, margin, yPosition);
+    yPosition += 7;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(80, 80, 80);
+    yPosition += this.addText(doc, rig.description || 'Hochleistungs-Bohranlage für anspruchsvolle Projekte', margin, yPosition, pageWidth - 2 * margin);
+    yPosition += 12;
+
+    // Force new page after introduction - keep page 1 clean
+    doc.addPage();
+    yPosition = margin;
+
+    // ===== TECHNISCHE SPEZIFIKATIONEN =====
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin - 5, yPosition - 5, pageWidth - 2 * margin + 10, 10, 'F');
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(34, 139, 230);
+    doc.text('TECHNISCHE SPEZIFIKATIONEN', margin, yPosition);
+    yPosition += 12;
+
+    // Bohrkapazität & Leistung
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Bohrkapazität & Leistung:', margin + 5, yPosition);
     yPosition += 8;
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Kunde: ${quoteData.clientName || 'N/A'}`, 14, yPosition);
-    yPosition += 6;
-    doc.text(`Projekt: ${quoteData.projectName || 'N/A'}`, 14, yPosition);
-    yPosition += 6;
-    doc.text(`Standort: ${quoteData.location || 'N/A'}`, 14, yPosition);
-    yPosition += 6;
-    doc.text(`Projektdauer: ${quoteData.projectDuration || 'N/A'}`, 14, yPosition);
-    yPosition += 15;
+    const specs1 = [
+      `• Maximale Bohrtiefe: ${rig.maxDepth.toLocaleString('de-DE')} m`,
+      `• Hakenlast: ${rig.maxHookLoad.toLocaleString('de-DE')} t`,
+      rig.rotaryTorque ? `• Drehmoment: ${rig.rotaryTorque.toLocaleString('de-DE')} Nm` : null,
+      rig.pumpPressure ? `• Pumpendruck: ${rig.pumpPressure.toLocaleString('de-DE')} psi` : null,
+    ].filter(Boolean);
 
-    // ===== SELECTED RIG =====
-    if (quoteData.selectedRig) {
-      doc.setFillColor(240, 240, 240);
-      doc.rect(14, yPosition - 5, pageWidth - 28, 8, 'F');
+    specs1.forEach(spec => {
+      if (spec) {
+        doc.text(spec, margin + 10, yPosition);
+        yPosition += 7;
+      }
+    });
+    yPosition += 6;
 
-      doc.setFontSize(14);
+    // Antriebssysteme
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Antriebssysteme:', margin + 5, yPosition);
+    yPosition += 8;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const specs2 = [
+      rig.drawworks ? `• Drawworks: ${rig.drawworks}` : null,
+      rig.mudPumps ? `• Mud Pumps: ${rig.mudPumps}` : null,
+      rig.topDrive ? `• Top Drive: ${rig.topDrive}` : null,
+    ].filter(Boolean);
+
+    specs2.forEach(spec => {
+      if (spec) {
+        doc.text(spec, margin + 10, yPosition);
+        yPosition += 7;
+      }
+    });
+    yPosition += 6;
+
+    // Crew & Mobilisierung
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Crew & Mobilisierung:', margin + 5, yPosition);
+    yPosition += 8;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const specs3 = [
+      rig.crewSize ? `• Crew-Größe: ${rig.crewSize}` : null,
+      rig.mobilizationTime ? `• Mobilisierungszeit: ${rig.mobilizationTime}` : null,
+      rig.footprint ? `• Platzbedarf: ${rig.footprint}` : null,
+    ].filter(Boolean);
+
+    specs3.forEach(spec => {
+      if (spec) {
+        doc.text(spec, margin + 10, yPosition);
+        yPosition += 7;
+      }
+    });
+    yPosition += 6;
+
+    // Einsatzgebiete
+    if (rig.applications && rig.applications.length > 0) {
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(34, 139, 230);
-      doc.text('🛢️ Ausgewählte Bohranlage', 18, yPosition);
-      yPosition += 12;
-
       doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(quoteData.selectedRig.name, 18, yPosition);
-      yPosition += 7;
+      doc.text('Einsatzgebiete:', margin + 5, yPosition);
+      yPosition += 8;
 
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Kategorie: ${quoteData.selectedRig.category}`, 18, yPosition);
-      yPosition += 5;
-      doc.text(`Max. Tiefe: ${quoteData.selectedRig.maxDepth.toLocaleString('de-DE')} m`, 18, yPosition);
-      yPosition += 5;
-      doc.text(`Max. Hakenlast: ${quoteData.selectedRig.maxHookLoad.toLocaleString('de-DE')} lbs`, 18, yPosition);
-      yPosition += 5;
+      rig.applications.forEach(app => {
+        doc.text(`• ${app}`, margin + 10, yPosition);
+        yPosition += 7;
+      });
+    }
 
+    // Check if we need a new page
+    if (yPosition > pageHeight - 100) {
+      doc.addPage();
+      yPosition = margin;
+    } else {
+      yPosition += 10;
+    }
+
+    // ===== QUALITÄTS- UND WARTUNGSSTANDARDS =====
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin - 5, yPosition - 5, pageWidth - 2 * margin + 10, 10, 'F');
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(34, 139, 230);
+    doc.text('QUALITÄTS- UND WARTUNGSSTANDARDS:', margin, yPosition);
+    yPosition += 10;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    
+    const qualityText1 = 'Sämtliche Komponenten der Bohranlage entsprechen den aktuellen API-Standards (American Petroleum Institute) und wurden gemäß den strengen Industrienormen zertifiziert. Die Anlage wird kontinuierlich durch MaintAIn ordnungsgemäß gewartet und befindet sich in einwandfreiem technischen Zustand.';
+    yPosition += this.addText(doc, qualityText1, margin, yPosition, pageWidth - 2 * margin);
+    yPosition += 8;
+
+    const qualityText2 = 'Alle Sicherheitssysteme sind auf dem neuesten Stand und entsprechen den internationalen Sicherheitsvorschriften für Bohroperationen. Die Anlage wurde kürzlich einer vollständigen Inspektion unterzogen und ist sofort einsatzbereit.';
+    yPosition += this.addText(doc, qualityText2, margin, yPosition, pageWidth - 2 * margin);
+    yPosition += 10;
+
+    // Check if we need a new page
+    if (yPosition > pageHeight - 80) {
+      doc.addPage();
+      yPosition = margin;
+    }
+
+    // ===== LEISTUNGSUMFANG =====
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin - 5, yPosition - 5, pageWidth - 2 * margin + 10, 10, 'F');
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(34, 139, 230);
+    doc.text('LEISTUNGSUMFANG:', margin, yPosition);
+    yPosition += 10;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+
+    const services = [
+      `Komplette Bohranlage ${rig.name} inkl. aller Hauptkomponenten`,
+      'Vollständige technische Dokumentation',
+      'API-konforme Ausrüstung mit aktuellen Zertifikaten',
+      'Regelmäßige Wartung durch MaintAIn-System',
+      `Qualifiziertes und erfahrenes Bohrteam${rig.crewSize ? ' (' + rig.crewSize + ')' : ''}`,
+      'Mobilisierung und Demobilisierung der Anlage',
+      '24/7 technischer Support während der Laufzeit',
+    ];
+
+    services.forEach(service => {
+      doc.text(`• ${service}`, margin + 5, yPosition);
+      yPosition += 6;
+    });
+    yPosition += 5;
+
+    // Check if we need a new page before pricing
+    if (yPosition > pageHeight - 120) {
+      doc.addPage();
+      yPosition = margin;
+    } else {
+      yPosition += 10;
+    }
+
+    // ===== PREISGESTALTUNG =====
+    doc.setFillColor(34, 139, 230);
+    doc.rect(margin - 5, yPosition - 5, pageWidth - 2 * margin + 10, 10, 'F');
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.text('PREISGESTALTUNG:', margin, yPosition);
+    yPosition += 12;
+
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(16, 185, 129);
+    const dayRate = parseFloat(rig.dayRate.replace(/[^0-9.-]/g, ''));
+    const formattedDayRate = new Intl.NumberFormat('de-DE', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    }).format(dayRate);
+    doc.text(`Tagesrate Bohranlage ${rig.name}: € ${formattedDayRate}`, margin, yPosition);
+    yPosition += 10;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    const priceText = 'Die angegebene Tagesrate beinhaltet die komplette Anlage mit allen technischen Systemen, das Bohrteam sowie die laufende Wartung und Instandhaltung durch unser Fachpersonal.';
+    yPosition += this.addText(doc, priceText, margin, yPosition, pageWidth - 2 * margin);
+    yPosition += 10;
+
+    // Equipment costs if any
+    let totalEquipmentCost = 0;
+    const hasEquipment = Object.values(quoteData.selectedEquipment).some(items => items.length > 0);
+
+    if (hasEquipment) {
+      Object.values(quoteData.selectedEquipment).forEach(items => {
+        items.forEach(item => {
+          totalEquipmentCost += parseFloat(item.price);
+        });
+      });
+
+      const formattedEquipmentCost = new Intl.NumberFormat('de-DE', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      }).format(totalEquipmentCost);
+      
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
       doc.setTextColor(16, 185, 129);
-      doc.text(`Tagesrate: € ${quoteData.selectedRig.dayRate}/Tag`, 18, yPosition);
+      doc.text(`Zusatzausrüstung (Tagesrate): € ${formattedEquipmentCost}`, margin, yPosition);
       yPosition += 8;
 
-      if (quoteData.selectedRig.description) {
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(9);
-        doc.setTextColor(100, 100, 100);
-        const descLines = doc.splitTextToSize(quoteData.selectedRig.description, pageWidth - 40);
-        doc.text(descLines, 18, yPosition);
-        yPosition += descLines.length * 4 + 8;
-      }
+      const totalDailyRate = dayRate + totalEquipmentCost;
+      const formattedTotalDailyRate = new Intl.NumberFormat('de-DE', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      }).format(totalDailyRate);
+      
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`GESAMT TAGESRATE: € ${formattedTotalDailyRate}`, margin, yPosition);
+      yPosition += 10;
+    }
 
+    // Total project cost if duration specified
+    if (quoteData.projectDuration) {
+      const durationMatch = quoteData.projectDuration.match(/(\d+)/);
+      if (durationMatch) {
+        const days = parseInt(durationMatch[0]);
+        const totalRate = dayRate + totalEquipmentCost;
+        const projectTotal = totalRate * days;
+        
+        const formattedProjectTotal = new Intl.NumberFormat('de-DE', { 
+          minimumFractionDigits: 2, 
+          maximumFractionDigits: 2 
+        }).format(projectTotal);
+
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(34, 139, 230);
+        doc.text(`Gesamtpreis (${quoteData.projectDuration}): € ${formattedProjectTotal}`, margin, yPosition);
+        yPosition += 12;
+      }
+    }
+
+    // Check if we need a new page
+    if (yPosition > pageHeight - 100) {
+      doc.addPage();
+      yPosition = margin;
+    } else {
       yPosition += 5;
     }
 
-    // ===== EQUIPMENT BREAKDOWN =====
-    const categoryNames: Record<string, string> = {
-      drillPipe: '🔧 Drill Pipes',
-      tanks: '💧 Tanks',
-      power: '⚡ Power Generation',
-      camps: '🏕️ Camps & Accommodation',
-      safety: '🛡️ Safety Equipment',
-      mud: '🌊 Mud Systems',
-      bop: '🔒 BOP Systems',
-      cranes: '🏗️ Cranes & Lifting',
-      misc: '📦 Miscellaneous',
-    };
+    // ===== VERFÜGBARKEIT & VERTRAGSBEDINGUNGEN =====
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin - 5, yPosition - 5, pageWidth - 2 * margin + 10, 10, 'F');
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(34, 139, 230);
+    doc.text('VERFÜGBARKEIT & VERTRAGSBEDINGUNGEN:', margin, yPosition);
+    yPosition += 10;
 
-    let hasEquipment = false;
-    let totalEquipmentCost = 0;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    
+    const mobilTime = rig.mobilizationTime || '30-45 Tage';
+    const availabilityText = `Die Bohranlage kann nach erfolgreicher Mobilisierung (${mobilTime}) am gewünschten Standort eingesetzt werden. Die Mindestvertragslaufzeit sowie spezifische Vertragsbedingungen werden in einem gesonderten Rahmenvertrag festgelegt.`;
+    yPosition += this.addText(doc, availabilityText, margin, yPosition, pageWidth - 2 * margin);
+    yPosition += 10;
 
-    // Check if there's equipment
-    Object.values(quoteData.selectedEquipment).forEach(items => {
-      if (items.length > 0) hasEquipment = true;
-    });
-
+    // ===== ZUSÄTZLICHE LEISTUNGEN =====
     if (hasEquipment) {
       doc.setFillColor(240, 240, 240);
-      doc.rect(14, yPosition - 5, pageWidth - 28, 8, 'F');
-
-      doc.setFontSize(14);
+      doc.rect(margin - 5, yPosition - 5, pageWidth - 2 * margin + 10, 10, 'F');
+      
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(34, 139, 230);
-      doc.text('📋 Zusätzliche Ausrüstung', 18, yPosition);
+      doc.text('ZUSÄTZLICHE AUSRÜSTUNG:', margin, yPosition);
       yPosition += 10;
 
-      // Equipment table data
-      const equipmentTableData: any[] = [];
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
 
-      Object.entries(quoteData.selectedEquipment).forEach(([category, items]) => {
+      Object.entries(quoteData.selectedEquipment).forEach(([, items]) => {
         if (items.length > 0) {
-          items.forEach((item, index) => {
+          items.forEach(item => {
             const price = parseFloat(item.price);
-            totalEquipmentCost += price;
-
-            equipmentTableData.push([
-              index === 0 ? categoryNames[category] || category : '',
-              item.name,
-              `€ ${price.toLocaleString('de-DE')}`,
-            ]);
+            const formattedPrice = new Intl.NumberFormat('de-DE', { 
+              minimumFractionDigits: 0, 
+              maximumFractionDigits: 0 
+            }).format(price);
+            doc.text(`• ${item.name}: € ${formattedPrice}/Tag`, margin + 5, yPosition);
+            yPosition += 6;
           });
         }
       });
-
-      if (equipmentTableData.length > 0) {
-        autoTable(doc, {
-          startY: yPosition,
-          head: [['Kategorie', 'Beschreibung', 'Tagesrate']],
-          body: equipmentTableData,
-          theme: 'striped',
-          headStyles: {
-            fillColor: [34, 139, 230],
-            textColor: 255,
-            fontSize: 10,
-            fontStyle: 'bold',
-          },
-          bodyStyles: {
-            fontSize: 9,
-          },
-          columnStyles: {
-            0: { cellWidth: 50, fontStyle: 'bold' },
-            1: { cellWidth: 90 },
-            2: { cellWidth: 35, halign: 'right', fontStyle: 'bold', textColor: [16, 185, 129] },
-          },
-          margin: { left: 14, right: 14 },
-        });
-
-        yPosition = (doc as any).lastAutoTable.finalY + 10;
-      }
-    }
-
-    // ===== COST SUMMARY =====
-    doc.setFillColor(34, 139, 230);
-    doc.rect(14, yPosition - 5, pageWidth - 28, 8, 'F');
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255);
-    doc.text('💰 Kostenübersicht', 18, yPosition);
-    yPosition += 12;
-
-    const rigDailyRate = quoteData.selectedRig
-      ? parseFloat(quoteData.selectedRig.dayRate.replace(/[^0-9.-]/g, ''))
-      : 0;
-
-    const totalDailyRate = rigDailyRate + totalEquipmentCost;
-    
-    // Calculate project total if duration is provided
-    let projectTotal = 0;
-    const durationMatch = quoteData.projectDuration?.match(/(\d+)/);
-    if (durationMatch) {
-      const days = parseInt(durationMatch[0]);
-      projectTotal = totalDailyRate * days;
-    }
-
-    const summaryData = [
-      ['Bohranlage (Tagesrate)', `€ ${rigDailyRate.toLocaleString('de-DE')}`],
-      ['Zusätzliche Ausrüstung (Tagesrate)', `€ ${totalEquipmentCost.toLocaleString('de-DE')}`],
-      ['Gesamt Tagesrate', `€ ${totalDailyRate.toLocaleString('de-DE')}`],
-    ];
-
-    if (projectTotal > 0) {
-      summaryData.push(['', '']);
-      summaryData.push([
-        `Gesamtpreis (${quoteData.projectDuration})`,
-        `€ ${projectTotal.toLocaleString('de-DE')}`,
-      ]);
-    }
-
-    autoTable(doc, {
-      startY: yPosition,
-      body: summaryData,
-      theme: 'plain',
-      bodyStyles: {
-        fontSize: 11,
-        cellPadding: 3,
-      },
-      columnStyles: {
-        0: { cellWidth: 120, fontStyle: 'bold' },
-        1: { cellWidth: 55, halign: 'right', fontStyle: 'bold', textColor: [16, 185, 129], fontSize: 12 },
-      },
-      margin: { left: 18, right: 14 },
-    });
-
-    yPosition = (doc as any).lastAutoTable.finalY + 10;
-
-    // ===== ADDITIONAL NOTES =====
-    if (quoteData.additionalNotes && quoteData.additionalNotes.trim() !== '') {
       yPosition += 5;
-
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 0);
-      doc.text('📝 Zusätzliche Hinweise', 14, yPosition);
-      yPosition += 7;
-
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(80, 80, 80);
-      const notesLines = doc.splitTextToSize(quoteData.additionalNotes, pageWidth - 28);
-      doc.text(notesLines, 14, yPosition);
-      yPosition += notesLines.length * 4;
     }
 
-    // ===== TERMS & CONDITIONS =====
-    const termsY = doc.internal.pageSize.getHeight() - 50;
+    const additionalText = 'Auf Wunsch können weitere Zusatzausrüstungen wie Bohrgestänge, Tanks & Silos sowie spezialisierte Bohrwerkzeuge konfiguriert werden. Gerne erstellen wir Ihnen ein individuelles Angebot basierend auf Ihren spezifischen Projektanforderungen.';
+    yPosition += this.addText(doc, additionalText, margin, yPosition, pageWidth - 2 * margin);
+    yPosition += 10;
 
-    doc.setFillColor(250, 250, 250);
-    doc.rect(14, termsY - 5, pageWidth - 28, 35, 'F');
+    // Check if we need a new page for benefits
+    if (yPosition > pageHeight - 110) {
+      doc.addPage();
+      yPosition = margin;
+    } else {
+      yPosition += 8;
+    }
+
+    // ===== IHRE VORTEILE =====
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin - 5, yPosition - 5, pageWidth - 2 * margin + 10, 10, 'F');
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(34, 139, 230);
+    doc.text('IHRE VORTEILE:', margin, yPosition);
+    yPosition += 10;
 
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text('Allgemeine Geschäftsbedingungen', 18, termsY);
-
-    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 100, 100);
-    doc.text('• Dieses Angebot ist 30 Tage gültig', 18, termsY + 5);
-    doc.text('• Preise verstehen sich zzgl. MwSt.', 18, termsY + 10);
-    doc.text('• Mobilisierung und Demobilisierung nach Aufwand', 18, termsY + 15);
-    doc.text('• Zahlungsbedingungen: 30 Tage netto', 18, termsY + 20);
+    doc.setTextColor(0, 0, 0);
 
-    // ===== FOOTER =====
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text(
-      'MaintAIn CMMS | www.maintaIn.com | kontakt@maintaIn.com | +49 (0) 123 456789',
-      pageWidth / 2,
-      doc.internal.pageSize.getHeight() - 10,
-      { align: 'center' }
-    );
+    const benefits = [
+      'Modernste Bohrtechnologie für extreme Anforderungen',
+      'API-zertifizierte und kontinuierlich gewartete Ausrüstung',
+      'Erfahrenes und qualifiziertes Bohrteam',
+      'Lückenlose Dokumentation und Qualitätssicherung',
+      'Flexible Vertragsbedingungen',
+      'Umfassender technischer Support',
+    ];
 
-    // Save
+    benefits.forEach(benefit => {
+      doc.text(`✓ ${benefit}`, margin + 5, yPosition);
+      yPosition += 6;
+    });
+    yPosition += 8;
+
+    // Check if we need a new page for closing
+    if (yPosition > pageHeight - 60) {
+      doc.addPage();
+      yPosition = margin;
+    } else {
+      yPosition += 5;
+    }
+
+    // ===== ABSCHLUSSTEXT =====
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const closingText = 'Wir stehen Ihnen für Rückfragen jederzeit gerne zur Verfügung und freuen uns auf eine erfolgreiche Zusammenarbeit.';
+    yPosition += this.addText(doc, closingText, margin, yPosition, pageWidth - 2 * margin);
+    yPosition += 15;
+
+    doc.setFont('helvetica', 'italic');
+    doc.text('Mit freundlichen Grüßen', margin, yPosition);
+    yPosition += 6;
+    doc.text('Ihr MaintAIn Team', margin, yPosition);
+
+    // ===== FOOTER (auf jeder Seite) =====
+    const totalPages = doc.internal.pages.length - 1;
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      
+      // Trennlinie
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, pageHeight - 25, pageWidth - margin, pageHeight - 25);
+      
+      // Footer Text
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.setFont('helvetica', 'normal');
+      doc.text('MaintAIn CMMS | Professionelle Bohranlagen-Lösungen', margin, pageHeight - 18);
+      doc.text('www.maintaIn.com | kontakt@maintaIn.com | +49 (0) 123 456789', margin, pageHeight - 13);
+      
+      // Seitenzahl
+      doc.text(`Seite ${i} von ${totalPages}`, pageWidth - margin, pageHeight - 18, { align: 'right' });
+      doc.text(`Angebot ${quoteNumber}`, pageWidth - margin, pageHeight - 13, { align: 'right' });
+    }
+
     doc.save(filename);
   }
 }

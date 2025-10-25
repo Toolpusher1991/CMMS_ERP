@@ -1117,8 +1117,10 @@ const RigConfigurator = () => {
     }
 
     try {
-      const filename = `Angebot-${requirements.clientName || 'Kunde'}-${new Date().toISOString().split('T')[0]}.pdf`;
-      
+      const filename = `Angebot-${requirements.clientName || "Kunde"}-${
+        new Date().toISOString().split("T")[0]
+      }.pdf`;
+
       rigQuoteExportService.generateQuote(
         {
           projectName: requirements.projectName,
@@ -1813,11 +1815,12 @@ const RigConfigurator = () => {
                   <div>
                     <CardTitle>Konfigurations-Zusammenfassung</CardTitle>
                     <CardDescription>
-                      Überprüfen Sie Ihre Auswahl und erstellen Sie ein professionelles Angebot
+                      Überprüfen Sie Ihre Auswahl und erstellen Sie ein
+                      professionelles Angebot
                     </CardDescription>
                   </div>
-                  <Button 
-                    onClick={exportConfiguration} 
+                  <Button
+                    onClick={exportConfiguration}
                     size="lg"
                     className="bg-green-600 hover:bg-green-700"
                   >

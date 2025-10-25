@@ -158,6 +158,38 @@ router.post('/', authenticateToken, validatePlantAccess, async (req: Request, re
       },
     });
 
+    // Check if action contains materials and send notification to RSC
+    if (description && description.includes('--- Materialien ---')) {
+      try {
+        // Find RSC (Supply Coordinator) for this plant
+        const rscEmail = `${plant}.RSC@maintain.com`;
+        const rscUser = await prisma.user.findUnique({
+          where: { email: rscEmail },
+        });
+
+        if (rscUser) {
+          // Create notification for RSC
+          await prisma.notification.create({
+            data: {
+              userId: rscUser.id,
+              title: 'Neue Materialanforderung',
+              message: `Materialbestellung für ${plant}: "${title}"`,
+              type: 'MATERIAL_REQUEST',
+              relatedId: action.id,
+              isRead: false,
+            },
+          });
+
+          console.log(`✅ Notification sent to RSC (${rscEmail}) for material request in action ${action.id}`);
+        } else {
+          console.warn(`⚠️ RSC user not found for plant ${plant}`);
+        }
+      } catch (notificationError) {
+        console.error('Error sending RSC notification:', notificationError);
+        // Don't fail the action creation if notification fails
+      }
+    }
+
     res.status(201).json(action);
   } catch (error) {
     console.error('Error creating action:', error);
@@ -222,6 +254,37 @@ router.put('/:id', authenticateToken, validatePlantAccess, async (req: Request, 
         actionFiles: true,
       },
     });
+
+    // Check if materials were added and send notification to RSC
+    if (description !== undefined && 
+        description.includes('--- Materialien ---') && 
+        !(existingAction.description?.includes('--- Materialien ---'))) {
+      try {
+        // Materials were just added - notify RSC
+        const rscEmail = `${action.plant}.RSC@maintain.com`;
+        const rscUser = await prisma.user.findUnique({
+          where: { email: rscEmail },
+        });
+
+        if (rscUser) {
+          await prisma.notification.create({
+            data: {
+              userId: rscUser.id,
+              title: 'Neue Materialanforderung',
+              message: `Materialbestellung für ${action.plant}: "${action.title}"`,
+              type: 'MATERIAL_REQUEST',
+              relatedId: action.id,
+              isRead: false,
+            },
+          });
+
+          console.log(`✅ Notification sent to RSC (${rscEmail}) for material update in action ${action.id}`);
+        }
+      } catch (notificationError) {
+        console.error('Error sending RSC notification:', notificationError);
+        // Don't fail the update if notification fails
+      }
+    }
 
     res.json(action);
   } catch (error) {
