@@ -91,7 +91,7 @@ class PDFExportService {
         6: { cellWidth: 25 },
       },
       margin: { left: 14, right: 14 },
-      didDrawPage: (data) => {
+      didDrawPage: () => {
         // Footer
         const pageCount = (doc as any).internal.getNumberOfPages();
         const currentPage = (doc as any).internal.getCurrentPageInfo().pageNumber;
@@ -186,7 +186,7 @@ class PDFExportService {
         6: { cellWidth: 20 },
       },
       margin: { left: 14, right: 14 },
-      didDrawPage: (data) => {
+      didDrawPage: () => {
         // Footer
         const pageCount = (doc as any).internal.getNumberOfPages();
         const currentPage = (doc as any).internal.getCurrentPageInfo().pageNumber;
@@ -283,7 +283,7 @@ class PDFExportService {
         7: { cellWidth: 20 },
       },
       margin: { left: 14, right: 14 },
-      didDrawPage: (data) => {
+      didDrawPage: () => {
         // Footer
         const pageCount = (doc as any).internal.getNumberOfPages();
         const currentPage = (doc as any).internal.getCurrentPageInfo().pageNumber;

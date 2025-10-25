@@ -26,7 +26,6 @@ import {
   Building2,
   Settings,
   FileText,
-  Download,
   Search,
   AlertCircle,
   Package,
@@ -109,7 +108,7 @@ interface EquipmentItem {
 const RigConfigurator = () => {
   const { toast } = useToast();
   const [isAdmin] = useState(authService.isAdmin());
-  const [_loadingRigs, setLoadingRigs] = useState(false);
+  const [, setLoadingRigs] = useState(false);
 
   const [requirements, setRequirements] = useState<ProjectRequirements>({
     projectName: "",
@@ -1128,7 +1127,7 @@ const RigConfigurator = () => {
           location: requirements.location,
           projectDuration: requirements.projectDuration,
           selectedRig: selectedRig,
-          selectedEquipment: selectedEquipment,
+          selectedEquipment: selectedEquipment as { [category: string]: Array<{ name: string; price: string; [key: string]: string }> },
           additionalNotes: requirements.additionalNotes,
         },
         filename
