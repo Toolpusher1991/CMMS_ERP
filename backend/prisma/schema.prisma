@@ -29,6 +29,12 @@ model User {
   approvedAt          DateTime?
   rejectionReason     String?
   
+  // QR-Code Login (Mobile)
+  qrToken             String?        @unique // Unique token für QR-Code Login
+  qrTokenCreatedAt    DateTime?      // Wann wurde der QR-Code generiert
+  qrTokenExpiresAt    DateTime?      // Optional: QR-Code Ablaufdatum
+  qrTokenLastUsed     DateTime?      // Letzter QR-Login für Audit
+  
   // Security Fields
   loginAttempts       Int            @default(0)
   lockedUntil         DateTime?

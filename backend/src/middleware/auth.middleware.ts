@@ -17,7 +17,8 @@ export const authenticate = async (
   next: NextFunction
 ) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    // Token aus Header ODER Query-Parameter (für Image-Tags)
+    const token = req.headers.authorization?.split(' ')[1] || (req.query.token as string);
 
     if (!token) {
       throw new AppError('No token provided', 401);

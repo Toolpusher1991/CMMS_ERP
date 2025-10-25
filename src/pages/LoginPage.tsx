@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/card";
 import { ModeToggle } from "@/components/mode-toggle";
 import { authService, type User } from "@/services/auth.service";
+import { QrCode } from "lucide-react";
+import { isMobileDevice } from "@/lib/device-detection";
+import QRScanner from "@/components/QRScanner";
 
 interface LoginPageProps {
   onLogin?: (user: User) => void;
@@ -28,6 +31,9 @@ export function LoginPage({
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showQRScanner, setShowQRScanner] = useState(false);
+
+  const isMobile = isMobileDevice();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,8 +57,46 @@ export function LoginPage({
     }
   };
 
+  /**
+   * QR-Code Login Handler
+   */
+  const handleQRScan = async (qrToken: string) => {
+    setIsLoading(true);
+    setError("");
+    setShowQRScanner(false);
+
+    try {
+      console.log(
+        "[QR-LOGIN] Attempting login with token:",
+        qrToken.substring(0, 20) + "..."
+      );
+      const response = await authService.qrLogin(qrToken);
+
+      if (response.success && onLogin) {
+        onLogin(response.data.user);
+      }
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      setError(
+        error.message ||
+          "QR-Login fehlgeschlagen. Bitte versuchen Sie es erneut."
+      );
+      console.error("QR-Login error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
+      {/* QR-Scanner Fullscreen Overlay (nur Mobile) */}
+      {showQRScanner && isMobile && (
+        <QRScanner
+          onScan={handleQRScan}
+          onClose={() => setShowQRScanner(false)}
+        />
+      )}
+
       <div className="absolute top-4 right-4">
         <ModeToggle />
       </div>
@@ -83,6 +127,33 @@ export function LoginPage({
                 {error}
               </div>
             )}
+
+            {/* QR-Code Login Button (nur auf Mobile) */}
+            {isMobile && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-2 border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950"
+                onClick={() => setShowQRScanner(true)}
+              >
+                <QrCode className="mr-2 h-5 w-5" />
+                Mit QR-Code anmelden
+              </Button>
+            )}
+
+            {isMobile && (
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Oder mit E-Mail
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">E-Mail</Label>
               <Input

@@ -43,6 +43,7 @@ import {
   UserCheck,
   UserX,
   ShieldAlert,
+  QrCode,
 } from "lucide-react";
 
 type TabType = "all" | "pending" | "statistics";
@@ -60,6 +61,8 @@ export function EnhancedUserAdminPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
+  const [isQRCodeDialogOpen, setIsQRCodeDialogOpen] = useState(false);
+  const [qrCodeUrl, setQRCodeUrl] = useState<string>("");
 
   const [selectedUser, setSelectedUser] = useState<User | PendingUser | null>(
     null
@@ -131,6 +134,29 @@ export function EnhancedUserAdminPage() {
       console.error("Failed to load statistics:", error);
       alert("Fehler beim Laden der Statistiken");
     }
+  };
+
+  /**
+   * QR-Code für User anzeigen
+   */
+  const handleShowQRCode = async (user: User) => {
+    const API_BASE_URL =
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:5137/api";
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      alert("Nicht authentifiziert");
+      return;
+    }
+
+    // URL zum QR-Code Bild
+    const qrUrl = `${API_BASE_URL.replace("/api", "")}/api/qr/users/${
+      user.id
+    }/qr-code?token=${token}`;
+
+    setSelectedUser(user);
+    setQRCodeUrl(qrUrl);
+    setIsQRCodeDialogOpen(true);
   };
 
   // ============================================
@@ -494,6 +520,15 @@ export function EnhancedUserAdminPage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleShowQRCode(user)}
+                                title="QR-Code anzeigen"
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <QrCode className="h-4 w-4" />
+                              </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1060,6 +1095,82 @@ export function EnhancedUserAdminPage() {
                   Ablehnen
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* QR-CODE DIALOG */}
+      <Dialog open={isQRCodeDialogOpen} onOpenChange={setIsQRCodeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>QR-Code für Mobile Login</DialogTitle>
+            <DialogDescription>
+              {selectedUser &&
+                `QR-Code für ${(selectedUser as User).firstName} ${
+                  (selectedUser as User).lastName
+                } (${(selectedUser as User).email})`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            {qrCodeUrl ? (
+              <>
+                <img
+                  src={qrCodeUrl}
+                  alt="QR Code"
+                  className="w-64 h-64 border-2 border-gray-200 rounded-lg"
+                  onError={(e) => {
+                    console.error("QR-Code konnte nicht geladen werden");
+                    e.currentTarget.src =
+                      'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><text x="50%" y="50%" text-anchor="middle" fill="red">Fehler</text></svg>';
+                  }}
+                />
+                <div className="text-center text-sm text-muted-foreground">
+                  <p>
+                    Dieser QR-Code ermöglicht schnellen Login auf mobilen
+                    Geräten
+                  </p>
+                  <p className="mt-2">
+                    Kann ausgedruckt oder auf Keychain gelasert werden
+                  </p>
+                </div>
+                <div className="flex gap-2 w-full">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      const link = document.createElement("a");
+                      link.href = qrCodeUrl;
+                      link.download = `QR_${(selectedUser as User)?.email
+                        ?.replace("@", "_")
+                        .replace(/\./g, "_")}.png`;
+                      link.click();
+                    }}
+                  >
+                    💾 Herunterladen
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => window.print()}
+                  >
+                    🖨️ Drucken
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="text-red-500">Kein QR-Code verfügbar</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setIsQRCodeDialogOpen(false);
+                setQRCodeUrl("");
+                setSelectedUser(null);
+              }}
+            >
+              Schließen
             </Button>
           </DialogFooter>
         </DialogContent>

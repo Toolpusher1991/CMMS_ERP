@@ -51,6 +51,21 @@ export const authService = {
     return response;
   },
 
+  /**
+   * QR-Code Login für Mobile
+   */
+  async qrLogin(qrToken: string): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>('/auth/qr-login', { qrToken });
+    
+    if (response.data.accessToken) {
+      localStorage.setItem('accessToken', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    
+    return response;
+  },
+
   async register(data: RegisterData): Promise<AuthResponse> {
     return apiClient.post<AuthResponse>('/auth/register', data);
   },

@@ -15,6 +15,7 @@ import failureReportRoutes from './routes/failure-reports.routes';
 import notificationRoutes from './routes/notification.routes';
 import commentRoutes from './routes/comment.routes';
 import chatbotRoutes from './routes/chatbot.routes';
+import qrCodeRoutes from './routes/qr-code.routes';
 import { errorHandler } from './middleware/error.middleware';
 import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware';
 
@@ -93,6 +94,7 @@ app.use('/api/failure-reports', failureReportRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/qr', qrCodeRoutes); // QR-Code Generation & Management
 
 // Error handling
 app.use(errorHandler);
