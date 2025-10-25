@@ -1335,7 +1335,7 @@ const ActionTracker = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh]">
+        <DialogContent className="max-w-6xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>
               {isEditMode ? "Action bearbeiten" : "Neue Action erstellen"}
@@ -1641,11 +1641,13 @@ const ActionTracker = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>MM-Nummer</TableHead>
-                          <TableHead>Beschreibung</TableHead>
-                          <TableHead className="w-24">Menge</TableHead>
-                          <TableHead className="w-24">Einheit</TableHead>
-                          <TableHead className="w-32">Status</TableHead>
+                          <TableHead className="w-[180px]">MM-Nummer</TableHead>
+                          <TableHead className="w-[320px]">
+                            Beschreibung
+                          </TableHead>
+                          <TableHead className="w-28">Menge</TableHead>
+                          <TableHead className="w-28">Einheit</TableHead>
+                          <TableHead className="w-[200px]">Status</TableHead>
                           <TableHead className="w-16"></TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1655,20 +1657,20 @@ const ActionTracker = () => {
                             <TableCell>
                               <Input
                                 type="text"
-                                className="h-9"
+                                className="h-11 text-base w-full"
                                 value={material.mmNumber}
                                 onChange={(e) => {
                                   const newMaterials = [...materials];
                                   newMaterials[index].mmNumber = e.target.value;
                                   setMaterials(newMaterials);
                                 }}
-                                placeholder="MM-Nr."
+                                placeholder="MM-Nummer"
                               />
                             </TableCell>
                             <TableCell>
                               <Input
                                 type="text"
-                                className="h-9"
+                                className="h-11 text-base w-full"
                                 value={material.description}
                                 onChange={(e) => {
                                   const newMaterials = [...materials];
@@ -1683,7 +1685,7 @@ const ActionTracker = () => {
                               <Input
                                 type="number"
                                 min="1"
-                                className="h-9"
+                                className="h-11 text-base"
                                 value={material.quantity}
                                 onChange={(e) => {
                                   const newMaterials = [...materials];
@@ -1702,7 +1704,7 @@ const ActionTracker = () => {
                                   setMaterials(newMaterials);
                                 }}
                               >
-                                <SelectTrigger className="h-9">
+                                <SelectTrigger className="h-11 text-base">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1725,20 +1727,32 @@ const ActionTracker = () => {
                                   setMaterials(newMaterials);
                                 }}
                               >
-                                <SelectTrigger className="h-9">
+                                <SelectTrigger className="h-11 text-base w-full">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="NICHT_BESTELLT">
+                                  <SelectItem
+                                    value="NICHT_BESTELLT"
+                                    className="text-base"
+                                  >
                                     ⚪ Nicht bestellt
                                   </SelectItem>
-                                  <SelectItem value="BESTELLT">
+                                  <SelectItem
+                                    value="BESTELLT"
+                                    className="text-base"
+                                  >
                                     🟡 Bestellt
                                   </SelectItem>
-                                  <SelectItem value="UNTERWEGS">
+                                  <SelectItem
+                                    value="UNTERWEGS"
+                                    className="text-base"
+                                  >
                                     🔵 Unterwegs
                                   </SelectItem>
-                                  <SelectItem value="GELIEFERT">
+                                  <SelectItem
+                                    value="GELIEFERT"
+                                    className="text-base"
+                                  >
                                     🟢 Geliefert
                                   </SelectItem>
                                 </SelectContent>

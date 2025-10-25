@@ -13,6 +13,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { NotificationBell } from "@/components/NotificationBell";
 import { FloatingChatButton } from "@/components/FloatingChatButton";
 import { MobileLayout } from "@/components/MobileLayout";
+import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
 import { authService } from "@/services/auth.service";
@@ -120,100 +121,44 @@ function App() {
           {currentPage === "failures" && <FailureReporting />}
         </MobileLayout>
       ) : (
-        // Desktop View: Full app with all features
-        <div className="min-h-screen bg-background">
-          {/* Simple Header */}
-          <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="container mx-auto max-w-7xl flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center gap-3 sm:gap-6">
-                <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                  MaintAIn
-                </h1>
-                <nav className="hidden md:flex gap-2">
-                  <Button
-                    variant={currentPage === "projects" ? "default" : "ghost"}
-                    onClick={() => setCurrentPage("projects")}
-                    size="sm"
-                  >
-                    Projekte
-                  </Button>
-                  <Button
-                    variant={currentPage === "workorders" ? "default" : "ghost"}
-                    onClick={() => setCurrentPage("workorders")}
-                    size="sm"
-                  >
-                    Work Orders
-                  </Button>
-                  <Button
-                    variant={currentPage === "actions" ? "default" : "ghost"}
-                    onClick={() => setCurrentPage("actions")}
-                    size="sm"
-                  >
-                    Action Tracker
-                  </Button>
-                  <Button
-                    variant={currentPage === "failures" ? "default" : "ghost"}
-                    onClick={() => setCurrentPage("failures")}
-                    size="sm"
-                  >
-                    Schadensmeldungen
-                  </Button>
-                  <Button
-                    variant={currentPage === "tender" ? "default" : "ghost"}
-                    onClick={() => setCurrentPage("tender")}
-                    size="sm"
-                  >
-                    Bohranlagen
-                  </Button>
-                  {user.role === "ADMIN" && (
-                    <Button
-                      variant={currentPage === "users" ? "default" : "ghost"}
-                      onClick={() => setCurrentPage("users")}
-                      size="sm"
-                    >
-                      Benutzerverwaltung
-                    </Button>
-                  )}
-                </nav>
-              </div>
-              <div className="flex items-center gap-2 sm:gap-4">
-                <span className="hidden sm:inline text-sm text-muted-foreground">
-                  {user.firstName} {user.lastName}
-                </span>
-                <span className="sm:hidden text-sm text-muted-foreground">
-                  {user.firstName[0]}.{user.lastName[0]}
-                </span>
-                <NotificationBell />
-                <ModeToggle />
-                <Button
-                  onClick={handleLogout}
-                  variant="outline"
-                  size="sm"
-                  className="hidden sm:inline-flex"
-                >
-                  Abmelden
-                </Button>
-                <Button
-                  onClick={handleLogout}
-                  variant="outline"
-                  size="icon"
-                  className="sm:hidden"
-                >
-                  👋
-                </Button>
-              </div>
-            </div>
-          </header>
+        // Desktop View: Full app with Sidebar
+        <div className="flex h-screen overflow-hidden">
+          {/* Sidebar */}
+          <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} />
 
-          {/* Main Content */}
-          <main className="container mx-auto max-w-7xl py-6 px-4 sm:px-6 lg:px-8">
-            {currentPage === "projects" && <ProjectList />}
-            {currentPage === "workorders" && <WorkOrderManagement />}
-            {currentPage === "actions" && <ActionTracker />}
-            {currentPage === "failures" && <FailureReporting />}
-            {currentPage === "tender" && <RigConfigurator />}
-            {currentPage === "users" && <EnhancedUserAdminPage />}
-          </main>
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Top Header - Minimal */}
+            <header className="h-16 border-b border-[#2d3748] bg-[#151d2a] flex items-center justify-end px-4 gap-3">
+              <span className="text-sm text-slate-300 mr-auto ml-4">
+                {user.firstName} {user.lastName}
+              </span>
+              <NotificationBell />
+              <ModeToggle />
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="border-[#2d3748] hover:bg-[#2d3748]"
+              >
+                Abmelden
+              </Button>
+            </header>
+
+            {/* Content Area with Scroll */}
+            <main className="flex-1 overflow-y-auto bg-[#0f1419]">
+              <div className="container mx-auto max-w-full p-4 sm:p-6 lg:p-8">
+                {currentPage === "projects" && <ProjectList />}
+                {currentPage === "workorders" && <WorkOrderManagement />}
+                {currentPage === "actions" && <ActionTracker />}
+                {currentPage === "failures" && <FailureReporting />}
+                {currentPage === "tender" && <RigConfigurator />}
+                {currentPage === "users" && user.role === "ADMIN" && (
+                  <EnhancedUserAdminPage />
+                )}
+              </div>
+            </main>
+          </div>
 
           {/* Floating Chatbot */}
           <FloatingChatButton />

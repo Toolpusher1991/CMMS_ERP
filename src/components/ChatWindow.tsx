@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Loader2, Sparkles } from "lucide-react";
+import { Send, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,7 +24,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [quickActions, setQuickActions] = useState<QuickAction[]>([]);
   const [showQuickActions, setShowQuickActions] = useState(true);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // Load conversation history and quick actions on mount
@@ -38,9 +38,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   // Auto-scroll to bottom when new message arrives
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const loadQuickActions = async () => {
@@ -135,10 +133,39 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     });
   };
 
+  const handleClearChat = () => {
+    chatService.clearConversation();
+    setMessages([]);
+    setShowQuickActions(true);
+    toast({
+      title: "Chat geleert",
+      description: "Die Konversation wurde erfolgreich gelöscht.",
+    });
+  };
+
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-background to-muted/20">
+      {/* Header with Clear Button */}
+      {messages.length > 0 && (
+        <div className="flex items-center justify-between p-4 border-b bg-background/50 backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold text-sm">MaintAIn Assistant</h3>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearChat}
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Chat leeren
+          </Button>
+        </div>
+      )}
+
       {/* Messages Area */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
           {/* Welcome Message */}
           {messages.length === 0 && (
@@ -269,12 +296,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               </div>
             </div>
           )}
+
+          {/* Scroll anchor */}
+          <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="p-4 border-t bg-white/50 dark:bg-muted/50 backdrop-blur-sm">
-        <div className="flex gap-2">
+      <div className="p-4 border-t bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-slate-900 dark:to-slate-800">
+        <div className="flex gap-3">
           <Textarea
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
@@ -285,27 +315,37 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               }
             }}
             placeholder="Stelle mir eine Frage..."
-            className="min-h-[60px] max-h-[120px] resize-none border-2 focus:border-primary/50 bg-white dark:bg-background"
+            className="min-h-[70px] max-h-[140px] resize-none border-2 focus:border-cyan-500 bg-white dark:bg-slate-950 text-base placeholder:text-slate-400 shadow-sm"
             disabled={isLoading}
           />
           <Button
             onClick={handleSendMessage}
             disabled={isLoading || !inputMessage.trim()}
             size="icon"
-            className="h-[60px] w-[60px] rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+            className="h-[70px] w-[70px] rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
           >
-            <Send className="h-5 w-5" />
+            {isLoading ? (
+              <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+            ) : (
+              <Send className="h-6 w-6" />
+            )}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2 text-center flex items-center justify-center gap-2">
-          <kbd className="px-2 py-0.5 bg-muted rounded text-xs">Enter</kbd>
-          <span>zum Senden</span>
-          <span>•</span>
-          <kbd className="px-2 py-0.5 bg-muted rounded text-xs">
-            Shift+Enter
-          </kbd>
-          <span>für neue Zeile</span>
-        </p>
+        <div className="flex items-center justify-center gap-3 mt-3 text-xs text-slate-500">
+          <div className="flex items-center gap-1.5">
+            <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm font-mono">
+              Enter
+            </kbd>
+            <span>Senden</span>
+          </div>
+          <span className="text-slate-300">•</span>
+          <div className="flex items-center gap-1.5">
+            <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm font-mono">
+              Shift+Enter
+            </kbd>
+            <span>Neue Zeile</span>
+          </div>
+        </div>
       </div>
     </div>
   );
