@@ -1700,10 +1700,10 @@ const RigConfigurator = () => {
                                       className="mt-0.5"
                                     />
                                     <div className="flex-1 min-w-0">
-                                      <p className="font-semibold text-xs">
+                                      <p className="font-semibold text-sm">
                                         {item.name}
                                       </p>
-                                      <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                                         {Object.entries(item)
                                           .filter(
                                             ([key]) =>
@@ -1718,13 +1718,13 @@ const RigConfigurator = () => {
                                     <div className="text-right flex-shrink-0">
                                       <div className="flex items-center gap-1.5">
                                         <div>
-                                          <p className="font-bold text-green-600 text-xs">
+                                          <p className="font-bold text-green-600 text-sm">
                                             €{" "}
                                             {parseFloat(
                                               item.price
                                             ).toLocaleString("de-DE")}
                                           </p>
-                                          <p className="text-[9px] text-muted-foreground">
+                                          <p className="text-[10px] text-muted-foreground">
                                             /Tag
                                           </p>
                                         </div>

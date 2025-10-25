@@ -658,28 +658,28 @@ const WorkOrderManagement = () => {
                           aria-label="Alle auswählen"
                         />
                       </th>
-                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
                         Order Type
                       </th>
-                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
                         Main WorkCtr
                       </th>
-                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
                         Order
                       </th>
-                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
                         Description
                       </th>
-                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
                         Priority
                       </th>
-                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
                         Category
                       </th>
-                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
                         Actual Release
                       </th>
-                      <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
                         Start Date
                       </th>
                     </tr>
@@ -699,39 +699,39 @@ const WorkOrderManagement = () => {
                             aria-label={`Auswählen ${order.order}`}
                           />
                         </td>
-                        <td className="px-3 py-2 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <Badge
                             variant="outline"
-                            className="font-mono text-[10px]"
+                            className="font-mono text-sm"
                           >
                             {order.orderType}
                           </Badge>
                         </td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-semibold text-[10px]">
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-semibold text-sm">
                             {order.mainWorkCtr}
                           </Badge>
                         </td>
-                        <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium">
+                        <td className="px-3 py-3 whitespace-nowrap font-mono text-sm font-medium">
                           {order.order}
                         </td>
                         <td
-                          className="px-3 py-2 text-xs max-w-md truncate"
+                          className="px-3 py-3 text-sm max-w-md truncate"
                           title={order.description}
                         >
                           {order.description}
                         </td>
-                        <td className="px-3 py-2 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <Badge
                             className={`${getPriorityColor(
                               order.priority
-                            )} text-[10px]`}
+                            )} text-sm`}
                           >
                             {order.priority}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-sm">
                             {order.category}
                           </Badge>
                         </td>

@@ -67,6 +67,7 @@ import {
   Paperclip,
   X,
   Camera,
+  CheckCircle2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -141,6 +142,8 @@ const ActionTracker = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [actionToDelete, setActionToDelete] = useState<string | null>(null);
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [actionToComplete, setActionToComplete] = useState<string | null>(null);
   const [photoViewDialogOpen, setPhotoViewDialogOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -535,6 +538,57 @@ const ActionTracker = () => {
     setDeleteDialogOpen(true);
   };
 
+  const handleComplete = (id: string) => {
+    setActionToComplete(id);
+    setCompleteDialogOpen(true);
+  };
+
+  const confirmComplete = async () => {
+    if (actionToComplete) {
+      try {
+        const action = actions.find((a) => a.id === actionToComplete);
+
+        await apiClient.request(`/actions/${actionToComplete}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            status: "COMPLETED",
+            completedAt: new Date().toISOString(),
+          }),
+        });
+
+        // Send notification to managers
+        try {
+          await apiClient.post("/notifications", {
+            title: "Action abgeschlossen",
+            message: `Action "${action?.title}" für ${action?.plant} wurde abgeschlossen.`,
+            type: "ACTION_COMPLETED",
+            targetRoles: ["ADMIN", "MANAGER"],
+            relatedId: actionToComplete,
+          });
+        } catch (notifError) {
+          console.error("Notification error:", notifError);
+          // Continue even if notification fails
+        }
+
+        toast({
+          title: "Action abgeschlossen",
+          description: `${action?.title} wurde als abgeschlossen markiert.`,
+        });
+
+        await loadActions();
+        setCompleteDialogOpen(false);
+        setActionToComplete(null);
+      } catch (error) {
+        console.error("Fehler beim Abschließen:", error);
+        toast({
+          title: "Fehler",
+          description: "Action konnte nicht abgeschlossen werden.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   const confirmDelete = async () => {
     if (actionToDelete) {
       try {
@@ -667,7 +721,12 @@ const ActionTracker = () => {
     }
     // "alle" shows all actions for the plant
 
-    return filtered;
+    // Sort: COMPLETED actions to the bottom
+    return filtered.sort((a, b) => {
+      if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1;
+      if (a.status !== "COMPLETED" && b.status === "COMPLETED") return -1;
+      return 0;
+    });
   };
 
   const getActionStats = (plant: string) => {
@@ -841,7 +900,13 @@ const ActionTracker = () => {
                                 <TableBody>
                                   {categoryActions.map((action, index) => (
                                     <React.Fragment key={action.id}>
-                                      <TableRow className="cursor-pointer hover:bg-muted/50">
+                                      <TableRow
+                                        className={`cursor-pointer hover:bg-muted/50 ${
+                                          action.status === "COMPLETED"
+                                            ? "opacity-60"
+                                            : ""
+                                        }`}
+                                      >
                                         <TableCell
                                           onClick={() => toggleRow(action.id)}
                                         >
@@ -862,7 +927,15 @@ const ActionTracker = () => {
                                           className="font-medium"
                                           onClick={() => toggleRow(action.id)}
                                         >
-                                          {action.title}
+                                          <span
+                                            className={
+                                              action.status === "COMPLETED"
+                                                ? "line-through"
+                                                : ""
+                                            }
+                                          >
+                                            {action.title}
+                                          </span>
                                         </TableCell>
                                         <TableCell
                                           onClick={() => toggleRow(action.id)}
@@ -921,6 +994,18 @@ const ActionTracker = () => {
                                         </TableCell>
                                         <TableCell>
                                           <div className="flex items-center gap-1">
+                                            {action.status !== "COMPLETED" && (
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() =>
+                                                  handleComplete(action.id)
+                                                }
+                                                title="Abschließen"
+                                              >
+                                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                              </Button>
+                                            )}
                                             <Button
                                               variant="ghost"
                                               size="icon"
@@ -1335,7 +1420,7 @@ const ActionTracker = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh]">
+        <DialogContent className="max-w-5xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>
               {isEditMode ? "Action bearbeiten" : "Neue Action erstellen"}
@@ -1807,6 +1892,31 @@ const ActionTracker = () => {
             <AlertDialogCancel>Abbrechen</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-red-600">
               Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Complete Confirmation Dialog */}
+      <AlertDialog
+        open={completeDialogOpen}
+        onOpenChange={setCompleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Action abschließen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Möchten Sie diese Action wirklich als abgeschlossen markieren? Die
+              Manager werden über den Abschluss benachrichtigt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmComplete}
+              className="bg-green-600"
+            >
+              Abschließen
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

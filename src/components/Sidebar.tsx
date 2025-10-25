@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type AppPage =
+  | "dashboard"
   | "projects"
   | "users"
   | "workorders"
@@ -28,6 +29,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { title: "Dashboard", page: "dashboard", icon: LayoutDashboard },
   { title: "Projekte", page: "projects", icon: FolderKanban },
   { title: "Work Orders", page: "workorders", icon: FileText },
   { title: "Action Tracker", page: "actions", icon: ListTodo },

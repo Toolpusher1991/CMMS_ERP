@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -109,7 +110,7 @@ const FailureReportingPage = () => {
   const [convertData, setConvertData] = useState({
     assignedTo: "",
     priority: "MEDIUM" as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
-    dueDate: "",
+    dueDate: undefined as Date | undefined,
   });
 
   const [reports, setReports] = useState<FailureReport[]>([]);
@@ -294,9 +295,17 @@ const FailureReportingPage = () => {
     }
 
     try {
+      const payload = {
+        assignedTo: convertData.assignedTo,
+        priority: convertData.priority,
+        dueDate: convertData.dueDate
+          ? convertData.dueDate.toISOString()
+          : undefined,
+      };
+
       const response = (await apiClient.post(
         `/failure-reports/${reportToConvert.id}/convert-to-action`,
-        convertData
+        payload
       )) as { action: { id: string } };
 
       setReports(
@@ -321,7 +330,7 @@ const FailureReportingPage = () => {
       setConvertData({
         assignedTo: "",
         priority: "MEDIUM",
-        dueDate: "",
+        dueDate: undefined,
       });
     } catch (error) {
       console.error("Fehler beim Konvertieren:", error);
@@ -614,37 +623,48 @@ const FailureReportingPage = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[50px]">Nr.</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Titel</TableHead>
-                        <TableHead>Schwere</TableHead>
-                        <TableHead>Gemeldet von</TableHead>
-                        <TableHead>Foto</TableHead>
-                        <TableHead>Datum</TableHead>
-                        <TableHead className="text-right">Aktionen</TableHead>
+                        <TableHead className="w-[50px] py-3 text-base">
+                          Nr.
+                        </TableHead>
+                        <TableHead className="py-3 text-base">Status</TableHead>
+                        <TableHead className="py-3 text-base">Titel</TableHead>
+                        <TableHead className="py-3 text-base">
+                          Schwere
+                        </TableHead>
+                        <TableHead className="py-3 text-base">
+                          Gemeldet von
+                        </TableHead>
+                        <TableHead className="py-3 text-base">Foto</TableHead>
+                        <TableHead className="py-3 text-base">Datum</TableHead>
+                        <TableHead className="text-right py-3 text-base">
+                          Aktionen
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredReports.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center">
+                          <TableCell
+                            colSpan={8}
+                            className="text-center py-6 text-base"
+                          >
                             Keine Failure Reports für {plant}
                           </TableCell>
                         </TableRow>
                       ) : (
                         filteredReports.map((report, index) => (
                           <TableRow key={report.id}>
-                            <TableCell>
-                              <span className="font-medium text-muted-foreground">
+                            <TableCell className="py-3">
+                              <span className="font-medium text-muted-foreground text-base">
                                 {index + 1}
                               </span>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="py-3">
                               {getStatusBadge(report.status)}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="py-3">
                               <div>
-                                <div className="font-medium">
+                                <div className="font-medium text-base">
                                   {report.title}
                                 </div>
                                 {report.location && (
@@ -655,13 +675,13 @@ const FailureReportingPage = () => {
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="py-3">
                               {getSeverityBadge(report.severity)}
                             </TableCell>
-                            <TableCell>
-                              <div className="text-sm">
+                            <TableCell className="py-3">
+                              <div className="text-base">
                                 <div>{report.reportedByName}</div>
-                                <div className="text-muted-foreground">
+                                <div className="text-muted-foreground text-sm">
                                   {report.reportedBy}
                                 </div>
                               </div>
@@ -971,12 +991,10 @@ const FailureReportingPage = () => {
 
             <div className="space-y-2">
               <Label htmlFor="dueDate">Fälligkeitsdatum</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={convertData.dueDate}
-                onChange={(e) =>
-                  setConvertData({ ...convertData, dueDate: e.target.value })
+              <DatePicker
+                date={convertData.dueDate}
+                onDateChange={(date: Date | undefined) =>
+                  setConvertData({ ...convertData, dueDate: date })
                 }
               />
             </div>

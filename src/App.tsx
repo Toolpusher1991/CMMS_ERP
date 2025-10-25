@@ -3,6 +3,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { RegistrationPage } from "@/pages/RegistrationPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { EnhancedUserAdminPage } from "@/pages/EnhancedUserAdminPage";
+import Dashboard from "@/pages/Dashboard";
 import ProjectList from "@/pages/ProjectList";
 import WorkOrderManagement from "@/pages/WorkOrderManagement";
 import ActionTracker from "@/pages/ActionTracker";
@@ -22,6 +23,7 @@ import type { User } from "@/services/auth.service";
 
 type AuthView = "login" | "register" | "forgot-password";
 type AppPage =
+  | "dashboard"
   | "projects"
   | "users"
   | "workorders"
@@ -32,7 +34,7 @@ type AppPage =
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authView, setAuthView] = useState<AuthView>("login");
-  const [currentPage, setCurrentPage] = useState<AppPage>("projects");
+  const [currentPage, setCurrentPage] = useState<AppPage>("dashboard");
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -148,6 +150,7 @@ function App() {
             {/* Content Area with Scroll */}
             <main className="flex-1 overflow-y-auto bg-[#0f1419]">
               <div className="container mx-auto max-w-full p-4 sm:p-6 lg:p-8">
+                {currentPage === "dashboard" && <Dashboard />}
                 {currentPage === "projects" && <ProjectList />}
                 {currentPage === "workorders" && <WorkOrderManagement />}
                 {currentPage === "actions" && <ActionTracker />}

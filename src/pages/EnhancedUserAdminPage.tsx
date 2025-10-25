@@ -473,12 +473,12 @@ export function EnhancedUserAdminPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="py-2">Name</TableHead>
-                      <TableHead className="py-2">E-Mail</TableHead>
-                      <TableHead className="py-2">Rolle</TableHead>
-                      <TableHead className="py-2">Status</TableHead>
-                      <TableHead className="py-2">Erstellt</TableHead>
-                      <TableHead className="text-right py-2">
+                      <TableHead className="py-3 text-base">Name</TableHead>
+                      <TableHead className="py-3 text-base">E-Mail</TableHead>
+                      <TableHead className="py-3 text-base">Rolle</TableHead>
+                      <TableHead className="py-3 text-base">Status</TableHead>
+                      <TableHead className="py-3 text-base">Erstellt</TableHead>
+                      <TableHead className="text-right py-3 text-base">
                         Aktionen
                       </TableHead>
                     </TableRow>
@@ -488,7 +488,7 @@ export function EnhancedUserAdminPage() {
                       <TableRow>
                         <TableCell
                           colSpan={6}
-                          className="text-center py-8 text-muted-foreground"
+                          className="text-center py-8 text-muted-foreground text-base"
                         >
                           Keine Benutzer gefunden
                         </TableCell>
@@ -496,36 +496,36 @@ export function EnhancedUserAdminPage() {
                     ) : (
                       filteredUsers.map((user) => (
                         <TableRow key={user.id}>
-                          <TableCell className="font-medium py-2 text-sm">
+                          <TableCell className="font-medium py-3 text-base">
                             {user.firstName} {user.lastName}
                           </TableCell>
-                          <TableCell className="py-2 text-sm">
+                          <TableCell className="py-3 text-base">
                             {user.email}
                           </TableCell>
-                          <TableCell className="py-2">
+                          <TableCell className="py-3">
                             <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getRoleBadgeColor(
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium border ${getRoleBadgeColor(
                                 user.role
                               )}`}
                             >
                               {user.role}
                             </span>
                           </TableCell>
-                          <TableCell className="py-2">
+                          <TableCell className="py-3">
                             <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusBadgeColor(
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium border ${getStatusBadgeColor(
                                 user.isActive
                               )}`}
                             >
                               {user.isActive ? "✓ Aktiv" : "✗ Inaktiv"}
                             </span>
                           </TableCell>
-                          <TableCell className="py-2 text-xs">
+                          <TableCell className="py-3 text-sm">
                             {new Date(user.createdAt).toLocaleDateString(
                               "de-DE"
                             )}
                           </TableCell>
-                          <TableCell className="text-right py-2">
+                          <TableCell className="text-right py-3">
                             <div className="flex justify-end gap-1">
                               <Button
                                 variant="outline"

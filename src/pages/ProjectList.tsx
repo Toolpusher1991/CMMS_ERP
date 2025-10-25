@@ -1550,21 +1550,35 @@ export default function AnlagenProjektManagement() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-[40px] py-2"></TableHead>
-                            <TableHead className="w-[40px] py-2">Nr.</TableHead>
-                            <TableHead className="py-2">Projektname</TableHead>
-                            <TableHead className="py-2">Kategorie</TableHead>
-                            <TableHead className="py-2">Status</TableHead>
-                            <TableHead className="py-2">User</TableHead>
-                            <TableHead className="py-2">Aufgaben</TableHead>
-                            <TableHead className="py-2">Dateien</TableHead>
-                            <TableHead className="text-right py-2">
+                            <TableHead className="w-[40px] py-3 text-base"></TableHead>
+                            <TableHead className="w-[40px] py-3 text-base">
+                              Nr.
+                            </TableHead>
+                            <TableHead className="py-3 text-base">
+                              Projektname
+                            </TableHead>
+                            <TableHead className="py-3 text-base">
+                              Kategorie
+                            </TableHead>
+                            <TableHead className="py-3 text-base">
+                              Status
+                            </TableHead>
+                            <TableHead className="py-3 text-base">
+                              User
+                            </TableHead>
+                            <TableHead className="py-3 text-base">
+                              Aufgaben
+                            </TableHead>
+                            <TableHead className="py-3 text-base">
+                              Dateien
+                            </TableHead>
+                            <TableHead className="text-right py-3 text-base">
                               Budget
                             </TableHead>
-                            <TableHead className="text-right py-2">
+                            <TableHead className="text-right py-3 text-base">
                               Fortschritt
                             </TableHead>
-                            <TableHead className="text-right py-2">
+                            <TableHead className="text-right py-3 text-base">
                               Aktionen
                             </TableHead>
                           </TableRow>
@@ -1574,7 +1588,7 @@ export default function AnlagenProjektManagement() {
                             <TableRow>
                               <TableCell
                                 colSpan={11}
-                                className="text-center text-muted-foreground"
+                                className="text-center text-muted-foreground text-base py-6"
                               >
                                 Keine Projekte gefunden
                               </TableCell>
@@ -1587,74 +1601,74 @@ export default function AnlagenProjektManagement() {
                                   <React.Fragment key={project.id}>
                                     {/* Hauptzeile */}
                                     <TableRow className="hover:bg-muted/50">
-                                      <TableCell className="py-2">
+                                      <TableCell className="py-3">
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="h-6 w-6"
+                                          className="h-7 w-7"
                                           onClick={() =>
                                             toggleRowExpansion(project.id)
                                           }
                                         >
                                           {isExpanded ? (
-                                            <ChevronDown className="h-3.5 w-3.5" />
+                                            <ChevronDown className="h-4 w-4" />
                                           ) : (
-                                            <ChevronRight className="h-3.5 w-3.5" />
+                                            <ChevronRight className="h-4 w-4" />
                                           )}
                                         </Button>
                                       </TableCell>
-                                      <TableCell className="py-2">
-                                        <span className="font-medium text-muted-foreground text-sm">
+                                      <TableCell className="py-3">
+                                        <span className="font-medium text-muted-foreground text-base">
                                           {index + 1}
                                         </span>
                                       </TableCell>
-                                      <TableCell className="font-medium py-2">
-                                        <div className="text-sm">
+                                      <TableCell className="font-medium py-3">
+                                        <div className="text-base">
                                           {project.name}
                                         </div>
                                         {project.description && (
-                                          <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                                             {project.description}
                                           </p>
                                         )}
                                       </TableCell>
-                                      <TableCell className="py-2">
+                                      <TableCell className="py-3">
                                         <Badge
-                                          className={`text-xs ${getCategoryColor(
+                                          className={`text-sm ${getCategoryColor(
                                             project.category
                                           )}`}
                                         >
                                           {project.category}
                                         </Badge>
                                       </TableCell>
-                                      <TableCell>
+                                      <TableCell className="py-3">
                                         <Badge
-                                          className={getStatusColor(
+                                          className={`text-sm ${getStatusColor(
                                             project.status
-                                          )}
+                                          )}`}
                                         >
                                           {project.status}
                                         </Badge>
                                       </TableCell>
-                                      <TableCell>
+                                      <TableCell className="py-3">
                                         <div className="flex items-center gap-2">
                                           <UserIcon className="h-4 w-4 text-muted-foreground" />
-                                          <span className="text-sm">
+                                          <span className="text-base">
                                             {project.assignedUser ||
                                               "Nicht zugewiesen"}
                                           </span>
                                         </div>
                                       </TableCell>
-                                      <TableCell>
+                                      <TableCell className="py-3">
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-7"
+                                          className="h-8 text-sm"
                                           onClick={() =>
                                             handleOpenTaskDialog(project)
                                           }
                                         >
-                                          <ListTodo className="h-3 w-3 mr-1" />
+                                          <ListTodo className="h-3.5 w-3.5 mr-1" />
                                           {
                                             project.tasks.filter(
                                               (t) => t.completed
@@ -1663,38 +1677,38 @@ export default function AnlagenProjektManagement() {
                                           /{project.tasks.length}
                                         </Button>
                                       </TableCell>
-                                      <TableCell>
+                                      <TableCell className="py-3">
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-7"
+                                          className="h-8 text-sm"
                                           onClick={() =>
                                             handleOpenFileDialog(project)
                                           }
                                         >
-                                          <FileText className="h-3 w-3 mr-1" />
+                                          <FileText className="h-3.5 w-3.5 mr-1" />
                                           {project.files.length}
                                         </Button>
                                       </TableCell>
-                                      <TableCell className="text-right font-medium">
+                                      <TableCell className="text-right font-medium py-3 text-base">
                                         {formatCurrency(project.budget)}
                                       </TableCell>
-                                      <TableCell className="text-right">
+                                      <TableCell className="text-right py-3">
                                         <div className="flex items-center justify-end gap-2">
-                                          <div className="w-full max-w-[100px] bg-secondary rounded-full h-2">
+                                          <div className="w-full max-w-[100px] bg-secondary rounded-full h-2.5">
                                             <div
-                                              className="bg-primary h-2 rounded-full transition-all"
+                                              className="bg-primary h-2.5 rounded-full transition-all"
                                               style={{
                                                 width: `${project.progress}%`,
                                               }}
                                             />
                                           </div>
-                                          <span className="text-sm font-medium min-w-[3ch]">
+                                          <span className="text-base font-medium min-w-[3ch]">
                                             {project.progress}%
                                           </span>
                                         </div>
                                       </TableCell>
-                                      <TableCell className="text-right">
+                                      <TableCell className="text-right py-3">
                                         <div className="flex justify-end gap-1">
                                           <Button
                                             variant="ghost"
