@@ -993,7 +993,7 @@ const FailureReportingPage = () => {
               <Label htmlFor="dueDate">Fälligkeitsdatum</Label>
               <DatePicker
                 date={convertData.dueDate}
-                onDateChange={(date: Date | undefined) =>
+                onSelect={(date: Date | undefined) =>
                   setConvertData({ ...convertData, dueDate: date })
                 }
               />
