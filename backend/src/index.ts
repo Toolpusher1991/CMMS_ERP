@@ -47,10 +47,26 @@ app.use(
   })
 );
 
-// CORS - sehr permissiv für Development
+// CORS - Development + Production
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://192.168.188.20:5173',
+  'https://maintain-nory.onrender.com', // Production Frontend
+];
+
 app.use(
   cors({
-    origin: true, // Erlaubt alle Origins in Development
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, etc.)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log(`❌ CORS blocked origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
