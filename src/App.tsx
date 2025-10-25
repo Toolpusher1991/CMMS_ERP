@@ -124,12 +124,12 @@ function App() {
         <div className="min-h-screen bg-background">
           {/* Simple Header */}
           <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="container flex h-16 items-center justify-between">
-              <div className="flex items-center gap-6">
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+            <div className="container mx-auto max-w-7xl flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center gap-3 sm:gap-6">
+                <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                   MaintAIn
                 </h1>
-                <nav className="flex gap-2">
+                <nav className="hidden md:flex gap-2">
                   <Button
                     variant={currentPage === "projects" ? "default" : "ghost"}
                     onClick={() => setCurrentPage("projects")}
@@ -176,21 +176,37 @@ function App() {
                   )}
                 </nav>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">
-                  {user.firstName} {user.lastName} ({user.role})
+              <div className="flex items-center gap-2 sm:gap-4">
+                <span className="hidden sm:inline text-sm text-muted-foreground">
+                  {user.firstName} {user.lastName}
+                </span>
+                <span className="sm:hidden text-sm text-muted-foreground">
+                  {user.firstName[0]}.{user.lastName[0]}
                 </span>
                 <NotificationBell />
                 <ModeToggle />
-                <Button onClick={handleLogout} variant="outline">
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="sm"
+                  className="hidden sm:inline-flex"
+                >
                   Abmelden
+                </Button>
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="icon"
+                  className="sm:hidden"
+                >
+                  👋
                 </Button>
               </div>
             </div>
           </header>
 
           {/* Main Content */}
-          <main className="container py-6">
+          <main className="container mx-auto max-w-7xl py-6 px-4 sm:px-6 lg:px-8">
             {currentPage === "projects" && <ProjectList />}
             {currentPage === "workorders" && <WorkOrderManagement />}
             {currentPage === "actions" && <ActionTracker />}

@@ -376,29 +376,32 @@ export function EnhancedUserAdminPage() {
   // ============================================
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Benutzerverwaltung
           </h2>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Verwalten Sie Benutzer, Genehmigungen und Berechtigungen
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
+        <Button
+          onClick={() => setIsCreateDialogOpen(true)}
+          className="w-full sm:w-auto"
+        >
           <UserPlus className="mr-2 h-4 w-4" />
           Neuer Benutzer
         </Button>
       </div>
 
       {/* Tabs */}
-      <div className="border-b">
-        <div className="flex space-x-8">
+      <div className="border-b overflow-x-auto">
+        <div className="flex space-x-4 sm:space-x-8 min-w-max sm:min-w-0">
           <button
             onClick={() => setActiveTab("all")}
-            className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+            className={`pb-3 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
               activeTab === "all"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -409,7 +412,7 @@ export function EnhancedUserAdminPage() {
           </button>
           <button
             onClick={() => setActiveTab("pending")}
-            className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+            className={`pb-3 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
               activeTab === "pending"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -420,7 +423,7 @@ export function EnhancedUserAdminPage() {
           </button>
           <button
             onClick={() => setActiveTab("statistics")}
-            className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+            className={`pb-3 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
               activeTab === "statistics"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"

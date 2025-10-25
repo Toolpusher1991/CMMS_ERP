@@ -577,24 +577,23 @@ const FailureReportingPage = () => {
 
   // Desktop View: Full table
   return (
-    <div
-      className={`container mx-auto p-4 md:p-6 space-y-6 ${
-        isMobile ? "mobile-failure-reporting" : ""
-      }`}
-    >
+    <div className="space-y-4 sm:space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-6 w-6" />
+              <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl">
+                <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6" />
                 Failure Reporting
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Mobile Schadensmeldung mit Foto-Dokumentation
               </CardDescription>
             </div>
-            <Button onClick={() => setIsDialogOpen(true)}>
+            <Button
+              onClick={() => setIsDialogOpen(true)}
+              className="w-full sm:w-auto"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Neuer Report
             </Button>

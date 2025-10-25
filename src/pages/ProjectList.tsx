@@ -961,7 +961,7 @@ export default function AnlagenProjektManagement() {
   };
 
   return (
-    <div className="w-full p-6 space-y-6 bg-background">
+    <div className="w-full space-y-4 sm:space-y-6">
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
@@ -983,22 +983,32 @@ export default function AnlagenProjektManagement() {
       {/* Main Content */}
       {!isLoading && (
         <>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Anlagen-Projekt-Management</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-2xl sm:text-3xl font-bold">
+                Anlagen-Projekt-Management
+              </h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Verwalten Sie Projekte, Aufgaben und Dateien für alle Anlagen
               </p>
             </div>
             <div className="flex gap-2">
-              <Button onClick={loadData} variant="outline" size="lg">
-                <RefreshCw className="mr-2 h-5 w-5" />
-                Aktualisieren
+              <Button
+                onClick={loadData}
+                variant="outline"
+                size="default"
+                className="flex-1 sm:flex-none"
+              >
+                <RefreshCw className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Aktualisieren</span>
               </Button>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={handleCreate} size="lg">
-                    <Plus className="mr-2 h-5 w-5" />
+                  <Button
+                    onClick={handleCreate}
+                    className="flex-1 sm:flex-none"
+                  >
+                    <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                     Neues Projekt
                   </Button>
                 </DialogTrigger>

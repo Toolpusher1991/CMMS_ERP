@@ -430,12 +430,12 @@ const WorkOrderManagement = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">
           Work Order Management System
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm sm:text-base text-muted-foreground">
           Importieren und verwalten Sie SAP Work Orders nach Main WorkCenter
         </p>
       </div>
@@ -604,7 +604,7 @@ const WorkOrderManagement = () => {
       {filteredOrders.length > 0 ? (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <CardTitle>
                   Work Orders{" "}
@@ -618,13 +618,13 @@ const WorkOrderManagement = () => {
                     ` - ${selectedOrders.size} ausgewählt`}
                 </CardDescription>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 {selectedOrders.size > 0 && (
                   <Button
                     variant="default"
                     size="sm"
                     onClick={addSelectedToActionTracker}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 w-full sm:w-auto"
                   >
                     <Plus className="w-4 h-4" />
                     Zu Actions ({selectedOrders.size})
@@ -634,7 +634,7 @@ const WorkOrderManagement = () => {
                   variant="destructive"
                   size="sm"
                   onClick={deleteAllWorkOrders}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 w-full sm:w-auto"
                 >
                   <Trash2 className="w-4 h-4" />
                   Alle löschen
