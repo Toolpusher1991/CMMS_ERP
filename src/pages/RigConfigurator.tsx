@@ -44,6 +44,8 @@ import {
   RefreshCw,
   ClipboardList,
   FileDown,
+  Calculator,
+  Eye,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -103,6 +105,20 @@ interface EquipmentItem {
   name: string;
   price: string;
   [key: string]: string | undefined;
+}
+
+interface TenderConfiguration {
+  id: string;
+  savedAt: string;
+  projectName: string;
+  clientName: string;
+  location: string;
+  projectDuration: string;
+  selectedRig: Rig;
+  selectedEquipment: { [category: string]: EquipmentItem[] };
+  totalPrice: number;
+  isUnderContract: boolean;
+  notes?: string;
 }
 
 const RigConfigurator = () => {
@@ -182,6 +198,14 @@ const RigConfigurator = () => {
   const [rigEditDialogOpen, setRigEditDialogOpen] = useState(false);
   const [editingRigData, setEditingRigData] = useState<Rig | null>(null);
   const [savingRig, setSavingRig] = useState(false);
+
+  // Tender Management
+  const [savedConfigurations, setSavedConfigurations] = useState<
+    TenderConfiguration[]
+  >([]);
+  const [tenderDetailDialogOpen, setTenderDetailDialogOpen] = useState(false);
+  const [selectedTenderConfig, setSelectedTenderConfig] =
+    useState<TenderConfiguration | null>(null);
 
   // Bohranlagen Datenbank (wird vom Backend geladen)
   const [rigs, setRigs] = useState<Rig[]>([]);
@@ -1110,6 +1134,64 @@ const RigConfigurator = () => {
     return total;
   };
 
+  // Tender Management Functions
+  const saveCurrentConfiguration = () => {
+    if (!selectedRig || !requirements.projectName) {
+      toast({
+        title: "❌ Unvollständige Konfiguration",
+        description:
+          "Bitte wählen Sie eine Rig aus und geben Sie einen Projektnamen ein.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newConfig: TenderConfiguration = {
+      id: Date.now().toString(),
+      savedAt: new Date().toLocaleString("de-DE"),
+      projectName: requirements.projectName,
+      clientName: requirements.clientName,
+      location: requirements.location,
+      projectDuration: requirements.projectDuration,
+      selectedRig: selectedRig,
+      selectedEquipment: selectedEquipment,
+      totalPrice: calculateTotal(),
+      isUnderContract: false,
+      notes: "",
+    };
+
+    setSavedConfigurations((prev) => [...prev, newConfig]);
+    toast({
+      title: "✅ Konfiguration gespeichert",
+      description: `Tender-Konfiguration für "${requirements.projectName}" wurde gespeichert.`,
+    });
+  };
+
+  const toggleContractStatus = (configId: string) => {
+    setSavedConfigurations((prev) =>
+      prev.map((config) =>
+        config.id === configId
+          ? { ...config, isUnderContract: !config.isUnderContract }
+          : config
+      )
+    );
+  };
+
+  const viewTenderDetails = (config: TenderConfiguration) => {
+    setSelectedTenderConfig(config);
+    setTenderDetailDialogOpen(true);
+  };
+
+  const deleteTenderConfiguration = (configId: string) => {
+    setSavedConfigurations((prev) =>
+      prev.filter((config) => config.id !== configId)
+    );
+    toast({
+      title: "🗑️ Konfiguration gelöscht",
+      description: "Die Tender-Konfiguration wurde erfolgreich entfernt.",
+    });
+  };
+
   // Generate PDF Export
   const exportConfiguration = () => {
     if (!selectedRig) {
@@ -1191,7 +1273,7 @@ const RigConfigurator = () => {
       {/* Main Content */}
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <Tabs defaultValue="requirements" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 h-auto">
+          <TabsList className="grid w-full grid-cols-5 h-auto">
             <TabsTrigger
               value="requirements"
               className="flex flex-col gap-1 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -1221,6 +1303,15 @@ const RigConfigurator = () => {
             >
               <BarChart3 className="h-5 w-5" />
               <span className="text-xs">Zusammenfassung</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="tender"
+              className="flex flex-col gap-1 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Calculator className="h-5 w-5" />
+              <span className="text-xs">
+                Tender ({savedConfigurations.length})
+              </span>
             </TabsTrigger>
           </TabsList>
 
@@ -2041,6 +2132,431 @@ const RigConfigurator = () => {
                       </div>
                     </div>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab 5: Tender Overview */}
+          <TabsContent value="tender" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  Tender-Übersicht
+                </CardTitle>
+                <CardDescription>
+                  Verwaltung aller gespeicherten Rig-Konfigurationen und
+                  Tender-Status
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Save Configuration Button */}
+                  {selectedRig && requirements.projectName && (
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={saveCurrentConfiguration}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        Aktuelle Konfiguration als Tender speichern
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Tender Table */}
+                  <div className="rounded-md border">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="text-left p-3 font-semibold">
+                              Rig & Projekt
+                            </th>
+                            <th className="text-left p-3 font-semibold">
+                              Tagesrate Details
+                            </th>
+                            <th className="text-left p-3 font-semibold">
+                              Dauer
+                            </th>
+                            <th className="text-left p-3 font-semibold">
+                              Status
+                            </th>
+                            <th className="text-left p-3 font-semibold">
+                              Aktionen
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {/* Current Configuration Row (if exists) */}
+                          {selectedRig && requirements.projectName && (
+                            <tr className="border-b bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 cursor-pointer">
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline">
+                                    {selectedRig.name}
+                                  </Badge>
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    Aktuelle Konfiguration
+                                  </Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground mt-1">
+                                  {requirements.projectName}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="space-y-1">
+                                  <div className="text-sm text-blue-600">
+                                    Rig Basis: €
+                                    {parseFloat(
+                                      selectedRig.dayRate
+                                    ).toLocaleString("de-DE")}
+                                    /Tag
+                                  </div>
+                                  {Object.values(selectedEquipment).flat()
+                                    .length > 0 && (
+                                    <div className="text-sm text-orange-600">
+                                      Equipment: €
+                                      {Object.values(selectedEquipment)
+                                        .flat()
+                                        .reduce(
+                                          (sum, eq) =>
+                                            sum + parseFloat(eq.price),
+                                          0
+                                        )
+                                        .toLocaleString("de-DE")}
+                                      /Tag für{" "}
+                                      {
+                                        Object.values(selectedEquipment).flat()
+                                          .length
+                                      }{" "}
+                                      Artikel
+                                    </div>
+                                  )}
+                                  <div className="text-lg font-bold text-green-600">
+                                    Gesamt: €
+                                    {calculateTotal().toLocaleString("de-DE")}
+                                    /Tag
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                {requirements.projectDuration}
+                              </td>
+                              <td className="p-3">
+                                <Badge
+                                  variant="outline"
+                                  className="bg-yellow-50 text-yellow-700 border-yellow-300"
+                                >
+                                  Ausstehend
+                                </Badge>
+                              </td>
+                              <td className="p-3">
+                                <Button
+                                  size="sm"
+                                  onClick={saveCurrentConfiguration}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                  <Save className="h-3 w-3 mr-1" />
+                                  Speichern
+                                </Button>
+                              </td>
+                            </tr>
+                          )}
+
+                          {/* Configurations NOT under contract - Yellow highlight */}
+                          {savedConfigurations
+                            .filter((config) => !config.isUnderContract)
+                            .map((config) => (
+                              <tr
+                                key={config.id}
+                                className="border-b bg-yellow-50 dark:bg-yellow-950/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 cursor-pointer"
+                                onClick={() => viewTenderDetails(config)}
+                              >
+                                <td className="p-3">
+                                  <div className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className="border-yellow-500 text-yellow-700"
+                                    >
+                                      {config.selectedRig.name}
+                                    </Badge>
+                                  </div>
+                                  <div className="text-sm text-yellow-700 font-medium mt-1">
+                                    {config.projectName}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <div className="space-y-1">
+                                    <div className="text-sm text-blue-600">
+                                      Rig Basis: €
+                                      {parseFloat(
+                                        config.selectedRig.dayRate
+                                      ).toLocaleString("de-DE")}
+                                      /Tag
+                                    </div>
+                                    {config.selectedEquipment &&
+                                      Object.values(
+                                        config.selectedEquipment
+                                      ).flat().length > 0 && (
+                                        <div className="text-sm text-orange-600">
+                                          Equipment: €
+                                          {Object.values(
+                                            config.selectedEquipment
+                                          )
+                                            .flat()
+                                            .reduce(
+                                              (sum, eq) =>
+                                                sum + parseFloat(eq.price),
+                                              0
+                                            )
+                                            .toLocaleString("de-DE")}
+                                          /Tag für{" "}
+                                          {
+                                            Object.values(
+                                              config.selectedEquipment
+                                            ).flat().length
+                                          }{" "}
+                                          Artikel
+                                        </div>
+                                      )}
+                                    <div className="text-lg font-bold text-green-600">
+                                      Gesamt: €
+                                      {(
+                                        parseFloat(config.selectedRig.dayRate) +
+                                        (config.selectedEquipment
+                                          ? Object.values(
+                                              config.selectedEquipment
+                                            )
+                                              .flat()
+                                              .reduce(
+                                                (sum, eq) =>
+                                                  sum + parseFloat(eq.price),
+                                                0
+                                              )
+                                          : 0)
+                                      ).toLocaleString("de-DE")}
+                                      /Tag
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-3 text-yellow-700">
+                                  {config.projectDuration}
+                                </td>
+                                <td className="p-3">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-yellow-500 text-yellow-700 hover:bg-yellow-100"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleContractStatus(config.id);
+                                    }}
+                                  >
+                                    Ausstehend
+                                  </Button>
+                                </td>
+                                <td className="p-3">
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-yellow-300 hover:bg-yellow-100"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        viewTenderDetails(config);
+                                      }}
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-yellow-300 hover:bg-yellow-100"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteTenderConfiguration(config.id);
+                                      }}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+
+                          {/* Section Header for Contracts - Green highlight */}
+                          {savedConfigurations.some(
+                            (config) => config.isUnderContract
+                          ) && (
+                            <tr className="bg-green-50 dark:bg-green-950/20">
+                              <td colSpan={5} className="p-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  <h4 className="font-semibold text-green-800 dark:text-green-200">
+                                    Anlagen unter Vertrag
+                                  </h4>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+
+                          {/* Configurations UNDER contract - Green highlight */}
+                          {savedConfigurations
+                            .filter((config) => config.isUnderContract)
+                            .map((config) => (
+                              <tr
+                                key={config.id}
+                                className="border-b bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer"
+                                onClick={() => viewTenderDetails(config)}
+                              >
+                                <td className="p-3">
+                                  <div className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className="border-green-500 text-green-700"
+                                    >
+                                      {config.selectedRig.name}
+                                    </Badge>
+                                    <Badge
+                                      variant="default"
+                                      className="bg-green-500 text-white text-xs"
+                                    >
+                                      Unter Vertrag
+                                    </Badge>
+                                  </div>
+                                  <div className="text-sm text-green-700 font-medium mt-1">
+                                    {config.projectName}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <div className="space-y-1">
+                                    <div className="text-sm text-blue-600 font-medium">
+                                      Rig Basis: €
+                                      {parseFloat(
+                                        config.selectedRig.dayRate
+                                      ).toLocaleString("de-DE")}
+                                      /Tag
+                                    </div>
+                                    {config.selectedEquipment &&
+                                      Object.values(
+                                        config.selectedEquipment
+                                      ).flat().length > 0 && (
+                                        <div className="text-sm text-orange-600 font-medium">
+                                          Equipment: €
+                                          {Object.values(
+                                            config.selectedEquipment
+                                          )
+                                            .flat()
+                                            .reduce(
+                                              (sum, eq) =>
+                                                sum + parseFloat(eq.price),
+                                              0
+                                            )
+                                            .toLocaleString("de-DE")}
+                                          /Tag für{" "}
+                                          {
+                                            Object.values(
+                                              config.selectedEquipment
+                                            ).flat().length
+                                          }{" "}
+                                          Artikel
+                                        </div>
+                                      )}
+                                    <div className="text-lg font-bold text-green-700">
+                                      Gesamt: €
+                                      {(
+                                        parseFloat(config.selectedRig.dayRate) +
+                                        (config.selectedEquipment
+                                          ? Object.values(
+                                              config.selectedEquipment
+                                            )
+                                              .flat()
+                                              .reduce(
+                                                (sum, eq) =>
+                                                  sum + parseFloat(eq.price),
+                                                0
+                                              )
+                                          : 0)
+                                      ).toLocaleString("de-DE")}
+                                      /Tag
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-3 text-green-700 font-medium">
+                                  {config.projectDuration}
+                                </td>
+                                <td className="p-3">
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleContractStatus(config.id);
+                                    }}
+                                  >
+                                    ✓ Unter Vertrag
+                                  </Button>
+                                </td>
+                                <td className="p-3">
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-green-300 hover:bg-green-100"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        viewTenderDetails(config);
+                                      }}
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-green-300 hover:bg-green-100"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteTenderConfiguration(config.id);
+                                      }}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+
+                          {/* Empty State */}
+                          {savedConfigurations.length === 0 &&
+                            (!selectedRig || !requirements.projectName) && (
+                              <tr className="border-b">
+                                <td
+                                  colSpan={5}
+                                  className="p-8 text-center text-muted-foreground"
+                                >
+                                  <div className="flex flex-col items-center gap-2">
+                                    <Calculator className="h-8 w-8 text-muted-foreground/50" />
+                                    <span>
+                                      Keine Tender-Konfigurationen gespeichert.
+                                    </span>
+                                    <span className="text-sm">
+                                      Erstellen Sie eine Konfiguration und
+                                      speichern Sie sie als Tender.
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
