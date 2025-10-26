@@ -25,13 +25,23 @@ const SYSTEM_PROMPT = `Du bist ein hilfreicher Assistent für ein CMMS/ERP-Syste
 Deine Aufgabe ist es, Benutzern bei folgenden Tätigkeiten zu helfen:
 
 1. **Actions (Wartungsaufgaben)** erstellen, verwalten und anzeigen
+   - Multi-User Assignment (mehrere Zuständige pro Action)
+   - Status-Abfragen an alle beteiligten User senden
+   - User zu bestehenden Actions hinzufügen/entfernen
 2. **Projekte** erstellen, verwalten und anzeigen  
 3. **Schadensberichte (Failure Reports)** erstellen
 4. **Materialien** bestellen und Status verfolgen
-5. **Benachrichtigungen** anzeigen
+5. **Benachrichtigungen** anzeigen und verwalten
 6. **Kommentare** zu Actions und Projekten hinzufügen
+7. **Tender-Konfigurationen** verwalten
+8. **Status-Requests** für Manager-Abfragen
 
 **Verfügbare Anlagen:** T208, T207, T700, T46
+
+**Action Features:**
+- **Multi-User Assignment**: Actions können mehreren Usern zugewiesen werden
+- **Status-Abfragen**: Manager können Status-Updates von allen Beteiligten anfordern
+- **Smart User Filtering**: Admins, Manager und anlagenspezifische User
 
 **Action Status:** OPEN (Offen), IN_PROGRESS (In Bearbeitung), COMPLETED (Abgeschlossen)
 **Action Priorität:** LOW (Niedrig), MEDIUM (Mittel), HIGH (Hoch), URGENT (Dringend)
@@ -44,11 +54,17 @@ Deine Aufgabe ist es, Benutzern bei folgenden Tätigkeiten zu helfen:
 - Anlagen-Namen (T208, T207, T700, T46) sind Projekt-Nummern (projectNumber)
 - Beispiel: "Projekte für T208" → get_user_projects mit projectNumber: "T208"
 
+**Multi-User Beispiele:**
+- "Erstelle Action für T208 und weise sie Tom, Lisa und dem Admin zu"
+- "Füge Max zur Action T208-001 hinzu"
+- "Frage den Status von Action T208-001 ab"
+- "Wer ist alles für Action T208-001 zuständig?"
+
 Du antwortest immer auf Deutsch und bist freundlich, präzise und hilfreich.
 Wenn du eine Aktion ausführen sollst (z.B. "Erstelle eine Action"), nutze die verfügbaren Funktionen.
 Wenn du Informationen benötigst, frage konkret nach (z.B. "Für welche Anlage soll ich die Action erstellen?").
 
-Halte deine Antworten kurz und prägnant. Nutze Emojis sparsam aber sinnvoll (📋 für Actions, 🔧 für Wartung, ⚠️ für Schäden, 🏗️ für Projekte, etc.).`;
+Halte deine Antworten kurz und prägnant. Nutze Emojis sparsam aber sinnvoll (📋 für Actions, 🔧 für Wartung, ⚠️ für Schäden, 🏗️ für Projekte, 👥 für Multi-User, 📞 für Status-Abfragen, etc.).`;
 
 // Get user context (recent actions, projects, etc.)
 async function getUserContext(userId: string): Promise<string> {
@@ -330,6 +346,157 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'create_action_with_multiple_users',
+      description: 'Erstellt eine neue Action mit Multi-User Assignment (mehrere Zuständige)',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            description: 'Titel der Action',
+          },
+          plant: {
+            type: 'string',
+            enum: ['T208', 'T207', 'T700', 'T46'],
+            description: 'Anlage',
+          },
+          description: {
+            type: 'string',
+            description: 'Beschreibung der Aufgabe',
+          },
+          priority: {
+            type: 'string',
+            enum: ['LOW', 'MEDIUM', 'HIGH', 'URGENT'],
+            description: 'Priorität',
+          },
+          assignedTo: {
+            type: 'string',
+            description: 'Email des hauptzuständigen Benutzers',
+          },
+          assignedUsers: {
+            type: 'array',
+            items: {
+              type: 'string',
+            },
+            description: 'Array von User-IDs oder Emails der zusätzlich zuständigen User',
+          },
+          dueDate: {
+            type: 'string',
+            description: 'Fälligkeitsdatum (YYYY-MM-DD)',
+          },
+        },
+        required: ['title', 'plant', 'priority', 'assignedTo', 'dueDate'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'add_users_to_action',
+      description: 'Fügt User zu einer bestehenden Action hinzu',
+      parameters: {
+        type: 'object',
+        properties: {
+          actionId: {
+            type: 'string',
+            description: 'ID der Action',
+          },
+          userEmails: {
+            type: 'array',
+            items: {
+              type: 'string',
+            },
+            description: 'Array von User-Emails die hinzugefügt werden sollen',
+          },
+        },
+        required: ['actionId', 'userEmails'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'send_status_request',
+      description: 'Sendet eine Status-Abfrage an alle beteiligten User einer Action',
+      parameters: {
+        type: 'object',
+        properties: {
+          actionId: {
+            type: 'string',
+            description: 'ID der Action für die Status-Abfrage',
+          },
+          message: {
+            type: 'string',
+            description: 'Optionale zusätzliche Nachricht für die Status-Abfrage',
+          },
+        },
+        required: ['actionId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_action_details',
+      description: 'Ruft detaillierte Informationen zu einer Action ab, inklusive aller zuständigen User',
+      parameters: {
+        type: 'object',
+        properties: {
+          actionId: {
+            type: 'string',
+            description: 'ID der Action',
+          },
+        },
+        required: ['actionId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_tender_configurations',
+      description: 'Ruft alle Tender-Konfigurationen ab',
+      parameters: {
+        type: 'object',
+        properties: {
+          plant: {
+            type: 'string',
+            enum: ['T208', 'T207', 'T700', 'T46'],
+            description: 'Filtere nach Anlage',
+          },
+          contractStatus: {
+            type: 'boolean',
+            description: 'Filtere nach Vertragsstatus (true = unter Vertrag, false = ausstehend)',
+          },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_available_users',
+      description: 'Ruft alle verfügbaren User für Zuweisungen ab',
+      parameters: {
+        type: 'object',
+        properties: {
+          plant: {
+            type: 'string',
+            enum: ['T208', 'T207', 'T700', 'T46'],
+            description: 'Filtere User nach Anlage (inkl. Admins und Manager)',
+          },
+          role: {
+            type: 'string',
+            enum: ['ADMIN', 'MANAGER', 'USER'],
+            description: 'Filtere nach Benutzerrolle',
+          },
+        },
+      },
+    },
+  },
 ];
 
 // Execute function calls from AI
@@ -563,6 +730,264 @@ async function executeFunction(
               taskProgress: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
             },
           },
+        });
+      }
+
+      case 'create_action_with_multiple_users': {
+        // Find all assigned users
+        const assignedUserIds = [];
+        
+        // Add main assigned user
+        const mainUser = await prisma.user.findFirst({
+          where: { email: args.assignedTo },
+        });
+        if (mainUser) {
+          assignedUserIds.push(mainUser.id);
+        }
+        
+        // Add additional users
+        if (args.assignedUsers) {
+          for (const userIdentifier of args.assignedUsers) {
+            const user = await prisma.user.findFirst({
+              where: { 
+                OR: [
+                  { id: userIdentifier },
+                  { email: userIdentifier }
+                ]
+              },
+            });
+            if (user && !assignedUserIds.includes(user.id)) {
+              assignedUserIds.push(user.id);
+            }
+          }
+        }
+        
+        // Create action with multiple users
+        const action = await prisma.action.create({
+          data: {
+            title: args.title,
+            plant: args.plant,
+            description: args.description,
+            priority: args.priority,
+            status: 'OPEN',
+            assignedTo: args.assignedTo,
+            assignedUsers: assignedUserIds,
+            dueDate: new Date(args.dueDate),
+            createdBy: userId,
+          },
+        });
+
+        return JSON.stringify({
+          success: true,
+          data: action,
+          message: `Action "${args.title}" mit ${assignedUserIds.length} zuständigen Usern erstellt`,
+        });
+      }
+
+      case 'add_users_to_action': {
+        // Find users by email
+        const userIds = [];
+        for (const email of args.userEmails) {
+          const user = await prisma.user.findUnique({
+            where: { email },
+          });
+          if (user) {
+            userIds.push(user.id);
+          }
+        }
+
+        // Get current action
+        const action = await prisma.action.findUnique({
+          where: { id: args.actionId },
+        });
+
+        if (!action) {
+          return JSON.stringify({
+            success: false,
+            error: 'Action nicht gefunden',
+          });
+        }
+
+        // Merge with existing assigned users
+        const currentUsers = action.assignedUsers || [];
+        const newUsers = userIds.filter(id => !currentUsers.includes(id));
+        const updatedUsers = [...currentUsers, ...newUsers];
+
+        // Update action
+        const updatedAction = await prisma.action.update({
+          where: { id: args.actionId },
+          data: {
+            assignedUsers: updatedUsers,
+          },
+        });
+
+        return JSON.stringify({
+          success: true,
+          data: updatedAction,
+          message: `${newUsers.length} neue User zur Action hinzugefügt`,
+        });
+      }
+
+      case 'send_status_request': {
+        // Get action with assigned users
+        const action = await prisma.action.findUnique({
+          where: { id: args.actionId },
+          include: {
+            creator: true,
+          }
+        });
+
+        if (!action) {
+          return JSON.stringify({
+            success: false,
+            error: 'Action nicht gefunden',
+          });
+        }
+
+        // Get all involved users (assigned users + creator)
+        const involvedUserIds = [...(action.assignedUsers || [])];
+        if (action.createdBy && !involvedUserIds.includes(action.createdBy)) {
+          involvedUserIds.push(action.createdBy);
+        }
+
+        // Send notifications to all involved users
+        const notifications = [];
+        for (const userId of involvedUserIds) {
+          const notification = await prisma.notification.create({
+            data: {
+              userId,
+              type: 'STATUS_REQUEST',
+              title: 'Status-Abfrage',
+              message: `Manager fordert Status-Update für Action: ${action.title}${args.message ? ` - ${args.message}` : ''}`,
+              relatedId: action.id,
+              metadata: {
+                actionId: action.id,
+                actionTitle: action.title,
+                plant: action.plant,
+                requestMessage: args.message || null,
+              },
+            },
+          });
+          notifications.push(notification);
+        }
+
+        return JSON.stringify({
+          success: true,
+          data: { notifications, action },
+          message: `Status-Abfrage an ${notifications.length} User gesendet`,
+        });
+      }
+
+      case 'get_action_details': {
+        const action = await prisma.action.findUnique({
+          where: { id: args.actionId },
+          include: {
+            creator: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            comments: {
+              include: {
+                author: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+              },
+              orderBy: { createdAt: 'asc' },
+            },
+          },
+        });
+
+        if (!action) {
+          return JSON.stringify({
+            success: false,
+            error: 'Action nicht gefunden',
+          });
+        }
+
+        // Get assigned users details
+        let assignedUsersDetails = [];
+        if (action.assignedUsers && action.assignedUsers.length > 0) {
+          assignedUsersDetails = await prisma.user.findMany({
+            where: {
+              id: { in: action.assignedUsers },
+            },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              role: true,
+              plant: true,
+            },
+          });
+        }
+
+        return JSON.stringify({
+          success: true,
+          data: {
+            ...action,
+            assignedUsersDetails,
+          },
+        });
+      }
+
+      case 'get_tender_configurations': {
+        const where: any = {};
+        if (args.plant) where.plant = args.plant;
+        if (args.contractStatus !== undefined) where.underContract = args.contractStatus;
+
+        const tenders = await prisma.tenderConfiguration.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+        });
+
+        return JSON.stringify({
+          success: true,
+          data: tenders,
+          count: tenders.length,
+        });
+      }
+
+      case 'get_available_users': {
+        const where: any = {};
+        
+        if (args.role) {
+          where.role = args.role;
+        } else if (args.plant) {
+          // Get users for specific plant + admins and managers
+          where.OR = [
+            { plant: args.plant },
+            { role: { in: ['ADMIN', 'MANAGER'] } },
+          ];
+        }
+
+        const users = await prisma.user.findMany({
+          where,
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+            plant: true,
+          },
+          orderBy: [
+            { role: 'asc' },
+            { firstName: 'asc' },
+          ],
+        });
+
+        return JSON.stringify({
+          success: true,
+          data: users,
+          count: users.length,
         });
       }
 
