@@ -2139,16 +2139,49 @@ const RigConfigurator = () => {
 
           {/* Tab 5: Tender Overview */}
           <TabsContent value="tender" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calculator className="h-5 w-5" />
-                  Tender-Übersicht
-                </CardTitle>
-                <CardDescription>
-                  Verwaltung aller gespeicherten Rig-Konfigurationen und
-                  Tender-Status
-                </CardDescription>
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500 rounded-lg shadow-sm">
+                      <Calculator className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold">
+                        Tender-Management
+                      </CardTitle>
+                      <CardDescription className="text-base text-slate-600 dark:text-slate-300">
+                        Professionelle Verwaltung aller
+                        Bohranlage-Konfigurationen und Vertragsstatus
+                      </CardDescription>
+                    </div>
+                  </div>
+                  {savedConfigurations.length > 0 && (
+                    <div className="flex items-center gap-4 text-sm bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full shadow-sm"></div>
+                        <span className="font-medium">
+                          Unter Vertrag:{" "}
+                          {
+                            savedConfigurations.filter((c) => c.isUnderContract)
+                              .length
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-yellow-500 rounded-full shadow-sm"></div>
+                        <span className="font-medium">
+                          Ausstehend:{" "}
+                          {
+                            savedConfigurations.filter(
+                              (c) => !c.isUnderContract
+                            ).length
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -2209,38 +2242,58 @@ const RigConfigurator = () => {
                                 </div>
                               </td>
                               <td className="p-3">
-                                <div className="space-y-1">
-                                  <div className="text-sm text-blue-600">
-                                    Rig Basis: €
-                                    {parseFloat(
-                                      selectedRig.dayRate
-                                    ).toLocaleString("de-DE")}
-                                    /Tag
+                                <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border shadow-sm space-y-2">
+                                  <div className="flex justify-between items-center text-sm">
+                                    <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                      Rig Basis:
+                                    </span>
+                                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                      €
+                                      {parseFloat(
+                                        selectedRig.dayRate
+                                      ).toLocaleString("de-DE")}
+                                      /Tag
+                                    </span>
                                   </div>
                                   {Object.values(selectedEquipment).flat()
                                     .length > 0 && (
-                                    <div className="text-sm text-orange-600">
-                                      Equipment: €
-                                      {Object.values(selectedEquipment)
-                                        .flat()
-                                        .reduce(
-                                          (sum, eq) =>
-                                            sum + parseFloat(eq.price),
-                                          0
-                                        )
-                                        .toLocaleString("de-DE")}
-                                      /Tag für{" "}
-                                      {
-                                        Object.values(selectedEquipment).flat()
-                                          .length
-                                      }{" "}
-                                      Artikel
+                                    <div className="flex justify-between items-center text-sm">
+                                      <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                        Equipment (
+                                        {
+                                          Object.values(
+                                            selectedEquipment
+                                          ).flat().length
+                                        }
+                                        ):
+                                      </span>
+                                      <span className="font-semibold text-orange-600 dark:text-orange-400">
+                                        €
+                                        {Object.values(selectedEquipment)
+                                          .flat()
+                                          .reduce(
+                                            (sum, eq) =>
+                                              sum + parseFloat(eq.price),
+                                            0
+                                          )
+                                          .toLocaleString("de-DE")}
+                                        /Tag
+                                      </span>
                                     </div>
                                   )}
-                                  <div className="text-lg font-bold text-green-600">
-                                    Gesamt: €
-                                    {calculateTotal().toLocaleString("de-DE")}
-                                    /Tag
+                                  <div className="border-t pt-2 mt-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                        Gesamtsumme:
+                                      </span>
+                                      <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                                        €
+                                        {calculateTotal().toLocaleString(
+                                          "de-DE"
+                                        )}
+                                        /Tag
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
                               </td>
@@ -2291,45 +2344,36 @@ const RigConfigurator = () => {
                                   </div>
                                 </td>
                                 <td className="p-3">
-                                  <div className="space-y-1">
-                                    <div className="text-sm text-blue-600">
-                                      Rig Basis: €
-                                      {parseFloat(
-                                        config.selectedRig.dayRate
-                                      ).toLocaleString("de-DE")}
-                                      /Tag
+                                  <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border shadow-sm space-y-2">
+                                    <div className="flex justify-between items-center text-sm">
+                                      <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                        Rig Basis:
+                                      </span>
+                                      <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                        €
+                                        {parseFloat(
+                                          config.selectedRig.dayRate
+                                        ).toLocaleString("de-DE")}
+                                        /Tag
+                                      </span>
                                     </div>
                                     {config.selectedEquipment &&
                                       Object.values(
                                         config.selectedEquipment
                                       ).flat().length > 0 && (
-                                        <div className="text-sm text-orange-600">
-                                          Equipment: €
-                                          {Object.values(
-                                            config.selectedEquipment
-                                          )
-                                            .flat()
-                                            .reduce(
-                                              (sum, eq) =>
-                                                sum + parseFloat(eq.price),
-                                              0
-                                            )
-                                            .toLocaleString("de-DE")}
-                                          /Tag für{" "}
-                                          {
-                                            Object.values(
-                                              config.selectedEquipment
-                                            ).flat().length
-                                          }{" "}
-                                          Artikel
-                                        </div>
-                                      )}
-                                    <div className="text-lg font-bold text-green-600">
-                                      Gesamt: €
-                                      {(
-                                        parseFloat(config.selectedRig.dayRate) +
-                                        (config.selectedEquipment
-                                          ? Object.values(
+                                        <div className="flex justify-between items-center text-sm">
+                                          <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                            Equipment (
+                                            {
+                                              Object.values(
+                                                config.selectedEquipment
+                                              ).flat().length
+                                            }
+                                            ):
+                                          </span>
+                                          <span className="font-semibold text-orange-600 dark:text-orange-400">
+                                            €
+                                            {Object.values(
                                               config.selectedEquipment
                                             )
                                               .flat()
@@ -2338,9 +2382,38 @@ const RigConfigurator = () => {
                                                   sum + parseFloat(eq.price),
                                                 0
                                               )
-                                          : 0)
-                                      ).toLocaleString("de-DE")}
-                                      /Tag
+                                              .toLocaleString("de-DE")}
+                                            /Tag
+                                          </span>
+                                        </div>
+                                      )}
+                                    <div className="border-t pt-2 mt-2">
+                                      <div className="flex justify-between items-center">
+                                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                          Gesamtsumme:
+                                        </span>
+                                        <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                                          €
+                                          {(
+                                            parseFloat(
+                                              config.selectedRig.dayRate
+                                            ) +
+                                            (config.selectedEquipment
+                                              ? Object.values(
+                                                  config.selectedEquipment
+                                                )
+                                                  .flat()
+                                                  .reduce(
+                                                    (sum, eq) =>
+                                                      sum +
+                                                      parseFloat(eq.price),
+                                                    0
+                                                  )
+                                              : 0)
+                                          ).toLocaleString("de-DE")}
+                                          /Tag
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
                                 </td>
@@ -2434,45 +2507,36 @@ const RigConfigurator = () => {
                                   </div>
                                 </td>
                                 <td className="p-3">
-                                  <div className="space-y-1">
-                                    <div className="text-sm text-blue-600 font-medium">
-                                      Rig Basis: €
-                                      {parseFloat(
-                                        config.selectedRig.dayRate
-                                      ).toLocaleString("de-DE")}
-                                      /Tag
+                                  <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-green-200 shadow-sm space-y-2">
+                                    <div className="flex justify-between items-center text-sm">
+                                      <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                        Rig Basis:
+                                      </span>
+                                      <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                        €
+                                        {parseFloat(
+                                          config.selectedRig.dayRate
+                                        ).toLocaleString("de-DE")}
+                                        /Tag
+                                      </span>
                                     </div>
                                     {config.selectedEquipment &&
                                       Object.values(
                                         config.selectedEquipment
                                       ).flat().length > 0 && (
-                                        <div className="text-sm text-orange-600 font-medium">
-                                          Equipment: €
-                                          {Object.values(
-                                            config.selectedEquipment
-                                          )
-                                            .flat()
-                                            .reduce(
-                                              (sum, eq) =>
-                                                sum + parseFloat(eq.price),
-                                              0
-                                            )
-                                            .toLocaleString("de-DE")}
-                                          /Tag für{" "}
-                                          {
-                                            Object.values(
-                                              config.selectedEquipment
-                                            ).flat().length
-                                          }{" "}
-                                          Artikel
-                                        </div>
-                                      )}
-                                    <div className="text-lg font-bold text-green-700">
-                                      Gesamt: €
-                                      {(
-                                        parseFloat(config.selectedRig.dayRate) +
-                                        (config.selectedEquipment
-                                          ? Object.values(
+                                        <div className="flex justify-between items-center text-sm">
+                                          <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                            Equipment (
+                                            {
+                                              Object.values(
+                                                config.selectedEquipment
+                                              ).flat().length
+                                            }
+                                            ):
+                                          </span>
+                                          <span className="font-semibold text-orange-600 dark:text-orange-400">
+                                            €
+                                            {Object.values(
                                               config.selectedEquipment
                                             )
                                               .flat()
@@ -2481,9 +2545,38 @@ const RigConfigurator = () => {
                                                   sum + parseFloat(eq.price),
                                                 0
                                               )
-                                          : 0)
-                                      ).toLocaleString("de-DE")}
-                                      /Tag
+                                              .toLocaleString("de-DE")}
+                                            /Tag
+                                          </span>
+                                        </div>
+                                      )}
+                                    <div className="border-t pt-2 mt-2">
+                                      <div className="flex justify-between items-center">
+                                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                          Gesamtsumme:
+                                        </span>
+                                        <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                                          €
+                                          {(
+                                            parseFloat(
+                                              config.selectedRig.dayRate
+                                            ) +
+                                            (config.selectedEquipment
+                                              ? Object.values(
+                                                  config.selectedEquipment
+                                                )
+                                                  .flat()
+                                                  .reduce(
+                                                    (sum, eq) =>
+                                                      sum +
+                                                      parseFloat(eq.price),
+                                                    0
+                                                  )
+                                              : 0)
+                                          ).toLocaleString("de-DE")}
+                                          /Tag
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
                                 </td>
