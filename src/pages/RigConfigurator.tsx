@@ -48,7 +48,10 @@ import {
   Eye,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { tenderService, type TenderConfiguration } from "../services/tender.service";
+import {
+  tenderService,
+  type TenderConfiguration,
+} from "../services/tender.service";
 import {
   Dialog,
   DialogContent,
@@ -190,10 +193,11 @@ const RigConfigurator = () => {
   const [savedConfigurations, setSavedConfigurations] = useState<
     TenderConfiguration[]
   >([]);
-  const [tenderDetailDialogOpen, setTenderDetailDialogOpen] = useState(false);
-  const [selectedTenderConfig, setSelectedTenderConfig] =
-    useState<TenderConfiguration | null>(null);
-  const [loadingTenders, setLoadingTenders] = useState(false);
+  const [, setTenderDetailDialogOpen] = useState(false);
+  const [, setSelectedTenderConfig] = useState<TenderConfiguration | null>(
+    null
+  );
+  const [, setLoadingTenders] = useState(false);
 
   // Load saved tenders from API
   useEffect(() => {
@@ -203,10 +207,11 @@ const RigConfigurator = () => {
         const tenders = await tenderService.getAllTenders();
         setSavedConfigurations(tenders);
       } catch (error) {
-        console.error('Error loading tenders:', error);
+        console.error("Error loading tenders:", error);
         toast({
           title: "❌ Fehler beim Laden",
-          description: "Gespeicherte Tender-Konfigurationen konnten nicht geladen werden.",
+          description:
+            "Gespeicherte Tender-Konfigurationen konnten nicht geladen werden.",
           variant: "destructive",
         });
       } finally {
@@ -1175,10 +1180,11 @@ const RigConfigurator = () => {
         description: `Tender-Konfiguration für "${requirements.projectName}" wurde gespeichert.`,
       });
     } catch (error) {
-      console.error('Error saving tender:', error);
+      console.error("Error saving tender:", error);
       toast({
         title: "❌ Fehler beim Speichern",
-        description: "Die Tender-Konfiguration konnte nicht gespeichert werden.",
+        description:
+          "Die Tender-Konfiguration konnte nicht gespeichert werden.",
         variant: "destructive",
       });
     }
@@ -1188,12 +1194,10 @@ const RigConfigurator = () => {
     try {
       const updatedTender = await tenderService.toggleContractStatus(configId);
       setSavedConfigurations((prev) =>
-        prev.map((config) =>
-          config.id === configId ? updatedTender : config
-        )
+        prev.map((config) => (config.id === configId ? updatedTender : config))
       );
     } catch (error) {
-      console.error('Error toggling contract status:', error);
+      console.error("Error toggling contract status:", error);
       toast({
         title: "❌ Fehler",
         description: "Der Vertragsstatus konnte nicht geändert werden.",
@@ -1218,7 +1222,7 @@ const RigConfigurator = () => {
         description: "Die Tender-Konfiguration wurde erfolgreich entfernt.",
       });
     } catch (error) {
-      console.error('Error deleting tender:', error);
+      console.error("Error deleting tender:", error);
       toast({
         title: "❌ Fehler beim Löschen",
         description: "Die Tender-Konfiguration konnte nicht gelöscht werden.",

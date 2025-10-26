@@ -1,6 +1,9 @@
 import { authService } from './auth.service';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+// Use environment-appropriate backend URL
+const API_BASE_URL = import.meta.env.PROD 
+  ? '/api'  // Production: same domain
+  : 'http://localhost:3000/api';  // Development: local backend
 
 export interface TenderConfiguration {
   id: string;
