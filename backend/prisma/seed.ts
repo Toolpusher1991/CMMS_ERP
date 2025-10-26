@@ -239,8 +239,8 @@ async function main() {
           technicalSpecs: 'API 8C Zertifizierung, automatisches Roughneck System',
         },
         {
-          id: 't350',
-          name: 'T350',
+          id: 't203',
+          name: 'T203',
           category: 'Mittlere Leistung',
           maxDepth: 4500,
           maxHookLoad: 350,
@@ -301,7 +301,7 @@ async function main() {
       ],
     });
 
-    console.log('✅ Created 5 rigs: T700, T46, T350, T208, T207');
+    console.log('✅ Created 5 rigs: T700, T46, T203, T208, T207');
   } else {
     console.log(`✅ Rigs already exist (${existingRigs} rigs found)`);
   }

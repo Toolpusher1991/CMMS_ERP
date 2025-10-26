@@ -613,8 +613,8 @@ const RigConfigurator = () => {
               "API 8C Zertifizierung, automatisches Roughneck System",
           },
           {
-            id: "t350",
-            name: "T350",
+            id: "t203",
+            name: "T203",
             category: "Mittlere Leistung",
             maxDepth: 4500,
             maxHookLoad: 350,
@@ -876,7 +876,7 @@ const RigConfigurator = () => {
       setQuickActionDialogOpen(false);
       setQuickActionForm({ assignedTo: "", description: "" });
       setQuickActionEquipment(null);
-    } catch (error) {
+    } catch {
       toast({
         title: "Fehler",
         description: "Action konnte nicht erstellt werden.",
@@ -968,6 +968,12 @@ const RigConfigurator = () => {
     setSavingRig(true);
     try {
       const result = await rigService.updateRig(editingRigData.id, {
+        // Technical Main Specifications
+        maxDepth: editingRigData.maxDepth,
+        maxHookLoad: editingRigData.maxHookLoad,
+        rotaryTorque: editingRigData.rotaryTorque,
+        pumpPressure: editingRigData.pumpPressure,
+        // Equipment Details
         drawworks: editingRigData.drawworks,
         mudPumps: editingRigData.mudPumps,
         topDrive: editingRigData.topDrive,
@@ -1127,7 +1133,13 @@ const RigConfigurator = () => {
           location: requirements.location,
           projectDuration: requirements.projectDuration,
           selectedRig: selectedRig,
-          selectedEquipment: selectedEquipment as { [category: string]: Array<{ name: string; price: string; [key: string]: string }> },
+          selectedEquipment: selectedEquipment as {
+            [category: string]: Array<{
+              name: string;
+              price: string;
+              [key: string]: string;
+            }>;
+          },
           additionalNotes: requirements.additionalNotes,
         },
         filename
@@ -2232,6 +2244,95 @@ const RigConfigurator = () => {
 
           {editingRigData && (
             <div className="space-y-4">
+              {/* Technical Main Specifications */}
+              <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-3 flex items-center">
+                  🔧 Technische Hauptspezifikationen
+                  <span className="ml-2 text-xs bg-amber-200 dark:bg-amber-800 px-2 py-1 rounded">
+                    Admin bearbeitbar
+                  </span>
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="maxDepth">
+                      Max. Bohrtiefe (m) <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="maxDepth"
+                      type="number"
+                      value={editingRigData.maxDepth}
+                      onChange={(e) =>
+                        setEditingRigData({
+                          ...editingRigData,
+                          maxDepth: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      placeholder="z.B. 2800"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="maxHookLoad">
+                      Max. Hakenlast (t) <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="maxHookLoad"
+                      type="number"
+                      value={editingRigData.maxHookLoad}
+                      onChange={(e) =>
+                        setEditingRigData({
+                          ...editingRigData,
+                          maxHookLoad: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      placeholder="z.B. 207"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="rotaryTorque">
+                      Drehmoment (Nm) <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="rotaryTorque"
+                      type="number"
+                      value={editingRigData.rotaryTorque}
+                      onChange={(e) =>
+                        setEditingRigData({
+                          ...editingRigData,
+                          rotaryTorque: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      placeholder="z.B. 25000"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="pumpPressure">
+                      Pumpendruck (psi) <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="pumpPressure"
+                      type="number"
+                      value={editingRigData.pumpPressure}
+                      onChange={(e) =>
+                        setEditingRigData({
+                          ...editingRigData,
+                          pumpPressure: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      placeholder="z.B. 4200"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Equipment Details */}
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-3">
+                  ⚙️ Equipment Details
+                </h4>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="drawworks">
@@ -2385,6 +2486,10 @@ const RigConfigurator = () => {
               onClick={saveRigChanges}
               disabled={
                 savingRig ||
+                !editingRigData?.maxDepth ||
+                !editingRigData?.maxHookLoad ||
+                !editingRigData?.rotaryTorque ||
+                !editingRigData?.pumpPressure ||
                 !editingRigData?.drawworks ||
                 !editingRigData?.mudPumps ||
                 !editingRigData?.topDrive ||
