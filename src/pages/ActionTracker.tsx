@@ -1420,8 +1420,8 @@ const ActionTracker = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-5xl h-[95vh] max-h-[800px] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>
               {isEditMode ? "Action bearbeiten" : "Neue Action erstellen"}
             </DialogTitle>
@@ -1432,11 +1432,12 @@ const ActionTracker = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="details">Action Details</TabsTrigger>
-              <TabsTrigger value="materials">Materialbestellung</TabsTrigger>
-            </TabsList>
+          <div className="flex-1 overflow-y-auto px-1">
+            <Tabs defaultValue="details" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="details">Action Details</TabsTrigger>
+                <TabsTrigger value="materials">Materialbestellung</TabsTrigger>
+              </TabsList>
 
             <TabsContent value="details">
               <ScrollArea className="max-h-[60vh] pr-4">
@@ -1866,8 +1867,9 @@ const ActionTracker = () => {
               </div>
             </TabsContent>
           </Tabs>
+          </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-shrink-0">
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Abbrechen
             </Button>
