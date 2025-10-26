@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import * as Sentry from "@sentry/react";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegistrationPage } from "@/pages/RegistrationPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
