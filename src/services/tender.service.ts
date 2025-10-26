@@ -1,0 +1,152 @@
+import { authService } from './auth.service';
+
+const API_BASE_URL = 'http://localhost:3000/api';
+
+export interface TenderConfiguration {
+  id: string;
+  projectName: string;
+  clientName?: string;
+  location?: string;
+  projectDuration?: string;
+  selectedRig: any;
+  selectedEquipment: { [key: string]: any[] };
+  totalPrice: number;
+  isUnderContract: boolean;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTenderRequest {
+  projectName: string;
+  clientName?: string;
+  location?: string;
+  projectDuration?: string;
+  selectedRig: any;
+  selectedEquipment: { [key: string]: any[] };
+  totalPrice: number;
+  isUnderContract?: boolean;
+  notes?: string;
+}
+
+export interface UpdateTenderRequest extends Partial<CreateTenderRequest> {}
+
+class TenderService {
+  private async getAuthHeaders() {
+    const token = authService.getToken();
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    };
+  }
+
+  async getAllTenders(): Promise<TenderConfiguration[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tender`, {
+        method: 'GET',
+        headers: await this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching tenders:', error);
+      throw error;
+    }
+  }
+
+  async createTender(tender: CreateTenderRequest): Promise<TenderConfiguration> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tender`, {
+        method: 'POST',
+        headers: await this.getAuthHeaders(),
+        body: JSON.stringify(tender),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating tender:', error);
+      throw error;
+    }
+  }
+
+  async updateTender(id: string, tender: UpdateTenderRequest): Promise<TenderConfiguration> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tender/${id}`, {
+        method: 'PUT',
+        headers: await this.getAuthHeaders(),
+        body: JSON.stringify(tender),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating tender:', error);
+      throw error;
+    }
+  }
+
+  async toggleContractStatus(id: string): Promise<TenderConfiguration> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tender/${id}/contract-status`, {
+        method: 'PATCH',
+        headers: await this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error toggling contract status:', error);
+      throw error;
+    }
+  }
+
+  async deleteTender(id: string): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tender/${id}`, {
+        method: 'DELETE',
+        headers: await this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error deleting tender:', error);
+      throw error;
+    }
+  }
+
+  async getTender(id: string): Promise<TenderConfiguration> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tender/${id}`, {
+        method: 'GET',
+        headers: await this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching tender:', error);
+      throw error;
+    }
+  }
+}
+
+export const tenderService = new TenderService();

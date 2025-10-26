@@ -58,6 +58,7 @@ model User {
   approvedUsers       User[]         @relation("UserApprovals")
   managedProjects     Project[]      @relation("ProjectManager")
   createdProjects     Project[]      @relation("ProjectCreator")
+  tenderConfigurations TenderConfiguration[]
 
   @@map("users")
 }
@@ -330,3 +331,30 @@ model ProjectComment {
   @@index([projectId])
   @@map("project_comments")
 }
+
+model TenderConfiguration {
+  id               String   @id @default(uuid())
+  projectName      String
+  clientName       String?
+  location         String?
+  projectDuration  String?
+  selectedRig      Json     // Rig data as JSON
+  selectedEquipment Json    // Equipment data as JSON
+  totalPrice       Float
+  isUnderContract  Boolean  @default(false)
+  notes            String?
+  
+  // User who created this tender
+  createdBy        String
+  createdByUser    User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  @@index([createdBy])
+  @@index([isUnderContract])
+  @@map("tender_configurations")
+}
+
+// Add relation to User model
+// This will be added to the User model above
