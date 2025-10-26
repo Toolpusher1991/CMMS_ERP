@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import * as Sentry from "@sentry/react";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegistrationPage } from "@/pages/RegistrationPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
@@ -20,6 +21,21 @@ import { Toaster } from "@/components/ui/toaster";
 import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
 import type { User } from "@/services/auth.service";
+
+// Sentry Error Test Button Component
+function ErrorButton() {
+  return (
+    <Button
+      variant="destructive"
+      size="sm"
+      onClick={() => {
+        throw new Error("Sentry Test Error - This is your first error!");
+      }}
+    >
+      🐛 Test Sentry
+    </Button>
+  );
+}
 
 type AuthView = "login" | "register" | "forgot-password";
 type AppPage =
@@ -135,6 +151,7 @@ function App() {
               <span className="text-sm text-slate-300 mr-auto ml-4">
                 {user.firstName} {user.lastName}
               </span>
+              <ErrorButton />
               <NotificationBell />
               <ModeToggle />
               <Button

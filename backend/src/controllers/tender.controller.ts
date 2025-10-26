@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../middleware/error.middleware';
+import { captureError } from '../lib/sentry';
 import type { AuthRequest } from '../middleware/auth.middleware';
 
 const prisma = new PrismaClient();
@@ -41,6 +42,10 @@ export const getAllTenderConfigurations = async (req: Request, res: Response) =>
     });
   } catch (error) {
     console.error('Error fetching tender configurations:', error);
+    captureError(error as Error, {
+      operation: 'getAllTenderConfigurations',
+      userId: (req as AuthRequest).user?.id,
+    });
     throw new AppError('Failed to fetch tender configurations', 500);
   }
 };
@@ -92,6 +97,11 @@ export const createTenderConfiguration = async (req: Request, res: Response) => 
     });
   } catch (error) {
     console.error('Error creating tender configuration:', error);
+    captureError(error as Error, {
+      operation: 'createTenderConfiguration',
+      userId: (req as AuthRequest).user?.id,
+      projectName: req.body.projectName,
+    });
     throw new AppError('Failed to create tender configuration', 500);
   }
 };

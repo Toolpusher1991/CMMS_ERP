@@ -2014,17 +2014,22 @@ const RigConfigurator = () => {
                     </h3>
                     <div className="bg-primary/5 border-2 border-primary rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xl font-bold">{selectedRig.name}</p>
+                        <p className="text-xl font-bold">
+                          {selectedRig?.name || "Kein Rig ausgewählt"}
+                        </p>
                         <p className="text-xl font-bold text-primary">
                           €{" "}
-                          {parseFloat(selectedRig.dayRate).toLocaleString(
-                            "de-DE"
-                          )}
+                          {selectedRig
+                            ? parseFloat(selectedRig.dayRate).toLocaleString(
+                                "de-DE"
+                              )
+                            : "0"}
                           /Tag
                         </p>
                       </div>
                       <p className="text-sm text-muted-foreground mb-3">
-                        {selectedRig.description}
+                        {selectedRig?.description ||
+                          "Keine Beschreibung verfügbar"}
                       </p>
                       <div className="grid grid-cols-4 gap-2 text-xs">
                         <div>
@@ -2375,7 +2380,7 @@ const RigConfigurator = () => {
                                       variant="outline"
                                       className="border-yellow-500 text-yellow-700"
                                     >
-                                      {config.selectedRig.name}
+                                      {config.selectedRig?.name || 'Unbekanntes Rig'}
                                     </Badge>
                                   </div>
                                   <div className="text-sm text-yellow-700 font-medium mt-1">
@@ -2532,7 +2537,7 @@ const RigConfigurator = () => {
                                       variant="outline"
                                       className="border-green-500 text-green-700"
                                     >
-                                      {config.selectedRig.name}
+                                      {config.selectedRig?.name || 'Unbekanntes Rig'}
                                     </Badge>
                                     <Badge
                                       variant="default"

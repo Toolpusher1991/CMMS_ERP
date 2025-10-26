@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import path from 'path';
+import { initSentry } from './lib/sentry';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import userManagementRoutes from './routes/user-management.routes';
@@ -22,8 +23,11 @@ import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware';
 
 dotenv.config();
 
+// Initialize Sentry as early as possible
+initSentry();
+
 const app = express();
-const PORT = parseInt(process.env.PORT || '3000', 10);
+const PORT = parseInt(process.env.PORT || '5137', 10);
 
 // Trust proxy - wichtig für Render.com (hinter Reverse Proxy)
 app.set('trust proxy', 1);

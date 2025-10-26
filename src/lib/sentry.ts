@@ -9,11 +9,14 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     // Performance Monitoring
     tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0, // 10% in prod, 100% in dev
     
+    // Send default PII data (IP addresses, etc.)
+    sendDefaultPii: true,
+    
     // Error Filtering
     beforeSend(event) {
       // Filter out known development errors
       if (import.meta.env.DEV) {
-        console.log("Sentry Event:", event);
+        console.log("📤 Sentry Event:", event);
       }
       
       // Don't send 401 authentication errors to Sentry (expected behavior)
@@ -28,11 +31,13 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     initialScope: {
       tags: {
         component: "CMMS-ERP Frontend",
+        version: import.meta.env.VITE_APP_VERSION || "1.0.0",
       },
     },
   });
+  console.log("✅ Sentry initialized successfully");
 } else {
-  console.log("Sentry DSN not provided - error tracking disabled");
+  console.log("⚠️ Sentry DSN not provided - error tracking disabled");
 }
 
 // Export Sentry for manual error reporting

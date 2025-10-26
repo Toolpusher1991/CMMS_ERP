@@ -4,7 +4,7 @@ import { captureError, startTransaction } from '../lib/sentry';
 // Use environment-appropriate backend URL
 const API_BASE_URL = import.meta.env.PROD 
   ? 'https://cmms-erp-backend.onrender.com/api'  // Production: Render backend service
-  : 'http://localhost:3000/api';  // Development: local backend
+  : 'http://localhost:5137/api';  // Development: local backend
 
 export interface TenderConfiguration {
   id: string;
@@ -69,7 +69,7 @@ class TenderService {
 
       const result = await response.json();
       transaction.setStatus('ok');
-      return result;
+      return result.data; // Extract the data array from the response
     } catch (error) {
       console.error('Error fetching tenders:', error);
       captureError(error as Error, {
@@ -99,7 +99,8 @@ class TenderService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     } catch (error) {
       console.error('Error creating tender:', error);
       throw error;
@@ -118,7 +119,8 @@ class TenderService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     } catch (error) {
       console.error('Error updating tender:', error);
       throw error;
@@ -136,7 +138,8 @@ class TenderService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     } catch (error) {
       console.error('Error toggling contract status:', error);
       throw error;
@@ -170,7 +173,8 @@ class TenderService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     } catch (error) {
       console.error('Error fetching tender:', error);
       throw error;
