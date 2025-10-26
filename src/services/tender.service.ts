@@ -2,7 +2,7 @@ import { authService } from './auth.service';
 
 // Use environment-appropriate backend URL
 const API_BASE_URL = import.meta.env.PROD 
-  ? 'https://cmms-erp-backend.onrender.com/api'  // Production: Render backend service
+  ? `${window.location.protocol}//${window.location.hostname.replace('maintain-nory', 'maintain-nory-backend')}/api`  // Production: auto-detect backend
   : 'http://localhost:3000/api';  // Development: local backend
 
 export interface TenderConfiguration {
@@ -37,6 +37,9 @@ export interface UpdateTenderRequest extends Partial<CreateTenderRequest> {}
 class TenderService {
   private async getAuthHeaders() {
     const token = authService.getToken();
+    if (!token) {
+      throw new Error('Not authenticated. Please log in again.');
+    }
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
@@ -49,6 +52,10 @@ class TenderService {
         method: 'GET',
         headers: await this.getAuthHeaders(),
       });
+
+      if (response.status === 401) {
+        throw new Error('Authentication failed. Please log in again.');
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -68,6 +75,10 @@ class TenderService {
         headers: await this.getAuthHeaders(),
         body: JSON.stringify(tender),
       });
+
+      if (response.status === 401) {
+        throw new Error('Authentication failed. Please log in again.');
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
