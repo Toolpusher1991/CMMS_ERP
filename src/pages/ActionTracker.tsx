@@ -30,6 +30,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Check, ChevronsUpDown, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -98,6 +107,7 @@ interface Action {
   status: "OPEN" | "IN_PROGRESS" | "COMPLETED";
   priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   assignedTo: string;
+  assignedUsers?: string[]; // Multi-User Zuweisung
   dueDate: string;
   completedAt?: string;
   createdBy: string;
@@ -113,6 +123,15 @@ interface ApiActionFile {
   fileType?: string;
   uploadedAt: string;
   isPhoto?: boolean;
+}
+
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  plant: string;
 }
 
 interface ApiAction {
@@ -184,6 +203,8 @@ const ActionTracker = () => {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   const [actions, setActions] = useState<Action[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
 
   // Extrahiere Foto-Dateinamen aus Beschreibung (von Failure Reports)
   const extractPhotoFromDescription = (description: string): string | null => {
@@ -251,6 +272,22 @@ const ActionTracker = () => {
         }>
       >("/users/list");
       setUsers(response);
+      
+      // Filter verfügbare User für Zuweisung (Admins, Manager + aktuelle Anlage)
+      const currentUserPlant = authService.getCurrentUser()?.plant;
+      const filteredUsers = response.filter(user => 
+        user.role === 'ADMIN' || 
+        user.role === 'MANAGER' || 
+        user.assignedPlant === currentUserPlant
+      ).map(user => ({
+        id: user.id,
+        firstName: user.firstName, 
+        lastName: user.lastName,
+        email: user.email || '',
+        role: user.role || '',
+        plant: user.assignedPlant || ''
+      }));
+      setAvailableUsers(filteredUsers);
     } catch (error) {
       console.error("Fehler beim Laden der User:", error);
     }
@@ -394,6 +431,7 @@ const ActionTracker = () => {
       dueDate: "",
       files: [],
     });
+    setSelectedAssignees([]);
     setIsDialogOpen(true);
   };
 
@@ -414,6 +452,7 @@ const ActionTracker = () => {
       ...action,
       description: descriptionWithoutMaterials,
     });
+    setSelectedAssignees(action.assignedUsers || []);
     setIsDialogOpen(true);
   };
 
@@ -462,6 +501,7 @@ const ActionTracker = () => {
             status: currentAction.status,
             priority: currentAction.priority,
             assignedTo: currentAction.assignedTo,
+            assignedUsers: selectedAssignees,
             dueDate: currentAction.dueDate,
           }),
         });
@@ -486,6 +526,7 @@ const ActionTracker = () => {
             status: currentAction.status,
             priority: currentAction.priority,
             assignedTo: currentAction.assignedTo,
+            assignedUsers: selectedAssignees,
             dueDate: currentAction.dueDate,
           }),
         });
@@ -1439,434 +1480,529 @@ const ActionTracker = () => {
                 <TabsTrigger value="materials">Materialbestellung</TabsTrigger>
               </TabsList>
 
-            <TabsContent value="details">
-              <ScrollArea className="max-h-[60vh] pr-4">
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="plant">Anlage *</Label>
-                    <Select
-                      value={currentAction.plant}
-                      onValueChange={(value: Action["plant"]) =>
-                        setCurrentAction({ ...currentAction, plant: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Wählen Sie eine Anlage" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="T208">T208</SelectItem>
-                        <SelectItem value="T207">T207</SelectItem>
-                        <SelectItem value="T700">T700</SelectItem>
-                        <SelectItem value="T46">T46</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Kategorie *</Label>
-                    <Select
-                      value={currentAction.category || "ALLGEMEIN"}
-                      onValueChange={(value) =>
-                        setCurrentAction({
-                          ...currentAction,
-                          category: value as Action["category"],
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Wählen Sie eine Kategorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ALLGEMEIN">Allgemein</SelectItem>
-                        <SelectItem value="RIGMOVE">Rigmove</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Titel *</Label>
-                    <Input
-                      id="title"
-                      value={currentAction.title}
-                      onChange={(e) =>
-                        setCurrentAction({
-                          ...currentAction,
-                          title: e.target.value,
-                        })
-                      }
-                      placeholder="z.B. Pumpe P-101 Wartung"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Beschreibung</Label>
-                    <Textarea
-                      id="description"
-                      value={currentAction.description}
-                      onChange={(e) =>
-                        setCurrentAction({
-                          ...currentAction,
-                          description: e.target.value,
-                        })
-                      }
-                      placeholder="Detaillierte Beschreibung der Aufgabe..."
-                      rows={4}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+              <TabsContent value="details">
+                <ScrollArea className="max-h-[60vh] pr-4">
+                  <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <Label htmlFor="priority">Priorität</Label>
+                      <Label htmlFor="plant">Anlage *</Label>
                       <Select
-                        value={currentAction.priority}
-                        onValueChange={(value: Action["priority"]) =>
-                          setCurrentAction({
-                            ...currentAction,
-                            priority: value,
-                          })
+                        value={currentAction.plant}
+                        onValueChange={(value: Action["plant"]) =>
+                          setCurrentAction({ ...currentAction, plant: value })
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Wählen Sie eine Anlage" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="LOW">Niedrig</SelectItem>
-                          <SelectItem value="MEDIUM">Mittel</SelectItem>
-                          <SelectItem value="HIGH">Hoch</SelectItem>
-                          <SelectItem value="URGENT">Dringend</SelectItem>
+                          <SelectItem value="T208">T208</SelectItem>
+                          <SelectItem value="T207">T207</SelectItem>
+                          <SelectItem value="T700">T700</SelectItem>
+                          <SelectItem value="T46">T46</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="status">Status</Label>
-                      <Select
-                        value={currentAction.status}
-                        onValueChange={(value: Action["status"]) =>
-                          setCurrentAction({ ...currentAction, status: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="OPEN">Offen</SelectItem>
-                          <SelectItem value="IN_PROGRESS">
-                            In Bearbeitung
-                          </SelectItem>
-                          <SelectItem value="COMPLETED">
-                            Abgeschlossen
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="assignedTo">Zugewiesen an *</Label>
+                      <Label htmlFor="category">Kategorie *</Label>
                       <Select
-                        value={currentAction.assignedTo}
+                        value={currentAction.category || "ALLGEMEIN"}
                         onValueChange={(value) =>
                           setCurrentAction({
                             ...currentAction,
-                            assignedTo: value,
+                            category: value as Action["category"],
                           })
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="User auswählen" />
+                          <SelectValue placeholder="Wählen Sie eine Kategorie" />
                         </SelectTrigger>
                         <SelectContent>
-                          {users
-                            .filter((user) => {
-                              // Admins und Manager können immer ausgewählt werden
-                              if (!user.assignedPlant) return true;
-                              // User muss zur ausgewählten Anlage gehören
-                              return user.assignedPlant === currentAction.plant;
-                            })
-                            .map((user) => (
-                              <SelectItem key={user.id} value={user.email}>
-                                {user.firstName} {user.lastName}
-                                {user.assignedPlant &&
-                                  ` (${user.assignedPlant})`}
-                              </SelectItem>
-                            ))}
+                          <SelectItem value="ALLGEMEIN">Allgemein</SelectItem>
+                          <SelectItem value="RIGMOVE">Rigmove</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="dueDate">Fälligkeitsdatum *</Label>
-                      <DatePicker
-                        date={
-                          currentAction.dueDate
-                            ? new Date(currentAction.dueDate)
-                            : undefined
-                        }
-                        onSelect={(date) =>
+                      <Label htmlFor="title">Titel *</Label>
+                      <Input
+                        id="title"
+                        value={currentAction.title}
+                        onChange={(e) =>
                           setCurrentAction({
                             ...currentAction,
-                            dueDate: date
-                              ? date.toISOString().split("T")[0]
-                              : "",
+                            title: e.target.value,
                           })
                         }
-                        placeholder="Fälligkeitsdatum wählen"
+                        placeholder="z.B. Pumpe P-101 Wartung"
                       />
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label>Dateien anhängen</Label>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          document.getElementById("file-upload")?.click()
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Beschreibung</Label>
+                      <Textarea
+                        id="description"
+                        value={currentAction.description}
+                        onChange={(e) =>
+                          setCurrentAction({
+                            ...currentAction,
+                            description: e.target.value,
+                          })
                         }
-                        className="flex-1"
-                      >
-                        <Paperclip className="mr-2 h-4 w-4" />
-                        Dateien auswählen
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          document.getElementById("camera-upload")?.click()
-                        }
-                      >
-                        <Camera className="mr-2 h-4 w-4" />
-                        Foto aufnehmen
-                      </Button>
+                        placeholder="Detaillierte Beschreibung der Aufgabe..."
+                        rows={4}
+                      />
                     </div>
-                    <input
-                      id="file-upload"
-                      type="file"
-                      multiple
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <input
-                      id="camera-upload"
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
 
-                    {currentAction.files && currentAction.files.length > 0 && (
-                      <div className="grid grid-cols-3 gap-2 mt-2">
-                        {currentAction.files.map((file) => (
-                          <div
-                            key={file.id}
-                            className="relative group border rounded-lg p-2"
-                          >
-                            {file.isPhoto ? (
-                              <img
-                                src={file.url}
-                                alt={file.name}
-                                className="w-full aspect-square object-cover rounded"
-                              />
-                            ) : (
-                              <div className="w-full aspect-square flex items-center justify-center bg-slate-100 rounded">
-                                <Paperclip className="h-8 w-8 text-slate-400" />
-                              </div>
-                            )}
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-1 right-1 h-6 w-6 transition shadow-lg"
-                              onClick={() => removeFile(file.id)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                            <p className="text-xs truncate mt-1">{file.name}</p>
-                          </div>
-                        ))}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="priority">Priorität</Label>
+                        <Select
+                          value={currentAction.priority}
+                          onValueChange={(value: Action["priority"]) =>
+                            setCurrentAction({
+                              ...currentAction,
+                              priority: value,
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="LOW">Niedrig</SelectItem>
+                            <SelectItem value="MEDIUM">Mittel</SelectItem>
+                            <SelectItem value="HIGH">Hoch</SelectItem>
+                            <SelectItem value="URGENT">Dringend</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
-                  </div>
-                </div>
-              </ScrollArea>
-            </TabsContent>
+                      <div className="space-y-2">
+                        <Label htmlFor="status">Status</Label>
+                        <Select
+                          value={currentAction.status}
+                          onValueChange={(value: Action["status"]) =>
+                            setCurrentAction({
+                              ...currentAction,
+                              status: value,
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="OPEN">Offen</SelectItem>
+                            <SelectItem value="IN_PROGRESS">
+                              In Bearbeitung
+                            </SelectItem>
+                            <SelectItem value="COMPLETED">
+                              Abgeschlossen
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
 
-            {/* Material Ordering Tab */}
-            <TabsContent value="materials" className="space-y-4">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">Materialien</h3>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => {
-                      const newMaterial = {
-                        id: Date.now().toString(),
-                        mmNumber: "",
-                        description: "",
-                        quantity: 1,
-                        unit: "Stk",
-                        status: "NICHT_BESTELLT" as const,
-                      };
-                      setMaterials([...materials, newMaterial]);
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Material hinzufügen
-                  </Button>
-                </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="assignedTo">Zugewiesen an *</Label>
+                        <Select
+                          value={currentAction.assignedTo}
+                          onValueChange={(value) =>
+                            setCurrentAction({
+                              ...currentAction,
+                              assignedTo: value,
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="User auswählen" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {users
+                              .filter((user) => {
+                                // Admins und Manager können immer ausgewählt werden
+                                if (!user.assignedPlant) return true;
+                                // User muss zur ausgewählten Anlage gehören
+                                return (
+                                  user.assignedPlant === currentAction.plant
+                                );
+                              })
+                              .map((user) => (
+                                <SelectItem key={user.id} value={user.email}>
+                                  {user.firstName} {user.lastName}
+                                  {user.assignedPlant &&
+                                    ` (${user.assignedPlant})`}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                {materials.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Noch keine Materialien hinzugefügt
-                  </div>
-                ) : (
-                  <div className="border rounded-lg">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[180px]">MM-Nummer</TableHead>
-                          <TableHead className="w-[320px]">
-                            Beschreibung
-                          </TableHead>
-                          <TableHead className="w-28">Menge</TableHead>
-                          <TableHead className="w-28">Einheit</TableHead>
-                          <TableHead className="w-[200px]">Status</TableHead>
-                          <TableHead className="w-16"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {materials.map((material, index) => (
-                          <TableRow key={material.id}>
-                            <TableCell>
-                              <Input
-                                type="text"
-                                className="h-11 text-base w-full"
-                                value={material.mmNumber}
-                                onChange={(e) => {
-                                  const newMaterials = [...materials];
-                                  newMaterials[index].mmNumber = e.target.value;
-                                  setMaterials(newMaterials);
-                                }}
-                                placeholder="MM-Nummer"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                type="text"
-                                className="h-11 text-base w-full"
-                                value={material.description}
-                                onChange={(e) => {
-                                  const newMaterials = [...materials];
-                                  newMaterials[index].description =
-                                    e.target.value;
-                                  setMaterials(newMaterials);
-                                }}
-                                placeholder="Beschreibung"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                type="number"
-                                min="1"
-                                className="h-11 text-base"
-                                value={material.quantity}
-                                onChange={(e) => {
-                                  const newMaterials = [...materials];
-                                  newMaterials[index].quantity =
-                                    parseInt(e.target.value) || 1;
-                                  setMaterials(newMaterials);
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Select
-                                value={material.unit}
-                                onValueChange={(value) => {
-                                  const newMaterials = [...materials];
-                                  newMaterials[index].unit = value;
-                                  setMaterials(newMaterials);
-                                }}
-                              >
-                                <SelectTrigger className="h-11 text-base">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Stk">Stk</SelectItem>
-                                  <SelectItem value="L">L</SelectItem>
-                                  <SelectItem value="kg">kg</SelectItem>
-                                  <SelectItem value="m">m</SelectItem>
-                                  <SelectItem value="m²">m²</SelectItem>
-                                  <SelectItem value="m³">m³</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell>
-                              <Select
-                                value={material.status || "NICHT_BESTELLT"}
-                                onValueChange={(value) => {
-                                  const newMaterials = [...materials];
-                                  newMaterials[index].status =
-                                    value as MaterialItem["status"];
-                                  setMaterials(newMaterials);
-                                }}
-                              >
-                                <SelectTrigger className="h-11 text-base w-full">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem
-                                    value="NICHT_BESTELLT"
-                                    className="text-base"
-                                  >
-                                    ⚪ Nicht bestellt
-                                  </SelectItem>
-                                  <SelectItem
-                                    value="BESTELLT"
-                                    className="text-base"
-                                  >
-                                    🟡 Bestellt
-                                  </SelectItem>
-                                  <SelectItem
-                                    value="UNTERWEGS"
-                                    className="text-base"
-                                  >
-                                    🔵 Unterwegs
-                                  </SelectItem>
-                                  <SelectItem
-                                    value="GELIEFERT"
-                                    className="text-base"
-                                  >
-                                    🟢 Geliefert
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell>
+                      {/* Multi-User Zuweisung */}
+                      <div className="space-y-2">
+                        <Label htmlFor="assignedUsers">
+                          <Users className="w-4 h-4 inline mr-2" />
+                          Zusätzliche Zuständige
+                        </Label>
+                        <div className="space-y-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
                               <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setMaterials(
-                                    materials.filter((_, i) => i !== index)
-                                  );
-                                }}
+                                variant="outline"
+                                role="combobox"
+                                className="w-full justify-between"
                               >
-                                <X className="h-4 w-4" />
+                                {selectedAssignees.length > 0
+                                  ? `${selectedAssignees.length} User ausgewählt`
+                                  : "User auswählen..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                              <Command>
+                                <CommandInput placeholder="User suchen..." />
+                                <CommandEmpty>Keine User gefunden.</CommandEmpty>
+                                <CommandGroup>
+                                  {availableUsers.map((user) => (
+                                    <CommandItem
+                                      key={user.id}
+                                      onSelect={() => {
+                                        const isSelected = selectedAssignees.includes(user.id);
+                                        if (isSelected) {
+                                          setSelectedAssignees(selectedAssignees.filter(id => id !== user.id));
+                                        } else {
+                                          setSelectedAssignees([...selectedAssignees, user.id]);
+                                        }
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          selectedAssignees.includes(user.id) ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {user.firstName} {user.lastName}
+                                      <Badge variant="outline" className="ml-2">
+                                        {user.role}
+                                      </Badge>
+                                      {user.plant && (
+                                        <Badge variant="secondary" className="ml-1">
+                                          {user.plant}
+                                        </Badge>
+                                      )}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          
+                          {/* Ausgewählte User anzeigen */}
+                          {selectedAssignees.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {selectedAssignees.map((userId) => {
+                                const user = availableUsers.find(u => u.id === userId);
+                                return user ? (
+                                  <Badge key={userId} variant="secondary" className="text-xs">
+                                    {user.firstName} {user.lastName}
+                                    <button
+                                      onClick={() => {
+                                        setSelectedAssignees(selectedAssignees.filter(id => id !== userId));
+                                      }}
+                                      className="ml-1 hover:bg-red-500 rounded-full w-4 h-4 flex items-center justify-center"
+                                    >
+                                      ×
+                                    </button>
+                                  </Badge>
+                                ) : null;
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="dueDate">Fälligkeitsdatum *</Label>
+                        <DatePicker
+                          date={
+                            currentAction.dueDate
+                              ? new Date(currentAction.dueDate)
+                              : undefined
+                          }
+                          onSelect={(date) =>
+                            setCurrentAction({
+                              ...currentAction,
+                              dueDate: date
+                                ? date.toISOString().split("T")[0]
+                                : "",
+                            })
+                          }
+                          placeholder="Fälligkeitsdatum wählen"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Dateien anhängen</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() =>
+                            document.getElementById("file-upload")?.click()
+                          }
+                          className="flex-1"
+                        >
+                          <Paperclip className="mr-2 h-4 w-4" />
+                          Dateien auswählen
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() =>
+                            document.getElementById("camera-upload")?.click()
+                          }
+                        >
+                          <Camera className="mr-2 h-4 w-4" />
+                          Foto aufnehmen
+                        </Button>
+                      </div>
+                      <input
+                        id="file-upload"
+                        type="file"
+                        multiple
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                      <input
+                        id="camera-upload"
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+
+                      {currentAction.files &&
+                        currentAction.files.length > 0 && (
+                          <div className="grid grid-cols-3 gap-2 mt-2">
+                            {currentAction.files.map((file) => (
+                              <div
+                                key={file.id}
+                                className="relative group border rounded-lg p-2"
+                              >
+                                {file.isPhoto ? (
+                                  <img
+                                    src={file.url}
+                                    alt={file.name}
+                                    className="w-full aspect-square object-cover rounded"
+                                  />
+                                ) : (
+                                  <div className="w-full aspect-square flex items-center justify-center bg-slate-100 rounded">
+                                    <Paperclip className="h-8 w-8 text-slate-400" />
+                                  </div>
+                                )}
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="absolute top-1 right-1 h-6 w-6 transition shadow-lg"
+                                  onClick={() => removeFile(file.id)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                                <p className="text-xs truncate mt-1">
+                                  {file.name}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                    </div>
                   </div>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
+                </ScrollArea>
+              </TabsContent>
+
+              {/* Material Ordering Tab */}
+              <TabsContent value="materials" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">Materialien</h3>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        const newMaterial = {
+                          id: Date.now().toString(),
+                          mmNumber: "",
+                          description: "",
+                          quantity: 1,
+                          unit: "Stk",
+                          status: "NICHT_BESTELLT" as const,
+                        };
+                        setMaterials([...materials, newMaterial]);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Material hinzufügen
+                    </Button>
+                  </div>
+
+                  {materials.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Noch keine Materialien hinzugefügt
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[180px]">
+                              MM-Nummer
+                            </TableHead>
+                            <TableHead className="w-[320px]">
+                              Beschreibung
+                            </TableHead>
+                            <TableHead className="w-28">Menge</TableHead>
+                            <TableHead className="w-28">Einheit</TableHead>
+                            <TableHead className="w-[200px]">Status</TableHead>
+                            <TableHead className="w-16"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {materials.map((material, index) => (
+                            <TableRow key={material.id}>
+                              <TableCell>
+                                <Input
+                                  type="text"
+                                  className="h-11 text-base w-full"
+                                  value={material.mmNumber}
+                                  onChange={(e) => {
+                                    const newMaterials = [...materials];
+                                    newMaterials[index].mmNumber =
+                                      e.target.value;
+                                    setMaterials(newMaterials);
+                                  }}
+                                  placeholder="MM-Nummer"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="text"
+                                  className="h-11 text-base w-full"
+                                  value={material.description}
+                                  onChange={(e) => {
+                                    const newMaterials = [...materials];
+                                    newMaterials[index].description =
+                                      e.target.value;
+                                    setMaterials(newMaterials);
+                                  }}
+                                  placeholder="Beschreibung"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  className="h-11 text-base"
+                                  value={material.quantity}
+                                  onChange={(e) => {
+                                    const newMaterials = [...materials];
+                                    newMaterials[index].quantity =
+                                      parseInt(e.target.value) || 1;
+                                    setMaterials(newMaterials);
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Select
+                                  value={material.unit}
+                                  onValueChange={(value) => {
+                                    const newMaterials = [...materials];
+                                    newMaterials[index].unit = value;
+                                    setMaterials(newMaterials);
+                                  }}
+                                >
+                                  <SelectTrigger className="h-11 text-base">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Stk">Stk</SelectItem>
+                                    <SelectItem value="L">L</SelectItem>
+                                    <SelectItem value="kg">kg</SelectItem>
+                                    <SelectItem value="m">m</SelectItem>
+                                    <SelectItem value="m²">m²</SelectItem>
+                                    <SelectItem value="m³">m³</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                <Select
+                                  value={material.status || "NICHT_BESTELLT"}
+                                  onValueChange={(value) => {
+                                    const newMaterials = [...materials];
+                                    newMaterials[index].status =
+                                      value as MaterialItem["status"];
+                                    setMaterials(newMaterials);
+                                  }}
+                                >
+                                  <SelectTrigger className="h-11 text-base w-full">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem
+                                      value="NICHT_BESTELLT"
+                                      className="text-base"
+                                    >
+                                      ⚪ Nicht bestellt
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="BESTELLT"
+                                      className="text-base"
+                                    >
+                                      🟡 Bestellt
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="UNTERWEGS"
+                                      className="text-base"
+                                    >
+                                      🔵 Unterwegs
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="GELIEFERT"
+                                      className="text-base"
+                                    >
+                                      🟢 Geliefert
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setMaterials(
+                                      materials.filter((_, i) => i !== index)
+                                    );
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <DialogFooter className="flex-shrink-0">
