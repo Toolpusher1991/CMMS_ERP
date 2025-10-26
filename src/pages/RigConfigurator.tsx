@@ -2380,7 +2380,8 @@ const RigConfigurator = () => {
                                       variant="outline"
                                       className="border-yellow-500 text-yellow-700"
                                     >
-                                      {config.selectedRig?.name || 'Unbekanntes Rig'}
+                                      {config.selectedRig?.name ||
+                                        "Unbekanntes Rig"}
                                     </Badge>
                                   </div>
                                   <div className="text-sm text-yellow-700 font-medium mt-1">
@@ -2537,7 +2538,8 @@ const RigConfigurator = () => {
                                       variant="outline"
                                       className="border-green-500 text-green-700"
                                     >
-                                      {config.selectedRig?.name || 'Unbekanntes Rig'}
+                                      {config.selectedRig?.name ||
+                                        "Unbekanntes Rig"}
                                     </Badge>
                                     <Badge
                                       variant="default"

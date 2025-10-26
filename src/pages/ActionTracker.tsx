@@ -36,7 +36,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
 import { Check, ChevronsUpDown, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -268,26 +274,24 @@ const ActionTracker = () => {
           email: string;
           firstName: string;
           lastName: string;
+          role?: string;
           assignedPlant?: string;
         }>
       >("/users/list");
       setUsers(response);
-      
-      // Filter verfügbare User für Zuweisung (Admins, Manager + aktuelle Anlage)
-      const currentUserPlant = authService.getCurrentUser()?.plant;
-      const filteredUsers = response.filter(user => 
-        user.role === 'ADMIN' || 
-        user.role === 'MANAGER' || 
-        user.assignedPlant === currentUserPlant
-      ).map(user => ({
+
+      // Alle User laden für Multi-User Assignment
+      const allUsers = response.map((user) => ({
         id: user.id,
-        firstName: user.firstName, 
+        firstName: user.firstName,
         lastName: user.lastName,
-        email: user.email || '',
-        role: user.role || '',
-        plant: user.assignedPlant || ''
+        email: user.email || "",
+        role: user.role || "USER",
+        plant: user.assignedPlant || "",
       }));
-      setAvailableUsers(filteredUsers);
+
+      console.log("Loaded users:", allUsers); // Debug log
+      setAvailableUsers(allUsers);
     } catch (error) {
       console.error("Fehler beim Laden der User:", error);
     }
@@ -1147,7 +1151,8 @@ const ActionTracker = () => {
                                               </Card>
 
                                               {/* Status & Info Grid */}
-                                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* Status ändern Card */}
                                                 <Card>
                                                   <CardHeader className="pb-3">
                                                     <CardTitle className="text-sm">
@@ -1184,6 +1189,71 @@ const ActionTracker = () => {
                                                   </CardContent>
                                                 </Card>
 
+                                                {/* Status Abfrage Card */}
+                                                <Card>
+                                                  <CardHeader className="pb-3">
+                                                    <CardTitle className="text-sm">
+                                                      Status Abfrage
+                                                    </CardTitle>
+                                                  </CardHeader>
+                                                  <CardContent>
+                                                    <Button
+                                                      variant="outline"
+                                                      size="sm"
+                                                      className="w-full"
+                                                      onClick={async () => {
+                                                        try {
+                                                          // Alle beteiligten User sammeln
+                                                          const involvedUsers =
+                                                            [
+                                                              action.assignedTo,
+                                                              ...(action.assignedUsers ||
+                                                                []),
+                                                            ];
+
+                                                          // Status Abfrage senden
+                                                          await apiClient.post(
+                                                            `/actions/${action.id}/status-request`,
+                                                            {
+                                                              involvedUsers,
+                                                              message:
+                                                                "Der Manager bittet um ein Status-Update und Kommentar zu dieser Action.",
+                                                            }
+                                                          );
+
+                                                          toast({
+                                                            title:
+                                                              "Status Abfrage gesendet",
+                                                            description: `Benachrichtigung an ${involvedUsers.length} User gesendet.`,
+                                                          });
+                                                        } catch (error) {
+                                                          console.error(
+                                                            "Error sending status request:",
+                                                            error
+                                                          );
+                                                          toast({
+                                                            title: "Fehler",
+                                                            description:
+                                                              "Status Abfrage konnte nicht gesendet werden.",
+                                                            variant:
+                                                              "destructive",
+                                                          });
+                                                        }
+                                                      }}
+                                                    >
+                                                      📞 Status abfragen
+                                                    </Button>
+                                                    <p className="text-xs text-muted-foreground mt-2">
+                                                      Benachrichtigt alle
+                                                      beteiligten User
+                                                    </p>
+                                                  </CardContent>
+                                                </Card>
+                                              </div>
+
+                                              {/* Erstellt & Zuständige Grid */}
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* Erstellt Card */}
                                                 <Card>
                                                   <CardHeader className="pb-3">
                                                     <CardTitle className="text-sm">
@@ -1198,6 +1268,330 @@ const ActionTracker = () => {
                                                       <p className="text-xs text-muted-foreground">
                                                         von {action.createdBy}
                                                       </p>
+                                                    </div>
+                                                  </CardContent>
+                                                </Card>
+
+                                                {/* Zuständige Card */}
+                                                <Card>
+                                                  <CardHeader className="pb-3">
+                                                    <CardTitle className="text-sm flex items-center gap-2">
+                                                      <Users className="w-4 h-4" />
+                                                      Zuständige
+                                                    </CardTitle>
+                                                  </CardHeader>
+                                                  <CardContent>
+                                                    <div className="space-y-2">
+                                                      {/* Hauptzuständiger */}
+                                                      <div className="space-y-1">
+                                                        <p className="text-xs text-muted-foreground">
+                                                          Hauptzuständig:
+                                                        </p>
+                                                        <p className="text-sm font-medium">
+                                                          {action.assignedTo}
+                                                        </p>
+                                                      </div>
+
+                                                      {/* Multi-User Assignment */}
+                                                      {action.assignedUsers &&
+                                                        action.assignedUsers
+                                                          .length > 0 && (
+                                                          <div className="space-y-1">
+                                                            <p className="text-xs text-muted-foreground">
+                                                              Zusätzlich
+                                                              zuständig:
+                                                            </p>
+                                                            <div className="space-y-1">
+                                                              {action.assignedUsers.map(
+                                                                (userId) => {
+                                                                  const user =
+                                                                    availableUsers.find(
+                                                                      (u) =>
+                                                                        u.id ===
+                                                                        userId
+                                                                    );
+                                                                  return user ? (
+                                                                    <div
+                                                                      key={
+                                                                        userId
+                                                                      }
+                                                                      className="flex items-center justify-between p-2 bg-muted/50 rounded border"
+                                                                    >
+                                                                      <div className="flex items-center gap-2">
+                                                                        <span className="text-sm font-medium">
+                                                                          {
+                                                                            user.firstName
+                                                                          }{" "}
+                                                                          {
+                                                                            user.lastName
+                                                                          }
+                                                                        </span>
+                                                                        <Badge
+                                                                          variant="outline"
+                                                                          className="text-xs"
+                                                                        >
+                                                                          {
+                                                                            user.role
+                                                                          }
+                                                                        </Badge>
+                                                                        {user.plant && (
+                                                                          <Badge
+                                                                            variant="secondary"
+                                                                            className="text-xs"
+                                                                          >
+                                                                            {
+                                                                              user.plant
+                                                                            }
+                                                                          </Badge>
+                                                                        )}
+                                                                      </div>
+                                                                      <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={async () => {
+                                                                          try {
+                                                                            const updatedAssignedUsers =
+                                                                              action.assignedUsers?.filter(
+                                                                                (
+                                                                                  id
+                                                                                ) =>
+                                                                                  id !==
+                                                                                  userId
+                                                                              ) ||
+                                                                              [];
+
+                                                                            await apiClient.put(
+                                                                              `/actions/${action.id}`,
+                                                                              {
+                                                                                assignedUsers:
+                                                                                  updatedAssignedUsers,
+                                                                              }
+                                                                            );
+
+                                                                            // Update local state
+                                                                            setActions(
+                                                                              (
+                                                                                prev
+                                                                              ) =>
+                                                                                prev.map(
+                                                                                  (
+                                                                                    a
+                                                                                  ) =>
+                                                                                    a.id ===
+                                                                                    action.id
+                                                                                      ? {
+                                                                                          ...a,
+                                                                                          assignedUsers:
+                                                                                            updatedAssignedUsers,
+                                                                                        }
+                                                                                      : a
+                                                                                )
+                                                                            );
+
+                                                                            toast(
+                                                                              {
+                                                                                title:
+                                                                                  "User entfernt",
+                                                                                description: `${user.firstName} ${user.lastName} wurde als zuständig entfernt.`,
+                                                                              }
+                                                                            );
+                                                                          } catch (error) {
+                                                                            console.error(
+                                                                              "Error removing user:",
+                                                                              error
+                                                                            );
+                                                                            toast(
+                                                                              {
+                                                                                title:
+                                                                                  "Fehler",
+                                                                                description:
+                                                                                  "User konnte nicht entfernt werden.",
+                                                                                variant:
+                                                                                  "destructive",
+                                                                              }
+                                                                            );
+                                                                          }
+                                                                        }}
+                                                                        className="h-6 w-6 p-0"
+                                                                      >
+                                                                        <X className="h-3 w-3" />
+                                                                      </Button>
+                                                                    </div>
+                                                                  ) : null;
+                                                                }
+                                                              )}
+                                                            </div>
+                                                          </div>
+                                                        )}
+
+                                                      {/* Quick Add Users */}
+                                                      <div className="pt-2 border-t">
+                                                        <Select
+                                                          onValueChange={async (
+                                                            userId
+                                                          ) => {
+                                                            if (!userId) return;
+
+                                                            const user =
+                                                              availableUsers.find(
+                                                                (u) =>
+                                                                  u.id ===
+                                                                  userId
+                                                              );
+                                                            if (!user) return;
+
+                                                            try {
+                                                              const updatedAssignedUsers =
+                                                                [
+                                                                  ...(action.assignedUsers ||
+                                                                    []),
+                                                                  userId,
+                                                                ];
+
+                                                              await apiClient.put(
+                                                                `/actions/${action.id}`,
+                                                                {
+                                                                  assignedUsers:
+                                                                    updatedAssignedUsers,
+                                                                }
+                                                              );
+
+                                                              // Update local state
+                                                              setActions(
+                                                                (prev) =>
+                                                                  prev.map(
+                                                                    (a) =>
+                                                                      a.id ===
+                                                                      action.id
+                                                                        ? {
+                                                                            ...a,
+                                                                            assignedUsers:
+                                                                              updatedAssignedUsers,
+                                                                          }
+                                                                        : a
+                                                                  )
+                                                              );
+
+                                                              toast({
+                                                                title:
+                                                                  "User hinzugefügt",
+                                                                description: `${user.firstName} ${user.lastName} wurde als zuständig hinzugefügt.`,
+                                                              });
+                                                            } catch (error) {
+                                                              console.error(
+                                                                "Error updating assignedUsers:",
+                                                                error
+                                                              );
+                                                              toast({
+                                                                title: "Fehler",
+                                                                description:
+                                                                  "User konnte nicht hinzugefügt werden.",
+                                                                variant:
+                                                                  "destructive",
+                                                              });
+                                                            }
+                                                          }}
+                                                        >
+                                                          <SelectTrigger className="w-full">
+                                                            <SelectValue placeholder="User hinzufügen..." />
+                                                          </SelectTrigger>
+                                                          <SelectContent>
+                                                            {availableUsers
+                                                              .filter(
+                                                                (user) =>
+                                                                  // Alle Admins und Manager
+                                                                  user.role ===
+                                                                    "ADMIN" ||
+                                                                  user.role ===
+                                                                    "MANAGER" ||
+                                                                  // ODER User der gleichen Anlage
+                                                                  user.plant ===
+                                                                    action.plant ||
+                                                                  // ODER wenn keine plant zugewiesen, dann alle User
+                                                                  !user.plant
+                                                              )
+                                                              .filter(
+                                                                (user) =>
+                                                                  // Ausschließen bereits zugewiesener User
+                                                                  !action.assignedUsers?.includes(
+                                                                    user.id
+                                                                  ) &&
+                                                                  // Ausschließen Hauptzuständiger
+                                                                  user.email !==
+                                                                    action.assignedTo
+                                                              ).length === 0 ? (
+                                                              <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                                                                Keine
+                                                                verfügbaren User
+                                                              </div>
+                                                            ) : (
+                                                              availableUsers
+                                                                .filter(
+                                                                  (user) =>
+                                                                    // Alle Admins und Manager
+                                                                    user.role ===
+                                                                      "ADMIN" ||
+                                                                    user.role ===
+                                                                      "MANAGER" ||
+                                                                    // ODER User der gleichen Anlage
+                                                                    user.plant ===
+                                                                      action.plant ||
+                                                                    // ODER wenn keine plant zugewiesen, dann alle User
+                                                                    !user.plant
+                                                                )
+                                                                .filter(
+                                                                  (user) =>
+                                                                    // Ausschließen bereits zugewiesener User
+                                                                    !action.assignedUsers?.includes(
+                                                                      user.id
+                                                                    ) &&
+                                                                    // Ausschließen Hauptzuständiger
+                                                                    user.email !==
+                                                                      action.assignedTo
+                                                                )
+                                                                .map((user) => (
+                                                                  <SelectItem
+                                                                    key={
+                                                                      user.id
+                                                                    }
+                                                                    value={
+                                                                      user.id
+                                                                    }
+                                                                  >
+                                                                    <div className="flex items-center gap-2">
+                                                                      <span>
+                                                                        {
+                                                                          user.firstName
+                                                                        }{" "}
+                                                                        {
+                                                                          user.lastName
+                                                                        }
+                                                                      </span>
+                                                                      <Badge
+                                                                        variant="outline"
+                                                                        className="text-xs"
+                                                                      >
+                                                                        {
+                                                                          user.role
+                                                                        }
+                                                                      </Badge>
+                                                                      {user.plant && (
+                                                                        <Badge
+                                                                          variant="secondary"
+                                                                          className="text-xs"
+                                                                        >
+                                                                          {
+                                                                            user.plant
+                                                                          }
+                                                                        </Badge>
+                                                                      )}
+                                                                    </div>
+                                                                  </SelectItem>
+                                                                ))
+                                                            )}
+                                                          </SelectContent>
+                                                        </Select>
+                                                      </div>
                                                     </div>
                                                   </CardContent>
                                                 </Card>
@@ -1664,24 +2058,36 @@ const ActionTracker = () => {
                             <PopoverContent className="w-full p-0">
                               <Command>
                                 <CommandInput placeholder="User suchen..." />
-                                <CommandEmpty>Keine User gefunden.</CommandEmpty>
+                                <CommandEmpty>
+                                  Keine User gefunden.
+                                </CommandEmpty>
                                 <CommandGroup>
                                   {availableUsers.map((user) => (
                                     <CommandItem
                                       key={user.id}
                                       onSelect={() => {
-                                        const isSelected = selectedAssignees.includes(user.id);
+                                        const isSelected =
+                                          selectedAssignees.includes(user.id);
                                         if (isSelected) {
-                                          setSelectedAssignees(selectedAssignees.filter(id => id !== user.id));
+                                          setSelectedAssignees(
+                                            selectedAssignees.filter(
+                                              (id) => id !== user.id
+                                            )
+                                          );
                                         } else {
-                                          setSelectedAssignees([...selectedAssignees, user.id]);
+                                          setSelectedAssignees([
+                                            ...selectedAssignees,
+                                            user.id,
+                                          ]);
                                         }
                                       }}
                                     >
                                       <Check
                                         className={cn(
                                           "mr-2 h-4 w-4",
-                                          selectedAssignees.includes(user.id) ? "opacity-100" : "opacity-0"
+                                          selectedAssignees.includes(user.id)
+                                            ? "opacity-100"
+                                            : "opacity-0"
                                         )}
                                       />
                                       {user.firstName} {user.lastName}
@@ -1689,7 +2095,10 @@ const ActionTracker = () => {
                                         {user.role}
                                       </Badge>
                                       {user.plant && (
-                                        <Badge variant="secondary" className="ml-1">
+                                        <Badge
+                                          variant="secondary"
+                                          className="ml-1"
+                                        >
                                           {user.plant}
                                         </Badge>
                                       )}
@@ -1699,18 +2108,28 @@ const ActionTracker = () => {
                               </Command>
                             </PopoverContent>
                           </Popover>
-                          
+
                           {/* Ausgewählte User anzeigen */}
                           {selectedAssignees.length > 0 && (
                             <div className="flex flex-wrap gap-2">
                               {selectedAssignees.map((userId) => {
-                                const user = availableUsers.find(u => u.id === userId);
+                                const user = availableUsers.find(
+                                  (u) => u.id === userId
+                                );
                                 return user ? (
-                                  <Badge key={userId} variant="secondary" className="text-xs">
+                                  <Badge
+                                    key={userId}
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
                                     {user.firstName} {user.lastName}
                                     <button
                                       onClick={() => {
-                                        setSelectedAssignees(selectedAssignees.filter(id => id !== userId));
+                                        setSelectedAssignees(
+                                          selectedAssignees.filter(
+                                            (id) => id !== userId
+                                          )
+                                        );
                                       }}
                                       className="ml-1 hover:bg-red-500 rounded-full w-4 h-4 flex items-center justify-center"
                                     >

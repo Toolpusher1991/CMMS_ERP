@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate as authenticateToken, AuthRequest } from '../middleware/auth.middleware';
 import { filterByAssignedPlant, validatePlantAccess } from '../middleware/plant-access.middleware';
+import { sendStatusRequest } from '../controllers/status-request.controller';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -458,5 +459,8 @@ router.get(
     }
   }
 );
+
+// POST status request for action
+router.post('/:id/status-request', authenticateToken, sendStatusRequest);
 
 export default router;
