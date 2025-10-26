@@ -1,4 +1,5 @@
 import { authService } from './auth.service';
+import { captureError, startTransaction } from '../lib/sentry';
 
 // Use environment-appropriate backend URL
 const API_BASE_URL = import.meta.env.PROD 
@@ -47,6 +48,8 @@ class TenderService {
   }
 
   async getAllTenders(): Promise<TenderConfiguration[]> {
+    const transaction = startTransaction('tender.getAllTenders', 'http');
+    
     try {
       console.log('🔧 API Base URL:', API_BASE_URL);
       const response = await fetch(`${API_BASE_URL}/tender`, {
@@ -64,10 +67,19 @@ class TenderService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      transaction.setStatus('ok');
+      return result;
     } catch (error) {
       console.error('Error fetching tenders:', error);
+      captureError(error as Error, {
+        api_url: API_BASE_URL,
+        operation: 'getAllTenders',
+      });
+      transaction.setStatus('internal_error');
       throw error;
+    } finally {
+      transaction.finish();
     }
   }
 

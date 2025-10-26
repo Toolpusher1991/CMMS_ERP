@@ -19,6 +19,8 @@
   "license": "MIT",
   "dependencies": {
     "@prisma/client": "^5.7.0",
+    "@sentry/node": "^10.22.0",
+    "@sentry/tracing": "^7.120.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/dompurify": "^3.0.5",
