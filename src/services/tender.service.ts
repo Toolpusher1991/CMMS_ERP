@@ -2,7 +2,7 @@ import { authService } from './auth.service';
 
 // Use environment-appropriate backend URL
 const API_BASE_URL = import.meta.env.PROD 
-  ? '/api'  // Production: same domain
+  ? 'https://cmms-erp-backend.onrender.com/api'  // Production: Render backend service
   : 'http://localhost:3000/api';  // Development: local backend
 
 export interface TenderConfiguration {
