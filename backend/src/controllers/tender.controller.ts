@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../middleware/error.middleware';
+import type { AuthRequest } from '../middleware/auth.middleware';
 
 const prisma = new PrismaClient();
 
@@ -19,7 +20,8 @@ export interface TenderConfigurationData {
 // GET /api/tender - Get all tender configurations for current user
 export const getAllTenderConfigurations = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.id;
     if (!userId) {
       throw new AppError('Unauthorized', 401);
     }
@@ -46,7 +48,8 @@ export const getAllTenderConfigurations = async (req: Request, res: Response) =>
 // POST /api/tender - Create a new tender configuration
 export const createTenderConfiguration = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.id;
     if (!userId) {
       throw new AppError('Unauthorized', 401);
     }
@@ -96,7 +99,8 @@ export const createTenderConfiguration = async (req: Request, res: Response) => 
 // PUT /api/tender/:id - Update a tender configuration
 export const updateTenderConfiguration = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.id;
     const { id } = req.params;
     
     if (!userId) {
@@ -136,7 +140,8 @@ export const updateTenderConfiguration = async (req: Request, res: Response) => 
 // PATCH /api/tender/:id/contract-status - Toggle contract status
 export const toggleContractStatus = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.id;
     const { id } = req.params;
     
     if (!userId) {
@@ -176,7 +181,8 @@ export const toggleContractStatus = async (req: Request, res: Response) => {
 // DELETE /api/tender/:id - Delete a tender configuration
 export const deleteTenderConfiguration = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.id;
     const { id } = req.params;
     
     if (!userId) {
@@ -212,7 +218,8 @@ export const deleteTenderConfiguration = async (req: Request, res: Response) => 
 // GET /api/tender/:id - Get a specific tender configuration
 export const getTenderConfiguration = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.id;
     const { id } = req.params;
     
     if (!userId) {
