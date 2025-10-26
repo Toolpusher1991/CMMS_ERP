@@ -734,35 +734,8 @@ async function executeFunction(
       }
 
       case 'create_action_with_multiple_users': {
-        // Find all assigned users
-        const assignedUserIds = [];
-        
-        // Add main assigned user
-        const mainUser = await prisma.user.findFirst({
-          where: { email: args.assignedTo },
-        });
-        if (mainUser) {
-          assignedUserIds.push(mainUser.id);
-        }
-        
-        // Add additional users
-        if (args.assignedUsers) {
-          for (const userIdentifier of args.assignedUsers) {
-            const user = await prisma.user.findFirst({
-              where: { 
-                OR: [
-                  { id: userIdentifier },
-                  { email: userIdentifier }
-                ]
-              },
-            });
-            if (user && !assignedUserIds.includes(user.id)) {
-              assignedUserIds.push(user.id);
-            }
-          }
-        }
-        
-        // Create action with multiple users
+        // Note: Current schema only supports single assignedTo, not multiple users
+        // We'll store the main user in assignedTo and log the others for future enhancement
         const action = await prisma.action.create({
           data: {
             title: args.title,
@@ -771,32 +744,23 @@ async function executeFunction(
             priority: args.priority,
             status: 'OPEN',
             assignedTo: args.assignedTo,
-            assignedUsers: assignedUserIds,
             dueDate: new Date(args.dueDate),
             createdBy: userId,
           },
         });
 
+        // TODO: In future schema update, add assignedUsers field for multi-user support
+        // For now, return success with note about limitation
         return JSON.stringify({
           success: true,
           data: action,
-          message: `Action "${args.title}" mit ${assignedUserIds.length} zuständigen Usern erstellt`,
+          message: `Action "${args.title}" erstellt und an ${args.assignedTo} zugewiesen (Multi-User Feature wird in zukünftiger Version verfügbar sein)`,
         });
       }
 
       case 'add_users_to_action': {
-        // Find users by email
-        const userIds = [];
-        for (const email of args.userEmails) {
-          const user = await prisma.user.findUnique({
-            where: { email },
-          });
-          if (user) {
-            userIds.push(user.id);
-          }
-        }
-
-        // Get current action
+        // Note: Current schema doesn't support multiple assigned users
+        // This is a placeholder for future enhancement
         const action = await prisma.action.findUnique({
           where: { id: args.actionId },
         });
@@ -808,33 +772,16 @@ async function executeFunction(
           });
         }
 
-        // Merge with existing assigned users
-        const currentUsers = action.assignedUsers || [];
-        const newUsers = userIds.filter(id => !currentUsers.includes(id));
-        const updatedUsers = [...currentUsers, ...newUsers];
-
-        // Update action
-        const updatedAction = await prisma.action.update({
-          where: { id: args.actionId },
-          data: {
-            assignedUsers: updatedUsers,
-          },
-        });
-
         return JSON.stringify({
-          success: true,
-          data: updatedAction,
-          message: `${newUsers.length} neue User zur Action hinzugefügt`,
+          success: false,
+          error: 'Multi-User Assignment wird in zukünftiger Schema-Version unterstützt',
         });
       }
 
       case 'send_status_request': {
-        // Get action with assigned users
+        // Get action 
         const action = await prisma.action.findUnique({
           where: { id: args.actionId },
-          include: {
-            creator: true,
-          }
         });
 
         if (!action) {
@@ -844,15 +791,39 @@ async function executeFunction(
           });
         }
 
-        // Get all involved users (assigned users + creator)
-        const involvedUserIds = [...(action.assignedUsers || [])];
-        if (action.createdBy && !involvedUserIds.includes(action.createdBy)) {
-          involvedUserIds.push(action.createdBy);
+        // Get assigned user (currently only single user supported)
+        const assignedUser = action.assignedTo ? await prisma.user.findFirst({
+          where: { 
+            OR: [
+              { id: action.assignedTo },
+              { email: action.assignedTo }
+            ]
+          },
+        }) : null;
+
+        // Send notification to assigned user and creator
+        const notifications = [];
+        const userIds = [];
+        
+        if (assignedUser) {
+          userIds.push(assignedUser.id);
+        }
+        
+        if (action.createdBy && action.createdBy !== assignedUser?.id) {
+          const creator = await prisma.user.findFirst({
+            where: { 
+              OR: [
+                { id: action.createdBy },
+                { email: action.createdBy }
+              ]
+            },
+          });
+          if (creator) {
+            userIds.push(creator.id);
+          }
         }
 
-        // Send notifications to all involved users
-        const notifications = [];
-        for (const userId of involvedUserIds) {
+        for (const userId of userIds) {
           const notification = await prisma.notification.create({
             data: {
               userId,
@@ -860,12 +831,12 @@ async function executeFunction(
               title: 'Status-Abfrage',
               message: `Manager fordert Status-Update für Action: ${action.title}${args.message ? ` - ${args.message}` : ''}`,
               relatedId: action.id,
-              metadata: {
+              metadata: JSON.stringify({
                 actionId: action.id,
                 actionTitle: action.title,
                 plant: action.plant,
                 requestMessage: args.message || null,
-              },
+              }),
             },
           });
           notifications.push(notification);
@@ -882,25 +853,7 @@ async function executeFunction(
         const action = await prisma.action.findUnique({
           where: { id: args.actionId },
           include: {
-            creator: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-            comments: {
-              include: {
-                author: {
-                  select: {
-                    firstName: true,
-                    lastName: true,
-                    email: true,
-                  },
-                },
-              },
-              orderBy: { createdAt: 'asc' },
-            },
+            actionFiles: true,
           },
         });
 
@@ -911,12 +864,15 @@ async function executeFunction(
           });
         }
 
-        // Get assigned users details
-        let assignedUsersDetails = [];
-        if (action.assignedUsers && action.assignedUsers.length > 0) {
-          assignedUsersDetails = await prisma.user.findMany({
+        // Get assigned user details
+        let assignedUserDetails = null;
+        if (action.assignedTo) {
+          assignedUserDetails = await prisma.user.findFirst({
             where: {
-              id: { in: action.assignedUsers },
+              OR: [
+                { id: action.assignedTo },
+                { email: action.assignedTo }
+              ]
             },
             select: {
               id: true,
@@ -924,7 +880,26 @@ async function executeFunction(
               lastName: true,
               email: true,
               role: true,
-              plant: true,
+            },
+          });
+        }
+
+        // Get creator details
+        let creatorDetails = null;
+        if (action.createdBy) {
+          creatorDetails = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { id: action.createdBy },
+                { email: action.createdBy }
+              ]
+            },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              role: true,
             },
           });
         }
@@ -933,7 +908,8 @@ async function executeFunction(
           success: true,
           data: {
             ...action,
-            assignedUsersDetails,
+            assignedUserDetails,
+            creatorDetails,
           },
         });
       }
@@ -963,7 +939,7 @@ async function executeFunction(
         } else if (args.plant) {
           // Get users for specific plant + admins and managers
           where.OR = [
-            { plant: args.plant },
+            { assignedPlant: args.plant },
             { role: { in: ['ADMIN', 'MANAGER'] } },
           ];
         }
@@ -976,7 +952,7 @@ async function executeFunction(
             lastName: true,
             email: true,
             role: true,
-            plant: true,
+            assignedPlant: true,
           },
           orderBy: [
             { role: 'asc' },
