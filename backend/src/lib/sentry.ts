@@ -12,12 +12,6 @@ export function initSentry() {
   Sentry.init({
     dsn,
     environment,
-    integrations: [
-      // HTTP integration to capture HTTP requests
-      new Sentry.Integrations.Http({ tracing: true }),
-      // Express integration to capture Express.js requests
-      new Sentry.Integrations.Express({ app: undefined }),
-    ],
     // Performance Monitoring
     tracesSampleRate: environment === 'production' ? 0.1 : 1.0,
     // Error filtering - don't send validation errors to Sentry
