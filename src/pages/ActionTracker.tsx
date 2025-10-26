@@ -1420,7 +1420,7 @@ const ActionTracker = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh]">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {isEditMode ? "Action bearbeiten" : "Neue Action erstellen"}
@@ -1924,7 +1924,7 @@ const ActionTracker = () => {
 
       {/* Photo View Dialog */}
       <Dialog open={photoViewDialogOpen} onOpenChange={setPhotoViewDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Foto vom Failure Report</DialogTitle>
             <DialogDescription>
