@@ -2,7 +2,7 @@ import { authService } from './auth.service';
 
 // Use environment-appropriate backend URL
 const API_BASE_URL = import.meta.env.PROD 
-  ? `${window.location.protocol}//${window.location.hostname.replace('maintain-nory', 'maintain-nory-backend')}/api`  // Production: auto-detect backend
+  ? 'https://cmms-erp-backend.onrender.com/api'  // Production: Render backend service
   : 'http://localhost:3000/api';  // Development: local backend
 
 export interface TenderConfiguration {
@@ -48,10 +48,13 @@ class TenderService {
 
   async getAllTenders(): Promise<TenderConfiguration[]> {
     try {
+      console.log('🔧 API Base URL:', API_BASE_URL);
       const response = await fetch(`${API_BASE_URL}/tender`, {
         method: 'GET',
         headers: await this.getAuthHeaders(),
       });
+
+      console.log('📡 Tender API Response:', response.status, response.statusText);
 
       if (response.status === 401) {
         throw new Error('Authentication failed. Please log in again.');
