@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 async function fixProjectPlants() {
   try {
     console.log('🔧 Fixing project plant fields...');
+    console.log('Database URL:', process.env.DATABASE_URL?.substring(0, 30) + '...');
 
     // Get all projects
     const projects = await prisma.project.findMany({
@@ -12,10 +13,14 @@ async function fixProjectPlants() {
         id: true,
         projectNumber: true,
         plant: true,
+        name: true,
       },
     });
 
-    console.log(`Found ${projects.length} projects`);
+    console.log(`\nFound ${projects.length} projects:\n`);
+
+    let updatedCount = 0;
+    let skippedCount = 0;
 
     for (const project of projects) {
       // Extract plant from projectNumber (e.g., "T700-1761595227920" -> "T700")
@@ -25,23 +30,27 @@ async function fixProjectPlants() {
         const plant = plantMatch[1];
         
         if (project.plant !== plant) {
-          console.log(`Updating ${project.projectNumber}: plant "${project.plant}" -> "${plant}"`);
+          console.log(`📝 Updating "${project.name}" (${project.projectNumber})`);
+          console.log(`   Plant: "${project.plant}" -> "${plant}"`);
           
           await prisma.project.update({
             where: { id: project.id },
             data: { plant },
           });
+          updatedCount++;
         } else {
-          console.log(`✓ ${project.projectNumber}: plant already correct (${plant})`);
+          console.log(`✓ "${project.name}" (${project.projectNumber}) - plant already correct: ${plant}`);
+          skippedCount++;
         }
       } else {
-        console.warn(`⚠️ Could not extract plant from ${project.projectNumber}`);
+        console.warn(`⚠️ Could not extract plant from "${project.name}" (${project.projectNumber})`);
       }
     }
 
-    console.log('✅ Done!');
+    console.log(`\n✅ Done! Updated ${updatedCount} projects, skipped ${skippedCount} projects`);
   } catch (error) {
     console.error('❌ Error:', error);
+    throw error;
   } finally {
     await prisma.$disconnect();
   }
