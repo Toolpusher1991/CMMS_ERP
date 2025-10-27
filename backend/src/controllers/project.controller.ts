@@ -493,3 +493,62 @@ export const addProjectMember = async (_req: Request, res: Response) => {
 export const removeProjectMember = async (_req: Request, res: Response) => {
   res.status(501).json({ success: false, message: 'Project members not implemented' });
 };
+
+// Debug endpoint to check projects count (no authentication required)
+export const getProjectsCount = async (_req: Request, res: Response) => {
+  try {
+    const totalProjects = await prisma.project.count();
+    const projects = await prisma.project.findMany({
+      select: {
+        id: true,
+        projectNumber: true,
+        name: true,
+        status: true,
+        plant: true,
+        createdAt: true,
+        creator: {
+          select: {
+            firstName: true,
+            lastName: true,
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    const stats = {
+      total: totalProjects,
+      byStatus: {
+        PLANNED: projects.filter(p => p.status === 'PLANNED').length,
+        IN_PROGRESS: projects.filter(p => p.status === 'IN_PROGRESS').length,
+        COMPLETED: projects.filter(p => p.status === 'COMPLETED').length,
+        ON_HOLD: projects.filter(p => p.status === 'ON_HOLD').length,
+        CANCELLED: projects.filter(p => p.status === 'CANCELLED').length,
+      },
+      byPlant: {
+        T208: projects.filter(p => p.plant === 'T208').length,
+        T207: projects.filter(p => p.plant === 'T207').length,
+        T700: projects.filter(p => p.plant === 'T700').length,
+        T46: projects.filter(p => p.plant === 'T46').length,
+      }
+    };
+
+    res.json({
+      success: true,
+      message: `Found ${totalProjects} projects in database`,
+      data: {
+        stats,
+        recentProjects: projects.slice(0, 10) // Last 10 projects
+      }
+    });
+  } catch (error) {
+    console.error('Debug projects count error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch projects count',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};

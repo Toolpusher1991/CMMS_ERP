@@ -4,6 +4,9 @@ import * as projectController from '../controllers/project.controller';
 
 const router = Router();
 
+// Debug endpoint without authentication to check projects count
+router.get('/debug/count', projectController.getProjectsCount);
+
 // All routes require authentication
 router.use(authenticate);
 
