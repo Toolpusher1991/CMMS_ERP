@@ -556,7 +556,7 @@ const FailureReportingPage = () => {
 
               <div className="space-y-2">
                 <Label>Foto hinzufügen</Label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
                     variant="outline"
@@ -569,7 +569,7 @@ const FailureReportingPage = () => {
                         fileInputRef.current.click();
                       }
                     }}
-                    className="flex-1"
+                    className="w-full"
                   >
                     <Camera className="h-4 w-4 mr-2" />
                     Kamera
@@ -583,27 +583,29 @@ const FailureReportingPage = () => {
                         fileInputRef.current.click();
                       }
                     }}
-                    className="flex-1"
+                    className="w-full"
                   >
                     <ImageIcon className="h-4 w-4 mr-2" />
                     Galerie
                   </Button>
-                  {photoPreview && (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => {
-                        setPhotoPreview(null);
-                        setPhotoFile(null);
-                        if (fileInputRef.current)
-                          fileInputRef.current.value = "";
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
+                {photoPreview && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setPhotoPreview(null);
+                      setPhotoFile(null);
+                      if (fileInputRef.current)
+                        fileInputRef.current.value = "";
+                    }}
+                    className="w-full mt-2"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Foto entfernen
+                  </Button>
+                )}
                 <input
                   ref={fileInputRef}
                   type="file"

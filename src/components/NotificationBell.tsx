@@ -106,7 +106,7 @@ export const NotificationBell: React.FC = () => {
   const handleNotificationClick = async (notification: Notification) => {
     // Mark as read first
     await handleMarkAsRead(notification.id);
-    
+
     // Navigate based on type and relatedId
     if (notification.relatedId) {
       switch (notification.type) {
@@ -128,7 +128,7 @@ export const NotificationBell: React.FC = () => {
           break;
       }
     }
-    
+
     // Close popover after navigation
     setIsOpen(false);
   };
