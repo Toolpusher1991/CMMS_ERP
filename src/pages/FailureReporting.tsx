@@ -597,8 +597,7 @@ const FailureReportingPage = () => {
                     onClick={() => {
                       setPhotoPreview(null);
                       setPhotoFile(null);
-                      if (fileInputRef.current)
-                        fileInputRef.current.value = "";
+                      if (fileInputRef.current) fileInputRef.current.value = "";
                     }}
                     className="w-full mt-2"
                   >

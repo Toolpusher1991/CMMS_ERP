@@ -153,7 +153,7 @@ function App() {
                 {user.firstName} {user.lastName}
               </span>
               <ErrorButton />
-              <NotificationBell />
+              <NotificationBell onNavigate={setCurrentPage} />
               <ModeToggle />
               <Button
                 onClick={handleLogout}

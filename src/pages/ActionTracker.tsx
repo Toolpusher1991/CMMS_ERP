@@ -126,6 +126,7 @@ interface ApiActionFile {
   filename: string;
   originalName?: string;
   fileType?: string;
+  filePath?: string; // Cloudinary URL
   uploadedAt: string;
   isPhoto?: boolean;
 }

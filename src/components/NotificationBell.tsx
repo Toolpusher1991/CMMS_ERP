@@ -10,20 +10,34 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
 import {
   notificationService,
   type Notification,
   type NotificationsResponse,
 } from "@/services/notification.service";
 
-export const NotificationBell: React.FC = () => {
+interface NotificationBellProps {
+  onNavigate?: (
+    page:
+      | "dashboard"
+      | "projects"
+      | "users"
+      | "workorders"
+      | "actions"
+      | "tender"
+      | "failures"
+      | "debug"
+  ) => void;
+}
+
+export const NotificationBell: React.FC<NotificationBellProps> = ({
+  onNavigate,
+}) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   // Load notifications
   const loadNotifications = async () => {
@@ -107,21 +121,20 @@ export const NotificationBell: React.FC = () => {
     // Mark as read first
     await handleMarkAsRead(notification.id);
 
-    // Navigate based on type and relatedId
-    if (notification.relatedId) {
+    // Navigate based on type and relatedId (if onNavigate callback provided)
+    if (notification.relatedId && onNavigate) {
       switch (notification.type) {
         case "FAILURE_REPORT":
-          navigate("/failure-reporting");
+          onNavigate("failures");
           break;
         case "ACTION_ASSIGNED":
         case "ACTION_COMPLETED":
         case "ACTION_STATUS_REQUEST":
         case "MATERIAL_REQUEST":
-          navigate("/action-tracker");
+          onNavigate("actions");
           break;
         case "COMMENT_MENTION":
-          // Try to navigate to the project if we have the ID
-          navigate("/projects");
+          onNavigate("projects");
           break;
         default:
           // Just mark as read, no navigation
@@ -131,9 +144,7 @@ export const NotificationBell: React.FC = () => {
 
     // Close popover after navigation
     setIsOpen(false);
-  };
-
-  // Format time ago
+  }; // Format time ago
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
