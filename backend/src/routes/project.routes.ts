@@ -7,6 +7,25 @@ const router = Router();
 // Debug endpoint without authentication to check projects count
 router.get('/debug/count', projectController.getProjectsCount);
 
+// Debug endpoint to check JWT configuration
+router.get('/debug/auth', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const hasToken = !!authHeader;
+  const tokenPrefix = authHeader ? authHeader.substring(0, 20) + '...' : 'No token';
+  
+  res.json({
+    success: true,
+    message: 'Auth debug info',
+    data: {
+      hasAuthHeader: hasToken,
+      tokenPrefix: tokenPrefix,
+      jwtSecretConfigured: !!process.env.JWT_SECRET,
+      jwtRefreshSecretConfigured: !!process.env.JWT_REFRESH_SECRET,
+      nodeEnv: process.env.NODE_ENV,
+    }
+  });
+});
+
 // All routes require authentication
 router.use(authenticate);
 
