@@ -315,11 +315,18 @@ export default function AnlagenProjektManagement() {
       setUsers(userResponse.data);
 
       // Map backend projects to frontend format
-      const mappedProjects: Project[] = projectResponse.projects.map(
-        (p: BackendProject) => ({
+      const mappedProjects: Project[] = projectResponse.projects
+        .filter((p: BackendProject) => {
+          if (!p.plant) {
+            console.warn(`⚠️ Project ${p.projectNumber} has no plant field, skipping`);
+            return false;
+          }
+          return true;
+        })
+        .map((p: BackendProject) => ({
           id: p.id,
           name: p.name,
-          anlage: (p.plant || "T208") as Anlage, // Use plant field instead of projectNumber
+          anlage: p.plant as Anlage, // Use plant field - no fallback!
           category: mapBackendCategory(p.category || "MECHANICAL"), // Map backend category to frontend
           status: mapBackendStatus(p.status),
           startDate: p.startDate || "",
@@ -528,7 +535,7 @@ export default function AnlagenProjektManagement() {
         const mappedProject: Project = {
           id: updated.id,
           name: updated.name,
-          anlage: updated.projectNumber as Anlage,
+          anlage: (updated.plant || updated.projectNumber) as Anlage, // Use plant field, fallback to projectNumber
           category: mapBackendCategory(updated.category || "MECHANICAL"),
           status: mapBackendStatus(updated.status),
           startDate: updated.startDate || "",
@@ -587,7 +594,7 @@ export default function AnlagenProjektManagement() {
         const mappedProject: Project = {
           id: created.id,
           name: created.name,
-          anlage: created.projectNumber as Anlage,
+          anlage: (created.plant || created.projectNumber) as Anlage, // Use plant field, fallback to projectNumber
           category: mapBackendCategory(created.category || "MECHANICAL"),
           status: mapBackendStatus(created.status),
           startDate: created.startDate || "",

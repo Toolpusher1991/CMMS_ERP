@@ -725,13 +725,20 @@ const FailureReportingPage = () => {
                                   size="sm"
                                   onClick={async () => {
                                     // If photoPath is a full URL (Cloudinary), use it directly
-                                    if (report.photoPath && (report.photoPath.startsWith('http://') || report.photoPath.startsWith('https://'))) {
-                                      console.log("📷 Using Cloudinary URL:", report.photoPath);
+                                    if (
+                                      report.photoPath &&
+                                      (report.photoPath.startsWith("http://") ||
+                                        report.photoPath.startsWith("https://"))
+                                    ) {
+                                      console.log(
+                                        "📷 Using Cloudinary URL:",
+                                        report.photoPath
+                                      );
                                       setSelectedPhoto(report.photoPath);
                                       setPhotoViewDialogOpen(true);
                                       return;
                                     }
-                                    
+
                                     // Otherwise, try to load via API (old local files)
                                     try {
                                       console.log(

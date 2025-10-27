@@ -1131,13 +1131,27 @@ const ActionTracker = () => {
                                                           );
                                                         if (photoFilename) {
                                                           // If it's a full URL (Cloudinary), use directly
-                                                          if (photoFilename.startsWith('http://') || photoFilename.startsWith('https://')) {
-                                                            console.log("📷 Using Cloudinary URL:", photoFilename);
-                                                            setSelectedPhoto(photoFilename);
-                                                            setPhotoViewDialogOpen(true);
+                                                          if (
+                                                            photoFilename.startsWith(
+                                                              "http://"
+                                                            ) ||
+                                                            photoFilename.startsWith(
+                                                              "https://"
+                                                            )
+                                                          ) {
+                                                            console.log(
+                                                              "📷 Using Cloudinary URL:",
+                                                              photoFilename
+                                                            );
+                                                            setSelectedPhoto(
+                                                              photoFilename
+                                                            );
+                                                            setPhotoViewDialogOpen(
+                                                              true
+                                                            );
                                                             return;
                                                           }
-                                                          
+
                                                           // Otherwise try API route for old local files
                                                           try {
                                                             console.log(
