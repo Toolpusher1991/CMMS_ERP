@@ -1130,51 +1130,17 @@ const ActionTracker = () => {
                                                             action.description
                                                           );
                                                         if (photoFilename) {
-                                                          const getApiUrl =
-                                                            () => {
+                                                          const getApiUrl = () => {
                                                               // Use production API URL or localhost for development
-                                                              let baseUrl;
-                                                              if (
-                                                                import.meta.env
-                                                                  .VITE_API_BASE_URL
-                                                              ) {
-                                                                baseUrl =
-                                                                  import.meta.env.VITE_API_BASE_URL.replace(
-                                                                    "/api",
-                                                                    ""
-                                                                  );
-                                                              } else {
-                                                                baseUrl =
-                                                                  window
-                                                                    .location
-                                                                    .hostname ===
-                                                                  "localhost"
-                                                                    ? "http://localhost:5137"
-                                                                    : "https://cmms-erp-backend.onrender.com";
+                                                              if (import.meta.env.VITE_API_BASE_URL) {
+                                                                return import.meta.env.VITE_API_BASE_URL.replace("/api", "");
                                                               }
-                                                              console.log(
-                                                                "🔧 Action Tracker Photo API Base URL:",
-                                                                baseUrl
-                                                              );
-                                                              console.log(
-                                                                "🌐 Current hostname:",
-                                                                window.location
-                                                                  .hostname
-                                                              );
-                                                              console.log(
-                                                                "📝 VITE_API_BASE_URL:",
-                                                                import.meta.env
-                                                                  .VITE_API_BASE_URL
-                                                              );
-                                                              return baseUrl;
+                                                              return window.location.hostname === "localhost"
+                                                                ? "http://localhost:5137"
+                                                                : "https://cmms-erp-backend.onrender.com";
                                                             };
-                                                          const photoUrl = `${getApiUrl()}/failure-reports/photo/${photoFilename}`;
-                                                          console.log(
-                                                            "📷 Action Tracker Full photo URL:",
-                                                            photoUrl
-                                                          );
                                                           setSelectedPhoto(
-                                                            photoUrl
+                                                            `${getApiUrl()}/failure-reports/photo/${photoFilename}`
                                                           );
                                                           setPhotoViewDialogOpen(
                                                             true
