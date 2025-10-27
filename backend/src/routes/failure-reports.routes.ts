@@ -88,6 +88,12 @@ router.get('/photo/:filename', (req, res) => {
   const filename = req.params.filename;
   const filepath = path.join(uploadsDir, filename);
   
+  // Set CORS headers for image requests
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+  
   if (fs.existsSync(filepath)) {
     res.sendFile(filepath);
   } else {
