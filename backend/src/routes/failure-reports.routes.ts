@@ -83,18 +83,49 @@ router.delete('/:id', authenticateToken, failureReportController.deleteFailureRe
 // CONVERT to action
 router.post('/:id/convert-to-action', authenticateToken, failureReportController.convertToAction);
 
+// Handle OPTIONS requests for photo route
+router.options('/photo/:filename', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.status(200).end();
+});
+
 // Serve uploaded photos
 router.get('/photo/:filename', (req, res) => {
   const filename = req.params.filename;
   const filepath = path.join(uploadsDir, filename);
   
-  // Set CORS headers for image requests
+  // Set comprehensive CORS headers for image requests
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
   res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
   
   if (fs.existsSync(filepath)) {
+    // Set proper content type based on file extension
+    const ext = path.extname(filename).toLowerCase();
+    switch (ext) {
+      case '.jpg':
+      case '.jpeg':
+        res.setHeader('Content-Type', 'image/jpeg');
+        break;
+      case '.png':
+        res.setHeader('Content-Type', 'image/png');
+        break;
+      case '.gif':
+        res.setHeader('Content-Type', 'image/gif');
+        break;
+      case '.webp':
+        res.setHeader('Content-Type', 'image/webp');
+        break;
+      default:
+        res.setHeader('Content-Type', 'image/jpeg');
+    }
+    
     res.sendFile(filepath);
   } else {
     res.status(404).json({ error: 'Photo not found' });
