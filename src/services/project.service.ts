@@ -13,6 +13,7 @@ export interface Project {
   startDate?: string;
   endDate?: string;
   plant?: string; // Add plant field
+  category?: 'MECHANICAL' | 'ELECTRICAL' | 'FACILITY'; // Add category field
   manager?: {
     id: string;
     firstName: string;

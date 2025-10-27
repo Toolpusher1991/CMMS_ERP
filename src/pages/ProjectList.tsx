@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   projectService,
   type Project as BackendProject,
+  type ProjectTask,
 } from "@/services/project.service";
 import { authService } from "@/services/auth.service";
 import { userService } from "@/services/user.service";
@@ -284,6 +285,21 @@ export default function AnlagenProjektManagement() {
     }
   };
 
+  const mapBackendCategory = (
+    backendCategory: "MECHANICAL" | "ELECTRICAL" | "FACILITY"
+  ): Category => {
+    switch (backendCategory) {
+      case "MECHANICAL":
+        return "Mechanisch";
+      case "ELECTRICAL":
+        return "Elektrisch";
+      case "FACILITY":
+        return "Anlage";
+      default:
+        return "Mechanisch";
+    }
+  };
+
   // Load data from backend
   const loadData = async () => {
     try {
@@ -500,7 +516,7 @@ export default function AnlagenProjektManagement() {
           id: updated.id,
           name: updated.name,
           anlage: updated.projectNumber as Anlage,
-          category: formData.category || "Mechanisch",
+          category: mapBackendCategory(updated.category || "MECHANICAL"),
           status: mapBackendStatus(updated.status),
           startDate: updated.startDate || "",
           endDate: updated.endDate || "",
@@ -555,7 +571,7 @@ export default function AnlagenProjektManagement() {
           id: created.id,
           name: created.name,
           anlage: created.projectNumber as Anlage,
-          category: formData.category || "Mechanisch",
+          category: mapBackendCategory(created.category || "MECHANICAL"),
           status: mapBackendStatus(created.status),
           startDate: created.startDate || "",
           endDate: created.endDate || "",
@@ -646,56 +662,132 @@ export default function AnlagenProjektManagement() {
     setIsTaskDialogOpen(true);
   };
 
-  const handleSubmitTask = () => {
+  const handleSubmitTask = async () => {
     if (!selectedProject) return;
 
-    const updatedProjects = projects.map((p) => {
-      if (p.id === selectedProject.id) {
-        let updatedTasks: Task[];
-        if (editingTask) {
-          updatedTasks = p.tasks.map((t) =>
-            t.id === editingTask.id
-              ? ({
-                  ...taskFormData,
-                  id: t.id,
-                  assignedUserId: selectedTaskUserId,
-                } as Task)
-              : t
-          );
-        } else {
-          const newTask: Task = {
-            ...taskFormData,
-            id: Date.now().toString(),
-            createdAt: new Date().toISOString(),
-            assignedUserId: selectedTaskUserId,
-          } as Task;
-          updatedTasks = [...p.tasks, newTask];
-        }
-        return { ...p, tasks: updatedTasks };
+    try {
+      let backendTask: ProjectTask;
+
+      if (editingTask) {
+        // Update existing task in backend
+        backendTask = await projectService.updateTask(
+          selectedProject.id,
+          editingTask.id,
+          {
+            title: taskFormData.title || "",
+            description: taskFormData.description || "",
+            status: taskFormData.completed ? "DONE" : "TODO",
+            assignedTo: selectedTaskUserId || undefined,
+            dueDate: taskFormData.dueDate || undefined,
+          }
+        );
+      } else {
+        // Create new task in backend
+        backendTask = await projectService.createTask(selectedProject.id, {
+          title: taskFormData.title || "",
+          description: taskFormData.description || "",
+          status: taskFormData.completed ? "DONE" : "TODO",
+          assignedTo: selectedTaskUserId || undefined,
+          dueDate: taskFormData.dueDate || undefined,
+        });
       }
-      return p;
-    });
 
-    setProjects(updatedProjects);
-    setIsTaskDialogOpen(false);
+      // Update local state with backend response
+      const updatedProjects = projects.map((p) => {
+        if (p.id === selectedProject.id) {
+          let updatedTasks: Task[];
+          if (editingTask) {
+            updatedTasks = p.tasks.map((t) =>
+              t.id === editingTask.id
+                ? ({
+                    id: backendTask.id,
+                    title: backendTask.title,
+                    description: backendTask.description || "",
+                    completed: backendTask.status === "DONE",
+                    assignedUser: backendTask.assignee
+                      ? `${backendTask.assignee.firstName} ${backendTask.assignee.lastName}`
+                      : taskFormData.assignedUser,
+                    assignedUserId:
+                      backendTask.assignee?.id || selectedTaskUserId,
+                    dueDate: backendTask.dueDate || "",
+                    createdAt: backendTask.createdAt,
+                  } as Task)
+                : t
+            );
+          } else {
+            const newTask: Task = {
+              id: backendTask.id,
+              title: backendTask.title,
+              description: backendTask.description || "",
+              completed: backendTask.status === "DONE",
+              assignedUser: backendTask.assignee
+                ? `${backendTask.assignee.firstName} ${backendTask.assignee.lastName}`
+                : taskFormData.assignedUser,
+              assignedUserId: backendTask.assignee?.id || selectedTaskUserId,
+              dueDate: backendTask.dueDate || "",
+              createdAt: backendTask.createdAt,
+            } as Task;
+            updatedTasks = [...p.tasks, newTask];
+          }
+          return { ...p, tasks: updatedTasks };
+        }
+        return p;
+      });
 
-    toast({
-      title: editingTask ? "Aufgabe aktualisiert" : "Aufgabe erstellt",
-      description: "Die Aufgabe wurde erfolgreich gespeichert.",
-    });
+      setProjects(updatedProjects);
+      setIsTaskDialogOpen(false);
+
+      toast({
+        title: editingTask ? "Aufgabe aktualisiert" : "Aufgabe erstellt",
+        description: "Die Aufgabe wurde erfolgreich gespeichert.",
+      });
+    } catch (error) {
+      console.error("Failed to save task:", error);
+      toast({
+        title: "Fehler",
+        description: "Die Aufgabe konnte nicht gespeichert werden.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleToggleTask = (projectId: string, taskId: string) => {
-    const updatedProjects = projects.map((p) => {
-      if (p.id === projectId) {
-        const updatedTasks = p.tasks.map((t) =>
-          t.id === taskId ? { ...t, completed: !t.completed } : t
-        );
-        return { ...p, tasks: updatedTasks };
-      }
-      return p;
-    });
-    setProjects(updatedProjects);
+  const handleToggleTask = async (projectId: string, taskId: string) => {
+    try {
+      const project = projects.find((p) => p.id === projectId);
+      const task = project?.tasks.find((t) => t.id === taskId);
+
+      if (!task) return;
+
+      // Update task status in backend
+      const updatedBackendTask = await projectService.updateTask(
+        projectId,
+        taskId,
+        {
+          status: task.completed ? "TODO" : "DONE",
+        }
+      );
+
+      // Update local state
+      const updatedProjects = projects.map((p) => {
+        if (p.id === projectId) {
+          const updatedTasks = p.tasks.map((t) =>
+            t.id === taskId
+              ? { ...t, completed: updatedBackendTask.status === "DONE" }
+              : t
+          );
+          return { ...p, tasks: updatedTasks };
+        }
+        return p;
+      });
+      setProjects(updatedProjects);
+    } catch (error) {
+      console.error("Failed to toggle task:", error);
+      toast({
+        title: "Fehler",
+        description: "Der Aufgabenstatus konnte nicht geändert werden.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteTask = (projectId: string, taskId: string) => {
