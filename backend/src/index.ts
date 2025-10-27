@@ -126,6 +126,62 @@ app.get('/api/health/db', async (req, res) => {
   }
 });
 
+// Fix plant fields endpoint - run once to migrate data
+app.post('/api/admin/fix-plant-fields', async (req, res) => {
+  try {
+    console.log('🔧 Starting plant field migration...');
+    
+    const projects = await prisma.project.findMany({
+      select: {
+        id: true,
+        projectNumber: true,
+        plant: true,
+        name: true,
+      },
+    });
+
+    let updatedCount = 0;
+    const updates = [];
+
+    for (const project of projects) {
+      const plantMatch = project.projectNumber.match(/^(T\d+)/);
+      
+      if (plantMatch && plantMatch[1]) {
+        const plant = plantMatch[1];
+        
+        if (project.plant !== plant) {
+          await prisma.project.update({
+            where: { id: project.id },
+            data: { plant },
+          });
+          updatedCount++;
+          updates.push({
+            name: project.name,
+            projectNumber: project.projectNumber,
+            oldPlant: project.plant,
+            newPlant: plant,
+          });
+        }
+      }
+    }
+
+    console.log(`✅ Migration complete: ${updatedCount} projects updated`);
+    
+    res.json({ 
+      success: true, 
+      message: `Updated ${updatedCount} projects`,
+      updates 
+    });
+  } catch (error) {
+    console.error('❌ Migration failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Migration failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Auth routes with strict rate limiting
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
