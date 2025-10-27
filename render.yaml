@@ -30,6 +30,8 @@ services:
         value: info
       - key: OPENAI_API_KEY
         sync: false
+      - key: SENTRY_DSN
+        sync: false
 
 databases:
   - name: cmms-erp-db

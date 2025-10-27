@@ -1360,16 +1360,19 @@ export default function AnlagenProjektManagement() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="taskDueDate">Fälligkeitsdatum</Label>
-                    <Input
-                      id="taskDueDate"
-                      type="date"
-                      value={taskFormData.dueDate}
-                      onChange={(e) =>
+                    <DatePicker
+                      date={
+                        taskFormData.dueDate
+                          ? new Date(taskFormData.dueDate)
+                          : undefined
+                      }
+                      onSelect={(date) =>
                         setTaskFormData({
                           ...taskFormData,
-                          dueDate: e.target.value,
+                          dueDate: date ? date.toISOString().split("T")[0] : "",
                         })
                       }
+                      placeholder="Fälligkeitsdatum wählen"
                     />
                   </div>
                 </div>

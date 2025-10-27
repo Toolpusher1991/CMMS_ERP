@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import path from 'path';
-import { initSentry } from './lib/sentry';
+import { initSentry, captureError } from './lib/sentry';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import userManagementRoutes from './routes/user-management.routes';
@@ -129,10 +129,23 @@ app.use('/api/tender', tenderRoutes); // Tender configuration CRUD (requires pri
 app.use(errorHandler);
 
 // Listen on all network interfaces (0.0.0.0) für Netzwerk-Zugriff
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
   console.log(`🌐 Network: http://0.0.0.0:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+});
+
+// Error handling for server startup
+server.on('error', (error: Error & { code?: string }) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use`);
+    captureError(error, { port: PORT, environment: process.env.NODE_ENV });
+    process.exit(1);
+  } else {
+    console.error('❌ Server error:', error);
+    captureError(error, { port: PORT, environment: process.env.NODE_ENV });
+    process.exit(1);
+  }
 });
 
 export default app;
