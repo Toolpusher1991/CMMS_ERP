@@ -3,51 +3,10 @@ import { PrismaClient } from '@prisma/client';
 import { authenticate as authenticateToken, AuthRequest } from '../middleware/auth.middleware';
 import { filterByAssignedPlant, validatePlantAccess } from '../middleware/plant-access.middleware';
 import { sendStatusRequest } from '../controllers/status-request.controller';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { cloudinaryUpload } from '../lib/cloudinary';
 
 const router = express.Router();
 const prisma = new PrismaClient();
-
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, '../../uploads/actions');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB max file size
-  },
-  fileFilter: (req, file, cb) => {
-    // Allow images and common document types
-    const allowedMimes = [
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'text/plain',
-      'text/csv',
-    ];
 
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
@@ -344,11 +303,11 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
 router.post(
   '/:id/files',
   authenticateToken,
-  upload.array('files', 10), // Max 10 files at once
+  cloudinaryUpload.array('files', 10), // Max 10 files at once
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const files = req.files as Express.Multer.File[];
+      const files = req.files as any[];
 
       if (!files || files.length === 0) {
         return res.status(400).json({ error: 'No files uploaded' });
@@ -359,13 +318,6 @@ router.post(
       });
 
       if (!action) {
-        // Clean up uploaded files
-        files.forEach(file => {
-          const filePath = path.join(uploadsDir, file.filename);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        });
         return res.status(404).json({ error: 'Action not found' });
       }
 
@@ -374,17 +326,17 @@ router.post(
 
       const authReq = req as AuthRequest;
       
-      // Create database records for each file
+      // Create database records for each file (now with Cloudinary URLs)
       const fileRecords = await Promise.all(
         files.map(file =>
           prisma.actionFile.create({
             data: {
               actionId: id,
-              filename: file.filename,
+              filename: file.public_id || file.filename,
               originalName: file.originalname,
               fileType: file.mimetype,
               fileSize: file.size,
-              filePath: `uploads/actions/${file.filename}`,
+              filePath: file.secure_url || file.url || file.path, // Full Cloudinary URL
               isPhoto: isPhoto(file.mimetype),
               uploadedBy: authReq.user?.email || 'Unknown',
             },
