@@ -1138,26 +1138,44 @@ const ActionTracker = () => {
                                                                 import.meta.env
                                                                   .VITE_API_BASE_URL
                                                               ) {
-                                                                baseUrl = import.meta.env.VITE_API_BASE_URL.replace(
-                                                                  "/api",
-                                                                  ""
-                                                                );
+                                                                baseUrl =
+                                                                  import.meta.env.VITE_API_BASE_URL.replace(
+                                                                    "/api",
+                                                                    ""
+                                                                  );
                                                               } else {
-                                                                baseUrl = window
-                                                                  .location
-                                                                  .hostname ===
+                                                                baseUrl =
+                                                                  window
+                                                                    .location
+                                                                    .hostname ===
                                                                   "localhost"
-                                                                  ? "http://localhost:5137"
-                                                                  : "https://cmms-erp-backend.onrender.com";
+                                                                    ? "http://localhost:5137"
+                                                                    : "https://cmms-erp-backend.onrender.com";
                                                               }
-                                                              console.log("🔧 Action Tracker Photo API Base URL:", baseUrl);
-                                                              console.log("🌐 Current hostname:", window.location.hostname);
-                                                              console.log("📝 VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
+                                                              console.log(
+                                                                "🔧 Action Tracker Photo API Base URL:",
+                                                                baseUrl
+                                                              );
+                                                              console.log(
+                                                                "🌐 Current hostname:",
+                                                                window.location
+                                                                  .hostname
+                                                              );
+                                                              console.log(
+                                                                "📝 VITE_API_BASE_URL:",
+                                                                import.meta.env
+                                                                  .VITE_API_BASE_URL
+                                                              );
                                                               return baseUrl;
                                                             };
                                                           const photoUrl = `${getApiUrl()}/failure-reports/photo/${photoFilename}`;
-                                                          console.log("📷 Action Tracker Full photo URL:", photoUrl);
-                                                          setSelectedPhoto(photoUrl);
+                                                          console.log(
+                                                            "📷 Action Tracker Full photo URL:",
+                                                            photoUrl
+                                                          );
+                                                          setSelectedPhoto(
+                                                            photoUrl
+                                                          );
                                                           setPhotoViewDialogOpen(
                                                             true
                                                           );

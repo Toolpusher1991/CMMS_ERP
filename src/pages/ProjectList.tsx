@@ -270,6 +270,8 @@ export default function AnlagenProjektManagement() {
   };
 
   // Note: Backend doesn't support category field yet, so we use frontend values
+  // Mapping functions temporarily commented out until backend supports category field
+  /*
   const mapFrontendCategory = (
     category: Category
   ): "MECHANICAL" | "ELECTRICAL" | "FACILITY" => {
@@ -299,6 +301,7 @@ export default function AnlagenProjektManagement() {
         return "Mechanisch";
     }
   };
+  */
 
   // Load data from backend
   const loadData = async () => {
