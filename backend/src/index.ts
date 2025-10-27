@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import path from 'path';
+import { PrismaClient } from '@prisma/client';
 import { initSentry, captureError } from './lib/sentry';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
@@ -28,6 +29,7 @@ initSentry();
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '5137', 10);
+const prisma = new PrismaClient();
 
 // Trust proxy - wichtig für Render.com (hinter Reverse Proxy)
 app.set('trust proxy', 1);
@@ -104,6 +106,24 @@ app.use('/api/', apiLimiter);
 // Routes
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'API is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+app.get('/api/health/db', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ connected: true, message: 'Database connection OK' });
+  } catch {
+    res.status(500).json({ connected: false, message: 'Database connection failed' });
+  }
 });
 
 // Auth routes with strict rate limiting

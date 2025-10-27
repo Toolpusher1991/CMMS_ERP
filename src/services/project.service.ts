@@ -57,12 +57,7 @@ export interface ProjectTask {
   description?: string;
   status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
   priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
-  assignedTo?: string;
-  assignee?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-  };
+  assignedTo?: string; // Simple string field, no relation
   dueDate?: string;
   completedAt?: string;
   createdAt: string;

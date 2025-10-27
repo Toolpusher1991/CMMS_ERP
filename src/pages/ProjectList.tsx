@@ -320,7 +320,7 @@ export default function AnlagenProjektManagement() {
           id: p.id,
           name: p.name,
           anlage: (p.plant || "T208") as Anlage, // Use plant field instead of projectNumber
-          category: "Mechanisch" as Category, // Default category since backend doesn't have this field
+          category: mapBackendCategory(p.category || "MECHANICAL"), // Map backend category to frontend
           status: mapBackendStatus(p.status),
           startDate: p.startDate || "",
           endDate: p.endDate || "",
@@ -332,7 +332,16 @@ export default function AnlagenProjektManagement() {
           assignedUserId: p.manager?.id,
           progress: p.progress,
           notes: "", // Default empty notes since backend doesn't have this field
-          tasks: [], // Tasks will be managed separately via backend API
+          tasks: (p.tasks || []).map((t: ProjectTask) => ({
+            id: t.id,
+            title: t.title,
+            description: t.description || "",
+            completed: t.status === "DONE",
+            assignedUser: t.assignedTo || "", // Use assignedTo string field directly
+            assignedUserId: t.assignedTo || "", // Use assignedTo as ID fallback
+            dueDate: t.dueDate || "",
+            createdAt: t.createdAt,
+          })), // Map backend tasks to frontend format
           files: [], // Files will be managed separately via file service
         })
       );

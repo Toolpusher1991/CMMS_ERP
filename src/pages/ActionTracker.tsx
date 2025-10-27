@@ -1124,37 +1124,83 @@ const ActionTracker = () => {
                                                       variant="outline"
                                                       size="sm"
                                                       className="mt-3"
-                                                      onClick={() => {
+                                                      onClick={async () => {
                                                         const photoFilename =
                                                           extractPhotoFromDescription(
                                                             action.description
                                                           );
                                                         if (photoFilename) {
-                                                          const getApiUrl =
-                                                            () => {
-                                                              // Use production API URL or localhost for development
-                                                              if (
-                                                                import.meta.env
-                                                                  .VITE_API_BASE_URL
-                                                              ) {
-                                                                return import.meta.env.VITE_API_BASE_URL.replace(
-                                                                  "/api",
-                                                                  ""
-                                                                );
-                                                              }
-                                                              return window
-                                                                .location
-                                                                .hostname ===
-                                                                "localhost"
-                                                                ? "http://localhost:5137"
-                                                                : "https://cmms-erp-backend.onrender.com";
-                                                            };
-                                                          setSelectedPhoto(
-                                                            `${getApiUrl()}/failure-reports/photo/${photoFilename}`
-                                                          );
-                                                          setPhotoViewDialogOpen(
-                                                            true
-                                                          );
+                                                          try {
+                                                            console.log(
+                                                              "📷 Loading photo via API:",
+                                                              photoFilename
+                                                            );
+                                                            // Use API client with blob response type
+                                                            const blob =
+                                                              await apiClient.request<Blob>(
+                                                                `/failure-reports/photo/${photoFilename}`,
+                                                                {
+                                                                  responseType:
+                                                                    "blob",
+                                                                }
+                                                              );
+
+                                                            // Create blob URL for image display
+                                                            const photoUrl =
+                                                              URL.createObjectURL(
+                                                                blob
+                                                              );
+
+                                                            console.log(
+                                                              "✅ Photo loaded successfully via API"
+                                                            );
+                                                            setSelectedPhoto(
+                                                              photoUrl
+                                                            );
+                                                            setPhotoViewDialogOpen(
+                                                              true
+                                                            );
+
+                                                            // Clean up blob URL after use
+                                                            setTimeout(
+                                                              () =>
+                                                                URL.revokeObjectURL(
+                                                                  photoUrl
+                                                                ),
+                                                              10000
+                                                            );
+                                                          } catch (error) {
+                                                            console.error(
+                                                              "❌ Error loading photo via API:",
+                                                              error
+                                                            );
+                                                            // Fallback to direct URL
+                                                            const getApiUrl =
+                                                              () => {
+                                                                if (
+                                                                  import.meta
+                                                                    .env
+                                                                    .VITE_API_BASE_URL
+                                                                ) {
+                                                                  return import.meta.env.VITE_API_BASE_URL.replace(
+                                                                    "/api",
+                                                                    ""
+                                                                  );
+                                                                }
+                                                                return window
+                                                                  .location
+                                                                  .hostname ===
+                                                                  "localhost"
+                                                                  ? "http://localhost:5137"
+                                                                  : "https://cmms-erp-backend.onrender.com";
+                                                              };
+                                                            setSelectedPhoto(
+                                                              `${getApiUrl()}/failure-reports/photo/${photoFilename}`
+                                                            );
+                                                            setPhotoViewDialogOpen(
+                                                              true
+                                                            );
+                                                          }
                                                         }
                                                       }}
                                                     >

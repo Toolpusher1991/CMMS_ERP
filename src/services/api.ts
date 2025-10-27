@@ -92,23 +92,24 @@ class ApiClient {
 
   async request<T>(
     endpoint: string,
-    options: RequestInit = {},
+    options: RequestInit & { responseType?: 'json' | 'blob' | 'text' } = {},
     isRetry = false
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const { responseType = 'json', ...fetchOptions } = options;
     
     // Check if body is FormData to skip Content-Type header
-    const isFormData = options.body instanceof FormData;
-    const skipContentType = isFormData || options.headers && 'Content-Type' in options.headers;
+    const isFormData = fetchOptions.body instanceof FormData;
+    const skipContentType = isFormData || fetchOptions.headers && 'Content-Type' in fetchOptions.headers;
     
     const headers = {
       ...this.getAuthHeader(skipContentType),
-      ...options.headers,
+      ...fetchOptions.headers,
     };
 
     try {
       const response = await fetch(url, {
-        ...options,
+        ...fetchOptions,
         headers,
       });
 
@@ -122,14 +123,14 @@ class ApiClient {
           if (newToken) {
             this.onTokenRefreshed(newToken);
             // Retry the original request with new token
-            return this.request<T>(endpoint, options, true);
+            return this.request<T>(endpoint, { ...options, responseType }, true);
           }
         } else {
           // Wait for token refresh to complete
           return new Promise((resolve, reject) => {
             this.addRefreshSubscriber((token: string) => {
               if (token) {
-                this.request<T>(endpoint, options, true)
+                this.request<T>(endpoint, { ...options, responseType }, true)
                   .then(resolve)
                   .catch(reject);
               } else {
@@ -141,11 +142,25 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
+        let error: { message?: string } = {};
+        try {
+          error = await response.json();
+        } catch {
+          error = { message: `HTTP error! status: ${response.status}` };
+        }
         throw new Error(error.message || `HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      // Handle different response types
+      switch (responseType) {
+        case 'blob':
+          return await response.blob() as T;
+        case 'text':
+          return await response.text() as T;
+        case 'json':
+        default:
+          return await response.json();
+      }
     } catch (error) {
       console.error('API Request failed:', error);
       throw error;

@@ -124,6 +124,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       endDate,
       managerId,
       plant,
+      category,
     } = req.body;
 
     if (!projectNumber || !name) {
@@ -152,6 +153,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
         priority: priority || 'NORMAL',
         progress: progress || 0,
         plant,
+        category: category || 'MECHANICAL',
         totalBudget: totalBudget || 0,
         spentBudget: spentBudget || 0,
         startDate: startDate ? new Date(startDate) : undefined,
@@ -227,6 +229,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       startDate,
       endDate,
       managerId,
+      category,
     } = req.body;
 
     const user = req.user;
@@ -265,6 +268,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
         ...(startDate && { startDate: new Date(startDate) }),
         ...(endDate && { endDate: new Date(endDate) }),
         ...(managerId !== undefined && { managerId }),
+        ...(category && { category }),
       },
       include: {
         manager: {

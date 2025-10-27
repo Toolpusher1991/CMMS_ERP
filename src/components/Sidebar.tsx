@@ -9,6 +9,7 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
+  Terminal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,8 @@ type AppPage =
   | "workorders"
   | "actions"
   | "tender"
-  | "failures";
+  | "failures"
+  | "debug";
 
 interface NavItem {
   title: string;
@@ -35,6 +37,7 @@ const navItems: NavItem[] = [
   { title: "Action Tracker", page: "actions", icon: ListTodo },
   { title: "Bohranlagen", page: "tender", icon: Building2 },
   { title: "Störungsmeldung", page: "failures", icon: AlertTriangle },
+  { title: "System Debug", page: "debug", icon: Terminal },
   { title: "Benutzerverwaltung", page: "users", icon: Users },
 ];
 

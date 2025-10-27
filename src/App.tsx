@@ -9,6 +9,7 @@ import WorkOrderManagement from "@/pages/WorkOrderManagement";
 import ActionTracker from "@/pages/ActionTracker";
 import RigConfigurator from "@/pages/RigConfigurator";
 import FailureReporting from "@/pages/FailureReporting";
+import SystemDebug from "@/pages/SystemDebug";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -44,7 +45,8 @@ type AppPage =
   | "workorders"
   | "actions"
   | "tender"
-  | "failures";
+  | "failures"
+  | "debug";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -172,6 +174,7 @@ function App() {
                 {currentPage === "actions" && <ActionTracker />}
                 {currentPage === "failures" && <FailureReporting />}
                 {currentPage === "tender" && <RigConfigurator />}
+                {currentPage === "debug" && <SystemDebug />}
                 {currentPage === "users" && user.role === "ADMIN" && (
                   <EnhancedUserAdminPage />
                 )}
