@@ -721,11 +721,8 @@ export default function AnlagenProjektManagement() {
                     title: backendTask.title,
                     description: backendTask.description || "",
                     completed: backendTask.status === "DONE",
-                    assignedUser: backendTask.assignee
-                      ? `${backendTask.assignee.firstName} ${backendTask.assignee.lastName}`
-                      : taskFormData.assignedUser,
-                    assignedUserId:
-                      backendTask.assignee?.id || selectedTaskUserId,
+                    assignedUser: backendTask.assignedTo || taskFormData.assignedUser || "",
+                    assignedUserId: backendTask.assignedTo || selectedTaskUserId || "",
                     dueDate: backendTask.dueDate || "",
                     createdAt: backendTask.createdAt,
                   } as Task)
@@ -737,10 +734,8 @@ export default function AnlagenProjektManagement() {
               title: backendTask.title,
               description: backendTask.description || "",
               completed: backendTask.status === "DONE",
-              assignedUser: backendTask.assignee
-                ? `${backendTask.assignee.firstName} ${backendTask.assignee.lastName}`
-                : taskFormData.assignedUser,
-              assignedUserId: backendTask.assignee?.id || selectedTaskUserId,
+              assignedUser: backendTask.assignedTo || taskFormData.assignedUser || "",
+              assignedUserId: backendTask.assignedTo || selectedTaskUserId || "",
               dueDate: backendTask.dueDate || "",
               createdAt: backendTask.createdAt,
             } as Task;
