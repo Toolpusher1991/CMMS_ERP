@@ -1,51 +1,9 @@
 import express from 'express';
 import { authenticate as authenticateToken } from '../middleware/auth.middleware';
 import * as failureReportController from '../controllers/failure-report.controller';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { cloudinaryUpload } from '../lib/cloudinary';
 
 const router = express.Router();
-
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, '../../uploads/failure-reports');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Configure multer for photo uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB max file size
-  },
-  fileFilter: (req, file, cb) => {
-    // Allow only images
-    const allowedMimes = [
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-    ];
-
-    if (allowedMimes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only images are allowed.'));
-    }
-  }
-});
 
 // GET all failure reports
 router.get('/', authenticateToken, failureReportController.getFailureReports);
@@ -57,13 +15,14 @@ router.get('/:id', authenticateToken, failureReportController.getFailureReportBy
 router.post(
   '/',
   authenticateToken,
-  upload.single('photo'),
+  cloudinaryUpload.single('photo'),
   async (req, res) => {
     try {
-      // Add photo info to request body if photo was uploaded
+      // Add photo info to request body if photo was uploaded to Cloudinary
       if (req.file) {
-        req.body.photoFilename = req.file.filename;
-        req.body.photoPath = `/uploads/failure-reports/${req.file.filename}`;
+        const cloudinaryFile = req.file as any;
+        req.body.photoFilename = cloudinaryFile.filename || cloudinaryFile.originalname;
+        req.body.photoPath = cloudinaryFile.path; // Cloudinary URL
       }
       
       await failureReportController.createFailureReport(req as any, res);
@@ -83,52 +42,25 @@ router.delete('/:id', authenticateToken, failureReportController.deleteFailureRe
 // CONVERT to action
 router.post('/:id/convert-to-action', authenticateToken, failureReportController.convertToAction);
 
-// Handle OPTIONS requests for photo route
-router.options('/photo/:filename', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.status(200).end();
-});
-
-// Serve uploaded photos
-router.get('/photo/:filename', (req, res) => {
-  const filename = req.params.filename;
-  const filepath = path.join(uploadsDir, filename);
-  
-  // Set comprehensive CORS headers for image requests
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
-  res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
-  
-  if (fs.existsSync(filepath)) {
-    // Set proper content type based on file extension
-    const ext = path.extname(filename).toLowerCase();
-    switch (ext) {
-      case '.jpg':
-      case '.jpeg':
-        res.setHeader('Content-Type', 'image/jpeg');
-        break;
-      case '.png':
-        res.setHeader('Content-Type', 'image/png');
-        break;
-      case '.gif':
-        res.setHeader('Content-Type', 'image/gif');
-        break;
-      case '.webp':
-        res.setHeader('Content-Type', 'image/webp');
-        break;
-      default:
-        res.setHeader('Content-Type', 'image/jpeg');
+// Serve uploaded photos - Redirect to Cloudinary or return 404
+router.get('/photo/:filename', async (req, res) => {
+  try {
+    // For Cloudinary images, redirect to the actual URL
+    // The photoPath should be stored as full Cloudinary URL in database
+    const { filename } = req.params;
+    
+    // If it's a Cloudinary URL pattern, redirect
+    if (filename.includes('cloudinary')) {
+      return res.redirect(filename);
     }
     
-    res.sendFile(filepath);
-  } else {
-    res.status(404).json({ error: 'Photo not found' });
+    // Otherwise, return 404 (old local files are gone)
+    res.status(404).json({ 
+      error: 'Photo not found',
+      message: 'This photo was uploaded before Cloudinary migration. Please re-upload.'
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load photo' });
   }
 });
 
