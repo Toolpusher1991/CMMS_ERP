@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { apiClient } from "@/services/api";
+import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
 import "./FailureReporting.mobile.css";
 import {
@@ -99,6 +100,22 @@ const FailureReportingPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isMounted, setIsMounted] = useState(true);
 
+  // Get available plants based on current user
+  const getAvailablePlants = () => {
+    const currentUser = authService.getCurrentUser();
+    const allPlants = ["T208", "T207", "T700", "T46"];
+    
+    // If user has assigned plant and is not admin/manager, only show their plant
+    if (currentUser?.assignedPlant && 
+        currentUser.role !== 'ADMIN' && 
+        currentUser.role !== 'MANAGER') {
+      return [currentUser.assignedPlant];
+    }
+    
+    // Show all plants for admins/managers or users without plant assignment
+    return allPlants;
+  };
+
   const [currentReport, setCurrentReport] = useState<Partial<FailureReport>>({
     plant: "T208",
     title: "",
@@ -128,6 +145,12 @@ const FailureReportingPage = () => {
     setIsMounted(true);
     loadReports();
     loadUsers();
+    
+    // Set initial active tab to user's first available plant
+    const availablePlants = getAvailablePlants();
+    if (availablePlants.length > 0) {
+      setActiveTab(availablePlants[0]);
+    }
 
     return () => {
       setIsMounted(false);
@@ -436,18 +459,19 @@ const FailureReportingPage = () => {
                   <Label htmlFor="plant">Anlage *</Label>
                   <Select
                     value={currentReport.plant}
-                    onValueChange={(value: "T208" | "T207" | "T700" | "T46") =>
-                      setCurrentReport({ ...currentReport, plant: value })
+                    onValueChange={(value: string) =>
+                      setCurrentReport({ ...currentReport, plant: value as "T208" | "T207" | "T700" | "T46" })
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Anlage wählen" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="T208">T208</SelectItem>
-                      <SelectItem value="T207">T207</SelectItem>
-                      <SelectItem value="T700">T700</SelectItem>
-                      <SelectItem value="T46">T46</SelectItem>
+                      {getAvailablePlants().map(plant => (
+                        <SelectItem key={plant} value={plant}>
+                          {plant}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -610,14 +634,13 @@ const FailureReportingPage = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="T208">T208</TabsTrigger>
-              <TabsTrigger value="T207">T207</TabsTrigger>
-              <TabsTrigger value="T700">T700</TabsTrigger>
-              <TabsTrigger value="T46">T46</TabsTrigger>
+            <TabsList className={`grid w-full grid-cols-${getAvailablePlants().length}`}>
+              {getAvailablePlants().map(plant => (
+                <TabsTrigger key={plant} value={plant}>{plant}</TabsTrigger>
+              ))}
             </TabsList>
 
-            {["T208", "T207", "T700", "T46"].map((plant) => (
+            {getAvailablePlants().map((plant) => (
               <TabsContent key={plant} value={plant}>
                 <div className="rounded-md border">
                   <Table>
@@ -693,8 +716,11 @@ const FailureReportingPage = () => {
                                   size="sm"
                                   onClick={() => {
                                     const getApiUrl = () => {
-                                      // Force localhost in development für CORS
-                                      return "http://localhost:5137";
+                                      // Use production API URL or localhost for development
+                                      return import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 
+                                             window.location.hostname === 'localhost' ? 
+                                             "http://localhost:5137" : 
+                                             "https://cmms-erp-backend.onrender.com";
                                     };
                                     setSelectedPhoto(
                                       `${getApiUrl()}/failure-reports/photo/${
@@ -775,18 +801,19 @@ const FailureReportingPage = () => {
                 <Label htmlFor="plant">Anlage *</Label>
                 <Select
                   value={currentReport.plant}
-                  onValueChange={(value: "T208" | "T207" | "T700" | "T46") =>
-                    setCurrentReport({ ...currentReport, plant: value })
+                  onValueChange={(value: string) =>
+                    setCurrentReport({ ...currentReport, plant: value as "T208" | "T207" | "T700" | "T46" })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Anlage wählen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="T208">T208</SelectItem>
-                    <SelectItem value="T207">T207</SelectItem>
-                    <SelectItem value="T700">T700</SelectItem>
-                    <SelectItem value="T46">T46</SelectItem>
+                    {getAvailablePlants().map(plant => (
+                      <SelectItem key={plant} value={plant}>
+                        {plant}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

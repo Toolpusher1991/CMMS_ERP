@@ -280,6 +280,7 @@ const ActionTracker = () => {
       setUsers(response);
 
       // Alle User laden für Multi-User Assignment
+      const currentUser = authService.getCurrentUser();
       const allUsers = response.map((user) => ({
         id: user.id,
         firstName: user.firstName,
@@ -289,8 +290,18 @@ const ActionTracker = () => {
         plant: user.assignedPlant || "",
       }));
 
-      console.log("Loaded users:", allUsers); // Debug log
-      setAvailableUsers(allUsers);
+      // Filter users by current user's plant (unless admin/manager)
+      const filteredUsers = currentUser?.assignedPlant && 
+                           currentUser.role !== 'ADMIN' && 
+                           currentUser.role !== 'MANAGER' 
+        ? allUsers.filter(user => 
+            !user.plant || // Users without plant assignment (admins/managers)
+            user.plant === currentUser.assignedPlant // Same plant users
+          )
+        : allUsers; // Show all users for admins/managers
+
+      console.log("Loaded users:", filteredUsers); // Debug log
+      setAvailableUsers(filteredUsers);
     } catch (error) {
       console.error("Fehler beim Laden der User:", error);
     }
