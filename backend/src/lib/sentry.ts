@@ -14,14 +14,27 @@ export function initSentry() {
     environment,
     // Performance Monitoring
     tracesSampleRate: environment === 'production' ? 0.1 : 1.0,
-    // Error filtering - don't send validation errors to Sentry
+    // Error filtering - be more permissive in production to catch all issues
     beforeSend(event) {
-      // Skip validation errors (400 status codes)
+      // In production, log all errors to Sentry for debugging
+      if (environment === 'production') {
+        console.log('📤 Sending error to Sentry:', event.exception?.values?.[0]?.value);
+        return event; // Send all errors in production
+      }
+      
+      // In development, skip only validation errors (400 status codes)
       if (event.tags?.status === '400') {
         return null;
       }
       return event;
     },
+    // Add more context
+    initialScope: {
+      tags: {
+        service: 'backend',
+        component: 'api'
+      }
+    }
   });
 
   console.log(`✅ Sentry initialized for ${environment}`);

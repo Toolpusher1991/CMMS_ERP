@@ -14,9 +14,22 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     
     // Error Filtering
     beforeSend(event) {
-      // Filter out known development errors
+      // In production, be more permissive and send more errors for debugging
+      if (import.meta.env.PROD) {
+        console.log("📤 Sending production error to Sentry:", event.exception?.values?.[0]?.value);
+        
+        // Only filter out expected errors in production
+        if (event.exception?.values?.[0]?.value?.includes("Authentication failed") ||
+            event.exception?.values?.[0]?.value?.includes("Network Error")) {
+          return null;
+        }
+        
+        return event;
+      }
+      
+      // In development, log and be more selective
       if (import.meta.env.DEV) {
-        console.log("📤 Sentry Event:", event);
+        console.log("📤 Dev Sentry Event:", event);
       }
       
       // Don't send 401 authentication errors to Sentry (expected behavior)

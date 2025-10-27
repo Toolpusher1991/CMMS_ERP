@@ -9,6 +9,7 @@ import { fileService } from "@/services/file.service";
 import type { User } from "@/services/auth.service";
 import type { Comment } from "@/components/CommentSection";
 import { CommentSection } from "@/components/CommentSection";
+import * as Sentry from "@sentry/react";
 import {
   getProjectComments,
   createProjectComment,
@@ -529,7 +530,7 @@ export default function AnlagenProjektManagement() {
         const baseNumber = formData.anlage || selectedAnlage;
         const timestamp = Date.now().toString();
         const uniqueProjectNumber = `${baseNumber}-${timestamp}`;
-        
+
         const createData = {
           projectNumber: uniqueProjectNumber,
           name: formData.name || "",
@@ -580,6 +581,20 @@ export default function AnlagenProjektManagement() {
       setIsDialogOpen(false);
     } catch (err) {
       console.error("Failed to save project:", err);
+
+      // Report to Sentry for production debugging
+      Sentry.captureException(err, {
+        tags: {
+          component: "ProjectList",
+          operation: editingProject ? "updateProject" : "createProject",
+        },
+        extra: {
+          formData,
+          selectedUserId,
+          selectedAnlage,
+          editingProject: !!editingProject,
+        },
+      });
 
       toast({
         title: "Fehler",

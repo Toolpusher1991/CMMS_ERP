@@ -179,12 +179,33 @@ export const createProject = async (req: AuthRequest, res: Response) => {
     res.status(201).json({ success: true, data: project });
   } catch (error) {
     console.error('Create project error:', error);
+    
+    // Import Sentry for error reporting
+    const { captureError } = await import('../lib/sentry');
+    
     if ((error as {code?: string}).code === 'P2002') {
+      // Report duplicate project number issue to Sentry
+      captureError(new Error(`Duplicate project number attempted: ${req.body.projectNumber}`), {
+        projectNumber: req.body.projectNumber,
+        userId: req.user?.id,
+        userEmail: req.user?.email,
+        requestBody: req.body
+      });
+      
       return res.status(400).json({ 
         success: false, 
         message: 'Project number already exists' 
       });
     }
+    
+    // Report other project creation errors
+    captureError(error as Error, {
+      operation: 'createProject',
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      requestBody: req.body
+    });
+    
     res.status(500).json({ success: false, message: 'Failed to create project' });
   }
 };
