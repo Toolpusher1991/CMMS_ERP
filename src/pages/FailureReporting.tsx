@@ -54,6 +54,7 @@ import {
   AlertTriangle,
   Plus,
   Camera,
+  Image as ImageIcon,
   Trash2,
   ArrowRight,
   X,
@@ -554,16 +555,35 @@ const FailureReportingPage = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Foto aufnehmen</Label>
+                <Label>Foto hinzufügen</Label>
                 <div className="flex gap-2">
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.setAttribute('capture', 'environment');
+                        fileInputRef.current.click();
+                      }
+                    }}
+                    className="flex-1"
                   >
                     <Camera className="h-4 w-4 mr-2" />
-                    {photoPreview ? "Foto ändern" : "Foto aufnehmen"}
+                    Kamera
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.removeAttribute('capture');
+                        fileInputRef.current.click();
+                      }
+                    }}
+                    className="flex-1"
+                  >
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Galerie
                   </Button>
                   {photoPreview && (
                     <Button
@@ -585,7 +605,6 @@ const FailureReportingPage = () => {
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  capture="environment"
                   onChange={handlePhotoCapture}
                   className="hidden"
                 />

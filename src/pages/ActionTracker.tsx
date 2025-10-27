@@ -213,9 +213,7 @@ const ActionTracker = () => {
 
   // Extrahiere Foto-Dateinamen oder URL aus Beschreibung (von Failure Reports)
   const extractPhotoFromDescription = (description: string): string | null => {
-    const match = description.match(
-      /📸 Photo: (.+?)(?:\n|$)/i
-    );
+    const match = description.match(/📸 Photo: (.+?)(?:\n|$)/i);
     return match ? match[1].trim() : null;
   };
 
