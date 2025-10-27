@@ -21,8 +21,10 @@ router.post(
       // Add photo info to request body if photo was uploaded to Cloudinary
       if (req.file) {
         const cloudinaryFile = req.file as any;
-        req.body.photoFilename = cloudinaryFile.filename || cloudinaryFile.originalname;
-        req.body.photoPath = cloudinaryFile.path; // Cloudinary URL
+        // Store the public_id as filename for reference
+        req.body.photoFilename = cloudinaryFile.public_id || cloudinaryFile.filename;
+        // Store the full Cloudinary URL
+        req.body.photoPath = cloudinaryFile.secure_url || cloudinaryFile.url || cloudinaryFile.path;
       }
       
       await failureReportController.createFailureReport(req as any, res);
