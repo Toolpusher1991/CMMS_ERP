@@ -104,14 +104,16 @@ const FailureReportingPage = () => {
   const getAvailablePlants = () => {
     const currentUser = authService.getCurrentUser();
     const allPlants = ["T208", "T207", "T700", "T46"];
-    
+
     // If user has assigned plant and is not admin/manager, only show their plant
-    if (currentUser?.assignedPlant && 
-        currentUser.role !== 'ADMIN' && 
-        currentUser.role !== 'MANAGER') {
+    if (
+      currentUser?.assignedPlant &&
+      currentUser.role !== "ADMIN" &&
+      currentUser.role !== "MANAGER"
+    ) {
       return [currentUser.assignedPlant];
     }
-    
+
     // Show all plants for admins/managers or users without plant assignment
     return allPlants;
   };
@@ -145,7 +147,7 @@ const FailureReportingPage = () => {
     setIsMounted(true);
     loadReports();
     loadUsers();
-    
+
     // Set initial active tab to user's first available plant
     const availablePlants = getAvailablePlants();
     if (availablePlants.length > 0) {
@@ -460,14 +462,17 @@ const FailureReportingPage = () => {
                   <Select
                     value={currentReport.plant}
                     onValueChange={(value: string) =>
-                      setCurrentReport({ ...currentReport, plant: value as "T208" | "T207" | "T700" | "T46" })
+                      setCurrentReport({
+                        ...currentReport,
+                        plant: value as "T208" | "T207" | "T700" | "T46",
+                      })
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Anlage wählen" />
                     </SelectTrigger>
                     <SelectContent>
-                      {getAvailablePlants().map(plant => (
+                      {getAvailablePlants().map((plant) => (
                         <SelectItem key={plant} value={plant}>
                           {plant}
                         </SelectItem>
@@ -634,9 +639,13 @@ const FailureReportingPage = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className={`grid w-full grid-cols-${getAvailablePlants().length}`}>
-              {getAvailablePlants().map(plant => (
-                <TabsTrigger key={plant} value={plant}>{plant}</TabsTrigger>
+            <TabsList
+              className={`grid w-full grid-cols-${getAvailablePlants().length}`}
+            >
+              {getAvailablePlants().map((plant) => (
+                <TabsTrigger key={plant} value={plant}>
+                  {plant}
+                </TabsTrigger>
               ))}
             </TabsList>
 
@@ -717,10 +726,12 @@ const FailureReportingPage = () => {
                                   onClick={() => {
                                     const getApiUrl = () => {
                                       // Use production API URL or localhost for development
-                                      return import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 
-                                             window.location.hostname === 'localhost' ? 
-                                             "http://localhost:5137" : 
-                                             "https://cmms-erp-backend.onrender.com";
+                                      if (import.meta.env.VITE_API_BASE_URL) {
+                                        return import.meta.env.VITE_API_BASE_URL.replace("/api", "");
+                                      }
+                                      return window.location.hostname === "localhost"
+                                        ? "http://localhost:5137"
+                                        : "https://cmms-erp-backend.onrender.com";
                                     };
                                     setSelectedPhoto(
                                       `${getApiUrl()}/failure-reports/photo/${
@@ -802,14 +813,17 @@ const FailureReportingPage = () => {
                 <Select
                   value={currentReport.plant}
                   onValueChange={(value: string) =>
-                    setCurrentReport({ ...currentReport, plant: value as "T208" | "T207" | "T700" | "T46" })
+                    setCurrentReport({
+                      ...currentReport,
+                      plant: value as "T208" | "T207" | "T700" | "T46",
+                    })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Anlage wählen" />
                   </SelectTrigger>
                   <SelectContent>
-                    {getAvailablePlants().map(plant => (
+                    {getAvailablePlants().map((plant) => (
                       <SelectItem key={plant} value={plant}>
                         {plant}
                       </SelectItem>

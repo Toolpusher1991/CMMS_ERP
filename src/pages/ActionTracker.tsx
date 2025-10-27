@@ -291,14 +291,16 @@ const ActionTracker = () => {
       }));
 
       // Filter users by current user's plant (unless admin/manager)
-      const filteredUsers = currentUser?.assignedPlant && 
-                           currentUser.role !== 'ADMIN' && 
-                           currentUser.role !== 'MANAGER' 
-        ? allUsers.filter(user => 
-            !user.plant || // Users without plant assignment (admins/managers)
-            user.plant === currentUser.assignedPlant // Same plant users
-          )
-        : allUsers; // Show all users for admins/managers
+      const filteredUsers =
+        currentUser?.assignedPlant &&
+        currentUser.role !== "ADMIN" &&
+        currentUser.role !== "MANAGER"
+          ? allUsers.filter(
+              (user) =>
+                !user.plant || // Users without plant assignment (admins/managers)
+                user.plant === currentUser.assignedPlant // Same plant users
+            )
+          : allUsers; // Show all users for admins/managers
 
       console.log("Loaded users:", filteredUsers); // Debug log
       setAvailableUsers(filteredUsers);
@@ -1130,8 +1132,13 @@ const ActionTracker = () => {
                                                         if (photoFilename) {
                                                           const getApiUrl =
                                                             () => {
-                                                              // Force localhost in development für CORS
-                                                              return "http://localhost:5137";
+                                                              // Use production API URL or localhost for development
+                                                              if (import.meta.env.VITE_API_BASE_URL) {
+                                                                return import.meta.env.VITE_API_BASE_URL.replace("/api", "");
+                                                              }
+                                                              return window.location.hostname === "localhost"
+                                                                ? "http://localhost:5137"
+                                                                : "https://cmms-erp-backend.onrender.com";
                                                             };
                                                           setSelectedPhoto(
                                                             `${getApiUrl()}/failure-reports/photo/${photoFilename}`
