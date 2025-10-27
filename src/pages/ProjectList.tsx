@@ -319,7 +319,9 @@ export default function AnlagenProjektManagement() {
         (p: BackendProject) => ({
           id: p.id,
           name: p.name,
-          anlage: (p.plant || p.projectNumber.match(/^(T\d+)/)?.[1] || "T208") as Anlage, // Use plant field or extract from projectNumber
+          anlage: (p.plant ||
+            p.projectNumber.match(/^(T\d+)/)?.[1] ||
+            "T208") as Anlage, // Use plant field or extract from projectNumber
           category: mapBackendCategory(p.category || "MECHANICAL"), // Map backend category to frontend
           status: mapBackendStatus(p.status),
           startDate: p.startDate || "",

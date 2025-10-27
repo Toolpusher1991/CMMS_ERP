@@ -335,7 +335,11 @@ const ActionTracker = () => {
           id: file.id,
           name: file.originalName || file.filename,
           type: file.fileType || "application/octet-stream",
-          url: `http://localhost:3000/api/actions/files/${file.filename}`,
+          url:
+            file.filePath ||
+            `${
+              import.meta.env.VITE_API_URL || "http://localhost:5137"
+            }/api/actions/files/${file.filename}`, // Use Cloudinary URL or fallback
           uploadedAt: file.uploadedAt,
           isPhoto: file.isPhoto || false,
         })),
