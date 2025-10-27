@@ -474,7 +474,8 @@ export default function AnlagenProjektManagement() {
       if (editingProject) {
         // Update existing project
         const updateData = {
-          projectNumber: formData.anlage,
+          // Keep existing project number, don't change it
+          // projectNumber: formData.anlage,
           name: formData.name || "",
           description: formData.description,
           status: mapFrontendStatus(formData.status || "Geplant"),
@@ -524,8 +525,13 @@ export default function AnlagenProjektManagement() {
         });
       } else {
         // Create new project
+        // Generate unique project number
+        const baseNumber = formData.anlage || selectedAnlage;
+        const timestamp = Date.now().toString();
+        const uniqueProjectNumber = `${baseNumber}-${timestamp}`;
+        
         const createData = {
-          projectNumber: formData.anlage || selectedAnlage,
+          projectNumber: uniqueProjectNumber,
           name: formData.name || "",
           description: formData.description,
           status: mapFrontendStatus(formData.status || "Geplant"),

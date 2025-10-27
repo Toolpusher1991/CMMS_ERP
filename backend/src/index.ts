@@ -55,7 +55,14 @@ app.use(
 // CORS - Development + Production
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:5175',
   'http://192.168.188.20:5173',
+  'http://192.168.188.20:5174',
+  'http://192.168.188.20:5175',
   'https://maintain-nory.onrender.com', // Production Frontend
 ];
 

@@ -693,17 +693,11 @@ const FailureReportingPage = () => {
                                   size="sm"
                                   onClick={() => {
                                     const getApiUrl = () => {
-                                      const hostname = window.location.hostname;
-                                      if (
-                                        hostname !== "localhost" &&
-                                        hostname !== "127.0.0.1"
-                                      ) {
-                                        return `http://${hostname}:5137`;
-                                      }
+                                      // Force localhost in development für CORS
                                       return "http://localhost:5137";
                                     };
                                     setSelectedPhoto(
-                                      `${getApiUrl()}/uploads/failure-reports/${
+                                      `${getApiUrl()}/failure-reports/photo/${
                                         report.photoFilename
                                       }`
                                     );

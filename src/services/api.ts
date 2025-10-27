@@ -5,13 +5,20 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // 2. Development: Wenn im Browser über Netzwerk-IP zugegriffen wird
+  // 2. Development: Force localhost für Backend in development
   const currentHost = window.location.hostname;
-  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1' && !currentHost.includes('onrender.com')) {
-    return `http://${currentHost}:5137`;
+  
+  // Für Development immer localhost verwenden (auch wenn Frontend über IP aufgerufen wird)
+  if (currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost.startsWith('192.168.')) {
+    return 'http://localhost:5137';
   }
   
-  // 3. Fallback zu localhost:5137 (Development)
+  // 3. Production fallback
+  if (currentHost.includes('onrender.com')) {
+    return `https://${currentHost}`;
+  }
+  
+  // 4. Fallback zu localhost:5137
   return 'http://localhost:5137';
 };
 
