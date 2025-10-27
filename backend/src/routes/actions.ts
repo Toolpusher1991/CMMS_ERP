@@ -8,14 +8,6 @@ import { cloudinaryUpload } from '../lib/cloudinary';
 const router = express.Router();
 const prisma = new PrismaClient();
 
-    if (allowedMimes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only images and documents are allowed.'));
-    }
-  }
-});
-
 // GET all actions
 router.get('/', authenticateToken, filterByAssignedPlant, async (req: Request, res: Response) => {
   try {
@@ -279,14 +271,7 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
       });
     }
 
-    // Delete all associated files from filesystem
-    for (const file of existingAction.actionFiles) {
-      const filePath = path.join(uploadsDir, file.filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    }
-
+    // Cloudinary files will remain (manual cleanup needed if desired)
     // Delete action (cascade will delete ActionFiles from DB)
     await prisma.action.delete({
       where: { id },
@@ -372,12 +357,7 @@ router.delete(
         return res.status(400).json({ error: 'File does not belong to this action' });
       }
 
-      // Delete file from filesystem
-      const filePath = path.join(uploadsDir, file.filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-
+      // Cloudinary file will remain (manual cleanup needed if desired)
       // Delete from database
       await prisma.actionFile.delete({
         where: { id: fileId },
@@ -392,25 +372,8 @@ router.delete(
 );
 
 // GET file (serve uploaded file)
-router.get(
-  '/files/:filename',
-  authenticateToken,
-  (req: Request, res: Response) => {
-    try {
-      const { filename } = req.params;
-      const filePath = path.join(uploadsDir, filename);
-
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ error: 'File not found' });
-      }
-
-      res.sendFile(filePath);
-    } catch (error) {
-      console.error('Error serving file:', error);
-      res.status(500).json({ error: 'Failed to serve file' });
-    }
-  }
-);
+// Cloudinary files are served directly from their URLs
+// No file serving route needed - files use full Cloudinary URLs
 
 // POST status request for action
 router.post('/:id/status-request', authenticateToken, sendStatusRequest);
