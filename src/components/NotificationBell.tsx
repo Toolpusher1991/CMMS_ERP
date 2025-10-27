@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 import {
   notificationService,
   type Notification,
@@ -20,6 +22,8 @@ export const NotificationBell: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Load notifications
   const loadNotifications = async () => {
@@ -78,6 +82,57 @@ export const NotificationBell: React.FC = () => {
     }
   };
 
+  // Clear all notifications (delete)
+  const handleClearAll = async () => {
+    try {
+      await notificationService.deleteAllNotifications();
+      setNotifications([]);
+      setUnreadCount(0);
+      toast({
+        title: "Inbox geleert",
+        description: "Alle Benachrichtigungen wurden gelöscht.",
+      });
+    } catch (error) {
+      console.error("Failed to clear notifications:", error);
+      toast({
+        title: "Fehler",
+        description: "Benachrichtigungen konnten nicht gelöscht werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Navigate to related content
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read first
+    await handleMarkAsRead(notification.id);
+    
+    // Navigate based on type and relatedId
+    if (notification.relatedId) {
+      switch (notification.type) {
+        case "FAILURE_REPORT":
+          navigate("/failure-reporting");
+          break;
+        case "ACTION_ASSIGNED":
+        case "ACTION_COMPLETED":
+        case "ACTION_STATUS_REQUEST":
+        case "MATERIAL_REQUEST":
+          navigate("/action-tracker");
+          break;
+        case "COMMENT_MENTION":
+          // Try to navigate to the project if we have the ID
+          navigate("/projects");
+          break;
+        default:
+          // Just mark as read, no navigation
+          break;
+      }
+    }
+    
+    // Close popover after navigation
+    setIsOpen(false);
+  };
+
   // Format time ago
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -126,16 +181,29 @@ export const NotificationBell: React.FC = () => {
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-semibold text-lg">Benachrichtigungen</h3>
-            {unreadCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMarkAllAsRead}
-                className="text-xs"
-              >
-                Alle als gelesen markieren
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {notifications.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearAll}
+                  className="text-xs"
+                  title="Inbox leeren"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleMarkAllAsRead}
+                  className="text-xs"
+                >
+                  Alle als gelesen
+                </Button>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             <Button
@@ -171,7 +239,7 @@ export const NotificationBell: React.FC = () => {
                   className={`mb-2 p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
                     !notification.isRead ? "bg-primary/5 border-primary/20" : ""
                   }`}
-                  onClick={() => handleMarkAsRead(notification.id)}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex gap-3">
                     <div className="text-2xl flex-shrink-0">

@@ -99,6 +99,28 @@ export const markAllAsRead = async (
   }
 };
 
+// Delete all notifications for current user
+export const deleteAllNotifications = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.id;
+
+    const result = await prisma.notification.deleteMany({
+      where: { userId },
+    });
+
+    res.json({ 
+      message: 'All notifications deleted', 
+      deletedCount: result.count 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Create notification (internal use - called from other controllers)
 export const createNotification = async (data: {
   userId: string;

@@ -40,6 +40,13 @@ class NotificationService {
     });
   }
 
+  // Delete all notifications
+  async deleteAllNotifications(): Promise<void> {
+    await apiClient.request('/notifications/all', {
+      method: 'DELETE',
+    });
+  }
+
   // Poll for new notifications
   pollNotifications(
     callback: (data: NotificationsResponse) => void,

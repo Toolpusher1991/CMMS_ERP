@@ -4,6 +4,7 @@ import {
   getNotifications,
   markAsRead,
   markAllAsRead,
+  deleteAllNotifications,
   deleteOldNotifications,
 } from '../controllers/notification.controller';
 
@@ -20,6 +21,9 @@ router.put('/:id/read', markAsRead);
 
 // PUT /api/notifications/read-all - Mark all as read
 router.put('/read-all', markAllAsRead);
+
+// DELETE /api/notifications/all - Delete all notifications for current user
+router.delete('/all', deleteAllNotifications);
 
 // DELETE /api/notifications/cleanup - Delete old notifications (admin only)
 router.delete('/cleanup', deleteOldNotifications);

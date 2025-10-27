@@ -562,7 +562,10 @@ const FailureReportingPage = () => {
                     variant="outline"
                     onClick={() => {
                       if (fileInputRef.current) {
-                        fileInputRef.current.setAttribute('capture', 'environment');
+                        fileInputRef.current.setAttribute(
+                          "capture",
+                          "environment"
+                        );
                         fileInputRef.current.click();
                       }
                     }}
@@ -576,7 +579,7 @@ const FailureReportingPage = () => {
                     variant="outline"
                     onClick={() => {
                       if (fileInputRef.current) {
-                        fileInputRef.current.removeAttribute('capture');
+                        fileInputRef.current.removeAttribute("capture");
                         fileInputRef.current.click();
                       }
                     }}
