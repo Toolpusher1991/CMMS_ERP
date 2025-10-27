@@ -726,22 +726,22 @@ const FailureReportingPage = () => {
                                   onClick={() => {
                                     const getApiUrl = () => {
                                       // Use production API URL or localhost for development
+                                      let baseUrl;
                                       if (import.meta.env.VITE_API_BASE_URL) {
-                                        return import.meta.env.VITE_API_BASE_URL.replace(
-                                          "/api",
-                                          ""
-                                        );
+                                        baseUrl = import.meta.env.VITE_API_BASE_URL.replace("/api", "");
+                                      } else {
+                                        baseUrl = window.location.hostname === "localhost"
+                                          ? "http://localhost:5137"
+                                          : "https://cmms-erp-backend.onrender.com";
                                       }
-                                      return window.location.hostname ===
-                                        "localhost"
-                                        ? "http://localhost:5137"
-                                        : "https://cmms-erp-backend.onrender.com";
+                                      console.log("🔧 Photo API Base URL:", baseUrl);
+                                      console.log("🌐 Current hostname:", window.location.hostname);
+                                      console.log("📝 VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
+                                      return baseUrl;
                                     };
-                                    setSelectedPhoto(
-                                      `${getApiUrl()}/failure-reports/photo/${
-                                        report.photoFilename
-                                      }`
-                                    );
+                                    const photoUrl = `${getApiUrl()}/failure-reports/photo/${report.photoFilename}`;
+                                    console.log("📷 Full photo URL:", photoUrl);
+                                    setSelectedPhoto(photoUrl);
                                     setPhotoViewDialogOpen(true);
                                   }}
                                 >

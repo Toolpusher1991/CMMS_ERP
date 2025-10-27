@@ -502,21 +502,25 @@ export default function AnlagenProjektManagement() {
           spentBudget: 0,
           startDate: formData.startDate,
           endDate: formData.endDate,
-          category: mapFrontendCategory(formData.category || "Mechanisch"),
+          // category: mapFrontendCategory(formData.category || "Mechanisch"), // Temporarily disabled until backend supports it
           notes: formData.notes,
           managerId: selectedUserId || undefined,
         };
+
+        console.log("🔧 Updating project with data:", updateData);
 
         const updated = await projectService.updateProject(
           editingProject.id,
           updateData
         );
 
+        console.log("✅ Project updated, backend response:", updated);
+
         const mappedProject: Project = {
           id: updated.id,
           name: updated.name,
           anlage: updated.projectNumber as Anlage,
-          category: mapBackendCategory(updated.category || "MECHANICAL"),
+          category: formData.category || "Mechanisch", // Use form data until backend supports category
           status: mapBackendStatus(updated.status),
           startDate: updated.startDate || "",
           endDate: updated.endDate || "",
@@ -559,19 +563,23 @@ export default function AnlagenProjektManagement() {
           startDate: formData.startDate,
           endDate: formData.endDate,
           plant: baseNumber, // Add plant field for backend
-          category: mapFrontendCategory(formData.category || "Mechanisch"),
+          // category: mapFrontendCategory(formData.category || "Mechanisch"), // Temporarily disabled until backend supports it
           notes: formData.notes,
           createdBy: currentUser?.id,
           managerId: selectedUserId || undefined,
         };
 
+        console.log("🔧 Creating project with data:", createData);
+
         const created = await projectService.createProject(createData);
+
+        console.log("✅ Project created, backend response:", created);
 
         const mappedProject: Project = {
           id: created.id,
           name: created.name,
           anlage: created.projectNumber as Anlage,
-          category: mapBackendCategory(created.category || "MECHANICAL"),
+          category: formData.category || "Mechanisch", // Use form data until backend supports category
           status: mapBackendStatus(created.status),
           startDate: created.startDate || "",
           endDate: created.endDate || "",
