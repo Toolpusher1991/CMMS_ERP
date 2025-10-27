@@ -211,12 +211,12 @@ const ActionTracker = () => {
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
 
-  // Extrahiere Foto-Dateinamen aus Beschreibung (von Failure Reports)
+  // Extrahiere Foto-Dateinamen oder URL aus Beschreibung (von Failure Reports)
   const extractPhotoFromDescription = (description: string): string | null => {
     const match = description.match(
-      /📸 Photo: ([\w-]+\.(?:jpg|jpeg|png|gif|webp))/i
+      /📸 Photo: (.+?)(?:\n|$)/i
     );
-    return match ? match[1] : null;
+    return match ? match[1].trim() : null;
   };
 
   // Parse materials from description

@@ -249,8 +249,10 @@ export const convertToAction = async (req: AuthRequest, res: Response) => {
       actionDescription += `\n\n📍 Standort: ${report.location}`;
     }
     
-    // Add hidden photo reference (used by frontend to display photo button)
-    if (report.photoFilename) {
+    // Add photo URL if provided (Cloudinary URL or filename)
+    if (report.photoPath) {
+      actionDescription += `\n\n📸 Photo: ${report.photoPath}`;
+    } else if (report.photoFilename) {
       actionDescription += `\n\n📸 Photo: ${report.photoFilename}`;
     }
 
