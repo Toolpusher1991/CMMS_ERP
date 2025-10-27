@@ -269,9 +269,7 @@ export default function AnlagenProjektManagement() {
     }
   };
 
-  // Note: Backend doesn't support category field yet, so we use frontend values
-  // Mapping functions temporarily commented out until backend supports category field
-  /*
+  // Category mapping functions for backend communication
   const mapFrontendCategory = (
     category: Category
   ): "MECHANICAL" | "ELECTRICAL" | "FACILITY" => {
@@ -301,7 +299,6 @@ export default function AnlagenProjektManagement() {
         return "Mechanisch";
     }
   };
-  */
 
   // Load data from backend
   const loadData = async () => {
@@ -505,7 +502,7 @@ export default function AnlagenProjektManagement() {
           spentBudget: 0,
           startDate: formData.startDate,
           endDate: formData.endDate,
-          // category: mapFrontendCategory(formData.category || "Mechanisch"), // Temporarily disabled until backend supports it
+          category: mapFrontendCategory(formData.category || "Mechanisch"), // Now enabled with backend support
           notes: formData.notes,
           managerId: selectedUserId || undefined,
         };
@@ -523,7 +520,7 @@ export default function AnlagenProjektManagement() {
           id: updated.id,
           name: updated.name,
           anlage: updated.projectNumber as Anlage,
-          category: formData.category || "Mechanisch", // Use form data until backend supports category
+          category: mapBackendCategory(updated.category || "MECHANICAL"),
           status: mapBackendStatus(updated.status),
           startDate: updated.startDate || "",
           endDate: updated.endDate || "",
@@ -566,7 +563,7 @@ export default function AnlagenProjektManagement() {
           startDate: formData.startDate,
           endDate: formData.endDate,
           plant: baseNumber, // Add plant field for backend
-          // category: mapFrontendCategory(formData.category || "Mechanisch"), // Temporarily disabled until backend supports it
+          category: mapFrontendCategory(formData.category || "Mechanisch"), // Now enabled with backend support
           notes: formData.notes,
           createdBy: currentUser?.id,
           managerId: selectedUserId || undefined,
@@ -582,7 +579,7 @@ export default function AnlagenProjektManagement() {
           id: created.id,
           name: created.name,
           anlage: created.projectNumber as Anlage,
-          category: formData.category || "Mechanisch", // Use form data until backend supports category
+          category: mapBackendCategory(created.category || "MECHANICAL"),
           status: mapBackendStatus(created.status),
           startDate: created.startDate || "",
           endDate: created.endDate || "",

@@ -100,6 +100,9 @@ model Project {
   // Plant Assignment - Projekt gehört zu einer Anlage
   plant           String?   // T208, T207, T700, T46 - null für anlage-übergreifend
   
+  // Category - Projekttyp
+  category        String    @default("MECHANICAL") // MECHANICAL, ELECTRICAL, FACILITY
+  
   // Budget
   totalBudget     Float     @default(0)
   spentBudget     Float     @default(0)

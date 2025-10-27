@@ -1130,12 +1130,22 @@ const ActionTracker = () => {
                                                             action.description
                                                           );
                                                         if (photoFilename) {
-                                                          const getApiUrl = () => {
+                                                          const getApiUrl =
+                                                            () => {
                                                               // Use production API URL or localhost for development
-                                                              if (import.meta.env.VITE_API_BASE_URL) {
-                                                                return import.meta.env.VITE_API_BASE_URL.replace("/api", "");
+                                                              if (
+                                                                import.meta.env
+                                                                  .VITE_API_BASE_URL
+                                                              ) {
+                                                                return import.meta.env.VITE_API_BASE_URL.replace(
+                                                                  "/api",
+                                                                  ""
+                                                                );
                                                               }
-                                                              return window.location.hostname === "localhost"
+                                                              return window
+                                                                .location
+                                                                .hostname ===
+                                                                "localhost"
                                                                 ? "http://localhost:5137"
                                                                 : "https://cmms-erp-backend.onrender.com";
                                                             };
