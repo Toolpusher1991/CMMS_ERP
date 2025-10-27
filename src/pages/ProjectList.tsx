@@ -542,6 +542,7 @@ export default function AnlagenProjektManagement() {
           spentBudget: 0,
           startDate: formData.startDate,
           endDate: formData.endDate,
+          plant: baseNumber, // Add plant field for backend
           category: mapFrontendCategory(formData.category || "Mechanisch"),
           notes: formData.notes,
           createdBy: currentUser?.id,

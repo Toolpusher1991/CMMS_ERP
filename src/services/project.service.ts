@@ -134,6 +134,7 @@ export const projectService = {
     startDate?: string;
     endDate?: string;
     managerId?: string;
+    plant?: string; // Add plant field
   }): Promise<Project> {
     const response = await apiClient.request<{ data: Project }>('/projects', {
       method: 'POST',

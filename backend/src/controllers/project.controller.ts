@@ -9,11 +9,13 @@ export const getProjects = async (req: AuthRequest, res: Response) => {
   try {
     const user = req.user;
     
+    // TEMP FIX: Disable plant filtering since all projects have plant:null
     // Build where clause based on user's assigned plant
     const where: { plant?: string | null } = {};
-    if (user?.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
-      where.plant = user.assignedPlant;
-    }
+    // Temporarily commented out to show all projects regardless of plant
+    // if (user?.assignedPlant && user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+    //   where.plant = user.assignedPlant;
+    // }
     
     const projects = await prisma.project.findMany({
       where,
