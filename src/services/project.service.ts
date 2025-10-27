@@ -12,6 +12,7 @@ export interface Project {
   spentBudget: number;
   startDate?: string;
   endDate?: string;
+  plant?: string; // Add plant field
   manager?: {
     id: string;
     firstName: string;

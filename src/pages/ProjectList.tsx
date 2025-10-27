@@ -303,7 +303,7 @@ export default function AnlagenProjektManagement() {
         (p: BackendProject) => ({
           id: p.id,
           name: p.name,
-          anlage: p.projectNumber as Anlage,
+          anlage: (p.plant || "T208") as Anlage, // Use plant field instead of projectNumber
           category: "Mechanisch" as Category, // Default category since backend doesn't have this field
           status: mapBackendStatus(p.status),
           startDate: p.startDate || "",
