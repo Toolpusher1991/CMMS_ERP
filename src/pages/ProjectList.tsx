@@ -315,18 +315,11 @@ export default function AnlagenProjektManagement() {
       setUsers(userResponse.data);
 
       // Map backend projects to frontend format
-      const mappedProjects: Project[] = projectResponse.projects
-        .filter((p: BackendProject) => {
-          if (!p.plant) {
-            console.warn(`⚠️ Project ${p.projectNumber} has no plant field, skipping`);
-            return false;
-          }
-          return true;
-        })
-        .map((p: BackendProject) => ({
+      const mappedProjects: Project[] = projectResponse.projects.map(
+        (p: BackendProject) => ({
           id: p.id,
           name: p.name,
-          anlage: p.plant as Anlage, // Use plant field - no fallback!
+          anlage: (p.plant || p.projectNumber.match(/^(T\d+)/)?.[1] || "T208") as Anlage, // Use plant field or extract from projectNumber
           category: mapBackendCategory(p.category || "MECHANICAL"), // Map backend category to frontend
           status: mapBackendStatus(p.status),
           startDate: p.startDate || "",
