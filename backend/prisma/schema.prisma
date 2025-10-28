@@ -337,23 +337,24 @@ model ProjectComment {
 }
 
 model TenderConfiguration {
-  id               String   @id @default(uuid())
-  projectName      String
-  clientName       String?
-  location         String?
-  projectDuration  String?
-  selectedRig      Json     // Rig data as JSON
-  selectedEquipment Json    // Equipment data as JSON
-  totalPrice       Float
-  isUnderContract  Boolean  @default(false)
-  notes            String?
+  id                String    @id @default(uuid())
+  projectName       String
+  clientName        String?
+  location          String?
+  projectDuration   String?
+  selectedRig       Json      // Rig data as JSON
+  selectedEquipment Json      // Equipment data as JSON
+  totalPrice        Float
+  isUnderContract   Boolean   @default(false)
+  contractStartDate DateTime? // Contract start date for Gantt chart
+  notes             String?
   
   // User who created this tender
-  createdBy        String
-  createdByUser    User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  createdBy         String
+  createdByUser     User      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
   
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
   
   @@index([createdBy])
   @@index([isUnderContract])
