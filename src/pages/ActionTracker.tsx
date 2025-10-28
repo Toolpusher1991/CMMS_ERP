@@ -2031,7 +2031,8 @@ const ActionTracker = () => {
                           })
                         }
                         placeholder="Detaillierte Beschreibung der Aufgabe..."
-                        rows={4}
+                        rows={8}
+                        className="min-h-[200px]"
                       />
                     </div>
 

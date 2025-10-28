@@ -143,7 +143,11 @@ function App() {
         // Desktop View: Full app with Sidebar
         <div className="flex h-screen overflow-hidden">
           {/* Sidebar */}
-          <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} />
+          <Sidebar
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            userRole={user.role}
+          />
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
