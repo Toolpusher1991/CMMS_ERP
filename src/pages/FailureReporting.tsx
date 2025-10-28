@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
+import { cn } from "@/lib/utils";
 import "./FailureReporting.mobile.css";
 import {
   Card,
@@ -457,54 +458,117 @@ const FailureReportingPage = () => {
             </DialogHeader>
 
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="plant">Anlage *</Label>
-                  <Select
-                    value={currentReport.plant}
-                    onValueChange={(value: string) =>
-                      setCurrentReport({
-                        ...currentReport,
-                        plant: value as "T208" | "T207" | "T700" | "T46",
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Anlage wählen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getAvailablePlants().map((plant) => (
-                        <SelectItem key={plant} value={plant}>
-                          {plant}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Anlage *</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {getAvailablePlants().map((plant) => (
+                      <Button
+                        key={plant}
+                        type="button"
+                        variant={
+                          currentReport.plant === plant ? "default" : "outline"
+                        }
+                        className={cn(
+                          "w-full",
+                          currentReport.plant === plant &&
+                            "bg-primary text-primary-foreground"
+                        )}
+                        onClick={() =>
+                          setCurrentReport({
+                            ...currentReport,
+                            plant: plant as "T208" | "T207" | "T700" | "T46",
+                          })
+                        }
+                      >
+                        {plant}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="severity">Schweregrad *</Label>
-                  <Select
-                    value={currentReport.severity}
-                    onValueChange={(
-                      value: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
-                    ) =>
-                      setCurrentReport({
-                        ...currentReport,
-                        severity: value,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Schweregrad wählen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LOW">Niedrig</SelectItem>
-                      <SelectItem value="MEDIUM">Mittel</SelectItem>
-                      <SelectItem value="HIGH">Hoch</SelectItem>
-                      <SelectItem value="CRITICAL">Kritisch</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Schweregrad *</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant={
+                        currentReport.severity === "LOW" ? "default" : "outline"
+                      }
+                      className={cn(
+                        currentReport.severity === "LOW" &&
+                          "bg-green-500 hover:bg-green-600 text-white"
+                      )}
+                      onClick={() =>
+                        setCurrentReport({
+                          ...currentReport,
+                          severity: "LOW",
+                        })
+                      }
+                    >
+                      Niedrig
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={
+                        currentReport.severity === "MEDIUM"
+                          ? "default"
+                          : "outline"
+                      }
+                      className={cn(
+                        currentReport.severity === "MEDIUM" &&
+                          "bg-yellow-500 hover:bg-yellow-600 text-white"
+                      )}
+                      onClick={() =>
+                        setCurrentReport({
+                          ...currentReport,
+                          severity: "MEDIUM",
+                        })
+                      }
+                    >
+                      Mittel
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={
+                        currentReport.severity === "HIGH"
+                          ? "default"
+                          : "outline"
+                      }
+                      className={cn(
+                        currentReport.severity === "HIGH" &&
+                          "bg-orange-500 hover:bg-orange-600 text-white"
+                      )}
+                      onClick={() =>
+                        setCurrentReport({
+                          ...currentReport,
+                          severity: "HIGH",
+                        })
+                      }
+                    >
+                      Hoch
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={
+                        currentReport.severity === "CRITICAL"
+                          ? "default"
+                          : "outline"
+                      }
+                      className={cn(
+                        currentReport.severity === "CRITICAL" &&
+                          "bg-red-500 hover:bg-red-600 text-white"
+                      )}
+                      onClick={() =>
+                        setCurrentReport({
+                          ...currentReport,
+                          severity: "CRITICAL",
+                        })
+                      }
+                    >
+                      Kritisch
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -883,54 +947,115 @@ const FailureReportingPage = () => {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="plant">Anlage *</Label>
-                <Select
-                  value={currentReport.plant}
-                  onValueChange={(value: string) =>
-                    setCurrentReport({
-                      ...currentReport,
-                      plant: value as "T208" | "T207" | "T700" | "T46",
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Anlage wählen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getAvailablePlants().map((plant) => (
-                      <SelectItem key={plant} value={plant}>
-                        {plant}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Anlage *</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {getAvailablePlants().map((plant) => (
+                    <Button
+                      key={plant}
+                      type="button"
+                      variant={
+                        currentReport.plant === plant ? "default" : "outline"
+                      }
+                      className={cn(
+                        "w-full",
+                        currentReport.plant === plant &&
+                          "bg-primary text-primary-foreground"
+                      )}
+                      onClick={() =>
+                        setCurrentReport({
+                          ...currentReport,
+                          plant: plant as "T208" | "T207" | "T700" | "T46",
+                        })
+                      }
+                    >
+                      {plant}
+                    </Button>
+                  ))}
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="severity">Schweregrad *</Label>
-                <Select
-                  value={currentReport.severity}
-                  onValueChange={(
-                    value: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
-                  ) =>
-                    setCurrentReport({
-                      ...currentReport,
-                      severity: value,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Schweregrad wählen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="LOW">Niedrig</SelectItem>
-                    <SelectItem value="MEDIUM">Mittel</SelectItem>
-                    <SelectItem value="HIGH">Hoch</SelectItem>
-                    <SelectItem value="CRITICAL">Kritisch</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Schweregrad *</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={
+                      currentReport.severity === "LOW" ? "default" : "outline"
+                    }
+                    className={cn(
+                      currentReport.severity === "LOW" &&
+                        "bg-green-500 hover:bg-green-600 text-white"
+                    )}
+                    onClick={() =>
+                      setCurrentReport({
+                        ...currentReport,
+                        severity: "LOW",
+                      })
+                    }
+                  >
+                    Niedrig
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={
+                      currentReport.severity === "MEDIUM"
+                        ? "default"
+                        : "outline"
+                    }
+                    className={cn(
+                      currentReport.severity === "MEDIUM" &&
+                        "bg-yellow-500 hover:bg-yellow-600 text-white"
+                    )}
+                    onClick={() =>
+                      setCurrentReport({
+                        ...currentReport,
+                        severity: "MEDIUM",
+                      })
+                    }
+                  >
+                    Mittel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={
+                      currentReport.severity === "HIGH" ? "default" : "outline"
+                    }
+                    className={cn(
+                      currentReport.severity === "HIGH" &&
+                        "bg-orange-500 hover:bg-orange-600 text-white"
+                    )}
+                    onClick={() =>
+                      setCurrentReport({
+                        ...currentReport,
+                        severity: "HIGH",
+                      })
+                    }
+                  >
+                    Hoch
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={
+                      currentReport.severity === "CRITICAL"
+                        ? "default"
+                        : "outline"
+                    }
+                    className={cn(
+                      currentReport.severity === "CRITICAL" &&
+                        "bg-red-500 hover:bg-red-600 text-white"
+                    )}
+                    onClick={() =>
+                      setCurrentReport({
+                        ...currentReport,
+                        severity: "CRITICAL",
+                      })
+                    }
+                  >
+                    Kritisch
+                  </Button>
+                </div>
               </div>
             </div>
 

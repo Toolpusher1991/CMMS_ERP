@@ -16,6 +16,7 @@ export interface TenderConfiguration {
   selectedEquipment: { [key: string]: any[] };
   totalPrice: number;
   isUnderContract: boolean;
+  contractStartDate?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -30,6 +31,7 @@ export interface CreateTenderRequest {
   selectedEquipment: { [key: string]: any[] };
   totalPrice: number;
   isUnderContract?: boolean;
+  contractStartDate?: string;
   notes?: string;
 }
 

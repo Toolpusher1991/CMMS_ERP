@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Terminal,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,32 +23,44 @@ type AppPage =
   | "actions"
   | "tender"
   | "failures"
+  | "reporting"
   | "debug";
 
 interface NavItem {
   title: string;
   page: AppPage;
   icon: React.ComponentType<{ className?: string }>;
+  adminOnly?: boolean;
 }
 
-const navItems: NavItem[] = [
+const allNavItems: NavItem[] = [
   { title: "Dashboard", page: "dashboard", icon: LayoutDashboard },
   { title: "Projekte", page: "projects", icon: FolderKanban },
   { title: "Work Orders", page: "workorders", icon: FileText },
   { title: "Action Tracker", page: "actions", icon: ListTodo },
+  { title: "Reporting", page: "reporting", icon: BarChart3 },
   { title: "Bohranlagen", page: "tender", icon: Building2 },
   { title: "Störungsmeldung", page: "failures", icon: AlertTriangle },
-  { title: "System Debug", page: "debug", icon: Terminal },
-  { title: "Benutzerverwaltung", page: "users", icon: Users },
+  { title: "System Debug", page: "debug", icon: Terminal, adminOnly: true },
+  { title: "Benutzerverwaltung", page: "users", icon: Users, adminOnly: true },
 ];
 
 interface SidebarProps {
   currentPage: AppPage;
   onPageChange: (page: AppPage) => void;
+  userRole?: string;
 }
 
-export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
+export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+
+  // Filter nav items based on user role
+  const navItems = useMemo(() => {
+    if (userRole === "ADMIN") {
+      return allNavItems;
+    }
+    return allNavItems.filter((item) => !item.adminOnly);
+  }, [userRole]);
 
   return (
     <div

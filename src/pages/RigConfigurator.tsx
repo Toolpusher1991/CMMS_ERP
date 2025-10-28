@@ -22,6 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DatePicker } from "@/components/ui/date-picker";
+import { cn } from "@/lib/utils";
 import {
   Building2,
   Settings,
@@ -198,6 +200,27 @@ const RigConfigurator = () => {
     null
   );
   const [, setLoadingTenders] = useState(false);
+
+  // Equipment Management for Tenders
+  const [equipmentManagementDialogOpen, setEquipmentManagementDialogOpen] =
+    useState(false);
+  const [editingTenderConfig, setEditingTenderConfig] =
+    useState<TenderConfiguration | null>(null);
+  const [tempEquipmentSelection, setTempEquipmentSelection] = useState<{
+    [key: string]: EquipmentItem[];
+  }>({});
+
+  // Gantt Chart View
+  const [showGanttView, setShowGanttView] = useState(false);
+
+  // Contract Start Date Dialog
+  const [contractDateDialogOpen, setContractDateDialogOpen] = useState(false);
+  const [pendingContractConfig, setPendingContractConfig] =
+    useState<TenderConfiguration | null>(null);
+  const [contractStartDate, setContractStartDate] = useState<Date | undefined>(
+    undefined
+  );
+  const [isSubmittingContract, setIsSubmittingContract] = useState(false);
 
   // Load saved tenders from API
   useEffect(() => {
@@ -1191,18 +1214,105 @@ const RigConfigurator = () => {
   };
 
   const toggleContractStatus = async (configId: string) => {
+    console.log("🔄 toggleContractStatus called with:", configId);
+    const config = savedConfigurations.find((c) => c.id === configId);
+    if (!config) {
+      console.log("❌ Config not found");
+      return;
+    }
+
+    console.log("📋 Config found:", {
+      name: config.selectedRig?.name,
+      isUnderContract: config.isUnderContract,
+    });
+
+    // Wenn von "Ausstehend" zu "Unter Vertrag" gewechselt wird
+    if (!config.isUnderContract) {
+      console.log("✅ Opening contract date dialog");
+      setPendingContractConfig(config);
+      setContractStartDate(new Date());
+      setContractDateDialogOpen(true);
+    } else {
+      // Wenn von "Unter Vertrag" zu "Ausstehend" gewechselt wird
+      try {
+        const updatedTender = await tenderService.updateTender(configId, {
+          isUnderContract: false,
+          contractStartDate: "",
+        });
+        setSavedConfigurations((prev) =>
+          prev.map((c) => (c.id === configId ? updatedTender : c))
+        );
+        toast({
+          title: "✅ Status geändert",
+          description: "Anlage ist nicht mehr unter Vertrag.",
+        });
+      } catch (error) {
+        console.error("Error toggling contract status:", error);
+        toast({
+          title: "❌ Fehler",
+          description: "Der Vertragsstatus konnte nicht geändert werden.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  // Confirm Contract Start Date
+  const confirmContractStartDate = async () => {
+    console.log("🔵 confirmContractStartDate called", {
+      pendingContractConfig,
+      contractStartDate,
+      isSubmittingContract,
+    });
+
+    if (!pendingContractConfig || !contractStartDate || isSubmittingContract) {
+      console.log("❌ Missing data or already submitting:", {
+        hasPendingConfig: !!pendingContractConfig,
+        hasContractDate: !!contractStartDate,
+        isSubmitting: isSubmittingContract,
+      });
+      return;
+    }
+
+    setIsSubmittingContract(true);
+
     try {
-      const updatedTender = await tenderService.toggleContractStatus(configId);
-      setSavedConfigurations((prev) =>
-        prev.map((config) => (config.id === configId ? updatedTender : config))
+      console.log("📤 Sending update request...");
+      const updatedTender = await tenderService.updateTender(
+        pendingContractConfig.id,
+        {
+          isUnderContract: true,
+          contractStartDate: contractStartDate.toISOString(),
+        }
       );
+
+      console.log("✅ Update successful:", updatedTender);
+
+      setSavedConfigurations((prev) =>
+        prev.map((config) =>
+          config.id === pendingContractConfig.id ? updatedTender : config
+        )
+      );
+
+      toast({
+        title: "✅ Vertrag gestartet",
+        description: `Anlage ist ab ${contractStartDate.toLocaleDateString(
+          "de-DE"
+        )} unter Vertrag.`,
+      });
+
+      setContractDateDialogOpen(false);
+      setPendingContractConfig(null);
+      setContractStartDate(undefined);
     } catch (error) {
-      console.error("Error toggling contract status:", error);
+      console.error("❌ Error setting contract status:", error);
       toast({
         title: "❌ Fehler",
-        description: "Der Vertragsstatus konnte nicht geändert werden.",
+        description: "Der Vertragsstatus konnte nicht gesetzt werden.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmittingContract(false);
     }
   };
 
@@ -1229,6 +1339,65 @@ const RigConfigurator = () => {
         variant: "destructive",
       });
     }
+  };
+
+  // Open Equipment Management Dialog for Tender
+  const openEquipmentManagement = (config: TenderConfiguration) => {
+    setEditingTenderConfig(config);
+    setTempEquipmentSelection(config.selectedEquipment || {});
+    setEquipmentManagementDialogOpen(true);
+  };
+
+  // Save Equipment Changes to Tender
+  const saveEquipmentChanges = async () => {
+    if (!editingTenderConfig) return;
+
+    try {
+      const updatedConfig = {
+        ...editingTenderConfig,
+        selectedEquipment: tempEquipmentSelection,
+      };
+
+      await tenderService.updateTender(editingTenderConfig.id, updatedConfig);
+
+      setSavedConfigurations((prev) =>
+        prev.map((config) =>
+          config.id === editingTenderConfig.id ? updatedConfig : config
+        )
+      );
+
+      toast({
+        title: "✅ Equipment aktualisiert",
+        description: "Die Equipment-Konfiguration wurde gespeichert.",
+      });
+
+      setEquipmentManagementDialogOpen(false);
+      setEditingTenderConfig(null);
+    } catch (error) {
+      console.error("Error updating equipment:", error);
+      toast({
+        title: "❌ Fehler beim Speichern",
+        description: "Equipment-Änderungen konnten nicht gespeichert werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Calculate Tender Duration in Days
+  const calculateTenderDuration = (config: TenderConfiguration) => {
+    if (!config.projectDuration) return 0;
+    const match = config.projectDuration.match(/(\d+)/);
+    return match ? parseInt(match[0]) : 0;
+  };
+
+  // Calculate Days Elapsed (using createdAt as start date)
+  const calculateDaysElapsed = (config: TenderConfiguration) => {
+    if (!config.createdAt) return 0;
+    const start = new Date(config.createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   // Generate PDF Export
@@ -2227,165 +2396,166 @@ const RigConfigurator = () => {
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <div className="space-y-4">
-                  {/* Save Configuration Button */}
-                  {selectedRig && requirements.projectName && (
-                    <div className="flex justify-end">
+                  {/* View Toggle and Save Button */}
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant={!showGanttView ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setShowGanttView(false)}
+                      >
+                        <ClipboardList className="h-4 w-4 mr-2" />
+                        Tabelle
+                      </Button>
+                      <Button
+                        variant={showGanttView ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setShowGanttView(true)}
+                      >
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Gantt-Ansicht
+                      </Button>
+                    </div>
+
+                    {/* Save Configuration Button */}
+                    {selectedRig && requirements.projectName && (
                       <Button
                         onClick={saveCurrentConfiguration}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg"
                       >
                         <Save className="h-4 w-4 mr-2" />
                         Aktuelle Konfiguration als Tender speichern
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
+
+                  {/* Gantt Chart View */}
+                  {showGanttView &&
+                    savedConfigurations.some((c) => c.isUnderContract) && (
+                      <Card className="border-2 border-primary/20">
+                        <CardHeader>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <BarChart3 className="h-5 w-5" />
+                            Vertragslaufzeiten - Gantt-Diagramm
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {savedConfigurations
+                              .filter(
+                                (c) => c.isUnderContract && c.contractStartDate
+                              )
+                              .map((config) => {
+                                const duration =
+                                  calculateTenderDuration(config);
+                                const elapsed = calculateDaysElapsed(config);
+                                const progress =
+                                  duration > 0
+                                    ? Math.min((elapsed / duration) * 100, 100)
+                                    : 0;
+
+                                return (
+                                  <div key={config.id} className="space-y-2">
+                                    <div className="flex justify-between items-center text-sm">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold">
+                                          {config.selectedRig?.name}
+                                        </span>
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs"
+                                        >
+                                          {config.projectName}
+                                        </Badge>
+                                      </div>
+                                      <span className="text-muted-foreground">
+                                        {elapsed} / {duration} Tage (
+                                        {progress.toFixed(0)}%)
+                                      </span>
+                                    </div>
+                                    <div className="relative h-8 bg-muted rounded-lg overflow-hidden">
+                                      <div
+                                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500"
+                                        style={{ width: `${progress}%` }}
+                                      >
+                                        <div className="h-full flex items-center justify-end pr-2">
+                                          {progress > 15 && (
+                                            <span className="text-xs font-semibold text-white">
+                                              {progress.toFixed(0)}%
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                      <span>
+                                        Start:{" "}
+                                        {new Date(
+                                          config.contractStartDate!
+                                        ).toLocaleDateString("de-DE")}
+                                      </span>
+                                      <span>
+                                        Ende:{" "}
+                                        {new Date(
+                                          new Date(
+                                            config.contractStartDate!
+                                          ).getTime() +
+                                            duration * 24 * 60 * 60 * 1000
+                                        ).toLocaleDateString("de-DE")}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
 
                   {/* Tender Table */}
-                  <div className="rounded-md border">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b bg-muted/50">
-                            <th className="text-left p-3 font-semibold">
-                              Rig & Projekt
-                            </th>
-                            <th className="text-left p-3 font-semibold">
-                              Tagesrate Details
-                            </th>
-                            <th className="text-left p-3 font-semibold">
-                              Dauer
-                            </th>
-                            <th className="text-left p-3 font-semibold">
-                              Status
-                            </th>
-                            <th className="text-left p-3 font-semibold">
-                              Aktionen
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {/* Current Configuration Row (if exists) */}
-                          {selectedRig && requirements.projectName && (
-                            <tr className="border-b bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 cursor-pointer">
-                              <td className="p-3">
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline">
-                                    {selectedRig.name}
-                                  </Badge>
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    Aktuelle Konfiguration
-                                  </Badge>
-                                </div>
-                                <div className="text-sm text-muted-foreground mt-1">
-                                  {requirements.projectName}
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border shadow-sm space-y-2">
-                                  <div className="flex justify-between items-center text-sm">
-                                    <span className="text-slate-600 dark:text-slate-400 font-medium">
-                                      Rig Basis:
-                                    </span>
-                                    <span className="font-semibold text-blue-600 dark:text-blue-400">
-                                      €
-                                      {parseFloat(
-                                        selectedRig.dayRate
-                                      ).toLocaleString("de-DE")}
-                                      /Tag
-                                    </span>
-                                  </div>
-                                  {Object.values(selectedEquipment).flat()
-                                    .length > 0 && (
-                                    <div className="flex justify-between items-center text-sm">
-                                      <span className="text-slate-600 dark:text-slate-400 font-medium">
-                                        Equipment (
-                                        {
-                                          Object.values(
-                                            selectedEquipment
-                                          ).flat().length
-                                        }
-                                        ):
-                                      </span>
-                                      <span className="font-semibold text-orange-600 dark:text-orange-400">
-                                        €
-                                        {Object.values(selectedEquipment)
-                                          .flat()
-                                          .reduce(
-                                            (sum, eq) =>
-                                              sum + parseFloat(eq.price),
-                                            0
-                                          )
-                                          .toLocaleString("de-DE")}
-                                        /Tag
-                                      </span>
-                                    </div>
-                                  )}
-                                  <div className="border-t pt-2 mt-2">
-                                    <div className="flex justify-between items-center">
-                                      <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                        Gesamtsumme:
-                                      </span>
-                                      <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                                        €
-                                        {calculateTotal().toLocaleString(
-                                          "de-DE"
-                                        )}
-                                        /Tag
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                {requirements.projectDuration}
-                              </td>
-                              <td className="p-3">
-                                <Badge
-                                  variant="outline"
-                                  className="bg-yellow-50 text-yellow-700 border-yellow-300"
-                                >
-                                  Ausstehend
-                                </Badge>
-                              </td>
-                              <td className="p-3">
-                                <Button
-                                  size="sm"
-                                  onClick={saveCurrentConfiguration}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                  <Save className="h-3 w-3 mr-1" />
-                                  Speichern
-                                </Button>
-                              </td>
+                  {!showGanttView && (
+                    <div className="rounded-xl border-2 border-primary/20 overflow-hidden shadow-lg">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/50 dark:to-cyan-950/50">
+                              <th className="text-left p-4 font-bold text-primary">
+                                Rig & Projekt
+                              </th>
+                              <th className="text-left p-4 font-bold text-primary">
+                                Tagesrate Details
+                              </th>
+                              <th className="text-left p-4 font-bold text-primary">
+                                Dauer
+                              </th>
+                              <th className="text-left p-4 font-bold text-primary">
+                                Status
+                              </th>
+                              <th className="text-left p-4 font-bold text-primary">
+                                Aktionen
+                              </th>
                             </tr>
-                          )}
-
-                          {/* Configurations NOT under contract - Yellow highlight */}
-                          {savedConfigurations
-                            .filter((config) => !config.isUnderContract)
-                            .map((config) => (
-                              <tr
-                                key={config.id}
-                                className="border-b bg-yellow-50 dark:bg-yellow-950/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 cursor-pointer"
-                                onClick={() => viewTenderDetails(config)}
-                              >
+                          </thead>
+                          <tbody>
+                            {/* Current Configuration Row (if exists) */}
+                            {selectedRig && requirements.projectName && (
+                              <tr className="border-b bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 cursor-pointer">
                                 <td className="p-3">
                                   <div className="flex items-center gap-2">
+                                    <Badge variant="outline">
+                                      {selectedRig.name}
+                                    </Badge>
                                     <Badge
-                                      variant="outline"
-                                      className="border-yellow-500 text-yellow-700"
+                                      variant="secondary"
+                                      className="text-xs"
                                     >
-                                      {config.selectedRig?.name ||
-                                        "Unbekanntes Rig"}
+                                      Aktuelle Konfiguration
                                     </Badge>
                                   </div>
-                                  <div className="text-sm text-yellow-700 font-medium mt-1">
-                                    {config.projectName}
+                                  <div className="text-sm text-muted-foreground mt-1">
+                                    {requirements.projectName}
                                   </div>
                                 </td>
                                 <td className="p-3">
@@ -2397,41 +2567,37 @@ const RigConfigurator = () => {
                                       <span className="font-semibold text-blue-600 dark:text-blue-400">
                                         €
                                         {parseFloat(
-                                          config.selectedRig.dayRate
+                                          selectedRig.dayRate
                                         ).toLocaleString("de-DE")}
                                         /Tag
                                       </span>
                                     </div>
-                                    {config.selectedEquipment &&
-                                      Object.values(
-                                        config.selectedEquipment
-                                      ).flat().length > 0 && (
-                                        <div className="flex justify-between items-center text-sm">
-                                          <span className="text-slate-600 dark:text-slate-400 font-medium">
-                                            Equipment (
-                                            {
-                                              Object.values(
-                                                config.selectedEquipment
-                                              ).flat().length
-                                            }
-                                            ):
-                                          </span>
-                                          <span className="font-semibold text-orange-600 dark:text-orange-400">
-                                            €
-                                            {Object.values(
-                                              config.selectedEquipment
+                                    {Object.values(selectedEquipment).flat()
+                                      .length > 0 && (
+                                      <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                          Equipment (
+                                          {
+                                            Object.values(
+                                              selectedEquipment
+                                            ).flat().length
+                                          }
+                                          ):
+                                        </span>
+                                        <span className="font-semibold text-orange-600 dark:text-orange-400">
+                                          €
+                                          {Object.values(selectedEquipment)
+                                            .flat()
+                                            .reduce(
+                                              (sum, eq) =>
+                                                sum + parseFloat(eq.price),
+                                              0
                                             )
-                                              .flat()
-                                              .reduce(
-                                                (sum, eq) =>
-                                                  sum + parseFloat(eq.price),
-                                                0
-                                              )
-                                              .toLocaleString("de-DE")}
-                                            /Tag
-                                          </span>
-                                        </div>
-                                      )}
+                                            .toLocaleString("de-DE")}
+                                          /Tag
+                                        </span>
+                                      </div>
+                                    )}
                                     <div className="border-t pt-2 mt-2">
                                       <div className="flex justify-between items-center">
                                         <span className="font-semibold text-slate-700 dark:text-slate-300">
@@ -2439,263 +2605,396 @@ const RigConfigurator = () => {
                                         </span>
                                         <span className="text-lg font-bold text-green-600 dark:text-green-400">
                                           €
-                                          {(
-                                            parseFloat(
-                                              config.selectedRig.dayRate
-                                            ) +
-                                            (config.selectedEquipment
-                                              ? Object.values(
-                                                  config.selectedEquipment
-                                                )
-                                                  .flat()
-                                                  .reduce(
-                                                    (sum, eq) =>
-                                                      sum +
-                                                      parseFloat(eq.price),
-                                                    0
-                                                  )
-                                              : 0)
-                                          ).toLocaleString("de-DE")}
+                                          {calculateTotal().toLocaleString(
+                                            "de-DE"
+                                          )}
                                           /Tag
                                         </span>
                                       </div>
                                     </div>
                                   </div>
                                 </td>
-                                <td className="p-3 text-yellow-700">
-                                  {config.projectDuration}
+                                <td className="p-3">
+                                  {requirements.projectDuration}
                                 </td>
                                 <td className="p-3">
-                                  <Button
-                                    size="sm"
+                                  <Badge
                                     variant="outline"
-                                    className="border-yellow-500 text-yellow-700 hover:bg-yellow-100"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleContractStatus(config.id);
-                                    }}
+                                    className="bg-yellow-50 text-yellow-700 border-yellow-300"
                                   >
                                     Ausstehend
-                                  </Button>
-                                </td>
-                                <td className="p-3">
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="border-yellow-300 hover:bg-yellow-100"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        viewTenderDetails(config);
-                                      }}
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="border-yellow-300 hover:bg-yellow-100"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteTenderConfiguration(config.id);
-                                      }}
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-
-                          {/* Section Header for Contracts - Green highlight */}
-                          {savedConfigurations.some(
-                            (config) => config.isUnderContract
-                          ) && (
-                            <tr className="bg-green-50 dark:bg-green-950/20">
-                              <td colSpan={5} className="p-4">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                  <h4 className="font-semibold text-green-800 dark:text-green-200">
-                                    Anlagen unter Vertrag
-                                  </h4>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-
-                          {/* Configurations UNDER contract - Green highlight */}
-                          {savedConfigurations
-                            .filter((config) => config.isUnderContract)
-                            .map((config) => (
-                              <tr
-                                key={config.id}
-                                className="border-b bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer"
-                                onClick={() => viewTenderDetails(config)}
-                              >
-                                <td className="p-3">
-                                  <div className="flex items-center gap-2">
-                                    <Badge
-                                      variant="outline"
-                                      className="border-green-500 text-green-700"
-                                    >
-                                      {config.selectedRig?.name ||
-                                        "Unbekanntes Rig"}
-                                    </Badge>
-                                    <Badge
-                                      variant="default"
-                                      className="bg-green-500 text-white text-xs"
-                                    >
-                                      Unter Vertrag
-                                    </Badge>
-                                  </div>
-                                  <div className="text-sm text-green-700 font-medium mt-1">
-                                    {config.projectName}
-                                  </div>
-                                </td>
-                                <td className="p-3">
-                                  <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-green-200 shadow-sm space-y-2">
-                                    <div className="flex justify-between items-center text-sm">
-                                      <span className="text-slate-600 dark:text-slate-400 font-medium">
-                                        Rig Basis:
-                                      </span>
-                                      <span className="font-semibold text-blue-600 dark:text-blue-400">
-                                        €
-                                        {parseFloat(
-                                          config.selectedRig.dayRate
-                                        ).toLocaleString("de-DE")}
-                                        /Tag
-                                      </span>
-                                    </div>
-                                    {config.selectedEquipment &&
-                                      Object.values(
-                                        config.selectedEquipment
-                                      ).flat().length > 0 && (
-                                        <div className="flex justify-between items-center text-sm">
-                                          <span className="text-slate-600 dark:text-slate-400 font-medium">
-                                            Equipment (
-                                            {
-                                              Object.values(
-                                                config.selectedEquipment
-                                              ).flat().length
-                                            }
-                                            ):
-                                          </span>
-                                          <span className="font-semibold text-orange-600 dark:text-orange-400">
-                                            €
-                                            {Object.values(
-                                              config.selectedEquipment
-                                            )
-                                              .flat()
-                                              .reduce(
-                                                (sum, eq) =>
-                                                  sum + parseFloat(eq.price),
-                                                0
-                                              )
-                                              .toLocaleString("de-DE")}
-                                            /Tag
-                                          </span>
-                                        </div>
-                                      )}
-                                    <div className="border-t pt-2 mt-2">
-                                      <div className="flex justify-between items-center">
-                                        <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                          Gesamtsumme:
-                                        </span>
-                                        <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                                          €
-                                          {(
-                                            parseFloat(
-                                              config.selectedRig.dayRate
-                                            ) +
-                                            (config.selectedEquipment
-                                              ? Object.values(
-                                                  config.selectedEquipment
-                                                )
-                                                  .flat()
-                                                  .reduce(
-                                                    (sum, eq) =>
-                                                      sum +
-                                                      parseFloat(eq.price),
-                                                    0
-                                                  )
-                                              : 0)
-                                          ).toLocaleString("de-DE")}
-                                          /Tag
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="p-3 text-green-700 font-medium">
-                                  {config.projectDuration}
+                                  </Badge>
                                 </td>
                                 <td className="p-3">
                                   <Button
                                     size="sm"
-                                    variant="default"
-                                    className="bg-green-600 hover:bg-green-700 text-white"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleContractStatus(config.id);
-                                    }}
+                                    onClick={saveCurrentConfiguration}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
                                   >
-                                    ✓ Unter Vertrag
+                                    <Save className="h-3 w-3 mr-1" />
+                                    Speichern
                                   </Button>
                                 </td>
-                                <td className="p-3">
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="border-green-300 hover:bg-green-100"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        viewTenderDetails(config);
-                                      }}
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="border-green-300 hover:bg-green-100"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteTenderConfiguration(config.id);
-                                      }}
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </td>
                               </tr>
-                            ))}
+                            )}
 
-                          {/* Empty State */}
-                          {savedConfigurations.length === 0 &&
-                            (!selectedRig || !requirements.projectName) && (
-                              <tr className="border-b">
-                                <td
-                                  colSpan={5}
-                                  className="p-8 text-center text-muted-foreground"
+                            {/* Configurations NOT under contract - Yellow highlight */}
+                            {savedConfigurations
+                              .filter((config) => !config.isUnderContract)
+                              .map((config) => (
+                                <tr
+                                  key={config.id}
+                                  className="border-b bg-yellow-50 dark:bg-yellow-950/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 cursor-pointer"
+                                  onClick={() => viewTenderDetails(config)}
                                 >
-                                  <div className="flex flex-col items-center gap-2">
-                                    <Calculator className="h-8 w-8 text-muted-foreground/50" />
-                                    <span>
-                                      Keine Tender-Konfigurationen gespeichert.
-                                    </span>
-                                    <span className="text-sm">
-                                      Erstellen Sie eine Konfiguration und
-                                      speichern Sie sie als Tender.
-                                    </span>
+                                  <td className="p-3">
+                                    <div className="flex items-center gap-2">
+                                      <Badge
+                                        variant="outline"
+                                        className="border-yellow-500 text-yellow-700"
+                                      >
+                                        {config.selectedRig?.name ||
+                                          "Unbekanntes Rig"}
+                                      </Badge>
+                                    </div>
+                                    <div className="text-sm text-yellow-700 font-medium mt-1">
+                                      {config.projectName}
+                                    </div>
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border shadow-sm space-y-2">
+                                      <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                          Rig Basis:
+                                        </span>
+                                        <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                          €
+                                          {parseFloat(
+                                            config.selectedRig.dayRate
+                                          ).toLocaleString("de-DE")}
+                                          /Tag
+                                        </span>
+                                      </div>
+                                      {config.selectedEquipment &&
+                                        Object.values(
+                                          config.selectedEquipment
+                                        ).flat().length > 0 && (
+                                          <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                              Equipment (
+                                              {
+                                                Object.values(
+                                                  config.selectedEquipment
+                                                ).flat().length
+                                              }
+                                              ):
+                                            </span>
+                                            <span className="font-semibold text-orange-600 dark:text-orange-400">
+                                              €
+                                              {Object.values(
+                                                config.selectedEquipment
+                                              )
+                                                .flat()
+                                                .reduce(
+                                                  (sum, eq) =>
+                                                    sum + parseFloat(eq.price),
+                                                  0
+                                                )
+                                                .toLocaleString("de-DE")}
+                                              /Tag
+                                            </span>
+                                          </div>
+                                        )}
+                                      <div className="border-t pt-2 mt-2">
+                                        <div className="flex justify-between items-center">
+                                          <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                            Gesamtsumme:
+                                          </span>
+                                          <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                                            €
+                                            {(
+                                              parseFloat(
+                                                config.selectedRig.dayRate
+                                              ) +
+                                              (config.selectedEquipment
+                                                ? Object.values(
+                                                    config.selectedEquipment
+                                                  )
+                                                    .flat()
+                                                    .reduce(
+                                                      (sum, eq) =>
+                                                        sum +
+                                                        parseFloat(eq.price),
+                                                      0
+                                                    )
+                                                : 0)
+                                            ).toLocaleString("de-DE")}
+                                            /Tag
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="p-3 text-yellow-700">
+                                    {config.projectDuration}
+                                  </td>
+                                  <td className="p-3">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-yellow-500 text-yellow-700 hover:bg-yellow-100"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleContractStatus(config.id);
+                                      }}
+                                    >
+                                      Ausstehend
+                                    </Button>
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-blue-300 hover:bg-blue-100"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openEquipmentManagement(config);
+                                        }}
+                                        title="Equipment verwalten"
+                                      >
+                                        <Settings className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-yellow-300 hover:bg-yellow-100"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          viewTenderDetails(config);
+                                        }}
+                                      >
+                                        <Eye className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-red-300 hover:bg-red-100"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteTenderConfiguration(config.id);
+                                        }}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+
+                            {/* Section Header for Contracts - Green highlight */}
+                            {savedConfigurations.some(
+                              (config) => config.isUnderContract
+                            ) && (
+                              <tr className="bg-green-50 dark:bg-green-950/20">
+                                <td colSpan={5} className="p-4">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <h4 className="font-semibold text-green-800 dark:text-green-200">
+                                      Anlagen unter Vertrag
+                                    </h4>
                                   </div>
                                 </td>
                               </tr>
                             )}
-                        </tbody>
-                      </table>
+
+                            {/* Configurations UNDER contract - Green highlight */}
+                            {savedConfigurations
+                              .filter((config) => config.isUnderContract)
+                              .map((config) => (
+                                <tr
+                                  key={config.id}
+                                  className="border-b bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer"
+                                  onClick={() => viewTenderDetails(config)}
+                                >
+                                  <td className="p-3">
+                                    <div className="flex items-center gap-2">
+                                      <Badge
+                                        variant="outline"
+                                        className="border-green-500 text-green-700"
+                                      >
+                                        {config.selectedRig?.name ||
+                                          "Unbekanntes Rig"}
+                                      </Badge>
+                                      <Badge
+                                        variant="default"
+                                        className="bg-green-500 text-white text-xs"
+                                      >
+                                        Unter Vertrag
+                                      </Badge>
+                                    </div>
+                                    <div className="text-sm text-green-700 font-medium mt-1">
+                                      {config.projectName}
+                                    </div>
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-green-200 shadow-sm space-y-2">
+                                      <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                          Rig Basis:
+                                        </span>
+                                        <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                          €
+                                          {parseFloat(
+                                            config.selectedRig.dayRate
+                                          ).toLocaleString("de-DE")}
+                                          /Tag
+                                        </span>
+                                      </div>
+                                      {config.selectedEquipment &&
+                                        Object.values(
+                                          config.selectedEquipment
+                                        ).flat().length > 0 && (
+                                          <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                              Equipment (
+                                              {
+                                                Object.values(
+                                                  config.selectedEquipment
+                                                ).flat().length
+                                              }
+                                              ):
+                                            </span>
+                                            <span className="font-semibold text-orange-600 dark:text-orange-400">
+                                              €
+                                              {Object.values(
+                                                config.selectedEquipment
+                                              )
+                                                .flat()
+                                                .reduce(
+                                                  (sum, eq) =>
+                                                    sum + parseFloat(eq.price),
+                                                  0
+                                                )
+                                                .toLocaleString("de-DE")}
+                                              /Tag
+                                            </span>
+                                          </div>
+                                        )}
+                                      <div className="border-t pt-2 mt-2">
+                                        <div className="flex justify-between items-center">
+                                          <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                            Gesamtsumme:
+                                          </span>
+                                          <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                                            €
+                                            {(
+                                              parseFloat(
+                                                config.selectedRig.dayRate
+                                              ) +
+                                              (config.selectedEquipment
+                                                ? Object.values(
+                                                    config.selectedEquipment
+                                                  )
+                                                    .flat()
+                                                    .reduce(
+                                                      (sum, eq) =>
+                                                        sum +
+                                                        parseFloat(eq.price),
+                                                      0
+                                                    )
+                                                : 0)
+                                            ).toLocaleString("de-DE")}
+                                            /Tag
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="p-3 text-green-700 font-medium">
+                                    {config.projectDuration}
+                                  </td>
+                                  <td className="p-3">
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      className="bg-green-600 hover:bg-green-700 text-white"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleContractStatus(config.id);
+                                      }}
+                                    >
+                                      ✓ Unter Vertrag
+                                    </Button>
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-blue-300 hover:bg-blue-100"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openEquipmentManagement(config);
+                                        }}
+                                        title="Equipment verwalten"
+                                      >
+                                        <Settings className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-green-300 hover:bg-green-100"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          viewTenderDetails(config);
+                                        }}
+                                      >
+                                        <Eye className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-red-300 hover:bg-red-100"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteTenderConfiguration(config.id);
+                                        }}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+
+                            {/* Empty State */}
+                            {savedConfigurations.length === 0 &&
+                              (!selectedRig || !requirements.projectName) && (
+                                <tr className="border-b">
+                                  <td
+                                    colSpan={5}
+                                    className="p-8 text-center text-muted-foreground"
+                                  >
+                                    <div className="flex flex-col items-center gap-2">
+                                      <Calculator className="h-8 w-8 text-muted-foreground/50" />
+                                      <span>
+                                        Keine Tender-Konfigurationen
+                                        gespeichert.
+                                      </span>
+                                      <span className="text-sm">
+                                        Erstellen Sie eine Konfiguration und
+                                        speichern Sie sie als Tender.
+                                      </span>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -3256,6 +3555,226 @@ const RigConfigurator = () => {
             <Button onClick={createQuickAction}>
               <ClipboardList className="mr-2 h-4 w-4" />
               Action erstellen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Equipment Management Dialog */}
+      <Dialog
+        open={equipmentManagementDialogOpen}
+        onOpenChange={setEquipmentManagementDialogOpen}
+      >
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Equipment verwalten - {editingTenderConfig?.projectName}
+            </DialogTitle>
+            <DialogDescription>
+              Fügen Sie Equipment hinzu oder entfernen Sie es, um die Tagesrate
+              anzupassen
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Current Total */}
+            <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/50 dark:to-cyan-950/50">
+              <CardContent className="pt-6">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-semibold">
+                    Aktuelle Gesamt-Tagesrate:
+                  </span>
+                  <span className="text-2xl font-bold text-primary">
+                    €{" "}
+                    {editingTenderConfig
+                      ? (
+                          parseFloat(editingTenderConfig.selectedRig.dayRate) +
+                          Object.values(tempEquipmentSelection)
+                            .flat()
+                            .reduce((sum, eq) => sum + parseFloat(eq.price), 0)
+                        ).toLocaleString("de-DE")
+                      : 0}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Equipment Categories */}
+            {editingTenderConfig &&
+              Object.entries(equipmentCategories).map(
+                ([category, categoryData]) => {
+                  const categoryLabel = categoryData.name || category;
+                  const items = categoryData.items || [];
+                  const selectedItems = tempEquipmentSelection[category] || [];
+
+                  return (
+                    <Card key={category}>
+                      <CardHeader>
+                        <CardTitle className="text-base">
+                          {categoryLabel}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {items.map((item: EquipmentItem) => {
+                            const isSelected = selectedItems.some(
+                              (sel) => sel.id === item.id
+                            );
+                            return (
+                              <div
+                                key={item.id}
+                                className={cn(
+                                  "flex items-center justify-between p-3 rounded-lg border-2 transition-all",
+                                  isSelected
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border hover:border-primary/50"
+                                )}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={(checked) => {
+                                      setTempEquipmentSelection((prev) => {
+                                        const current = prev[category] || [];
+                                        if (checked) {
+                                          return {
+                                            ...prev,
+                                            [category]: [...current, item],
+                                          };
+                                        } else {
+                                          return {
+                                            ...prev,
+                                            [category]: current.filter(
+                                              (i) => i.id !== item.id
+                                            ),
+                                          };
+                                        }
+                                      });
+                                    }}
+                                  />
+                                  <div>
+                                    <div className="font-medium">
+                                      {item.name}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      €
+                                      {parseFloat(item.price).toLocaleString(
+                                        "de-DE"
+                                      )}
+                                      /Tag
+                                    </div>
+                                  </div>
+                                </div>
+                                {isSelected && (
+                                  <Badge className="bg-primary">
+                                    Ausgewählt
+                                  </Badge>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                }
+              )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEquipmentManagementDialogOpen(false);
+                setEditingTenderConfig(null);
+              }}
+            >
+              Abbrechen
+            </Button>
+            <Button onClick={saveEquipmentChanges} className="bg-primary">
+              <Save className="h-4 w-4 mr-2" />
+              Änderungen speichern
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contract Start Date Dialog */}
+      <Dialog
+        open={contractDateDialogOpen}
+        onOpenChange={setContractDateDialogOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vertragsstartdatum festlegen</DialogTitle>
+            <DialogDescription>
+              Wählen Sie das Startdatum für den Vertrag mit{" "}
+              <strong>{pendingContractConfig?.selectedRig?.name}</strong>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Vertragsbeginn *</Label>
+              <DatePicker
+                date={contractStartDate}
+                onSelect={setContractStartDate}
+                placeholder="Startdatum wählen"
+              />
+            </div>
+
+            {pendingContractConfig && (
+              <Card className="bg-muted/50">
+                <CardContent className="pt-4">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Projekt:</span>
+                      <span className="font-medium">
+                        {pendingContractConfig.projectName}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Geplante Dauer:
+                      </span>
+                      <span className="font-medium">
+                        {pendingContractConfig.projectDuration}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Tagesrate:</span>
+                      <span className="font-medium text-primary">
+                        €
+                        {pendingContractConfig.totalPrice.toLocaleString(
+                          "de-DE"
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setContractDateDialogOpen(false);
+                setPendingContractConfig(null);
+                setContractStartDate(undefined);
+              }}
+              disabled={isSubmittingContract}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={confirmContractStartDate}
+              disabled={!contractStartDate || isSubmittingContract}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isSubmittingContract ? "Wird gespeichert..." : "Vertrag starten"}
             </Button>
           </DialogFooter>
         </DialogContent>

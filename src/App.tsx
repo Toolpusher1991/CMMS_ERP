@@ -9,6 +9,7 @@ import WorkOrderManagement from "@/pages/WorkOrderManagement";
 import ActionTracker from "@/pages/ActionTracker";
 import RigConfigurator from "@/pages/RigConfigurator";
 import FailureReporting from "@/pages/FailureReporting";
+import Reporting from "@/pages/Reporting";
 import SystemDebug from "@/pages/SystemDebug";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -46,6 +47,7 @@ type AppPage =
   | "actions"
   | "tender"
   | "failures"
+  | "reporting"
   | "debug";
 
 function App() {
@@ -167,7 +169,11 @@ function App() {
         // Desktop View: Full app with Sidebar
         <div className="flex h-screen overflow-hidden">
           {/* Sidebar */}
-          <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} />
+          <Sidebar
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            userRole={user?.role}
+          />
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
@@ -198,6 +204,7 @@ function App() {
                   <ActionTracker initialActionId={initialActionId} />
                 )}
                 {currentPage === "failures" && <FailureReporting />}
+                {currentPage === "reporting" && <Reporting />}
                 {currentPage === "tender" && <RigConfigurator />}
                 {currentPage === "debug" && <SystemDebug />}
                 {currentPage === "users" && user.role === "ADMIN" && (
