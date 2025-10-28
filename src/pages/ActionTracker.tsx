@@ -47,7 +47,6 @@ import {
   ChevronsUpDown,
   Users,
   AlertCircle,
-  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -169,6 +168,7 @@ interface ApiAction {
   status: string;
   priority: string;
   assignedTo?: string;
+  assignedUsers?: string[];
   dueDate?: string;
   completedAt?: string;
   createdBy?: string;
