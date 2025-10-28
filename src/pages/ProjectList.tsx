@@ -240,6 +240,40 @@ export default function AnlagenProjektManagement() {
   const anlagen: Anlage[] = ["T208", "T207", "T700", "T46"];
   const categories: Category[] = ["Mechanisch", "Elektrisch", "Anlage"];
 
+  // Helper function to get user display name from ID or email
+  const getUserDisplayName = (userIdOrEmail: string): string => {
+    if (!userIdOrEmail) return "Nicht zugewiesen";
+
+    // Check if it's already a formatted name (contains space)
+    if (userIdOrEmail.includes(" ") && !userIdOrEmail.includes("@")) {
+      return userIdOrEmail;
+    }
+
+    // Try to find user by ID first
+    const userById = users.find((u) => u.id === userIdOrEmail);
+    if (userById) {
+      return `${userById.firstName} ${userById.lastName}`;
+    }
+
+    // Try to find user by email
+    const userByEmail = users.find((u) => u.email === userIdOrEmail);
+    if (userByEmail) {
+      return `${userByEmail.firstName} ${userByEmail.lastName}`;
+    }
+
+    // If it looks like an email, show just the email prefix
+    if (userIdOrEmail.includes("@")) {
+      return userIdOrEmail.split("@")[0];
+    }
+
+    // Fallback: return as-is but truncate if it's a UUID
+    if (userIdOrEmail.length > 20) {
+      return "Unbekannter User";
+    }
+
+    return userIdOrEmail;
+  };
+
   // Mapping Functions
   const mapBackendStatus = (
     status: string
@@ -1160,43 +1194,103 @@ export default function AnlagenProjektManagement() {
                   <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
                     <div className="grid gap-2">
                       <Label htmlFor="anlage">Anlage</Label>
-                      <Select
-                        value={formData.anlage}
-                        onValueChange={(value: Anlage) =>
-                          setFormData({ ...formData, anlage: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Anlage wählen" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {anlagen.map((anlage) => (
-                            <SelectItem key={anlage} value={anlage}>
-                              {anlage}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="grid grid-cols-4 gap-2">
+                        <Button
+                          type="button"
+                          variant={
+                            formData.anlage === "T208" ? "default" : "outline"
+                          }
+                          onClick={() =>
+                            setFormData({ ...formData, anlage: "T208" })
+                          }
+                          className="w-full"
+                        >
+                          T208
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={
+                            formData.anlage === "T207" ? "default" : "outline"
+                          }
+                          onClick={() =>
+                            setFormData({ ...formData, anlage: "T207" })
+                          }
+                          className="w-full"
+                        >
+                          T207
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={
+                            formData.anlage === "T700" ? "default" : "outline"
+                          }
+                          onClick={() =>
+                            setFormData({ ...formData, anlage: "T700" })
+                          }
+                          className="w-full"
+                        >
+                          T700
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={
+                            formData.anlage === "T46" ? "default" : "outline"
+                          }
+                          onClick={() =>
+                            setFormData({ ...formData, anlage: "T46" })
+                          }
+                          className="w-full"
+                        >
+                          T46
+                        </Button>
+                      </div>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="category">Kategorie</Label>
-                      <Select
-                        value={formData.category}
-                        onValueChange={(value: Category) =>
-                          setFormData({ ...formData, category: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Kategorie wählen" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {category}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button
+                          type="button"
+                          variant={
+                            formData.category === "Mechanisch"
+                              ? "default"
+                              : "outline"
+                          }
+                          onClick={() =>
+                            setFormData({ ...formData, category: "Mechanisch" })
+                          }
+                          className="w-full"
+                        >
+                          Mechanisch
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={
+                            formData.category === "Elektrisch"
+                              ? "default"
+                              : "outline"
+                          }
+                          onClick={() =>
+                            setFormData({ ...formData, category: "Elektrisch" })
+                          }
+                          className="w-full"
+                        >
+                          Elektrisch
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={
+                            formData.category === "Anlage"
+                              ? "default"
+                              : "outline"
+                          }
+                          onClick={() =>
+                            setFormData({ ...formData, category: "Anlage" })
+                          }
+                          className="w-full"
+                        >
+                          Anlage
+                        </Button>
+                      </div>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="name">Projektname</Label>
@@ -2142,9 +2236,9 @@ export default function AnlagenProjektManagement() {
                                                                 {task.assignedUser && (
                                                                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                                                                     <UserIcon className="h-3 w-3" />
-                                                                    {
+                                                                    {getUserDisplayName(
                                                                       task.assignedUser
-                                                                    }
+                                                                    )}
                                                                   </span>
                                                                 )}
                                                                 {task.dueDate && (

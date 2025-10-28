@@ -74,6 +74,7 @@ router.post('/', authenticateToken, validatePlantAccess, async (req: Request, re
     const {
       plant,
       category,
+      discipline,
       title,
       description,
       status,
@@ -97,6 +98,7 @@ router.post('/', authenticateToken, validatePlantAccess, async (req: Request, re
       data: {
         plant,
         category: category || 'ALLGEMEIN',
+        discipline,
         title,
         description,
         status: status || 'OPEN',
@@ -156,6 +158,7 @@ router.put('/:id', authenticateToken, validatePlantAccess, async (req: Request, 
     const {
       plant,
       category,
+      discipline,
       title,
       description,
       status,
@@ -185,6 +188,7 @@ router.put('/:id', authenticateToken, validatePlantAccess, async (req: Request, 
     const updateData: Record<string, unknown> = {};
     if (plant !== undefined) updateData.plant = plant;
     if (category !== undefined) updateData.category = category;
+    if (discipline !== undefined) updateData.discipline = discipline;
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (status !== undefined) updateData.status = status;
