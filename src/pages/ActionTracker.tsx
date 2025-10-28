@@ -1119,122 +1119,120 @@ const ActionTracker = () => {
                                                       .join("\n")
                                                       .trim()}
                                                   </p>
-                                                  {/* Zeige Foto-Button wenn Foto in Beschreibung vorhanden */}
-                                                  {extractPhotoFromDescription(
-                                                    action.description
-                                                  ) && (
-                                                    <Button
-                                                      variant="outline"
-                                                      size="sm"
-                                                      className="mt-3"
-                                                      onClick={async () => {
-                                                        const photoFilename =
-                                                          extractPhotoFromDescription(
-                                                            action.description
-                                                          );
-                                                        if (photoFilename) {
-                                                          // If it's a full URL (Cloudinary), use directly
-                                                          if (
-                                                            photoFilename.startsWith(
-                                                              "http://"
-                                                            ) ||
-                                                            photoFilename.startsWith(
-                                                              "https://"
-                                                            )
-                                                          ) {
-                                                            console.log(
-                                                              "📷 Using Cloudinary URL:",
-                                                              photoFilename
-                                                            );
-                                                            setSelectedPhoto(
-                                                              photoFilename
-                                                            );
-                                                            setPhotoViewDialogOpen(
-                                                              true
-                                                            );
-                                                            return;
-                                                          }
+                                                  {/* Zeige Foto direkt wenn Cloudinary URL vorhanden */}
+                                                  {(() => {
+                                                    const photoUrl =
+                                                      extractPhotoFromDescription(
+                                                        action.description
+                                                      );
+                                                    if (
+                                                      photoUrl &&
+                                                      (photoUrl.startsWith(
+                                                        "http://"
+                                                      ) ||
+                                                        photoUrl.startsWith(
+                                                          "https://"
+                                                        ))
+                                                    ) {
+                                                      return (
+                                                        <div className="mt-4">
+                                                          <p className="text-sm font-medium mb-2">
+                                                            📷 Foto vom
+                                                            Schadensbericht:
+                                                          </p>
+                                                          <img
+                                                            src={photoUrl}
+                                                            alt="Schadensbericht Foto"
+                                                            className="max-w-full h-auto rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                                                            onClick={() => {
+                                                              setSelectedPhoto(
+                                                                photoUrl
+                                                              );
+                                                              setPhotoViewDialogOpen(
+                                                                true
+                                                              );
+                                                            }}
+                                                          />
+                                                        </div>
+                                                      );
+                                                    }
+                                                    return null;
+                                                  })()}
+                                                  {/* Zeige Foto-Button nur für alte lokale Dateien */}
+                                                  {(() => {
+                                                    const photoFilename =
+                                                      extractPhotoFromDescription(
+                                                        action.description
+                                                      );
+                                                    if (
+                                                      photoFilename &&
+                                                      !photoFilename.startsWith(
+                                                        "http://"
+                                                      ) &&
+                                                      !photoFilename.startsWith(
+                                                        "https://"
+                                                      )
+                                                    ) {
+                                                      return (
+                                                        <Button
+                                                          variant="outline"
+                                                          size="sm"
+                                                          className="mt-3"
+                                                          onClick={async () => {
+                                                            try {
+                                                              console.log(
+                                                                "📷 Loading photo via API:",
+                                                                photoFilename
+                                                              );
+                                                              const blob =
+                                                                await apiClient.request<Blob>(
+                                                                  `/failure-reports/photo/${photoFilename}`,
+                                                                  {
+                                                                    responseType:
+                                                                      "blob",
+                                                                  }
+                                                                );
 
-                                                          // Otherwise try API route for old local files
-                                                          try {
-                                                            console.log(
-                                                              "📷 Loading photo via API:",
-                                                              photoFilename
-                                                            );
-                                                            // Use API client with blob response type
-                                                            const blob =
-                                                              await apiClient.request<Blob>(
-                                                                `/failure-reports/photo/${photoFilename}`,
-                                                                {
-                                                                  responseType:
-                                                                    "blob",
-                                                                }
+                                                              const photoUrl =
+                                                                URL.createObjectURL(
+                                                                  blob
+                                                                );
+                                                              setSelectedPhoto(
+                                                                photoUrl
+                                                              );
+                                                              setPhotoViewDialogOpen(
+                                                                true
                                                               );
 
-                                                            // Create blob URL for image display
-                                                            const photoUrl =
-                                                              URL.createObjectURL(
-                                                                blob
+                                                              setTimeout(
+                                                                () =>
+                                                                  URL.revokeObjectURL(
+                                                                    photoUrl
+                                                                  ),
+                                                                10000
                                                               );
-
-                                                            console.log(
-                                                              "✅ Photo loaded successfully via API"
-                                                            );
-                                                            setSelectedPhoto(
-                                                              photoUrl
-                                                            );
-                                                            setPhotoViewDialogOpen(
-                                                              true
-                                                            );
-
-                                                            // Clean up blob URL after use
-                                                            setTimeout(
-                                                              () =>
-                                                                URL.revokeObjectURL(
-                                                                  photoUrl
-                                                                ),
-                                                              10000
-                                                            );
-                                                          } catch (error) {
-                                                            console.error(
-                                                              "❌ Error loading photo via API:",
-                                                              error
-                                                            );
-                                                            // Fallback to direct URL
-                                                            const getApiUrl =
-                                                              () => {
-                                                                if (
-                                                                  import.meta
-                                                                    .env
-                                                                    .VITE_API_BASE_URL
-                                                                ) {
-                                                                  return import.meta.env.VITE_API_BASE_URL.replace(
-                                                                    "/api",
-                                                                    ""
-                                                                  );
-                                                                }
-                                                                return window
-                                                                  .location
-                                                                  .hostname ===
-                                                                  "localhost"
-                                                                  ? "http://localhost:5137"
-                                                                  : "https://cmms-erp-backend.onrender.com";
-                                                              };
-                                                            setSelectedPhoto(
-                                                              `${getApiUrl()}/failure-reports/photo/${photoFilename}`
-                                                            );
-                                                            setPhotoViewDialogOpen(
-                                                              true
-                                                            );
-                                                          }
-                                                        }
-                                                      }}
-                                                    >
-                                                      <Camera className="h-4 w-4 mr-2" />
-                                                      Foto vom Failure Report
-                                                      ansehen
-                                                    </Button>
-                                                  )}
+                                                            } catch (error) {
+                                                              console.error(
+                                                                "❌ Error loading photo:",
+                                                                error
+                                                              );
+                                                              toast({
+                                                                title: "Fehler",
+                                                                description:
+                                                                  "Foto konnte nicht geladen werden.",
+                                                                variant:
+                                                                  "destructive",
+                                                              });
+                                                            }
+                                                          }}
+                                                        >
+                                                          <Camera className="h-4 w-4 mr-2" />
+                                                          Foto anzeigen
+                                                        </Button>
+                                                      );
+                                                    }
+                                                    return null;
+                                                  })()}
                                                 </CardContent>
                                               </Card>
 
