@@ -44,24 +44,10 @@ const navItems: NavItem[] = [
 interface SidebarProps {
   currentPage: AppPage;
   onPageChange: (page: AppPage) => void;
-  userRole?: string;
 }
 
-export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
+export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-
-  // Filter nav items based on user role
-  const filteredNavItems = navItems.filter((item) => {
-    // Show debug page only for admins
-    if (item.page === "debug") {
-      return userRole === "ADMIN";
-    }
-    // Show user management only for admins
-    if (item.page === "users") {
-      return userRole === "ADMIN";
-    }
-    return true;
-  });
 
   return (
     <div
@@ -101,7 +87,7 @@ export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-2 space-y-2">
-        {filteredNavItems.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.page;
 
