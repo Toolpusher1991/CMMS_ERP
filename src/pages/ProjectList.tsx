@@ -170,7 +170,13 @@ const initialProjects: Project[] = [
   },
 ];
 
-export default function AnlagenProjektManagement() {
+interface ProjectListProps {
+  initialProjectId?: string;
+}
+
+export default function AnlagenProjektManagement({
+  initialProjectId,
+}: ProjectListProps) {
   // State Management
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -407,7 +413,33 @@ export default function AnlagenProjektManagement() {
   // Initial data load
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Expand row if initialProjectId is provided
+  useEffect(() => {
+    if (initialProjectId && projects.length > 0) {
+      const projectExists = projects.find((p) => p.id === initialProjectId);
+      if (projectExists) {
+        // Switch to the correct tab (Anlage)
+        setSelectedAnlage(projectExists.anlage);
+
+        setExpandedRows(new Set([initialProjectId]));
+        loadComments(initialProjectId);
+
+        // Scroll to the project after a short delay
+        setTimeout(() => {
+          const element = document.getElementById(
+            `project-${initialProjectId}`
+          );
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 300);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProjectId, projects]);
 
   // Project CRUD Operations
   const handleCreate = () => {
@@ -963,7 +995,7 @@ export default function AnlagenProjektManagement() {
     try {
       const comments = await getProjectComments(projectId);
       setProjectComments((prev) => ({ ...prev, [projectId]: comments }));
-    } catch (error) {
+    } catch {
       toast({
         title: "Fehler",
         description: "Kommentare konnten nicht geladen werden.",
@@ -1829,7 +1861,10 @@ export default function AnlagenProjektManagement() {
                                 return (
                                   <React.Fragment key={project.id}>
                                     {/* Hauptzeile */}
-                                    <TableRow className="hover:bg-muted/50">
+                                    <TableRow
+                                      id={`project-${project.id}`}
+                                      className="hover:bg-muted/50"
+                                    >
                                       <TableCell className="py-3">
                                         <Button
                                           variant="ghost"

@@ -42,12 +42,7 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
-import {
-  Check,
-  ChevronsUpDown,
-  Users,
-  AlertCircle,
-} from "lucide-react";
+import { Check, ChevronsUpDown, Users, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -81,12 +76,14 @@ import {
   Edit,
   Trash2,
   ChevronDown,
-  ChevronUp,
+  ChevronRight,
   Paperclip,
   X,
   Camera,
   CheckCircle2,
   ListTodo,
+  User as UserIcon,
+  Filter,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -176,7 +173,11 @@ interface ApiAction {
   actionFiles?: ApiActionFile[];
 }
 
-const ActionTracker = () => {
+interface ActionTrackerProps {
+  initialActionId?: string;
+}
+
+const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("T208");
   const [activeCategoryTab, setActiveCategoryTab] = useState<
@@ -245,6 +246,13 @@ const ActionTracker = () => {
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
 
+  // Filter States
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [disciplineFilter, setDisciplineFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [userFilter, setUserFilter] = useState<string>("all");
+
   // Extrahiere Foto-Dateinamen oder URL aus Beschreibung (von Failure Reports)
   const extractPhotoFromDescription = (description: string): string | null => {
     const match = description.match(/📸 Photo: (.+?)(?:\n|$)/i);
@@ -296,6 +304,29 @@ const ActionTracker = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Expand row if initialActionId is provided
+  useEffect(() => {
+    if (initialActionId && actions.length > 0) {
+      const actionExists = actions.find((a) => a.id === initialActionId);
+      if (actionExists) {
+        // Switch to the correct tab (Plant)
+        setActiveTab(actionExists.plant);
+
+        setExpandedRows(new Set([initialActionId]));
+        loadComments(initialActionId);
+
+        // Scroll to the action after a short delay
+        setTimeout(() => {
+          const element = document.getElementById(`action-${initialActionId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 300);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialActionId, actions]);
 
   const loadUsers = async () => {
     try {
@@ -429,7 +460,7 @@ const ActionTracker = () => {
     try {
       const comments = await getActionComments(actionId);
       setActionComments((prev) => ({ ...prev, [actionId]: comments }));
-    } catch (error) {
+    } catch {
       toast({
         title: "Fehler",
         description: "Kommentare konnten nicht geladen werden.",
@@ -840,33 +871,32 @@ const ActionTracker = () => {
     });
   };
 
-  const handleStatusChange = async (
-    id: string,
-    newStatus: Action["status"]
-  ) => {
-    try {
-      await apiClient.request(`/actions/${id}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          status: newStatus,
-        }),
-      });
-
-      toast({
-        title: "Status aktualisiert",
-        description: `Status wurde auf ${newStatus} gesetzt.`,
-      });
-
-      await loadActions();
-    } catch (error) {
-      console.error("Fehler beim Status-Update:", error);
-      toast({
-        title: "Fehler",
-        description: "Status konnte nicht aktualisiert werden.",
-        variant: "destructive",
-      });
-    }
-  };
+  // Status change removed - now only via edit dialog or complete button
+  // const handleStatusChange = async (
+  //   id: string,
+  //   newStatus: Action["status"]
+  // ) => {
+  //   try {
+  //     await apiClient.request(`/actions/${id}`, {
+  //       method: "PUT",
+  //       body: JSON.stringify({
+  //         status: newStatus,
+  //       }),
+  //     });
+  //     toast({
+  //       title: "Status aktualisiert",
+  //       description: `Status wurde auf ${newStatus} gesetzt.`,
+  //     });
+  //     await loadActions();
+  //   } catch (error) {
+  //     console.error("Fehler beim Status-Update:", error);
+  //     toast({
+  //       title: "Fehler",
+  //       description: "Status konnte nicht aktualisiert werden.",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -944,6 +974,42 @@ const ActionTracker = () => {
     }
     // "alle" shows all actions for the plant
 
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (a) =>
+          a.title?.toLowerCase().includes(query) ||
+          a.description?.toLowerCase().includes(query) ||
+          a.assignedTo?.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((a) => a.status === statusFilter);
+    }
+
+    // Apply discipline filter
+    if (disciplineFilter !== "all") {
+      filtered = filtered.filter((a) => a.discipline === disciplineFilter);
+    }
+
+    // Apply priority filter
+    if (priorityFilter !== "all") {
+      filtered = filtered.filter((a) => a.priority === priorityFilter);
+    }
+
+    // Apply user filter
+    if (userFilter !== "all") {
+      filtered = filtered.filter((a) => {
+        const user = users.find(
+          (u) => `${u.firstName} ${u.lastName}` === userFilter
+        );
+        return user ? a.assignedTo === user.email : false;
+      });
+    }
+
     // Sort: COMPLETED actions to the bottom
     return filtered.sort((a, b) => {
       if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1;
@@ -995,1258 +1061,990 @@ const ActionTracker = () => {
               </div>
             </div>
           ) : (
-            <Tabs
-              value={activeTab}
-              onValueChange={setActiveTab}
-              className="space-y-4"
-            >
-              <TabsList className="grid w-full grid-cols-4">
-                {["T208", "T207", "T700", "T46"].map((plant) => {
-                  const stats = getActionStats(plant);
-                  const openCount = stats.open + stats.inProgress;
-                  return (
-                    <TabsTrigger key={plant} value={plant} className="relative">
-                      <div className="flex items-center gap-2">
-                        <span>{plant}</span>
-                        {openCount > 0 && (
-                          <Badge
-                            variant="destructive"
-                            className="ml-1 px-1.5 py-0 text-xs font-bold"
-                          >
-                            {openCount}
-                          </Badge>
-                        )}
-                        {openCount === 0 && stats.total > 0 && (
-                          <Badge
-                            variant="secondary"
-                            className="ml-1 px-1.5 py-0 text-xs"
-                          >
-                            ✓
-                          </Badge>
-                        )}
-                      </div>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
+            <>
+              {/* Filter Card */}
+              <Card className="mb-4">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4" />
+                      <span className="font-semibold text-sm">Filter</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mt-3">
+                    <div className="space-y-2">
+                      <Label>Suche</Label>
+                      <Input
+                        placeholder="Action suchen..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select
+                        value={statusFilter}
+                        onValueChange={setStatusFilter}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Status filtern" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle Status</SelectItem>
+                          <SelectItem value="OPEN">Geplant</SelectItem>
+                          <SelectItem value="IN_PROGRESS">Aktiv</SelectItem>
+                          <SelectItem value="COMPLETED">
+                            Abgeschlossen
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Kategorie</Label>
+                      <Select
+                        value={disciplineFilter}
+                        onValueChange={setDisciplineFilter}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Kategorie filtern" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle Kategorien</SelectItem>
+                          <SelectItem value="MECHANIK">Mechanik</SelectItem>
+                          <SelectItem value="ELEKTRIK">Elektrisch</SelectItem>
+                          <SelectItem value="ANLAGE">Anlage</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Priorität</Label>
+                      <Select
+                        value={priorityFilter}
+                        onValueChange={setPriorityFilter}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Priorität filtern" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle Prioritäten</SelectItem>
+                          <SelectItem value="LOW">Niedrig</SelectItem>
+                          <SelectItem value="MEDIUM">Mittel</SelectItem>
+                          <SelectItem value="HIGH">Hoch</SelectItem>
+                          <SelectItem value="URGENT">Dringend</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>User</Label>
+                      <Select value={userFilter} onValueChange={setUserFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="User filtern" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle User</SelectItem>
+                          {users.map((user) => {
+                            const fullName = `${user.firstName} ${user.lastName}`;
+                            return (
+                              <SelectItem key={user.id} value={fullName}>
+                                {fullName}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
 
-              {["T208", "T207", "T700", "T46"].map((plant) => (
-                <TabsContent key={plant} value={plant}>
-                  {/* Nested Category Tabs */}
-                  <Tabs
-                    value={activeCategoryTab[plant] || "alle"}
-                    onValueChange={(value) =>
-                      setActiveCategoryTab({
-                        ...activeCategoryTab,
-                        [plant]: value,
-                      })
-                    }
-                    className="space-y-4"
-                  >
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="allgemein">
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="space-y-4"
+              >
+                <TabsList className="grid w-full grid-cols-4">
+                  {["T208", "T207", "T700", "T46"].map((plant) => {
+                    const stats = getActionStats(plant);
+                    const openCount = stats.open + stats.inProgress;
+                    return (
+                      <TabsTrigger
+                        key={plant}
+                        value={plant}
+                        className="relative"
+                      >
                         <div className="flex items-center gap-2">
-                          <span>Allgemein</span>
-                          <Badge
-                            variant="outline"
-                            className="px-1.5 py-0 text-xs"
-                          >
+                          <span>{plant}</span>
+                          {openCount > 0 && (
+                            <Badge
+                              variant="destructive"
+                              className="ml-1 px-1.5 py-0 text-xs font-bold"
+                            >
+                              {openCount}
+                            </Badge>
+                          )}
+                          {openCount === 0 && stats.total > 0 && (
+                            <Badge
+                              variant="secondary"
+                              className="ml-1 px-1.5 py-0 text-xs"
+                            >
+                              ✓
+                            </Badge>
+                          )}
+                        </div>
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+
+                {["T208", "T207", "T700", "T46"].map((plant) => (
+                  <TabsContent key={plant} value={plant}>
+                    {/* Nested Category Tabs */}
+                    <Tabs
+                      value={activeCategoryTab[plant] || "alle"}
+                      onValueChange={(value) =>
+                        setActiveCategoryTab({
+                          ...activeCategoryTab,
+                          [plant]: value,
+                        })
+                      }
+                      className="space-y-4"
+                    >
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="allgemein">
+                          Allgemein
+                          <Badge variant="secondary" className="ml-2">
                             {getCategoryStats(plant, "allgemein")}
                           </Badge>
-                        </div>
-                      </TabsTrigger>
-                      <TabsTrigger value="rigmoves">
-                        <div className="flex items-center gap-2">
-                          <span>Rigmoves</span>
-                          <Badge
-                            variant="outline"
-                            className="px-1.5 py-0 text-xs"
-                          >
+                        </TabsTrigger>
+                        <TabsTrigger value="rigmoves">
+                          Rigmoves
+                          <Badge variant="secondary" className="ml-2">
                             {getCategoryStats(plant, "rigmoves")}
                           </Badge>
-                        </div>
-                      </TabsTrigger>
-                      <TabsTrigger value="alle">
-                        <div className="flex items-center gap-2">
-                          <span>Alle</span>
-                          <Badge
-                            variant="outline"
-                            className="px-1.5 py-0 text-xs"
-                          >
+                        </TabsTrigger>
+                        <TabsTrigger value="alle">
+                          Alle
+                          <Badge variant="secondary" className="ml-2">
                             {getCategoryStats(plant, "alle")}
                           </Badge>
-                        </div>
-                      </TabsTrigger>
-                    </TabsList>
+                        </TabsTrigger>
+                      </TabsList>
 
-                    {["allgemein", "rigmoves", "alle"].map((category) => {
-                      const categoryActions = getFilteredActionsForCategory(
-                        plant,
-                        category
-                      );
-                      return (
-                        <TabsContent key={category} value={category}>
-                          {categoryActions.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-center">
-                              <ClipboardList className="h-12 w-12 text-muted-foreground mb-4" />
-                              <h3 className="text-lg font-semibold">
-                                Keine Actions
-                              </h3>
-                              <p className="text-sm text-muted-foreground mb-4">
-                                Erstellen Sie die erste Action für {plant}
-                              </p>
-                              <Button onClick={openNewDialog}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Action erstellen
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="rounded-md border">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="w-[50px]"></TableHead>
-                                    <TableHead className="w-[50px]">
-                                      Nr.
-                                    </TableHead>
-                                    <TableHead>Titel</TableHead>
-                                    <TableHead>Kategorie</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Priorität</TableHead>
-                                    <TableHead>Zugewiesen an</TableHead>
-                                    <TableHead>Fälligkeitsdatum</TableHead>
-                                    <TableHead className="text-center">
-                                      Aufgaben
-                                    </TableHead>
-                                    <TableHead className="text-center">
-                                      Dateien
-                                    </TableHead>
-                                    <TableHead className="w-[100px]">
-                                      Aktionen
-                                    </TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {categoryActions.map((action, index) => (
-                                    <React.Fragment key={action.id}>
-                                      <TableRow
-                                        className={`cursor-pointer hover:bg-muted/50 ${
-                                          action.status === "COMPLETED"
-                                            ? "opacity-60"
-                                            : ""
-                                        }`}
-                                      >
-                                        <TableCell
-                                          onClick={() => toggleRow(action.id)}
+                      {["allgemein", "rigmoves", "alle"].map((category) => {
+                        const categoryActions = getFilteredActionsForCategory(
+                          plant,
+                          category
+                        );
+                        return (
+                          <TabsContent key={category} value={category}>
+                            {categoryActions.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center py-12 text-center">
+                                <ClipboardList className="h-12 w-12 text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-semibold">
+                                  Keine Actions
+                                </h3>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                  Erstellen Sie die erste Action für {plant}
+                                </p>
+                                <Button onClick={openNewDialog}>
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Action erstellen
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="rounded-md border">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="w-[40px] py-3 text-base"></TableHead>
+                                      <TableHead className="w-[40px] py-3 text-base">
+                                        Nr.
+                                      </TableHead>
+                                      <TableHead className="py-3 text-base">
+                                        Titel
+                                      </TableHead>
+                                      <TableHead className="py-3 text-base">
+                                        Kategorie
+                                      </TableHead>
+                                      <TableHead className="py-3 text-base">
+                                        Status
+                                      </TableHead>
+                                      <TableHead className="py-3 text-base">
+                                        Priorität
+                                      </TableHead>
+                                      <TableHead className="py-3 text-base">
+                                        Zugewiesen an
+                                      </TableHead>
+                                      <TableHead className="py-3 text-base">
+                                        Fälligkeitsdatum
+                                      </TableHead>
+                                      <TableHead className="text-center py-3 text-base">
+                                        Aufgaben
+                                      </TableHead>
+                                      <TableHead className="text-center py-3 text-base">
+                                        Dateien
+                                      </TableHead>
+                                      <TableHead className="text-right py-3 text-base">
+                                        Aktionen
+                                      </TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {categoryActions.map((action, index) => (
+                                      <React.Fragment key={action.id}>
+                                        <TableRow
+                                          id={`action-${action.id}`}
+                                          className="hover:bg-muted/50"
                                         >
-                                          {expandedRows.has(action.id) ? (
-                                            <ChevronUp className="h-4 w-4" />
-                                          ) : (
-                                            <ChevronDown className="h-4 w-4" />
-                                          )}
-                                        </TableCell>
-                                        <TableCell
-                                          onClick={() => toggleRow(action.id)}
-                                        >
-                                          <span className="font-medium text-muted-foreground">
-                                            {index + 1}
-                                          </span>
-                                        </TableCell>
-                                        <TableCell
-                                          className="font-medium"
-                                          onClick={() => toggleRow(action.id)}
-                                        >
-                                          <span
-                                            className={
-                                              action.status === "COMPLETED"
-                                                ? "line-through"
-                                                : ""
-                                            }
+                                          <TableCell className="py-3">
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7"
+                                              onClick={() =>
+                                                toggleRow(action.id)
+                                              }
+                                            >
+                                              {expandedRows.has(action.id) ? (
+                                                <ChevronDown className="h-4 w-4" />
+                                              ) : (
+                                                <ChevronRight className="h-4 w-4" />
+                                              )}
+                                            </Button>
+                                          </TableCell>
+                                          <TableCell className="py-3">
+                                            <span className="font-medium text-muted-foreground text-base">
+                                              {index + 1}
+                                            </span>
+                                          </TableCell>
+                                          <TableCell
+                                            className="py-3"
+                                            onClick={() => toggleRow(action.id)}
                                           >
-                                            {action.title}
-                                          </span>
-                                        </TableCell>
-                                        <TableCell
-                                          onClick={() => toggleRow(action.id)}
-                                        >
-                                          <Badge
-                                            variant="outline"
-                                            className={
-                                              action.discipline === "MECHANIK"
-                                                ? "bg-blue-500/10 text-blue-500 border-blue-500/50"
-                                                : action.discipline ===
-                                                  "ELEKTRIK"
-                                                ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/50"
-                                                : action.discipline === "ANLAGE"
-                                                ? "bg-green-500/10 text-green-500 border-green-500/50"
-                                                : "bg-gray-500/10 text-gray-500 border-gray-500/50"
-                                            }
-                                          >
-                                            {action.discipline === "MECHANIK" &&
-                                              "Mechanik"}
-                                            {action.discipline === "ELEKTRIK" &&
-                                              "Elektrik"}
-                                            {action.discipline === "ANLAGE" &&
-                                              "Anlage"}
-                                            {!action.discipline && "-"}
-                                          </Badge>
-                                        </TableCell>
-                                        <TableCell
-                                          onClick={() => toggleRow(action.id)}
-                                        >
-                                          <Badge
-                                            variant={
-                                              action.status === "COMPLETED"
-                                                ? "default"
-                                                : action.status ===
-                                                  "IN_PROGRESS"
-                                                ? "secondary"
-                                                : "outline"
-                                            }
-                                          >
-                                            {action.status === "OPEN" &&
-                                              "Offen"}
-                                            {action.status === "IN_PROGRESS" &&
-                                              "In Bearbeitung"}
-                                            {action.status === "COMPLETED" &&
-                                              "Abgeschlossen"}
-                                          </Badge>
-                                        </TableCell>
-                                        <TableCell
-                                          onClick={() => toggleRow(action.id)}
-                                        >
-                                          <Badge
-                                            variant={
-                                              action.priority === "URGENT" ||
-                                              action.priority === "HIGH"
-                                                ? "destructive"
-                                                : "outline"
-                                            }
-                                          >
-                                            {action.priority}
-                                          </Badge>
-                                        </TableCell>
-                                        <TableCell
-                                          onClick={() => toggleRow(action.id)}
-                                        >
-                                          {action.assignedTo}
-                                        </TableCell>
-                                        <TableCell
-                                          onClick={() => toggleRow(action.id)}
-                                        >
-                                          {action.dueDate}
-                                        </TableCell>
-                                        <TableCell
-                                          onClick={() => toggleRow(action.id)}
-                                          className="text-center"
-                                        >
-                                          <div className="flex items-center justify-center gap-1 rounded-md bg-muted/50 px-2 py-1">
-                                            <ListTodo className="h-3 w-3" />
-                                            <span className="text-sm font-medium">
+                                            <div className="space-y-1">
+                                              <div className="font-medium text-base">
+                                                {action.title}
+                                              </div>
+                                              {action.description && (
+                                                <div className="text-sm text-muted-foreground line-clamp-1">
+                                                  {action.description}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </TableCell>
+                                          <TableCell className="py-3">
+                                            <Badge
+                                              className={`text-sm font-semibold ${
+                                                action.discipline === "MECHANIK"
+                                                  ? "bg-cyan-500 text-white hover:bg-cyan-600"
+                                                  : action.discipline ===
+                                                    "ELEKTRIK"
+                                                  ? "bg-purple-500 text-white hover:bg-purple-600"
+                                                  : action.discipline ===
+                                                    "ANLAGE"
+                                                  ? "bg-pink-500 text-white hover:bg-pink-600"
+                                                  : "bg-gray-500 text-white hover:bg-gray-600"
+                                              }`}
+                                            >
+                                              {action.discipline ===
+                                                "MECHANIK" && "Mechanik"}
+                                              {action.discipline ===
+                                                "ELEKTRIK" && "Elektrisch"}
+                                              {action.discipline === "ANLAGE" &&
+                                                "Anlage"}
+                                              {!action.discipline && "-"}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell className="py-3">
+                                            <Badge
+                                              className={`text-sm font-semibold ${
+                                                action.status === "COMPLETED"
+                                                  ? "bg-green-500 text-white hover:bg-green-600"
+                                                  : action.status ===
+                                                    "IN_PROGRESS"
+                                                  ? "bg-green-500 text-white hover:bg-green-600"
+                                                  : "bg-yellow-500 text-black hover:bg-yellow-600"
+                                              }`}
+                                            >
+                                              {action.status === "OPEN" &&
+                                                "Geplant"}
+                                              {action.status ===
+                                                "IN_PROGRESS" && "Aktiv"}
+                                              {action.status === "COMPLETED" &&
+                                                "Abgeschlossen"}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell className="py-3">
+                                            <Badge
+                                              className={`text-sm ${
+                                                action.priority === "URGENT"
+                                                  ? "bg-red-500/10 text-red-700 border-red-500/20"
+                                                  : action.priority === "HIGH"
+                                                  ? "bg-orange-500/10 text-orange-700 border-orange-500/20"
+                                                  : action.priority === "MEDIUM"
+                                                  ? "bg-yellow-500/10 text-yellow-700 border-yellow-500/20"
+                                                  : "bg-gray-500/10 text-gray-700 border-gray-500/20"
+                                              }`}
+                                            >
+                                              {action.priority}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell className="py-3">
+                                            <div className="flex items-center gap-2">
+                                              <UserIcon className="h-4 w-4 text-muted-foreground" />
+                                              <span className="text-base">
+                                                {action.assignedTo ||
+                                                  "Nicht zugewiesen"}
+                                              </span>
+                                            </div>
+                                          </TableCell>
+                                          <TableCell className="py-3">
+                                            <span className="text-base">
+                                              {action.dueDate
+                                                ? new Date(
+                                                    action.dueDate
+                                                  ).toLocaleDateString("de-DE")
+                                                : "-"}
+                                            </span>
+                                          </TableCell>
+                                          <TableCell className="py-3">
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              className="h-8 text-sm"
+                                              onClick={() =>
+                                                toggleRow(action.id)
+                                              }
+                                            >
+                                              <ListTodo className="h-3.5 w-3.5 mr-1" />
                                               {
                                                 action.tasks.filter(
                                                   (t) => t.completed
                                                 ).length
                                               }
                                               /{action.tasks.length}
-                                            </span>
-                                          </div>
-                                        </TableCell>
-                                        <TableCell
-                                          onClick={() => toggleRow(action.id)}
-                                          className="text-center"
-                                        >
-                                          <div className="flex items-center justify-center gap-1 rounded-md bg-muted/50 px-2 py-1">
-                                            <Paperclip className="h-3 w-3" />
-                                            <span className="text-sm font-medium">
+                                            </Button>
+                                          </TableCell>
+                                          <TableCell className="py-3">
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              className="h-8 text-sm"
+                                              onClick={() =>
+                                                toggleRow(action.id)
+                                              }
+                                            >
+                                              <Paperclip className="h-3.5 w-3.5 mr-1" />
                                               {action.files.length}
-                                            </span>
-                                          </div>
-                                        </TableCell>
-                                        <TableCell>
-                                          <div className="flex items-center gap-1">
-                                            {action.status !== "COMPLETED" && (
+                                            </Button>
+                                          </TableCell>
+                                          <TableCell className="text-right py-3">
+                                            <div className="flex justify-end gap-1">
+                                              {action.status !==
+                                                "COMPLETED" && (
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-8 w-8"
+                                                  onClick={() =>
+                                                    handleComplete(action.id)
+                                                  }
+                                                  title="Abschließen"
+                                                >
+                                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                                </Button>
+                                              )}
                                               <Button
                                                 variant="ghost"
                                                 size="icon"
+                                                className="h-8 w-8"
                                                 onClick={() =>
-                                                  handleComplete(action.id)
+                                                  openEditDialog(action)
                                                 }
-                                                title="Abschließen"
+                                                title="Action bearbeiten"
                                               >
-                                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                                <Edit className="h-4 w-4" />
                                               </Button>
-                                            )}
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              onClick={() =>
-                                                openEditDialog(action)
-                                              }
-                                            >
-                                              <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              onClick={() =>
-                                                handleDelete(action.id)
-                                              }
-                                            >
-                                              <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                          </div>
-                                        </TableCell>
-                                      </TableRow>
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() =>
+                                                  handleDelete(action.id)
+                                                }
+                                                title="Action löschen"
+                                              >
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                              </Button>
+                                            </div>
+                                          </TableCell>
+                                        </TableRow>
 
-                                      {expandedRows.has(action.id) && (
-                                        <TableRow>
-                                          <TableCell
-                                            colSpan={11}
-                                            className="p-0 bg-muted/30"
-                                          >
-                                            <div className="p-6 space-y-6">
-                                              {/* Beschreibung & Kommentare Grid */}
-                                              <div className="grid grid-cols-2 gap-6">
-                                                {/* Beschreibung Card */}
-                                                <Card>
-                                                  <CardHeader className="pb-3">
-                                                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                                      <AlertCircle className="h-4 w-4" />
-                                                      Beschreibung
-                                                    </CardTitle>
-                                                  </CardHeader>
-                                                  <CardContent className="space-y-3">
-                                                    <p className="text-sm whitespace-pre-wrap">
-                                                      {/* Zeige Beschreibung ohne Foto-Zeile und ohne Material-Abschnitt */}
-                                                      {action.description
-                                                        .split(
-                                                          "--- Materialien ---"
-                                                        )[0]
-                                                        .split("\n")
-                                                        .filter(
-                                                          (line) =>
-                                                            !line.startsWith(
-                                                              "📸 Photo:"
-                                                            )
-                                                        )
-                                                        .join("\n")
-                                                        .trim()}
-                                                    </p>
-                                                    {/* Zeige Foto-Thumbnail wenn Cloudinary URL vorhanden */}
-                                                    {(() => {
-                                                      const photoUrl =
-                                                        extractPhotoFromDescription(
-                                                          action.description
-                                                        );
-                                                      if (
-                                                        photoUrl &&
-                                                        (photoUrl.startsWith(
-                                                          "http://"
-                                                        ) ||
-                                                          photoUrl.startsWith(
-                                                            "https://"
-                                                          ))
-                                                      ) {
-                                                        return (
-                                                          <div className="pt-3 border-t">
-                                                            <p className="text-xs font-medium text-muted-foreground mb-2">
-                                                              Foto
-                                                            </p>
-                                                            <img
-                                                              src={photoUrl}
-                                                              alt="Schadensbericht Foto"
-                                                              className="w-32 h-32 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
-                                                              onClick={() => {
-                                                                setSelectedPhoto(
-                                                                  photoUrl
-                                                                );
-                                                                setPhotoViewDialogOpen(
-                                                                  true
-                                                                );
-                                                              }}
-                                                            />
-                                                          </div>
-                                                        );
-                                                      }
-                                                      return null;
-                                                    })()}
-                                                    {/* Zeige Foto-Button nur für alte lokale Dateien */}
-                                                    {(() => {
-                                                      const photoFilename =
-                                                        extractPhotoFromDescription(
-                                                          action.description
-                                                        );
-                                                      if (
-                                                        photoFilename &&
-                                                        !photoFilename.startsWith(
-                                                          "http://"
-                                                        ) &&
-                                                        !photoFilename.startsWith(
-                                                          "https://"
-                                                        )
-                                                      ) {
-                                                        return (
-                                                          <div className="pt-3 border-t">
-                                                            <Button
-                                                              variant="outline"
-                                                              size="sm"
-                                                              onClick={async () => {
-                                                                try {
-                                                                  console.log(
-                                                                    "📷 Loading photo via API:",
-                                                                    photoFilename
-                                                                  );
-                                                                  const blob =
-                                                                    await apiClient.request<Blob>(
-                                                                      `/failure-reports/photo/${photoFilename}`,
-                                                                      {
-                                                                        responseType:
-                                                                          "blob",
-                                                                      }
-                                                                    );
-
-                                                                  const photoUrl =
-                                                                    URL.createObjectURL(
-                                                                      blob
-                                                                    );
+                                        {expandedRows.has(action.id) && (
+                                          <TableRow>
+                                            <TableCell
+                                              colSpan={11}
+                                              className="p-0 bg-muted/30"
+                                            >
+                                              <div className="p-6 space-y-6">
+                                                {/* Beschreibung & Kommentare Grid */}
+                                                <div className="grid grid-cols-2 gap-6">
+                                                  {/* Beschreibung Card */}
+                                                  <Card>
+                                                    <CardHeader className="pb-3">
+                                                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                                        <AlertCircle className="h-4 w-4" />
+                                                        Beschreibung
+                                                      </CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent className="space-y-3">
+                                                      <p className="text-sm whitespace-pre-wrap">
+                                                        {/* Zeige Beschreibung ohne Foto-Zeile und ohne Material-Abschnitt */}
+                                                        {action.description
+                                                          .split(
+                                                            "--- Materialien ---"
+                                                          )[0]
+                                                          .split("\n")
+                                                          .filter(
+                                                            (line) =>
+                                                              !line.startsWith(
+                                                                "📸 Photo:"
+                                                              )
+                                                          )
+                                                          .join("\n")
+                                                          .trim()}
+                                                      </p>
+                                                      {/* Zeige Foto-Thumbnail wenn Cloudinary URL vorhanden */}
+                                                      {(() => {
+                                                        const photoUrl =
+                                                          extractPhotoFromDescription(
+                                                            action.description
+                                                          );
+                                                        if (
+                                                          photoUrl &&
+                                                          (photoUrl.startsWith(
+                                                            "http://"
+                                                          ) ||
+                                                            photoUrl.startsWith(
+                                                              "https://"
+                                                            ))
+                                                        ) {
+                                                          return (
+                                                            <div className="pt-3 border-t">
+                                                              <p className="text-xs font-medium text-muted-foreground mb-2">
+                                                                Foto
+                                                              </p>
+                                                              <img
+                                                                src={photoUrl}
+                                                                alt="Schadensbericht Foto"
+                                                                className="w-32 h-32 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                                                                onClick={() => {
                                                                   setSelectedPhoto(
                                                                     photoUrl
                                                                   );
                                                                   setPhotoViewDialogOpen(
                                                                     true
                                                                   );
-
-                                                                  setTimeout(
-                                                                    () =>
-                                                                      URL.revokeObjectURL(
-                                                                        photoUrl
-                                                                      ),
-                                                                    10000
-                                                                  );
-                                                                } catch (error) {
-                                                                  console.error(
-                                                                    "❌ Error loading photo:",
-                                                                    error
-                                                                  );
-                                                                  toast({
-                                                                    title:
-                                                                      "Fehler",
-                                                                    description:
-                                                                      "Foto konnte nicht geladen werden.",
-                                                                    variant:
-                                                                      "destructive",
-                                                                  });
-                                                                }
-                                                              }}
-                                                            >
-                                                              <Camera className="h-4 w-4 mr-2" />
-                                                              Foto anzeigen
-                                                            </Button>
-                                                          </div>
-                                                        );
-                                                      }
-                                                      return null;
-                                                    })()}
-                                                  </CardContent>
-                                                </Card>
-
-                                                {/* Aufgaben Card */}
-                                                <Card>
-                                                  <CardHeader className="pb-3">
-                                                    <div className="flex items-center justify-between">
-                                                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                                        <ListTodo className="h-4 w-4" />
-                                                        Aufgaben (
-                                                        {action.tasks.length})
-                                                      </CardTitle>
-                                                      <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="h-7"
-                                                        onClick={() =>
-                                                          handleOpenTaskDialog(
-                                                            action.id
-                                                          )
-                                                        }
-                                                      >
-                                                        <Plus className="h-3 w-3 mr-1" />
-                                                        Neu
-                                                      </Button>
-                                                    </div>
-                                                  </CardHeader>
-                                                  <CardContent>
-                                                    {action.tasks.length ===
-                                                    0 ? (
-                                                      <p className="text-sm text-muted-foreground text-center py-4">
-                                                        Keine Aufgaben vorhanden
-                                                      </p>
-                                                    ) : (
-                                                      <div className="space-y-2 max-h-64 overflow-y-auto">
-                                                        {action.tasks.map(
-                                                          (task) => (
-                                                            <div
-                                                              key={task.id}
-                                                              className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border"
-                                                            >
-                                                              <input
-                                                                type="checkbox"
-                                                                checked={
-                                                                  task.completed
-                                                                }
-                                                                onChange={() =>
-                                                                  handleToggleTask(
-                                                                    action.id,
-                                                                    task.id
-                                                                  )
-                                                                }
-                                                                className="mt-1 h-4 w-4 rounded border-gray-300"
+                                                                }}
                                                               />
-                                                              <div className="flex-1 min-w-0">
-                                                                <div
-                                                                  className={`text-sm font-medium ${
-                                                                    task.completed
-                                                                      ? "line-through text-muted-foreground"
-                                                                      : ""
-                                                                  }`}
-                                                                >
-                                                                  {task.title}
-                                                                </div>
-                                                                {task.description && (
-                                                                  <div className="text-xs text-muted-foreground mt-1">
-                                                                    {
-                                                                      task.description
-                                                                    }
-                                                                  </div>
-                                                                )}
-                                                                <div className="flex items-center gap-2 mt-1">
-                                                                  {task.assignedUser && (
-                                                                    <span className="text-xs flex items-center gap-1">
-                                                                      <Users className="h-3 w-3" />
-                                                                      {(() => {
-                                                                        const user =
-                                                                          availableUsers.find(
-                                                                            (
-                                                                              u
-                                                                            ) =>
-                                                                              u.id ===
-                                                                              task.assignedUser
-                                                                          );
-                                                                        return user
-                                                                          ? `${user.firstName} ${user.lastName}`
-                                                                          : task.assignedUser;
-                                                                      })()}
-                                                                    </span>
-                                                                  )}
-                                                                  {task.dueDate && (
-                                                                    <span className="text-xs text-muted-foreground">
-                                                                      Fällig:{" "}
-                                                                      {new Date(
-                                                                        task.dueDate
-                                                                      ).toLocaleDateString(
-                                                                        "de-DE"
-                                                                      )}
-                                                                    </span>
-                                                                  )}
-                                                                </div>
-                                                              </div>
-                                                              <div className="flex items-center gap-1">
-                                                                <Button
-                                                                  variant="ghost"
-                                                                  size="sm"
-                                                                  className="h-6 w-6 p-0"
-                                                                  onClick={() => {
-                                                                    setCurrentTask(
-                                                                      {
-                                                                        ...task,
-                                                                      }
+                                                            </div>
+                                                          );
+                                                        }
+                                                        return null;
+                                                      })()}
+                                                      {/* Zeige Foto-Button nur für alte lokale Dateien */}
+                                                      {(() => {
+                                                        const photoFilename =
+                                                          extractPhotoFromDescription(
+                                                            action.description
+                                                          );
+                                                        if (
+                                                          photoFilename &&
+                                                          !photoFilename.startsWith(
+                                                            "http://"
+                                                          ) &&
+                                                          !photoFilename.startsWith(
+                                                            "https://"
+                                                          )
+                                                        ) {
+                                                          return (
+                                                            <div className="pt-3 border-t">
+                                                              <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={async () => {
+                                                                  try {
+                                                                    console.log(
+                                                                      "📷 Loading photo via API:",
+                                                                      photoFilename
                                                                     );
-                                                                    setCurrentTaskActionId(
-                                                                      action.id
+                                                                    const blob =
+                                                                      await apiClient.request<Blob>(
+                                                                        `/failure-reports/photo/${photoFilename}`,
+                                                                        {
+                                                                          responseType:
+                                                                            "blob",
+                                                                        }
+                                                                      );
+
+                                                                    const photoUrl =
+                                                                      URL.createObjectURL(
+                                                                        blob
+                                                                      );
+                                                                    setSelectedPhoto(
+                                                                      photoUrl
                                                                     );
-                                                                    setTaskDialogOpen(
+                                                                    setPhotoViewDialogOpen(
                                                                       true
                                                                     );
-                                                                  }}
-                                                                  title="Bearbeiten"
-                                                                >
-                                                                  <Edit className="h-3 w-3" />
-                                                                </Button>
-                                                                <Button
-                                                                  variant="ghost"
-                                                                  size="sm"
-                                                                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                                                                  onClick={() =>
-                                                                    handleDeleteTask(
+
+                                                                    setTimeout(
+                                                                      () =>
+                                                                        URL.revokeObjectURL(
+                                                                          photoUrl
+                                                                        ),
+                                                                      10000
+                                                                    );
+                                                                  } catch (error) {
+                                                                    console.error(
+                                                                      "❌ Error loading photo:",
+                                                                      error
+                                                                    );
+                                                                    toast({
+                                                                      title:
+                                                                        "Fehler",
+                                                                      description:
+                                                                        "Foto konnte nicht geladen werden.",
+                                                                      variant:
+                                                                        "destructive",
+                                                                    });
+                                                                  }
+                                                                }}
+                                                              >
+                                                                <Camera className="h-4 w-4 mr-2" />
+                                                                Foto anzeigen
+                                                              </Button>
+                                                            </div>
+                                                          );
+                                                        }
+                                                        return null;
+                                                      })()}
+                                                    </CardContent>
+                                                  </Card>
+
+                                                  {/* Aufgaben Card */}
+                                                  <Card>
+                                                    <CardHeader className="pb-3">
+                                                      <div className="flex items-center justify-between">
+                                                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                                          <ListTodo className="h-4 w-4" />
+                                                          Aufgaben (
+                                                          {action.tasks.length})
+                                                        </CardTitle>
+                                                        <Button
+                                                          variant="outline"
+                                                          size="sm"
+                                                          className="h-7"
+                                                          onClick={() =>
+                                                            handleOpenTaskDialog(
+                                                              action.id
+                                                            )
+                                                          }
+                                                        >
+                                                          <Plus className="h-3 w-3 mr-1" />
+                                                          Neu
+                                                        </Button>
+                                                      </div>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                      {action.tasks.length ===
+                                                      0 ? (
+                                                        <p className="text-sm text-muted-foreground text-center py-4">
+                                                          Keine Aufgaben
+                                                          vorhanden
+                                                        </p>
+                                                      ) : (
+                                                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                          {action.tasks.map(
+                                                            (task) => (
+                                                              <div
+                                                                key={task.id}
+                                                                className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border"
+                                                              >
+                                                                <input
+                                                                  type="checkbox"
+                                                                  checked={
+                                                                    task.completed
+                                                                  }
+                                                                  onChange={() =>
+                                                                    handleToggleTask(
                                                                       action.id,
                                                                       task.id
                                                                     )
                                                                   }
-                                                                  title="Löschen"
-                                                                >
-                                                                  <X className="h-3 w-3" />
-                                                                </Button>
-                                                              </div>
-                                                            </div>
-                                                          )
-                                                        )}
-                                                      </div>
-                                                    )}
-                                                  </CardContent>
-                                                </Card>
-                                              </div>
-
-                                              {/* Status & Zuständige Grid */}
-                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                {/* Status ändern Card */}
-                                                <Card>
-                                                  <CardHeader className="pb-3">
-                                                    <CardTitle className="text-sm font-medium">
-                                                      Status ändern
-                                                    </CardTitle>
-                                                  </CardHeader>
-                                                  <CardContent className="space-y-3">
-                                                    <div className="grid grid-cols-3 gap-3">
-                                                      <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        className={`h-auto py-4 flex-col gap-2 ${
-                                                          action.status ===
-                                                          "OPEN"
-                                                            ? "bg-red-500/10 border-red-500 hover:bg-red-500/20"
-                                                            : "hover:bg-muted"
-                                                        }`}
-                                                        onClick={() =>
-                                                          handleStatusChange(
-                                                            action.id,
-                                                            "OPEN"
-                                                          )
-                                                        }
-                                                      >
-                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-500/20">
-                                                          <div className="w-4 h-4 rounded-full bg-red-500"></div>
-                                                        </div>
-                                                        <span className="text-xs font-medium">
-                                                          Offen
-                                                        </span>
-                                                      </Button>
-                                                      <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        className={`h-auto py-4 flex-col gap-2 ${
-                                                          action.status ===
-                                                          "IN_PROGRESS"
-                                                            ? "bg-amber-500/10 border-amber-500 hover:bg-amber-500/20"
-                                                            : "hover:bg-muted"
-                                                        }`}
-                                                        onClick={() =>
-                                                          handleStatusChange(
-                                                            action.id,
-                                                            "IN_PROGRESS"
-                                                          )
-                                                        }
-                                                      >
-                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-500/20">
-                                                          <div className="w-4 h-4 rounded-full bg-amber-500"></div>
-                                                        </div>
-                                                        <span className="text-xs font-medium">
-                                                          In Bearbeitung
-                                                        </span>
-                                                      </Button>
-                                                      <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        className={`h-auto py-4 flex-col gap-2 ${
-                                                          action.status ===
-                                                          "COMPLETED"
-                                                            ? "bg-green-500/10 border-green-500 hover:bg-green-500/20"
-                                                            : "hover:bg-muted"
-                                                        }`}
-                                                        onClick={() =>
-                                                          handleStatusChange(
-                                                            action.id,
-                                                            "COMPLETED"
-                                                          )
-                                                        }
-                                                      >
-                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500/20">
-                                                          <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                                                        </div>
-                                                        <span className="text-xs font-medium">
-                                                          Abgeschlossen
-                                                        </span>
-                                                      </Button>
-                                                    </div>
-                                                  </CardContent>
-                                                </Card>
-
-                                                {/* Zuständige Card */}
-                                                <Card>
-                                                  <CardHeader className="pb-3">
-                                                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                                      <Users className="w-4 h-4" />
-                                                      Zuständige
-                                                    </CardTitle>
-                                                  </CardHeader>
-                                                  <CardContent className="space-y-3">
-                                                    {/* Hauptzuständiger */}
-                                                    <div>
-                                                      <p className="text-xs font-medium text-muted-foreground">
-                                                        Hauptzuständig
-                                                      </p>
-                                                      <p className="text-sm mt-1">
-                                                        {action.assignedTo}
-                                                      </p>
-                                                    </div>
-
-                                                    {/* Multi-User Assignment */}
-                                                    {action.assignedUsers &&
-                                                      action.assignedUsers
-                                                        .length > 0 && (
-                                                        <div>
-                                                          <p className="text-xs font-medium text-muted-foreground">
-                                                            Zusätzlich zuständig
-                                                          </p>
-                                                          <div className="space-y-1 mt-1">
-                                                            {action.assignedUsers.map(
-                                                              (userId) => {
-                                                                const user =
-                                                                  availableUsers.find(
-                                                                    (u) =>
-                                                                      u.id ===
-                                                                      userId
-                                                                  );
-                                                                return user ? (
+                                                                  className="mt-1 h-4 w-4 rounded border-gray-300"
+                                                                />
+                                                                <div className="flex-1 min-w-0">
                                                                   <div
-                                                                    key={userId}
-                                                                    className="flex items-center justify-between p-2 bg-muted/50 rounded border"
+                                                                    className={`text-sm font-medium ${
+                                                                      task.completed
+                                                                        ? "line-through text-muted-foreground"
+                                                                        : ""
+                                                                    }`}
                                                                   >
-                                                                    <div className="flex items-center gap-2">
-                                                                      <span className="text-sm font-medium">
-                                                                        {
-                                                                          user.firstName
-                                                                        }{" "}
-                                                                        {
-                                                                          user.lastName
-                                                                        }
-                                                                      </span>
-                                                                      <Badge
-                                                                        variant="outline"
-                                                                        className="text-xs"
-                                                                      >
-                                                                        {
-                                                                          user.role
-                                                                        }
-                                                                      </Badge>
-                                                                      {user.plant && (
-                                                                        <Badge
-                                                                          variant="secondary"
-                                                                          className="text-xs"
-                                                                        >
-                                                                          {
-                                                                            user.plant
-                                                                          }
-                                                                        </Badge>
-                                                                      )}
-                                                                    </div>
-                                                                    <Button
-                                                                      variant="ghost"
-                                                                      size="sm"
-                                                                      onClick={async () => {
-                                                                        try {
-                                                                          const updatedAssignedUsers =
-                                                                            action.assignedUsers?.filter(
-                                                                              (
-                                                                                id
-                                                                              ) =>
-                                                                                id !==
-                                                                                userId
-                                                                            ) ||
-                                                                            [];
-
-                                                                          await apiClient.put(
-                                                                            `/actions/${action.id}`,
-                                                                            {
-                                                                              assignedUsers:
-                                                                                updatedAssignedUsers,
-                                                                            }
-                                                                          );
-
-                                                                          // Update local state
-                                                                          setActions(
-                                                                            (
-                                                                              prev
-                                                                            ) =>
-                                                                              prev.map(
-                                                                                (
-                                                                                  a
-                                                                                ) =>
-                                                                                  a.id ===
-                                                                                  action.id
-                                                                                    ? {
-                                                                                        ...a,
-                                                                                        assignedUsers:
-                                                                                          updatedAssignedUsers,
-                                                                                      }
-                                                                                    : a
-                                                                              )
-                                                                          );
-
-                                                                          toast(
-                                                                            {
-                                                                              title:
-                                                                                "User entfernt",
-                                                                              description: `${user.firstName} ${user.lastName} wurde als zuständig entfernt.`,
-                                                                            }
-                                                                          );
-                                                                        } catch (error) {
-                                                                          console.error(
-                                                                            "Error removing user:",
-                                                                            error
-                                                                          );
-                                                                          toast(
-                                                                            {
-                                                                              title:
-                                                                                "Fehler",
-                                                                              description:
-                                                                                "User konnte nicht entfernt werden.",
-                                                                              variant:
-                                                                                "destructive",
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      }}
-                                                                      className="h-6 w-6 p-0"
-                                                                    >
-                                                                      <X className="h-3 w-3" />
-                                                                    </Button>
+                                                                    {task.title}
                                                                   </div>
-                                                                ) : null;
-                                                              }
-                                                            )}
-                                                          </div>
-                                                        </div>
-                                                      )}
-
-                                                    {/* Quick Add Users */}
-                                                    <div className="pt-3 border-t">
-                                                      <Select
-                                                        onValueChange={async (
-                                                          userId
-                                                        ) => {
-                                                          if (!userId) return;
-
-                                                          const user =
-                                                            availableUsers.find(
-                                                              (u) =>
-                                                                u.id === userId
-                                                            );
-                                                          if (!user) return;
-
-                                                          try {
-                                                            const updatedAssignedUsers =
-                                                              [
-                                                                ...(action.assignedUsers ||
-                                                                  []),
-                                                                userId,
-                                                              ];
-
-                                                            await apiClient.put(
-                                                              `/actions/${action.id}`,
-                                                              {
-                                                                assignedUsers:
-                                                                  updatedAssignedUsers,
-                                                              }
-                                                            );
-
-                                                            // Update local state
-                                                            setActions((prev) =>
-                                                              prev.map((a) =>
-                                                                a.id ===
-                                                                action.id
-                                                                  ? {
-                                                                      ...a,
-                                                                      assignedUsers:
-                                                                        updatedAssignedUsers,
-                                                                    }
-                                                                  : a
-                                                              )
-                                                            );
-
-                                                            toast({
-                                                              title:
-                                                                "User hinzugefügt",
-                                                              description: `${user.firstName} ${user.lastName} wurde als zuständig hinzugefügt.`,
-                                                            });
-                                                          } catch (error) {
-                                                            console.error(
-                                                              "Error updating assignedUsers:",
-                                                              error
-                                                            );
-                                                            toast({
-                                                              title: "Fehler",
-                                                              description:
-                                                                "User konnte nicht hinzugefügt werden.",
-                                                              variant:
-                                                                "destructive",
-                                                            });
-                                                          }
-                                                        }}
-                                                      >
-                                                        <SelectTrigger className="w-full">
-                                                          <SelectValue placeholder="User hinzufügen..." />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                          {availableUsers
-                                                            .filter(
-                                                              (user) =>
-                                                                // Alle Admins und Manager
-                                                                user.role ===
-                                                                  "ADMIN" ||
-                                                                user.role ===
-                                                                  "MANAGER" ||
-                                                                // ODER User der gleichen Anlage
-                                                                user.plant ===
-                                                                  action.plant ||
-                                                                // ODER wenn keine plant zugewiesen, dann alle User
-                                                                !user.plant
-                                                            )
-                                                            .filter(
-                                                              (user) =>
-                                                                // Ausschließen bereits zugewiesener User
-                                                                !action.assignedUsers?.includes(
-                                                                  user.id
-                                                                ) &&
-                                                                // Ausschließen Hauptzuständiger
-                                                                user.email !==
-                                                                  action.assignedTo
-                                                            ).length === 0 ? (
-                                                            <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                                                              Keine verfügbaren
-                                                              User
-                                                            </div>
-                                                          ) : (
-                                                            availableUsers
-                                                              .filter(
-                                                                (user) =>
-                                                                  // Alle Admins und Manager
-                                                                  user.role ===
-                                                                    "ADMIN" ||
-                                                                  user.role ===
-                                                                    "MANAGER" ||
-                                                                  // ODER User der gleichen Anlage
-                                                                  user.plant ===
-                                                                    action.plant ||
-                                                                  // ODER wenn keine plant zugewiesen, dann alle User
-                                                                  !user.plant
-                                                              )
-                                                              .filter(
-                                                                (user) =>
-                                                                  // Ausschließen bereits zugewiesener User
-                                                                  !action.assignedUsers?.includes(
-                                                                    user.id
-                                                                  ) &&
-                                                                  // Ausschließen Hauptzuständiger
-                                                                  user.email !==
-                                                                    action.assignedTo
-                                                              )
-                                                              .map((user) => (
-                                                                <SelectItem
-                                                                  key={user.id}
-                                                                  value={
-                                                                    user.id
-                                                                  }
-                                                                >
-                                                                  <div className="flex items-center gap-2">
-                                                                    <span>
+                                                                  {task.description && (
+                                                                    <div className="text-xs text-muted-foreground mt-1">
                                                                       {
-                                                                        user.firstName
-                                                                      }{" "}
-                                                                      {
-                                                                        user.lastName
+                                                                        task.description
                                                                       }
-                                                                    </span>
-                                                                    <Badge
-                                                                      variant="outline"
-                                                                      className="text-xs"
-                                                                    >
-                                                                      {
-                                                                        user.role
-                                                                      }
-                                                                    </Badge>
-                                                                    {user.plant && (
-                                                                      <Badge
-                                                                        variant="secondary"
-                                                                        className="text-xs"
-                                                                      >
-                                                                        {
-                                                                          user.plant
-                                                                        }
-                                                                      </Badge>
+                                                                    </div>
+                                                                  )}
+                                                                  <div className="flex items-center gap-2 mt-1">
+                                                                    {task.assignedUser && (
+                                                                      <span className="text-xs flex items-center gap-1">
+                                                                        <Users className="h-3 w-3" />
+                                                                        {(() => {
+                                                                          const user =
+                                                                            availableUsers.find(
+                                                                              (
+                                                                                u
+                                                                              ) =>
+                                                                                u.id ===
+                                                                                task.assignedUser
+                                                                            );
+                                                                          return user
+                                                                            ? `${user.firstName} ${user.lastName}`
+                                                                            : task.assignedUser;
+                                                                        })()}
+                                                                      </span>
+                                                                    )}
+                                                                    {task.dueDate && (
+                                                                      <span className="text-xs text-muted-foreground">
+                                                                        Fällig:{" "}
+                                                                        {new Date(
+                                                                          task.dueDate
+                                                                        ).toLocaleDateString(
+                                                                          "de-DE"
+                                                                        )}
+                                                                      </span>
                                                                     )}
                                                                   </div>
-                                                                </SelectItem>
-                                                              ))
+                                                                </div>
+                                                                <div className="flex items-center gap-1">
+                                                                  <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-6 w-6 p-0"
+                                                                    onClick={() => {
+                                                                      setCurrentTask(
+                                                                        {
+                                                                          ...task,
+                                                                        }
+                                                                      );
+                                                                      setCurrentTaskActionId(
+                                                                        action.id
+                                                                      );
+                                                                      setTaskDialogOpen(
+                                                                        true
+                                                                      );
+                                                                    }}
+                                                                    title="Bearbeiten"
+                                                                  >
+                                                                    <Edit className="h-3 w-3" />
+                                                                  </Button>
+                                                                  <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                                                    onClick={() =>
+                                                                      handleDeleteTask(
+                                                                        action.id,
+                                                                        task.id
+                                                                      )
+                                                                    }
+                                                                    title="Löschen"
+                                                                  >
+                                                                    <X className="h-3 w-3" />
+                                                                  </Button>
+                                                                </div>
+                                                              </div>
+                                                            )
                                                           )}
-                                                        </SelectContent>
-                                                      </Select>
-                                                    </div>
-                                                  </CardContent>
-                                                </Card>
+                                                        </div>
+                                                      )}
+                                                    </CardContent>
+                                                  </Card>
+                                                </div>
 
-                                                {action.completedAt && (
+                                                {/* Angehängte Dateien Card */}
+                                                {action.files.length > 0 && (
                                                   <Card>
                                                     <CardHeader className="pb-3">
-                                                      <CardTitle className="text-sm">
-                                                        Abgeschlossen
+                                                      <CardTitle className="text-base flex items-center gap-2">
+                                                        📎 Angehängte Dateien
+                                                        <Badge
+                                                          variant="secondary"
+                                                          className="ml-2"
+                                                        >
+                                                          {action.files.length}
+                                                        </Badge>
                                                       </CardTitle>
                                                     </CardHeader>
                                                     <CardContent>
-                                                      <p className="text-sm font-medium">
-                                                        {action.completedAt}
-                                                      </p>
-                                                    </CardContent>
-                                                  </Card>
-                                                )}
-                                              </div>
-
-                                              {/* Angehängte Dateien Card */}
-                                              {action.files.length > 0 && (
-                                                <Card>
-                                                  <CardHeader className="pb-3">
-                                                    <CardTitle className="text-base flex items-center gap-2">
-                                                      📎 Angehängte Dateien
-                                                      <Badge
-                                                        variant="secondary"
-                                                        className="ml-2"
-                                                      >
-                                                        {action.files.length}
-                                                      </Badge>
-                                                    </CardTitle>
-                                                  </CardHeader>
-                                                  <CardContent>
-                                                    <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                                                      {action.files.map(
-                                                        (file) => (
-                                                          <div
-                                                            key={file.id}
-                                                            className="relative group"
-                                                          >
-                                                            <Card className="overflow-hidden hover:shadow-md transition-shadow">
-                                                              {file.isPhoto ? (
-                                                                <img
-                                                                  src={file.url}
-                                                                  alt={
-                                                                    file.name
-                                                                  }
-                                                                  className="w-full aspect-square object-cover"
-                                                                />
-                                                              ) : (
-                                                                <div className="w-full aspect-square flex items-center justify-center bg-muted">
-                                                                  <Paperclip className="h-8 w-8 text-muted-foreground" />
-                                                                </div>
-                                                              )}
-                                                            </Card>
-                                                            <p
-                                                              className="text-xs truncate mt-1 text-center"
-                                                              title={file.name}
+                                                      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                                                        {action.files.map(
+                                                          (file) => (
+                                                            <div
+                                                              key={file.id}
+                                                              className="relative group"
                                                             >
-                                                              {file.name}
-                                                            </p>
-                                                          </div>
-                                                        )
-                                                      )}
-                                                    </div>
-                                                  </CardContent>
-                                                </Card>
-                                              )}
-
-                                              {/* Material-Liste Card */}
-                                              {(() => {
-                                                const materials =
-                                                  parseMaterialsFromDescription(
-                                                    action.description
-                                                  );
-                                                if (materials.length === 0)
-                                                  return null;
-
-                                                return (
-                                                  <Card className="border">
-                                                    <CardHeader className="bg-muted/50 pb-2 pt-3">
-                                                      <div className="flex items-center justify-between">
-                                                        <CardTitle className="text-base flex items-center gap-2">
-                                                          📦 Bestellte
-                                                          Materialien
-                                                        </CardTitle>
-                                                        <Badge
-                                                          variant="secondary"
-                                                          className="text-xs"
-                                                        >
-                                                          {materials.length}{" "}
-                                                          {materials.length ===
-                                                          1
-                                                            ? "Material"
-                                                            : "Materialien"}
-                                                        </Badge>
-                                                      </div>
-                                                    </CardHeader>
-                                                    <CardContent className="pt-3">
-                                                      <div className="space-y-1.5">
-                                                        {materials.map(
-                                                          (material) => {
-                                                            // Status Badge Farbe & Text
-                                                            const getStatusBadge =
-                                                              (
-                                                                status?: MaterialItem["status"]
-                                                              ) => {
-                                                                switch (
-                                                                  status
-                                                                ) {
-                                                                  case "GELIEFERT":
-                                                                    return (
-                                                                      <Badge className="bg-green-600 hover:bg-green-700 text-white">
-                                                                        🟢
-                                                                        Geliefert
-                                                                      </Badge>
-                                                                    );
-                                                                  case "UNTERWEGS":
-                                                                    return (
-                                                                      <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
-                                                                        🔵
-                                                                        Unterwegs
-                                                                      </Badge>
-                                                                    );
-                                                                  case "BESTELLT":
-                                                                    return (
-                                                                      <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
-                                                                        🟡
-                                                                        Bestellt
-                                                                      </Badge>
-                                                                    );
-                                                                  default:
-                                                                    return (
-                                                                      <Badge
-                                                                        variant="outline"
-                                                                        className="border-2"
-                                                                      >
-                                                                        ⚪ Nicht
-                                                                        bestellt
-                                                                      </Badge>
-                                                                    );
+                                                              <Card className="overflow-hidden hover:shadow-md transition-shadow">
+                                                                {file.isPhoto ? (
+                                                                  <img
+                                                                    src={
+                                                                      file.url
+                                                                    }
+                                                                    alt={
+                                                                      file.name
+                                                                    }
+                                                                    className="w-full aspect-square object-cover"
+                                                                  />
+                                                                ) : (
+                                                                  <div className="w-full aspect-square flex items-center justify-center bg-muted">
+                                                                    <Paperclip className="h-8 w-8 text-muted-foreground" />
+                                                                  </div>
+                                                                )}
+                                                              </Card>
+                                                              <p
+                                                                className="text-xs truncate mt-1 text-center"
+                                                                title={
+                                                                  file.name
                                                                 }
-                                                              };
-
-                                                            return (
-                                                              <div
-                                                                key={
-                                                                  material.id
-                                                                }
-                                                                className="group p-2.5 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
                                                               >
-                                                                <div className="flex items-center justify-between gap-3">
-                                                                  <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                      <span className="font-mono text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">
-                                                                        {
-                                                                          material.mmNumber
-                                                                        }
-                                                                      </span>
-                                                                      {getStatusBadge(
-                                                                        material.status
-                                                                      )}
-                                                                    </div>
-                                                                    <p className="text-xs line-clamp-1">
-                                                                      {
-                                                                        material.description
-                                                                      }
-                                                                    </p>
-                                                                  </div>
-                                                                  <div className="flex flex-col items-end justify-center bg-muted/50 px-2.5 py-2 rounded min-w-[60px]">
-                                                                    <p className="text-lg font-bold text-primary">
-                                                                      {
-                                                                        material.quantity
-                                                                      }
-                                                                    </p>
-                                                                    <p className="text-[10px] font-medium text-muted-foreground uppercase">
-                                                                      {
-                                                                        material.unit
-                                                                      }
-                                                                    </p>
-                                                                  </div>
-                                                                </div>
-                                                              </div>
-                                                            );
-                                                          }
+                                                                {file.name}
+                                                              </p>
+                                                            </div>
+                                                          )
                                                         )}
                                                       </div>
                                                     </CardContent>
                                                   </Card>
-                                                );
-                                              })()}
+                                                )}
 
-                                              {/* Comment Section */}
-                                              {(() => {
-                                                const currentUser =
-                                                  authService.getCurrentUser();
-                                                if (!currentUser) return null;
+                                                {/* Material-Liste Card */}
+                                                {(() => {
+                                                  const materials =
+                                                    parseMaterialsFromDescription(
+                                                      action.description
+                                                    );
+                                                  if (materials.length === 0)
+                                                    return null;
 
-                                                return (
-                                                  <CommentSection
-                                                    comments={
-                                                      actionComments[
-                                                        action.id
-                                                      ] || []
-                                                    }
-                                                    currentUserId={
-                                                      currentUser.id
-                                                    }
-                                                    onAddComment={(text) =>
-                                                      handleAddComment(
-                                                        action.id,
-                                                        text
-                                                      )
-                                                    }
-                                                    onUpdateComment={(
-                                                      commentId,
-                                                      text
-                                                    ) =>
-                                                      handleUpdateComment(
-                                                        action.id,
-                                                        commentId,
-                                                        text
-                                                      )
-                                                    }
-                                                    onDeleteComment={(
-                                                      commentId
-                                                    ) =>
-                                                      handleDeleteComment(
-                                                        action.id,
-                                                        commentId
-                                                      )
-                                                    }
-                                                    isLoading={
-                                                      loadingComments[action.id]
-                                                    }
-                                                  />
-                                                );
-                                              })()}
-                                            </div>
-                                          </TableCell>
-                                        </TableRow>
-                                      )}
-                                    </React.Fragment>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </div>
-                          )}
-                        </TabsContent>
-                      );
-                    })}
-                  </Tabs>
-                </TabsContent>
-              ))}
-            </Tabs>
+                                                  return (
+                                                    <Card className="border">
+                                                      <CardHeader className="bg-muted/50 pb-2 pt-3">
+                                                        <div className="flex items-center justify-between">
+                                                          <CardTitle className="text-base flex items-center gap-2">
+                                                            📦 Bestellte
+                                                            Materialien
+                                                          </CardTitle>
+                                                          <Badge
+                                                            variant="secondary"
+                                                            className="text-xs"
+                                                          >
+                                                            {materials.length}{" "}
+                                                            {materials.length ===
+                                                            1
+                                                              ? "Material"
+                                                              : "Materialien"}
+                                                          </Badge>
+                                                        </div>
+                                                      </CardHeader>
+                                                      <CardContent className="pt-3">
+                                                        <div className="space-y-1.5">
+                                                          {materials.map(
+                                                            (material) => {
+                                                              // Status Badge Farbe & Text
+                                                              const getStatusBadge =
+                                                                (
+                                                                  status?: MaterialItem["status"]
+                                                                ) => {
+                                                                  switch (
+                                                                    status
+                                                                  ) {
+                                                                    case "GELIEFERT":
+                                                                      return (
+                                                                        <Badge className="bg-green-600 hover:bg-green-700 text-white">
+                                                                          🟢
+                                                                          Geliefert
+                                                                        </Badge>
+                                                                      );
+                                                                    case "UNTERWEGS":
+                                                                      return (
+                                                                        <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
+                                                                          🔵
+                                                                          Unterwegs
+                                                                        </Badge>
+                                                                      );
+                                                                    case "BESTELLT":
+                                                                      return (
+                                                                        <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                                                                          🟡
+                                                                          Bestellt
+                                                                        </Badge>
+                                                                      );
+                                                                    default:
+                                                                      return (
+                                                                        <Badge
+                                                                          variant="outline"
+                                                                          className="border-2"
+                                                                        >
+                                                                          ⚪
+                                                                          Nicht
+                                                                          bestellt
+                                                                        </Badge>
+                                                                      );
+                                                                  }
+                                                                };
+
+                                                              return (
+                                                                <div
+                                                                  key={
+                                                                    material.id
+                                                                  }
+                                                                  className="group p-2.5 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+                                                                >
+                                                                  <div className="flex items-center justify-between gap-3">
+                                                                    <div className="flex-1 min-w-0">
+                                                                      <div className="flex items-center gap-2 mb-1">
+                                                                        <span className="font-mono text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">
+                                                                          {
+                                                                            material.mmNumber
+                                                                          }
+                                                                        </span>
+                                                                        {getStatusBadge(
+                                                                          material.status
+                                                                        )}
+                                                                      </div>
+                                                                      <p className="text-xs line-clamp-1">
+                                                                        {
+                                                                          material.description
+                                                                        }
+                                                                      </p>
+                                                                    </div>
+                                                                    <div className="flex flex-col items-end justify-center bg-muted/50 px-2.5 py-2 rounded min-w-[60px]">
+                                                                      <p className="text-lg font-bold text-primary">
+                                                                        {
+                                                                          material.quantity
+                                                                        }
+                                                                      </p>
+                                                                      <p className="text-[10px] font-medium text-muted-foreground uppercase">
+                                                                        {
+                                                                          material.unit
+                                                                        }
+                                                                      </p>
+                                                                    </div>
+                                                                  </div>
+                                                                </div>
+                                                              );
+                                                            }
+                                                          )}
+                                                        </div>
+                                                      </CardContent>
+                                                    </Card>
+                                                  );
+                                                })()}
+
+                                                {/* Comment Section - Kompakt */}
+                                                <div className="border rounded-lg p-3 bg-muted/20">
+                                                  {(() => {
+                                                    const currentUser =
+                                                      authService.getCurrentUser();
+                                                    if (!currentUser)
+                                                      return null;
+
+                                                    return (
+                                                      <div className="space-y-2">
+                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                                                          💬 Kommentare
+                                                          <Badge
+                                                            variant="secondary"
+                                                            className="text-xs"
+                                                          >
+                                                            {
+                                                              (
+                                                                actionComments[
+                                                                  action.id
+                                                                ] || []
+                                                              ).length
+                                                            }
+                                                          </Badge>
+                                                        </h4>
+                                                        <CommentSection
+                                                          comments={
+                                                            actionComments[
+                                                              action.id
+                                                            ] || []
+                                                          }
+                                                          currentUserId={
+                                                            currentUser.id
+                                                          }
+                                                          onAddComment={(
+                                                            text
+                                                          ) =>
+                                                            handleAddComment(
+                                                              action.id,
+                                                              text
+                                                            )
+                                                          }
+                                                          onUpdateComment={(
+                                                            commentId,
+                                                            text
+                                                          ) =>
+                                                            handleUpdateComment(
+                                                              action.id,
+                                                              commentId,
+                                                              text
+                                                            )
+                                                          }
+                                                          onDeleteComment={(
+                                                            commentId
+                                                          ) =>
+                                                            handleDeleteComment(
+                                                              action.id,
+                                                              commentId
+                                                            )
+                                                          }
+                                                          isLoading={
+                                                            loadingComments[
+                                                              action.id
+                                                            ]
+                                                          }
+                                                        />
+                                                      </div>
+                                                    );
+                                                  })()}
+                                                </div>
+                                              </div>
+                                            </TableCell>
+                                          </TableRow>
+                                        )}
+                                      </React.Fragment>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            )}
+                          </TabsContent>
+                        );
+                      })}
+                    </Tabs>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </>
           )}
         </CardContent>
       </Card>

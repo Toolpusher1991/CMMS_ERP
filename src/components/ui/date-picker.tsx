@@ -33,20 +33,20 @@ export function DatePicker({
         <Button
           variant={"outline"}
           className={cn(
-            "w-full justify-start text-left font-normal",
+            "w-full justify-start text-left font-normal h-10",
             !date && "text-muted-foreground"
           )}
           disabled={disabled}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {date ? (
-            format(date, "PPP", { locale: de })
+            format(date, "dd.MM.yyyy", { locale: de })
           ) : (
             <span>{placeholder}</span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
+      <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
           selected={date}
@@ -54,6 +54,24 @@ export function DatePicker({
           initialFocus
           locale={de}
         />
+        <div className="p-3 border-t flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => onSelect(new Date())}
+          >
+            Heute
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => onSelect(undefined)}
+          >
+            Löschen
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

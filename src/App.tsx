@@ -55,6 +55,10 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [initialActionId, setInitialActionId] = useState<string | undefined>();
+  const [initialProjectId, setInitialProjectId] = useState<
+    string | undefined
+  >();
 
   useEffect(() => {
     // Check if user is already logged in
@@ -92,6 +96,26 @@ function App() {
       setIsAuthenticated(false);
     } else if (page === "failures") {
       setCurrentPage("failures");
+    }
+  };
+
+  const handleNavigate = (page: string, itemId?: string) => {
+    // Reset IDs when navigating
+    setInitialActionId(undefined);
+    setInitialProjectId(undefined);
+
+    if (page === "actions") {
+      setCurrentPage("actions");
+      if (itemId) {
+        setInitialActionId(itemId);
+      }
+    } else if (page === "projects") {
+      setCurrentPage("projects");
+      if (itemId) {
+        setInitialProjectId(itemId);
+      }
+    } else {
+      setCurrentPage(page as AppPage);
     }
   };
 
@@ -148,30 +172,31 @@ function App() {
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Top Header - Minimal */}
-            <header className="h-16 border-b border-[#2d3748] bg-[#151d2a] flex items-center justify-end px-4 gap-3">
-              <span className="text-sm text-slate-300 mr-auto ml-4">
+            <header className="h-16 border-b bg-card flex items-center justify-end px-4 gap-3">
+              <span className="text-sm text-muted-foreground mr-auto ml-4">
                 {user.firstName} {user.lastName}
               </span>
               <ErrorButton />
               <NotificationBell onNavigate={setCurrentPage} />
               <ModeToggle />
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="border-[#2d3748] hover:bg-[#2d3748]"
-              >
+              <Button onClick={handleLogout} variant="outline" size="sm">
                 Abmelden
               </Button>
             </header>
 
             {/* Content Area with Scroll */}
-            <main className="flex-1 overflow-y-auto bg-[#0f1419]">
+            <main className="flex-1 overflow-y-auto bg-background">
               <div className="container mx-auto max-w-full p-4 sm:p-6 lg:p-8">
-                {currentPage === "dashboard" && <Dashboard />}
-                {currentPage === "projects" && <ProjectList />}
+                {currentPage === "dashboard" && (
+                  <Dashboard onNavigate={handleNavigate} />
+                )}
+                {currentPage === "projects" && (
+                  <ProjectList initialProjectId={initialProjectId} />
+                )}
                 {currentPage === "workorders" && <WorkOrderManagement />}
-                {currentPage === "actions" && <ActionTracker />}
+                {currentPage === "actions" && (
+                  <ActionTracker initialActionId={initialActionId} />
+                )}
                 {currentPage === "failures" && <FailureReporting />}
                 {currentPage === "tender" && <RigConfigurator />}
                 {currentPage === "debug" && <SystemDebug />}

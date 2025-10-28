@@ -52,30 +52,32 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
   return (
     <div
       className={cn(
-        "flex flex-col h-screen bg-[#1a2332] border-r border-[#2d3748] transition-all duration-300",
+        "flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300",
         collapsed ? "w-16" : "w-64"
       )}
     >
       {/* Logo / Header */}
-      <div className="flex items-center justify-between p-4 border-b border-[#2d3748] bg-[#151d2a]">
+      <div className="flex items-center justify-between p-4 border-b border-sidebar-border bg-sidebar-accent">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <LayoutDashboard className="h-6 w-6 text-[#22d3ee]" />
-            <span className="font-bold text-lg text-white">MaintAIn</span>
+            <LayoutDashboard className="h-6 w-6 text-primary" />
+            <span className="font-bold text-lg text-sidebar-foreground">
+              MaintAIn
+            </span>
           </div>
         )}
         {collapsed && (
-          <LayoutDashboard className="h-6 w-6 text-[#22d3ee] mx-auto" />
+          <LayoutDashboard className="h-6 w-6 text-primary mx-auto" />
         )}
       </div>
 
       {/* Toggle Button */}
-      <div className="flex justify-end p-2 border-b border-[#2d3748]">
+      <div className="flex justify-end p-2 border-b border-sidebar-border">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setCollapsed(!collapsed)}
-          className="h-8 w-8 hover:bg-[#2d3748] text-slate-400 hover:text-white"
+          className="h-8 w-8"
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -98,8 +100,8 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all text-sm font-medium",
                 isActive
-                  ? "bg-[#22d3ee] text-[#0f172a] hover:bg-[#06b6d4]"
-                  : "text-slate-300 hover:bg-[#2d3748] hover:text-white",
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent",
                 collapsed && "justify-center"
               )}
             >
