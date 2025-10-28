@@ -1119,7 +1119,7 @@ const ActionTracker = () => {
                                                       .join("\n")
                                                       .trim()}
                                                   </p>
-                                                  {/* Zeige Foto direkt wenn Cloudinary URL vorhanden */}
+                                                  {/* Zeige Foto-Thumbnail wenn Cloudinary URL vorhanden */}
                                                   {(() => {
                                                     const photoUrl =
                                                       extractPhotoFromDescription(
@@ -1143,7 +1143,7 @@ const ActionTracker = () => {
                                                           <img
                                                             src={photoUrl}
                                                             alt="Schadensbericht Foto"
-                                                            className="max-w-full h-auto rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                                                            className="w-32 h-32 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
                                                             onClick={() => {
                                                               setSelectedPhoto(
                                                                 photoUrl
@@ -2568,19 +2568,27 @@ const ActionTracker = () => {
 
       {/* Photo View Dialog */}
       <Dialog open={photoViewDialogOpen} onOpenChange={setPhotoViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Foto vom Failure Report</DialogTitle>
-            <DialogDescription>
-              Dieses Foto wurde beim Erstellen des Failure Reports aufgenommen
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-center">
+        <DialogContent className="max-w-5xl max-h-[95vh] p-0 gap-0">
+          {/* Close Button - Top Right */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-4 z-50 rounded-full bg-black/50 hover:bg-black/70 text-white"
+            onClick={() => {
+              setPhotoViewDialogOpen(false);
+              setSelectedPhoto(null);
+            }}
+          >
+            <X className="h-6 w-6" />
+          </Button>
+
+          {/* Full Screen Photo */}
+          <div className="flex items-center justify-center bg-black/90 min-h-[80vh] p-4">
             {selectedPhoto && (
               <img
                 src={selectedPhoto}
                 alt="Failure Report Foto"
-                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                className="max-w-full max-h-[85vh] object-contain"
                 onError={() => {
                   console.error("Fehler beim Laden des Fotos:", selectedPhoto);
                   toast({
@@ -2592,26 +2600,6 @@ const ActionTracker = () => {
               />
             )}
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setPhotoViewDialogOpen(false);
-                setSelectedPhoto(null);
-              }}
-            >
-              Schließen
-            </Button>
-            {selectedPhoto && (
-              <Button
-                onClick={() => {
-                  window.open(selectedPhoto, "_blank");
-                }}
-              >
-                In neuem Tab öffnen
-              </Button>
-            )}
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
