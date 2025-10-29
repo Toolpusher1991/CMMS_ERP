@@ -172,10 +172,12 @@ const initialProjects: Project[] = [
 
 interface ProjectListProps {
   initialProjectId?: string;
+  showOnlyMyProjects?: boolean;
 }
 
 export default function AnlagenProjektManagement({
   initialProjectId,
+  showOnlyMyProjects = false,
 }: ProjectListProps) {
   // State Management
   const { toast } = useToast();
@@ -413,8 +415,16 @@ export default function AnlagenProjektManagement({
   // Initial data load
   useEffect(() => {
     loadData();
+
+    // Set user filter to current user if showOnlyMyProjects is true
+    if (showOnlyMyProjects) {
+      const currentUser = authService.getCurrentUser();
+      if (currentUser) {
+        setUserFilter(currentUser.email);
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showOnlyMyProjects]);
 
   // Expand row if initialProjectId is provided
   useEffect(() => {
@@ -1107,8 +1117,26 @@ export default function AnlagenProjektManagement({
     };
   };
 
+  // Helper function to format date without timezone issues
+  const formatDateForInput = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Helper function to check if a project is overdue
+  const isOverdue = (endDate: string | null, status: string) => {
+    if (!endDate || status === "Abgeschlossen") return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(endDate);
+    target.setHours(0, 0, 0, 0);
+    return target < today;
+  };
+
   const getFilteredProjects = (anlage: Anlage) => {
-    return projects.filter((project) => {
+    const filtered = projects.filter((project) => {
       const matchesAnlage = project.anlage === anlage;
       const matchesStatus =
         statusFilter === "all" || project.status === statusFilter;
@@ -1128,6 +1156,22 @@ export default function AnlagenProjektManagement({
         matchesCategory &&
         matchesSearch
       );
+    });
+
+    // Sort by end date (earliest first), completed projects at the bottom
+    return filtered.sort((a, b) => {
+      // Completed projects go to the bottom
+      if (a.status === "Abgeschlossen" && b.status !== "Abgeschlossen")
+        return 1;
+      if (a.status !== "Abgeschlossen" && b.status === "Abgeschlossen")
+        return -1;
+
+      // Both completed or both active - sort by end date
+      if (!a.endDate && !b.endDate) return 0;
+      if (!a.endDate) return 1;
+      if (!b.endDate) return -1;
+
+      return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
     });
   };
 
@@ -1405,9 +1449,7 @@ export default function AnlagenProjektManagement({
                           onSelect={(date) =>
                             setFormData({
                               ...formData,
-                              startDate: date
-                                ? date.toISOString().split("T")[0]
-                                : "",
+                              startDate: date ? formatDateForInput(date) : "",
                             })
                           }
                           placeholder="Startdatum wählen"
@@ -1424,9 +1466,7 @@ export default function AnlagenProjektManagement({
                           onSelect={(date) =>
                             setFormData({
                               ...formData,
-                              endDate: date
-                                ? date.toISOString().split("T")[0]
-                                : "",
+                              endDate: date ? formatDateForInput(date) : "",
                             })
                           }
                           placeholder="Enddatum wählen"
@@ -1606,7 +1646,7 @@ export default function AnlagenProjektManagement({
                       onSelect={(date) =>
                         setTaskFormData({
                           ...taskFormData,
-                          dueDate: date ? date.toISOString().split("T")[0] : "",
+                          dueDate: date ? formatDateForInput(date) : "",
                         })
                       }
                       placeholder="Fälligkeitsdatum wählen"
@@ -1779,12 +1819,16 @@ export default function AnlagenProjektManagement({
             value={selectedAnlage}
             onValueChange={(value) => setSelectedAnlage(value as Anlage)}
           >
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-4 h-20">
               {anlagen.map((anlage) => (
-                <TabsTrigger key={anlage} value={anlage}>
-                  {anlage}
-                  <Badge variant="secondary" className="ml-2">
-                    {getFilteredProjects(anlage).length}
+                <TabsTrigger
+                  key={anlage}
+                  value={anlage}
+                  className="flex flex-col items-center justify-center gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-full text-base"
+                >
+                  <span className="font-semibold text-lg">🏭 {anlage}</span>
+                  <Badge variant="secondary" className="text-xs px-2">
+                    {getFilteredProjects(anlage).length} Projekte
                   </Badge>
                 </TabsTrigger>
               ))}
@@ -1863,7 +1907,14 @@ export default function AnlagenProjektManagement({
                                     {/* Hauptzeile */}
                                     <TableRow
                                       id={`project-${project.id}`}
-                                      className="hover:bg-muted/50"
+                                      className={`hover:bg-muted/50 transition-colors ${
+                                        isOverdue(
+                                          project.endDate,
+                                          project.status
+                                        )
+                                          ? "bg-red-50/50 dark:bg-red-950/20 border-l-4 border-l-red-500"
+                                          : ""
+                                      }`}
                                     >
                                       <TableCell className="py-3">
                                         <Button
@@ -2045,7 +2096,16 @@ export default function AnlagenProjektManagement({
                                                       <p className="text-xs font-medium text-muted-foreground">
                                                         Enddatum
                                                       </p>
-                                                      <p className="text-sm mt-1">
+                                                      <p
+                                                        className={`text-sm mt-1 font-medium ${
+                                                          isOverdue(
+                                                            project.endDate,
+                                                            project.status
+                                                          )
+                                                            ? "text-red-600 dark:text-red-400"
+                                                            : ""
+                                                        }`}
+                                                      >
                                                         {project.endDate
                                                           ? new Date(
                                                               project.endDate
@@ -2357,60 +2417,128 @@ export default function AnlagenProjektManagement({
                                                 ) : (
                                                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                                                     {project.files.map(
-                                                      (file) => (
-                                                        <Card
-                                                          key={file.id}
-                                                          className="group hover:shadow-md transition-shadow"
-                                                        >
-                                                          <CardContent className="p-3">
-                                                            <div className="flex items-start justify-between gap-2">
-                                                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                                {getFileIcon(
-                                                                  file.type
-                                                                )}
-                                                                <div className="min-w-0 flex-1">
-                                                                  <p className="text-sm font-medium truncate">
-                                                                    {file.name}
+                                                      (file) => {
+                                                        const isImage =
+                                                          file.type.startsWith(
+                                                            "image/"
+                                                          );
+                                                        return (
+                                                          <Card
+                                                            key={file.id}
+                                                            className="group hover:shadow-md transition-shadow overflow-hidden"
+                                                          >
+                                                            <CardContent className="p-0">
+                                                              {/* Image Preview or Icon */}
+                                                              {isImage &&
+                                                              file.url ? (
+                                                                <div className="relative aspect-square bg-muted">
+                                                                  <img
+                                                                    src={
+                                                                      file.url
+                                                                    }
+                                                                    alt={
+                                                                      file.name
+                                                                    }
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(
+                                                                      e
+                                                                    ) => {
+                                                                      // Fallback wenn Bild nicht geladen werden kann
+                                                                      e.currentTarget.style.display =
+                                                                        "none";
+                                                                      const parent =
+                                                                        e
+                                                                          .currentTarget
+                                                                          .parentElement;
+                                                                      if (
+                                                                        parent
+                                                                      ) {
+                                                                        parent.innerHTML =
+                                                                          '<div class="w-full h-full flex items-center justify-center"><svg class="h-12 w-12 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>';
+                                                                      }
+                                                                    }}
+                                                                  />
+                                                                  <Button
+                                                                    variant="destructive"
+                                                                    size="icon"
+                                                                    className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                    onClick={() =>
+                                                                      handleDeleteFile(
+                                                                        project.id,
+                                                                        file.id
+                                                                      )
+                                                                    }
+                                                                  >
+                                                                    <Trash2 className="h-3 w-3" />
+                                                                  </Button>
+                                                                </div>
+                                                              ) : (
+                                                                <div className="p-3 flex items-start justify-between gap-2">
+                                                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                                    {getFileIcon(
+                                                                      file.type
+                                                                    )}
+                                                                    <div className="min-w-0 flex-1">
+                                                                      <p className="text-sm font-medium truncate">
+                                                                        {
+                                                                          file.name
+                                                                        }
+                                                                      </p>
+                                                                      <p className="text-xs text-muted-foreground">
+                                                                        {formatFileSize(
+                                                                          file.size
+                                                                        )}
+                                                                      </p>
+                                                                    </div>
+                                                                  </div>
+                                                                  <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                    onClick={() =>
+                                                                      handleDeleteFile(
+                                                                        project.id,
+                                                                        file.id
+                                                                      )
+                                                                    }
+                                                                  >
+                                                                    <Trash2 className="h-3 w-3 text-destructive" />
+                                                                  </Button>
+                                                                </div>
+                                                              )}
+
+                                                              {/* File Info */}
+                                                              <div className="p-3 pt-2 border-t">
+                                                                <p className="text-sm font-medium truncate mb-1">
+                                                                  {file.name}
+                                                                </p>
+                                                                <div className="text-xs text-muted-foreground space-y-0.5">
+                                                                  <p>
+                                                                    Von:{" "}
+                                                                    {
+                                                                      file.uploadedBy
+                                                                    }
                                                                   </p>
-                                                                  <p className="text-xs text-muted-foreground">
-                                                                    {formatFileSize(
-                                                                      file.size
+                                                                  <p>
+                                                                    {new Date(
+                                                                      file.uploadedAt
+                                                                    ).toLocaleDateString(
+                                                                      "de-DE"
                                                                     )}
                                                                   </p>
+                                                                  {!isImage && (
+                                                                    <p>
+                                                                      {formatFileSize(
+                                                                        file.size
+                                                                      )}
+                                                                    </p>
+                                                                  )}
                                                                 </div>
                                                               </div>
-                                                              <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                onClick={() =>
-                                                                  handleDeleteFile(
-                                                                    project.id,
-                                                                    file.id
-                                                                  )
-                                                                }
-                                                              >
-                                                                <Trash2 className="h-3 w-3 text-destructive" />
-                                                              </Button>
-                                                            </div>
-                                                            <div className="mt-2 text-xs text-muted-foreground">
-                                                              <p>
-                                                                Von:{" "}
-                                                                {
-                                                                  file.uploadedBy
-                                                                }
-                                                              </p>
-                                                              <p>
-                                                                {new Date(
-                                                                  file.uploadedAt
-                                                                ).toLocaleDateString(
-                                                                  "de-DE"
-                                                                )}
-                                                              </p>
-                                                            </div>
-                                                          </CardContent>
-                                                        </Card>
-                                                      )
+                                                            </CardContent>
+                                                          </Card>
+                                                        );
+                                                      }
                                                     )}
                                                   </div>
                                                 )}

@@ -1,14 +1,6 @@
 ﻿import React, { useState, useEffect } from "react";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
-import type { Comment } from "@/components/CommentSection";
-import { CommentSection } from "@/components/CommentSection";
-import {
-  getActionComments,
-  createActionComment,
-  updateActionComment,
-  deleteActionComment,
-} from "@/services/comment.service";
 import {
   Card,
   CardContent,
@@ -175,9 +167,13 @@ interface ApiAction {
 
 interface ActionTrackerProps {
   initialActionId?: string;
+  showOnlyMyActions?: boolean;
 }
 
-const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
+const ActionTracker = ({
+  initialActionId,
+  showOnlyMyActions = false,
+}: ActionTrackerProps) => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("T208");
   const [activeCategoryTab, setActiveCategoryTab] = useState<
@@ -210,14 +206,6 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
     dueDate: "",
     completed: false,
   });
-
-  // Comment Management State
-  const [actionComments, setActionComments] = useState<
-    Record<string, Comment[]>
-  >({});
-  const [loadingComments, setLoadingComments] = useState<
-    Record<string, boolean>
-  >({});
 
   const [users, setUsers] = useState<
     Array<{
@@ -252,6 +240,14 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
   const [disciplineFilter, setDisciplineFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [userFilter, setUserFilter] = useState<string>("all");
+
+  // Helper function to format date without timezone issues
+  const formatDateForInput = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
   // Extrahiere Foto-Dateinamen oder URL aus Beschreibung (von Failure Reports)
   const extractPhotoFromDescription = (description: string): string | null => {
@@ -293,17 +289,32 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
       });
   };
 
+  // Check if action is overdue
+  const isOverdue = (dueDate?: string, status?: string) => {
+    if (!dueDate || status === "COMPLETED") return false;
+    return new Date(dueDate) < new Date();
+  };
+
   // Backend laden
   useEffect(() => {
     setIsMounted(true);
     loadActions();
     loadUsers();
 
+    // Set user filter to current user if showOnlyMyActions is true
+    if (showOnlyMyActions) {
+      const currentUser = authService.getCurrentUser();
+      if (currentUser) {
+        const userName = `${currentUser.firstName} ${currentUser.lastName}`;
+        setUserFilter(userName);
+      }
+    }
+
     return () => {
       setIsMounted(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showOnlyMyActions]);
 
   // Expand row if initialActionId is provided
   useEffect(() => {
@@ -314,7 +325,6 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
         setActiveTab(actionExists.plant);
 
         setExpandedRows(new Set([initialActionId]));
-        loadComments(initialActionId);
 
         // Scroll to the action after a short delay
         setTimeout(() => {
@@ -325,7 +335,6 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
         }, 300);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialActionId, actions]);
 
   const loadUsers = async () => {
@@ -395,7 +404,7 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
         createdBy: item.createdBy || "System",
         createdAt: item.createdAt
           ? item.createdAt.split("T")[0]
-          : new Date().toISOString().split("T")[0],
+          : formatDateForInput(new Date()),
         files: (item.actionFiles || []).map((file: ApiActionFile) => ({
           id: file.id,
           name: file.originalName || file.filename,
@@ -446,62 +455,8 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
       newExpanded.delete(id);
     } else {
       newExpanded.add(id);
-      // Load comments when expanding row
-      if (!actionComments[id]) {
-        loadComments(id);
-      }
     }
     setExpandedRows(newExpanded);
-  };
-
-  // Load comments for action
-  const loadComments = async (actionId: string) => {
-    setLoadingComments((prev) => ({ ...prev, [actionId]: true }));
-    try {
-      const comments = await getActionComments(actionId);
-      setActionComments((prev) => ({ ...prev, [actionId]: comments }));
-    } catch {
-      toast({
-        title: "Fehler",
-        description: "Kommentare konnten nicht geladen werden.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingComments((prev) => ({ ...prev, [actionId]: false }));
-    }
-  };
-
-  // Add comment
-  const handleAddComment = async (actionId: string, text: string) => {
-    const newComment = await createActionComment(actionId, text);
-    setActionComments((prev) => ({
-      ...prev,
-      [actionId]: [...(prev[actionId] || []), newComment],
-    }));
-  };
-
-  // Update comment
-  const handleUpdateComment = async (
-    actionId: string,
-    commentId: string,
-    text: string
-  ) => {
-    const updatedComment = await updateActionComment(actionId, commentId, text);
-    setActionComments((prev) => ({
-      ...prev,
-      [actionId]: (prev[actionId] || []).map((c) =>
-        c.id === commentId ? updatedComment : c
-      ),
-    }));
-  };
-
-  // Delete comment
-  const handleDeleteComment = async (actionId: string, commentId: string) => {
-    await deleteActionComment(actionId, commentId);
-    setActionComments((prev) => ({
-      ...prev,
-      [actionId]: (prev[actionId] || []).filter((c) => c.id !== commentId),
-    }));
   };
 
   const openNewDialog = () => {
@@ -1010,10 +965,25 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
       });
     }
 
-    // Sort: COMPLETED actions to the bottom
+    // Sort by due date and status
     return filtered.sort((a, b) => {
+      // COMPLETED actions always at the bottom
       if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1;
       if (a.status !== "COMPLETED" && b.status === "COMPLETED") return -1;
+
+      // For non-completed actions, sort by due date
+      if (a.status !== "COMPLETED" && b.status !== "COMPLETED") {
+        // Actions without due date go to the end
+        if (!a.dueDate && b.dueDate) return 1;
+        if (a.dueDate && !b.dueDate) return -1;
+        if (!a.dueDate && !b.dueDate) return 0;
+
+        // Sort by due date (earliest first)
+        const dateA = new Date(a.dueDate!).getTime();
+        const dateB = new Date(b.dueDate!).getTime();
+        return dateA - dateB;
+      }
+
       return 0;
     });
   };
@@ -1162,7 +1132,7 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
                 onValueChange={setActiveTab}
                 className="space-y-4"
               >
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-4 h-20 bg-muted/30 p-2 gap-2">
                   {["T208", "T207", "T700", "T46"].map((plant) => {
                     const stats = getActionStats(plant);
                     const openCount = stats.open + stats.inProgress;
@@ -1170,26 +1140,40 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
                       <TabsTrigger
                         key={plant}
                         value={plant}
-                        className="relative"
+                        className="relative flex-col h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all shadow-sm hover:shadow-md py-2 px-3"
                       >
-                        <div className="flex items-center gap-2">
-                          <span>{plant}</span>
-                          {openCount > 0 && (
-                            <Badge
-                              variant="destructive"
-                              className="ml-1 px-1.5 py-0 text-xs font-bold"
-                            >
-                              {openCount}
-                            </Badge>
-                          )}
-                          {openCount === 0 && stats.total > 0 && (
-                            <Badge
-                              variant="secondary"
-                              className="ml-1 px-1.5 py-0 text-xs"
-                            >
-                              ✓
-                            </Badge>
-                          )}
+                        <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
+                          <span className="text-base font-bold leading-tight">
+                            {plant}
+                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                            {openCount > 0 && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] opacity-70 leading-tight">
+                                  Offen:
+                                </span>
+                                <Badge
+                                  variant="destructive"
+                                  className="px-1.5 py-0 text-[10px] font-bold leading-tight h-4"
+                                >
+                                  {openCount}
+                                </Badge>
+                              </div>
+                            )}
+                            {openCount === 0 && stats.total > 0 && (
+                              <Badge
+                                variant="outline"
+                                className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 leading-tight h-4"
+                              >
+                                ✓ Alle erledigt
+                              </Badge>
+                            )}
+                            {stats.total === 0 && (
+                              <span className="text-[10px] opacity-60 leading-tight">
+                                Keine Actions
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </TabsTrigger>
                     );
@@ -1209,24 +1193,54 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
                       }
                       className="space-y-4"
                     >
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="allgemein">
-                          Allgemein
-                          <Badge variant="secondary" className="ml-2">
-                            {getCategoryStats(plant, "allgemein")}
-                          </Badge>
+                      <TabsList className="grid w-full grid-cols-3 h-16 bg-muted/30 p-2 gap-2">
+                        <TabsTrigger
+                          value="allgemein"
+                          className="flex-col h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all shadow-sm hover:shadow-md py-2 px-3"
+                        >
+                          <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full">
+                            <span className="text-sm font-semibold leading-tight">
+                              Allgemein
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="px-1.5 py-0 text-[10px] data-[state=active]:bg-primary-foreground/20 leading-tight h-4"
+                            >
+                              {getCategoryStats(plant, "allgemein")} Actions
+                            </Badge>
+                          </div>
                         </TabsTrigger>
-                        <TabsTrigger value="rigmoves">
-                          Rigmoves
-                          <Badge variant="secondary" className="ml-2">
-                            {getCategoryStats(plant, "rigmoves")}
-                          </Badge>
+                        <TabsTrigger
+                          value="rigmoves"
+                          className="flex-col h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all shadow-sm hover:shadow-md py-2 px-3"
+                        >
+                          <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full">
+                            <span className="text-sm font-semibold leading-tight">
+                              Rigmoves
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="px-1.5 py-0 text-[10px] data-[state=active]:bg-primary-foreground/20 leading-tight h-4"
+                            >
+                              {getCategoryStats(plant, "rigmoves")} Actions
+                            </Badge>
+                          </div>
                         </TabsTrigger>
-                        <TabsTrigger value="alle">
-                          Alle
-                          <Badge variant="secondary" className="ml-2">
-                            {getCategoryStats(plant, "alle")}
-                          </Badge>
+                        <TabsTrigger
+                          value="alle"
+                          className="flex-col h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all shadow-sm hover:shadow-md py-2 px-3"
+                        >
+                          <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full">
+                            <span className="text-sm font-semibold leading-tight">
+                              Alle
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="px-1.5 py-0 text-[10px] data-[state=active]:bg-primary-foreground/20 leading-tight h-4"
+                            >
+                              {getCategoryStats(plant, "alle")} Actions
+                            </Badge>
+                          </div>
                         </TabsTrigger>
                       </TabsList>
 
@@ -1294,7 +1308,14 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
                                       <React.Fragment key={action.id}>
                                         <TableRow
                                           id={`action-${action.id}`}
-                                          className="hover:bg-muted/50"
+                                          className={`hover:bg-muted/50 transition-colors ${
+                                            isOverdue(
+                                              action.dueDate,
+                                              action.status
+                                            )
+                                              ? "bg-red-50/50 dark:bg-red-950/20 border-l-4 border-l-red-500"
+                                              : ""
+                                          }`}
                                         >
                                           <TableCell className="py-3">
                                             <Button
@@ -1399,7 +1420,16 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
                                             </div>
                                           </TableCell>
                                           <TableCell className="py-3">
-                                            <span className="text-base">
+                                            <span
+                                              className={`text-base font-medium ${
+                                                isOverdue(
+                                                  action.dueDate,
+                                                  action.status
+                                                )
+                                                  ? "text-red-600 dark:text-red-400"
+                                                  : ""
+                                              }`}
+                                            >
                                               {action.dueDate
                                                 ? new Date(
                                                     action.dueDate
@@ -1956,77 +1986,6 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
                                                     </Card>
                                                   );
                                                 })()}
-
-                                                {/* Comment Section - Kompakt */}
-                                                <div className="border rounded-lg p-3 bg-muted/20">
-                                                  {(() => {
-                                                    const currentUser =
-                                                      authService.getCurrentUser();
-                                                    if (!currentUser)
-                                                      return null;
-
-                                                    return (
-                                                      <div className="space-y-2">
-                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                                                          💬 Kommentare
-                                                          <Badge
-                                                            variant="secondary"
-                                                            className="text-xs"
-                                                          >
-                                                            {
-                                                              (
-                                                                actionComments[
-                                                                  action.id
-                                                                ] || []
-                                                              ).length
-                                                            }
-                                                          </Badge>
-                                                        </h4>
-                                                        <CommentSection
-                                                          comments={
-                                                            actionComments[
-                                                              action.id
-                                                            ] || []
-                                                          }
-                                                          currentUserId={
-                                                            currentUser.id
-                                                          }
-                                                          onAddComment={(
-                                                            text
-                                                          ) =>
-                                                            handleAddComment(
-                                                              action.id,
-                                                              text
-                                                            )
-                                                          }
-                                                          onUpdateComment={(
-                                                            commentId,
-                                                            text
-                                                          ) =>
-                                                            handleUpdateComment(
-                                                              action.id,
-                                                              commentId,
-                                                              text
-                                                            )
-                                                          }
-                                                          onDeleteComment={(
-                                                            commentId
-                                                          ) =>
-                                                            handleDeleteComment(
-                                                              action.id,
-                                                              commentId
-                                                            )
-                                                          }
-                                                          isLoading={
-                                                            loadingComments[
-                                                              action.id
-                                                            ]
-                                                          }
-                                                        />
-                                                      </div>
-                                                    );
-                                                  })()}
-                                                </div>
                                               </div>
                                             </TableCell>
                                           </TableRow>
@@ -2456,9 +2415,7 @@ const ActionTracker = ({ initialActionId }: ActionTrackerProps) => {
                         onSelect={(date) =>
                           setCurrentAction({
                             ...currentAction,
-                            dueDate: date
-                              ? date.toISOString().split("T")[0]
-                              : "",
+                            dueDate: date ? formatDateForInput(date) : "",
                           })
                         }
                         placeholder="Fälligkeitsdatum wählen"

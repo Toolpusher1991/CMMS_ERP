@@ -83,7 +83,11 @@ interface FailureReport {
   updatedAt: string;
 }
 
-const FailureReportingPage = () => {
+interface FailureReportingProps {
+  initialReportId?: string;
+}
+
+const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
   const { toast } = useToast();
   const isMobile = isMobileDevice();
   const [activeTab, setActiveTab] = useState<string>("T208");
@@ -161,6 +165,17 @@ const FailureReportingPage = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Handle initial report ID
+  useEffect(() => {
+    if (initialReportId && reports.length > 0) {
+      const report = reports.find((r) => r.id === initialReportId);
+      if (report) {
+        // Switch to the correct plant tab
+        setActiveTab(report.plant);
+      }
+    }
+  }, [initialReportId, reports]);
 
   const loadReports = async () => {
     try {

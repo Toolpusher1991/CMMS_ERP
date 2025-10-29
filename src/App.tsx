@@ -61,6 +61,9 @@ function App() {
   const [initialProjectId, setInitialProjectId] = useState<
     string | undefined
   >();
+  const [initialReportId, setInitialReportId] = useState<string | undefined>();
+  const [showOnlyMyProjects, setShowOnlyMyProjects] = useState(false);
+  const [showOnlyMyActions, setShowOnlyMyActions] = useState(false);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -102,19 +105,35 @@ function App() {
   };
 
   const handleNavigate = (page: string, itemId?: string) => {
-    // Reset IDs when navigating
+    // Reset IDs and filters when navigating
     setInitialActionId(undefined);
     setInitialProjectId(undefined);
+    setInitialReportId(undefined);
+    setShowOnlyMyProjects(false);
+    setShowOnlyMyActions(false);
 
     if (page === "actions") {
       setCurrentPage("actions");
+      // Only filter if no specific itemId is provided (clicked on card)
+      if (!itemId) {
+        setShowOnlyMyActions(true);
+      }
       if (itemId) {
         setInitialActionId(itemId);
       }
     } else if (page === "projects") {
       setCurrentPage("projects");
+      // Only filter if no specific itemId is provided (clicked on card)
+      if (!itemId) {
+        setShowOnlyMyProjects(true);
+      }
       if (itemId) {
         setInitialProjectId(itemId);
+      }
+    } else if (page === "failure-reporting") {
+      setCurrentPage("failures");
+      if (itemId) {
+        setInitialReportId(itemId);
       }
     } else {
       setCurrentPage(page as AppPage);
@@ -197,13 +216,21 @@ function App() {
                   <Dashboard onNavigate={handleNavigate} />
                 )}
                 {currentPage === "projects" && (
-                  <ProjectList initialProjectId={initialProjectId} />
+                  <ProjectList
+                    initialProjectId={initialProjectId}
+                    showOnlyMyProjects={showOnlyMyProjects}
+                  />
                 )}
                 {currentPage === "workorders" && <WorkOrderManagement />}
                 {currentPage === "actions" && (
-                  <ActionTracker initialActionId={initialActionId} />
+                  <ActionTracker
+                    initialActionId={initialActionId}
+                    showOnlyMyActions={showOnlyMyActions}
+                  />
                 )}
-                {currentPage === "failures" && <FailureReporting />}
+                {currentPage === "failures" && (
+                  <FailureReporting initialReportId={initialReportId} />
+                )}
                 {currentPage === "reporting" && <Reporting />}
                 {currentPage === "tender" && <RigConfigurator />}
                 {currentPage === "debug" && <SystemDebug />}

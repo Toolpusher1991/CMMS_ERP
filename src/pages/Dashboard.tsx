@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { actionService, type Action } from "@/services/action.service";
 import { projectService, type Project } from "@/services/project.service";
+import { apiClient } from "@/services/api";
+import { Button } from "@/components/ui/button";
 import {
   CheckCircle2,
   ClipboardList,
   FolderKanban,
-  ListTodo,
+  AlertTriangle,
   TrendingUp,
   Calendar,
   AlertCircle,
@@ -16,8 +18,27 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
+interface FailureReport {
+  id: string;
+  plant: "T208" | "T207" | "T700" | "T46";
+  title: string;
+  description: string;
+  location?: string;
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  status: "REPORTED" | "IN_REVIEW" | "CONVERTED_TO_ACTION" | "RESOLVED";
+  photoFilename?: string;
+  photoPath?: string;
+  reportedBy: string;
+  reportedByName: string;
+  convertedToActionId?: string;
+  convertedAt?: string;
+  convertedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface DashboardStats {
-  myTasks: number;
+  openFailureReports: number;
   myProjects: number;
   myActions: number;
   completed: number;
@@ -25,7 +46,7 @@ interface DashboardStats {
 
 interface QuickAccessItem {
   id: string;
-  type: "project" | "action" | "task";
+  type: "project" | "action" | "task" | "failure";
   title: string;
   description?: string;
   status: string;
@@ -33,6 +54,7 @@ interface QuickAccessItem {
   dueDate?: string;
   projectId?: string;
   isOverdue: boolean;
+  plant?: string;
 }
 
 interface DashboardProps {
@@ -42,7 +64,11 @@ interface DashboardProps {
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const [actions, setActions] = useState<Action[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [failureReports, setFailureReports] = useState<FailureReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quickAccessFilter, setQuickAccessFilter] = useState<
+    "all" | "projects" | "actions" | "failures"
+  >("all");
   const [currentUser, setCurrentUser] = useState<{
     id: string;
     firstName: string;
@@ -64,13 +90,17 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         setCurrentUser(user);
       }
 
-      const [actionsData, projectsData] = await Promise.all([
-        actionService.getAll(),
-        projectService.getProjects(),
-      ]);
+      const [actionsData, projectsData, failureReportsData] = await Promise.all(
+        [
+          actionService.getAll(),
+          projectService.getProjects(),
+          apiClient.request<FailureReport[]>("/failure-reports"),
+        ]
+      );
 
       setActions(actionsData);
       setProjects(projectsData.projects);
+      setFailureReports(failureReportsData);
     } catch (error) {
       console.error("Failed to load data:", error);
     } finally {
@@ -92,17 +122,17 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
   const calculateStats = (): DashboardStats => {
     if (!currentUser)
-      return { myTasks: 0, myProjects: 0, myActions: 0, completed: 0 };
+      return {
+        openFailureReports: 0,
+        myProjects: 0,
+        myActions: 0,
+        completed: 0,
+      };
 
-    let myTasks = 0;
-    projects.forEach((project) => {
-      if (project.tasks) {
-        myTasks += project.tasks.filter(
-          (task) =>
-            task.assignedTo === currentUser.email && task.status !== "DONE"
-        ).length;
-      }
-    });
+    // Count open failure reports (not converted to action and not resolved)
+    const openFailureReports = failureReports.filter(
+      (report) => report.status === "REPORTED" || report.status === "IN_REVIEW"
+    ).length;
 
     const myProjects = projects
       .filter(
@@ -144,7 +174,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       }
     });
 
-    return { myTasks, myProjects, myActions, completed };
+    return { openFailureReports, myProjects, myActions, completed };
   };
 
   const getQuickAccessItems = (): QuickAccessItem[] => {
@@ -152,73 +182,115 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
     const items: QuickAccessItem[] = [];
 
-    actions
-      .filter(
-        (action) =>
-          action.assignedTo === currentUser.email &&
-          action.status !== "COMPLETED"
-      )
-      .forEach((action) => {
-        items.push({
-          id: action.id,
-          type: "action",
-          title: action.title,
-          description: action.description,
-          status: action.status,
-          priority: action.priority,
-          dueDate: action.dueDate,
-          isOverdue: isOverdue(action.dueDate),
-        });
-      });
-
-    projects
-      .filter(
-        (project) =>
-          (project.manager?.email === currentUser.email ||
-            project.members?.some((m) => m.user.email === currentUser.email)) &&
-          project.status !== "COMPLETED" &&
-          project.status !== "CANCELLED"
-      )
-      .forEach((project) => {
-        items.push({
-          id: project.id,
-          type: "project",
-          title: project.name,
-          description: project.description,
-          status: project.status,
-          priority: project.priority,
-          dueDate: project.endDate,
-          isOverdue: isOverdue(project.endDate),
-        });
-      });
-
-    projects.forEach((project) => {
-      if (project.tasks) {
-        project.tasks
-          .filter(
-            (task) =>
-              task.assignedTo === currentUser.email && task.status !== "DONE"
-          )
-          .forEach((task) => {
-            items.push({
-              id: task.id,
-              type: "task",
-              title: task.title,
-              description: task.description,
-              status: task.status,
-              priority: task.priority,
-              dueDate: task.dueDate,
-              projectId: project.id,
-              isOverdue: isOverdue(task.dueDate),
-            });
+    // Add actions based on filter
+    if (quickAccessFilter === "all" || quickAccessFilter === "actions") {
+      actions
+        .filter(
+          (action) =>
+            action.assignedTo === currentUser.email &&
+            action.status !== "COMPLETED"
+        )
+        .forEach((action) => {
+          items.push({
+            id: action.id,
+            type: "action",
+            title: action.title,
+            description: action.description,
+            status: action.status,
+            priority: action.priority,
+            dueDate: action.dueDate,
+            isOverdue: isOverdue(action.dueDate),
+            plant: action.plant,
           });
-      }
-    });
+        });
+    }
+
+    // Add projects based on filter
+    if (quickAccessFilter === "all" || quickAccessFilter === "projects") {
+      projects
+        .filter(
+          (project) =>
+            (project.manager?.email === currentUser.email ||
+              project.members?.some(
+                (m) => m.user.email === currentUser.email
+              )) &&
+            project.status !== "COMPLETED" &&
+            project.status !== "CANCELLED"
+        )
+        .forEach((project) => {
+          items.push({
+            id: project.id,
+            type: "project",
+            title: project.name,
+            description: project.description,
+            status: project.status,
+            priority: project.priority,
+            dueDate: project.endDate,
+            isOverdue: isOverdue(project.endDate),
+            plant: project.plant,
+          });
+        });
+    }
+
+    // Add tasks only if showing all
+    if (quickAccessFilter === "all") {
+      projects.forEach((project) => {
+        if (project.tasks) {
+          project.tasks
+            .filter(
+              (task) =>
+                task.assignedTo === currentUser.email && task.status !== "DONE"
+            )
+            .forEach((task) => {
+              items.push({
+                id: task.id,
+                type: "task",
+                title: task.title,
+                description: task.description,
+                status: task.status,
+                priority: task.priority,
+                dueDate: task.dueDate,
+                projectId: project.id,
+                isOverdue: isOverdue(task.dueDate),
+              });
+            });
+        }
+      });
+    }
+
+    // Add failure reports if filtered
+    if (quickAccessFilter === "failures") {
+      failureReports
+        .filter(
+          (report) =>
+            report.status === "REPORTED" || report.status === "IN_REVIEW"
+        )
+        .forEach((report) => {
+          items.push({
+            id: report.id,
+            type: "failure",
+            title: report.title,
+            description: report.description,
+            status: report.status,
+            priority: report.severity,
+            dueDate: undefined,
+            isOverdue: false,
+            plant: report.plant,
+          });
+        });
+    }
 
     return items.sort((a, b) => {
       if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
 
-      const priorityOrder = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
+      const priorityOrder = {
+        URGENT: 0,
+        CRITICAL: 0,
+        HIGH: 1,
+        MEDIUM: 2,
+        NORMAL: 2,
+        LOW: 3,
+      };
       const aPriority =
         priorityOrder[a.priority as keyof typeof priorityOrder] ?? 4;
       const bPriority =
@@ -246,6 +318,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       onNavigate("projects", item.id);
     } else if (item.type === "task" && item.projectId) {
       onNavigate("projects", item.projectId);
+    } else if (item.type === "failure") {
+      onNavigate("failure-reporting", item.id);
     }
   };
 
@@ -291,7 +365,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const getTypeIcon = (type: string) => {
     if (type === "action") return <ClipboardList className="h-4 w-4" />;
     if (type === "project") return <FolderKanban className="h-4 w-4" />;
-    return <ListTodo className="h-4 w-4" />;
+    if (type === "failure") return <AlertTriangle className="h-4 w-4" />;
+    return <CheckCircle2 className="h-4 w-4" />;
   };
 
   const formatDate = (dateStr?: string) => {
@@ -313,7 +388,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     });
   };
 
-  const totalItems = stats.myTasks + stats.myProjects + stats.myActions;
+  const totalItems =
+    stats.openFailureReports + stats.myProjects + stats.myActions;
   const completionRate =
     totalItems > 0
       ? Math.round((stats.completed / (totalItems + stats.completed)) * 100)
@@ -338,24 +414,34 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-shadow cursor-pointer">
+        <Card
+          className={`bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800 hover:shadow-lg transition-shadow cursor-pointer ${
+            quickAccessFilter === "failures" ? "ring-2 ring-red-500" : ""
+          }`}
+          onClick={() => setQuickAccessFilter("failures")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">
-              Meine Aufgaben
+            <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">
+              Offene Störmeldungen
             </CardTitle>
-            <ListTodo className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
-              {stats.myTasks}
+            <div className="text-3xl font-bold text-red-900 dark:text-red-100">
+              {stats.openFailureReports}
             </div>
-            <p className="text-xs text-blue-700 dark:text-blue-400 mt-2 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" />
-              Zugewiesene Tasks
+            <p className="text-xs text-red-700 dark:text-red-400 mt-2 flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              Noch nicht bearbeitet
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-shadow cursor-pointer">
+        <Card
+          className={`bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-shadow cursor-pointer ${
+            quickAccessFilter === "projects" ? "ring-2 ring-purple-500" : ""
+          }`}
+          onClick={() => setQuickAccessFilter("projects")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">
               Meine Projekte
@@ -372,7 +458,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800 hover:shadow-lg transition-shadow cursor-pointer">
+        <Card
+          className={`bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800 hover:shadow-lg transition-shadow cursor-pointer ${
+            quickAccessFilter === "actions" ? "ring-2 ring-orange-500" : ""
+          }`}
+          onClick={() => setQuickAccessFilter("actions")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">
               Meine Actions
@@ -416,21 +507,43 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               Schnellzugriff
             </h2>
             <p className="text-muted-foreground">
-              Deine zugewiesenen Aufgaben, Projekte und Actions
+              {quickAccessFilter === "all" &&
+                "Deine zugewiesenen Aufgaben, Projekte und Actions"}
+              {quickAccessFilter === "projects" &&
+                "Deine zugewiesenen Projekte"}
+              {quickAccessFilter === "actions" && "Deine zugewiesenen Actions"}
+              {quickAccessFilter === "failures" && "Alle offenen Störmeldungen"}
             </p>
           </div>
-          <Badge variant="outline" className="text-sm">
-            {quickAccessItems.length} Items
-          </Badge>
+          <div className="flex items-center gap-2">
+            {quickAccessFilter !== "all" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuickAccessFilter("all")}
+              >
+                Alle anzeigen
+              </Button>
+            )}
+            <Badge variant="outline" className="text-sm">
+              {quickAccessItems.length} Items
+            </Badge>
+          </div>
         </div>
         <div className="grid gap-3">
           {quickAccessItems.length === 0 ? (
             <Card className="p-8">
               <div className="text-center space-y-2">
                 <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
-                <h3 className="text-lg font-semibold">Alles erledigt! 🎉</h3>
+                <h3 className="text-lg font-semibold">
+                  {quickAccessFilter === "failures"
+                    ? "Keine offenen Störmeldungen! 🎉"
+                    : "Alles erledigt! 🎉"}
+                </h3>
                 <p className="text-muted-foreground">
-                  Du hast momentan keine offenen Aufgaben
+                  {quickAccessFilter === "failures"
+                    ? "Es gibt momentan keine offenen Störmeldungen"
+                    : "Du hast momentan keine offenen Aufgaben"}
                 </p>
               </div>
             </Card>
@@ -466,6 +579,14 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                           </p>
                         )}
                         <div className="flex flex-wrap items-center gap-2">
+                          {item.plant && (
+                            <Badge
+                              variant="secondary"
+                              className="text-sm font-bold px-3 py-1"
+                            >
+                              🏭 {item.plant}
+                            </Badge>
+                          )}
                           <Badge
                             variant="outline"
                             className="text-xs capitalize"
@@ -474,6 +595,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                               ? "Task"
                               : item.type === "project"
                               ? "Projekt"
+                              : item.type === "failure"
+                              ? "Störmeldung"
                               : "Action"}
                           </Badge>
                           <Badge
