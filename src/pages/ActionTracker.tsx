@@ -623,9 +623,59 @@ const ActionTracker = ({
     setDeleteDialogOpen(true);
   };
 
-  const handleComplete = (id: string) => {
-    setActionToComplete(id);
-    setCompleteDialogOpen(true);
+  // Old handleComplete with dialog - commented out as we now use direct toggle
+  // const handleComplete = (id: string) => {
+  //   setActionToComplete(id);
+  //   setCompleteDialogOpen(true);
+  // };
+
+  const handleToggleComplete = async (action: Action) => {
+    try {
+      const newStatus = action.status === "COMPLETED" ? "OPEN" : "COMPLETED";
+
+      await apiClient.request(`/actions/${action.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          status: newStatus,
+          completedAt:
+            newStatus === "COMPLETED" ? new Date().toISOString() : null,
+        }),
+      });
+
+      // Send notification only when completing
+      if (newStatus === "COMPLETED") {
+        try {
+          await apiClient.post("/notifications", {
+            title: "Action abgeschlossen",
+            message: `Action "${action.title}" für ${action.plant} wurde abgeschlossen.`,
+            type: "ACTION_COMPLETED",
+            targetRoles: ["ADMIN", "MANAGER"],
+            relatedId: action.id,
+          });
+        } catch (notifError) {
+          console.error("Notification error:", notifError);
+        }
+      }
+
+      toast({
+        title:
+          newStatus === "COMPLETED"
+            ? "Action abgeschlossen"
+            : "Action reaktiviert",
+        description: `${action.title} wurde als ${
+          newStatus === "COMPLETED" ? "abgeschlossen" : "offen"
+        } markiert.`,
+      });
+
+      await loadActions();
+    } catch (error) {
+      console.error("Fehler beim Ändern des Status:", error);
+      toast({
+        title: "Fehler",
+        description: "Status konnte nicht geändert werden.",
+        variant: "destructive",
+      });
+    }
   };
 
   const confirmComplete = async () => {
@@ -1343,7 +1393,13 @@ const ActionTracker = ({
                                             onClick={() => toggleRow(action.id)}
                                           >
                                             <div className="space-y-1">
-                                              <div className="font-medium text-base">
+                                              <div
+                                                className={`font-medium text-base ${
+                                                  action.status === "COMPLETED"
+                                                    ? "line-through text-muted-foreground"
+                                                    : ""
+                                                }`}
+                                              >
                                                 {action.title}
                                               </div>
                                               {action.description && (
@@ -1470,20 +1526,29 @@ const ActionTracker = ({
                                           </TableCell>
                                           <TableCell className="text-right py-3">
                                             <div className="flex justify-end gap-1">
-                                              {action.status !==
-                                                "COMPLETED" && (
-                                                <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  className="h-8 w-8"
-                                                  onClick={() =>
-                                                    handleComplete(action.id)
-                                                  }
-                                                  title="Abschließen"
-                                                >
-                                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                                </Button>
-                                              )}
+                                              <Button
+                                                variant={
+                                                  action.status === "COMPLETED"
+                                                    ? "outline"
+                                                    : "default"
+                                                }
+                                                size="icon"
+                                                className={`h-8 w-8 ${
+                                                  action.status === "COMPLETED"
+                                                    ? "text-muted-foreground"
+                                                    : "bg-green-600 hover:bg-green-700"
+                                                }`}
+                                                onClick={() =>
+                                                  handleToggleComplete(action)
+                                                }
+                                                title={
+                                                  action.status === "COMPLETED"
+                                                    ? "Action reaktivieren"
+                                                    : "Action abschließen"
+                                                }
+                                              >
+                                                <CheckCircle2 className="h-4 w-4" />
+                                              </Button>
                                               <Button
                                                 variant="ghost"
                                                 size="icon"

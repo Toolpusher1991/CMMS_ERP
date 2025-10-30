@@ -69,6 +69,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const [quickAccessFilter, setQuickAccessFilter] = useState<
     "all" | "projects" | "actions" | "failures"
   >("all");
+  const [lastNavigatedPage, setLastNavigatedPage] = useState<string | null>(
+    null
+  );
   const [currentUser, setCurrentUser] = useState<{
     id: string;
     firstName: string;
@@ -313,12 +316,16 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     if (!onNavigate) return;
 
     if (item.type === "action") {
+      setLastNavigatedPage("actions");
       onNavigate("actions", item.id);
     } else if (item.type === "project") {
+      setLastNavigatedPage("projects");
       onNavigate("projects", item.id);
     } else if (item.type === "task" && item.projectId) {
+      setLastNavigatedPage("projects");
       onNavigate("projects", item.projectId);
     } else if (item.type === "failure") {
+      setLastNavigatedPage("failures");
       onNavigate("failure-reporting", item.id);
     }
   };
@@ -410,7 +417,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           {getGreeting()}, {currentUser?.firstName || "User"}! 👋
         </h1>
         <p className="text-muted-foreground text-lg">
-          Hier ist deine persönliche Übersicht für heute
+          {lastNavigatedPage === "projects"
+            ? "Hier sind deine offenen Projekte"
+            : lastNavigatedPage === "actions"
+            ? "Hier sind deine offenen Actions"
+            : lastNavigatedPage === "failures"
+            ? "Hier sind die offenen Störmeldungen"
+            : "Hier ist deine persönliche Übersicht für heute"}
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -418,7 +431,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           className={`bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800 hover:shadow-lg transition-shadow cursor-pointer ${
             quickAccessFilter === "failures" ? "ring-2 ring-red-500" : ""
           }`}
-          onClick={() => setQuickAccessFilter("failures")}
+          onClick={() => {
+            setQuickAccessFilter("failures");
+            setLastNavigatedPage("failures");
+          }}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">
@@ -440,7 +456,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           className={`bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-shadow cursor-pointer ${
             quickAccessFilter === "projects" ? "ring-2 ring-purple-500" : ""
           }`}
-          onClick={() => setQuickAccessFilter("projects")}
+          onClick={() => {
+            setQuickAccessFilter("projects");
+            setLastNavigatedPage("projects");
+          }}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">
@@ -462,7 +481,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           className={`bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800 hover:shadow-lg transition-shadow cursor-pointer ${
             quickAccessFilter === "actions" ? "ring-2 ring-orange-500" : ""
           }`}
-          onClick={() => setQuickAccessFilter("actions")}
+          onClick={() => {
+            setQuickAccessFilter("actions");
+            setLastNavigatedPage("actions");
+          }}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">
@@ -584,7 +606,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                               variant="secondary"
                               className="text-sm font-bold px-3 py-1"
                             >
-                              🏭 {item.plant}
+                              {item.plant}
                             </Badge>
                           )}
                           <Badge

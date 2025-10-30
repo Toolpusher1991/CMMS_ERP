@@ -77,6 +77,7 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronRight,
+  CheckCircle2,
 } from "lucide-react";
 
 type Anlage = "T208" | "T207" | "T700" | "T46";
@@ -485,6 +486,47 @@ export default function AnlagenProjektManagement({
     setDeleteType("project");
     setDeleteTarget({ projectId: id, name: project?.name || "Projekt" });
     setDeleteDialogOpen(true);
+  };
+
+  const handleToggleComplete = async (project: Project) => {
+    try {
+      const newStatus =
+        project.status === "Abgeschlossen" ? "Aktiv" : "Abgeschlossen";
+      const newProgress =
+        newStatus === "Abgeschlossen" ? 100 : project.progress;
+
+      // Map German status to English for API
+      const apiStatus =
+        newStatus === "Abgeschlossen" ? "COMPLETED" : "IN_PROGRESS";
+
+      await projectService.updateProject(project.id, {
+        status: apiStatus,
+        progress: newProgress,
+      });
+
+      setProjects(
+        projects.map((p) =>
+          p.id === project.id
+            ? { ...p, status: newStatus, progress: newProgress }
+            : p
+        )
+      );
+
+      toast({
+        title:
+          newStatus === "Abgeschlossen"
+            ? "Projekt abgeschlossen"
+            : "Projekt reaktiviert",
+        description: `${project.name} wurde als ${newStatus} markiert.`,
+      });
+    } catch (err) {
+      console.error("Failed to toggle project completion:", err);
+      toast({
+        title: "Fehler",
+        description: "Status konnte nicht geändert werden.",
+        variant: "destructive",
+      });
+    }
   };
 
   const confirmDelete = async () => {
@@ -1826,7 +1868,7 @@ export default function AnlagenProjektManagement({
                   value={anlage}
                   className="flex flex-col items-center justify-center gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-full text-base"
                 >
-                  <span className="font-semibold text-lg">🏭 {anlage}</span>
+                  <span className="font-semibold text-lg">{anlage}</span>
                   <Badge variant="secondary" className="text-xs px-2">
                     {getFilteredProjects(anlage).length} Projekte
                   </Badge>
@@ -1938,7 +1980,13 @@ export default function AnlagenProjektManagement({
                                         </span>
                                       </TableCell>
                                       <TableCell className="font-medium py-3">
-                                        <div className="text-base">
+                                        <div
+                                          className={`text-base ${
+                                            project.status === "Abgeschlossen"
+                                              ? "line-through text-muted-foreground"
+                                              : ""
+                                          }`}
+                                        >
                                           {project.name}
                                         </div>
                                         {project.description && (
@@ -2025,6 +2073,29 @@ export default function AnlagenProjektManagement({
                                       </TableCell>
                                       <TableCell className="text-right py-3">
                                         <div className="flex justify-end gap-1">
+                                          <Button
+                                            variant={
+                                              project.status === "Abgeschlossen"
+                                                ? "outline"
+                                                : "default"
+                                            }
+                                            size="icon"
+                                            className={`h-8 w-8 ${
+                                              project.status === "Abgeschlossen"
+                                                ? "text-muted-foreground"
+                                                : "bg-green-600 hover:bg-green-700"
+                                            }`}
+                                            onClick={() =>
+                                              handleToggleComplete(project)
+                                            }
+                                            title={
+                                              project.status === "Abgeschlossen"
+                                                ? "Projekt reaktivieren"
+                                                : "Projekt abschließen"
+                                            }
+                                          >
+                                            <CheckCircle2 className="h-4 w-4" />
+                                          </Button>
                                           <Button
                                             variant="ghost"
                                             size="icon"
