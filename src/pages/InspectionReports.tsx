@@ -100,8 +100,8 @@ interface InspectionReport {
   overallResult?: "PASSED" | "FAILED" | "CONDITIONAL";
   generalNotes?: string;
   recommendations?: string;
-  sections: InspectionSection[];
-  attachments: InspectionAttachment[];
+  sections?: InspectionSection[];
+  attachments?: InspectionAttachment[];
   createdAt: string;
   updatedAt: string;
 }
@@ -267,7 +267,7 @@ const InspectionReports = () => {
         // Update local state
         const updatedReport = {
           ...selectedReport,
-          sections: selectedReport.sections.map((section) => ({
+          sections: (selectedReport.sections || []).map((section) => ({
             ...section,
             items: section.items.map((item) =>
               item.id === itemId ? { ...item, ...updates } : item
@@ -301,9 +301,17 @@ const InspectionReports = () => {
       }>(`/inspection-reports/${selectedReport.id}`, updates);
 
       if (response.success && response.data) {
-        setSelectedReport(response.data);
+        // Preserve existing sections and attachments if not returned
+        const updatedReport = {
+          ...response.data,
+          sections: response.data.sections || selectedReport.sections || [],
+          attachments:
+            response.data.attachments || selectedReport.attachments || [],
+        };
+
+        setSelectedReport(updatedReport);
         setReports(
-          reports.map((r) => (r.id === response.data.id ? response.data : r))
+          reports.map((r) => (r.id === updatedReport.id ? updatedReport : r))
         );
 
         toast({
@@ -841,143 +849,155 @@ const InspectionReports = () => {
                 </Card>
 
                 {/* Inspection Sections */}
-                {selectedReport.sections && selectedReport.sections.length > 0 ? (
+                {selectedReport.sections &&
+                selectedReport.sections.length > 0 ? (
                   selectedReport.sections.map((section) => (
-                  <Card key={section.id}>
-                    <CardHeader>
-                      <CardTitle>
-                        {section.sectionNumber}. {section.title}
-                      </CardTitle>
-                      {section.description && (
-                        <CardDescription>{section.description}</CardDescription>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-24">Nr.</TableHead>
-                            <TableHead>Beschreibung</TableHead>
-                            <TableHead className="w-32">Typ</TableHead>
-                            <TableHead className="w-48">Wert/Prüfung</TableHead>
-                            <TableHead className="w-32">Ergebnis</TableHead>
-                            <TableHead>Notizen</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {section.items && section.items.map((item) => (
-                            <TableRow key={item.id}>
-                              <TableCell className="font-mono">
-                                {item.itemNumber}
-                              </TableCell>
-                              <TableCell>{item.description}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline">
-                                  {item.itemType === "CHECKBOX" && "Checkbox"}
-                                  {item.itemType === "MEASUREMENT" && "Messung"}
-                                  {item.itemType === "TEXT" && "Text"}
-                                  {item.itemType === "RATING" && "Bewertung"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {item.itemType === "CHECKBOX" && (
-                                  <Checkbox
-                                    checked={item.isChecked || false}
-                                    onCheckedChange={(checked) =>
-                                      handleUpdateItem(item.id, {
-                                        isChecked: checked as boolean,
-                                        result: checked ? "OK" : "NOT_OK",
-                                      })
-                                    }
-                                    disabled={
-                                      selectedReport.status === "APPROVED"
-                                    }
-                                  />
-                                )}
-                                {item.itemType === "MEASUREMENT" && (
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      type="number"
-                                      value={item.measurementValue || ""}
-                                      onChange={(e) =>
+                    <Card key={section.id}>
+                      <CardHeader>
+                        <CardTitle>
+                          {section.sectionNumber}. {section.title}
+                        </CardTitle>
+                        {section.description && (
+                          <CardDescription>
+                            {section.description}
+                          </CardDescription>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-24">Nr.</TableHead>
+                              <TableHead>Beschreibung</TableHead>
+                              <TableHead className="w-32">Typ</TableHead>
+                              <TableHead className="w-48">
+                                Wert/Prüfung
+                              </TableHead>
+                              <TableHead className="w-32">Ergebnis</TableHead>
+                              <TableHead>Notizen</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {section.items &&
+                              section.items.map((item) => (
+                                <TableRow key={item.id}>
+                                  <TableCell className="font-mono">
+                                    {item.itemNumber}
+                                  </TableCell>
+                                  <TableCell>{item.description}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline">
+                                      {item.itemType === "CHECKBOX" &&
+                                        "Checkbox"}
+                                      {item.itemType === "MEASUREMENT" &&
+                                        "Messung"}
+                                      {item.itemType === "TEXT" && "Text"}
+                                      {item.itemType === "RATING" &&
+                                        "Bewertung"}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    {item.itemType === "CHECKBOX" && (
+                                      <Checkbox
+                                        checked={item.isChecked || false}
+                                        onCheckedChange={(checked) =>
+                                          handleUpdateItem(item.id, {
+                                            isChecked: checked as boolean,
+                                            result: checked ? "OK" : "NOT_OK",
+                                          })
+                                        }
+                                        disabled={
+                                          selectedReport.status === "APPROVED"
+                                        }
+                                      />
+                                    )}
+                                    {item.itemType === "MEASUREMENT" && (
+                                      <div className="flex items-center gap-2">
+                                        <Input
+                                          type="number"
+                                          value={item.measurementValue || ""}
+                                          onChange={(e) =>
+                                            handleUpdateItem(item.id, {
+                                              measurementValue: e.target.value,
+                                            })
+                                          }
+                                          className="w-24"
+                                          disabled={
+                                            selectedReport.status === "APPROVED"
+                                          }
+                                        />
+                                        <span className="text-sm text-muted-foreground">
+                                          {item.measurementUnit}
+                                        </span>
+                                        {item.referenceValue && (
+                                          <span className="text-xs text-muted-foreground">
+                                            (Ref: {item.referenceValue})
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {item.itemType === "TEXT" && (
+                                      <Input
+                                        value={item.textValue || ""}
+                                        onChange={(e) =>
+                                          handleUpdateItem(item.id, {
+                                            textValue: e.target.value,
+                                          })
+                                        }
+                                        disabled={
+                                          selectedReport.status === "APPROVED"
+                                        }
+                                      />
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Select
+                                      value={item.result || ""}
+                                      onValueChange={(value) =>
                                         handleUpdateItem(item.id, {
-                                          measurementValue: e.target.value,
+                                          result: value as
+                                            | "OK"
+                                            | "NOT_OK"
+                                            | "N/A",
                                         })
                                       }
-                                      className="w-24"
+                                      disabled={
+                                        selectedReport.status === "APPROVED"
+                                      }
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="-" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="OK">OK</SelectItem>
+                                        <SelectItem value="NOT_OK">
+                                          Nicht OK
+                                        </SelectItem>
+                                        <SelectItem value="N/A">N/A</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Input
+                                      value={item.notes || ""}
+                                      onChange={(e) =>
+                                        handleUpdateItem(item.id, {
+                                          notes: e.target.value,
+                                        })
+                                      }
+                                      placeholder="Notizen..."
                                       disabled={
                                         selectedReport.status === "APPROVED"
                                       }
                                     />
-                                    <span className="text-sm text-muted-foreground">
-                                      {item.measurementUnit}
-                                    </span>
-                                    {item.referenceValue && (
-                                      <span className="text-xs text-muted-foreground">
-                                        (Ref: {item.referenceValue})
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                                {item.itemType === "TEXT" && (
-                                  <Input
-                                    value={item.textValue || ""}
-                                    onChange={(e) =>
-                                      handleUpdateItem(item.id, {
-                                        textValue: e.target.value,
-                                      })
-                                    }
-                                    disabled={
-                                      selectedReport.status === "APPROVED"
-                                    }
-                                  />
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Select
-                                  value={item.result || ""}
-                                  onValueChange={(value) =>
-                                    handleUpdateItem(item.id, {
-                                      result: value as "OK" | "NOT_OK" | "N/A",
-                                    })
-                                  }
-                                  disabled={
-                                    selectedReport.status === "APPROVED"
-                                  }
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="-" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="OK">OK</SelectItem>
-                                    <SelectItem value="NOT_OK">
-                                      Nicht OK
-                                    </SelectItem>
-                                    <SelectItem value="N/A">N/A</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
-                              <TableCell>
-                                <Input
-                                  value={item.notes || ""}
-                                  onChange={(e) =>
-                                    handleUpdateItem(item.id, {
-                                      notes: e.target.value,
-                                    })
-                                  }
-                                  placeholder="Notizen..."
-                                  disabled={
-                                    selectedReport.status === "APPROVED"
-                                  }
-                                />
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                ))
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  ))
                 ) : (
                   <Card>
                     <CardContent className="py-8 text-center text-muted-foreground">
@@ -1079,7 +1099,8 @@ const InspectionReports = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {selectedReport.attachments.length === 0 ? (
+                    {!selectedReport.attachments ||
+                    selectedReport.attachments.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
                         Keine Anhänge vorhanden
                       </div>
