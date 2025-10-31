@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Card,
   CardContent,
@@ -46,11 +46,9 @@ import {
   Eye,
   Edit,
   Trash2,
-  ClipboardCheck,
   CheckCircle2,
   XCircle,
   Clock,
-  AlertCircle,
 } from "lucide-react";
 
 interface InspectionItem {
@@ -346,7 +344,7 @@ const InspectionReports = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; icon: React.ReactNode }> = {
+    const variants: Record<string, { variant: "secondary" | "default" | "destructive"; icon: React.ReactNode }> = {
       DRAFT: { variant: "secondary", icon: <Edit className="w-3 h-3 mr-1" /> },
       SUBMITTED: {
         variant: "default",
@@ -378,7 +376,7 @@ const InspectionReports = () => {
   const getResultBadge = (result?: string) => {
     if (!result) return null;
 
-    const variants: Record<string, { variant: any; text: string }> = {
+    const variants: Record<string, { variant: "secondary" | "default" | "destructive"; text: string }> = {
       PASSED: { variant: "default", text: "Bestanden" },
       FAILED: { variant: "destructive", text: "Nicht bestanden" },
       CONDITIONAL: { variant: "secondary", text: "Bedingt" },
