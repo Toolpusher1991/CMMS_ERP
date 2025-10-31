@@ -344,7 +344,13 @@ const InspectionReports = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: "secondary" | "default" | "destructive"; icon: React.ReactNode }> = {
+    const variants: Record<
+      string,
+      {
+        variant: "secondary" | "default" | "destructive";
+        icon: React.ReactNode;
+      }
+    > = {
       DRAFT: { variant: "secondary", icon: <Edit className="w-3 h-3 mr-1" /> },
       SUBMITTED: {
         variant: "default",
@@ -376,7 +382,10 @@ const InspectionReports = () => {
   const getResultBadge = (result?: string) => {
     if (!result) return null;
 
-    const variants: Record<string, { variant: "secondary" | "default" | "destructive"; text: string }> = {
+    const variants: Record<
+      string,
+      { variant: "secondary" | "default" | "destructive"; text: string }
+    > = {
       PASSED: { variant: "default", text: "Bestanden" },
       FAILED: { variant: "destructive", text: "Nicht bestanden" },
       CONDITIONAL: { variant: "secondary", text: "Bedingt" },
@@ -832,7 +841,8 @@ const InspectionReports = () => {
                 </Card>
 
                 {/* Inspection Sections */}
-                {selectedReport.sections.map((section) => (
+                {selectedReport.sections && selectedReport.sections.length > 0 ? (
+                  selectedReport.sections.map((section) => (
                   <Card key={section.id}>
                     <CardHeader>
                       <CardTitle>
@@ -855,7 +865,7 @@ const InspectionReports = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {section.items.map((item) => (
+                          {section.items && section.items.map((item) => (
                             <TableRow key={item.id}>
                               <TableCell className="font-mono">
                                 {item.itemNumber}
@@ -967,7 +977,14 @@ const InspectionReports = () => {
                       </Table>
                     </CardContent>
                   </Card>
-                ))}
+                ))
+                ) : (
+                  <Card>
+                    <CardContent className="py-8 text-center text-muted-foreground">
+                      Keine Inspektionspunkte vorhanden
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="notes" className="space-y-4 mt-4">
