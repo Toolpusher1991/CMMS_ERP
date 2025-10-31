@@ -8,6 +8,8 @@ export interface AuthRequest extends Request {
     email: string;
     role: string;
     assignedPlant?: string | null;
+    firstName?: string;
+    lastName?: string;
   };
 }
 
@@ -24,7 +26,14 @@ export const authenticate = async (
       throw new AppError('No token provided', 401);
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      id: string;
+      email: string;
+      role: string;
+      assignedPlant?: string | null;
+      firstName?: string;
+      lastName?: string;
+    };
     req.user = decoded;
     next();
   } catch (error) {

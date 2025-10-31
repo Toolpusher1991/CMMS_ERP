@@ -161,6 +161,11 @@ model File {
   
   uploadedBy      String?   // User name or ID
   uploadedAt      DateTime  @default(now())
+  
+  // Check-in/Check-out System
+  checkedOutBy    String?   // User ID who checked out the file
+  checkedOutByName String?  // User name for display
+  checkedOutAt    DateTime? // When the file was checked out
 
   @@map("files")
 }

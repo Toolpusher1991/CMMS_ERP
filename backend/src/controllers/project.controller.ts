@@ -488,6 +488,103 @@ export const getProjectFiles = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const checkoutFile = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id: projectId, fileId } = req.params;
+    const userId = req.user?.id;
+    const userName = req.user?.firstName && req.user?.lastName 
+      ? `${req.user.firstName} ${req.user.lastName}` 
+      : 'Unknown User';
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
+    // Check if file exists and is in this project
+    const file = await prisma.file.findFirst({
+      where: { id: fileId, projectId },
+    });
+
+    if (!file) {
+      return res.status(404).json({ success: false, message: 'File not found' });
+    }
+
+    // Check if already checked out
+    if (file.checkedOutBy) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `File is already checked out by ${file.checkedOutByName || 'another user'}` 
+      });
+    }
+
+    // Check out the file
+    const updatedFile = await prisma.file.update({
+      where: { id: fileId },
+      data: {
+        checkedOutBy: userId,
+        checkedOutByName: userName,
+        checkedOutAt: new Date(),
+      },
+    });
+
+    res.json({ success: true, data: updatedFile });
+  } catch (error) {
+    console.error('Checkout file error:', error);
+    res.status(500).json({ success: false, message: 'Failed to checkout file' });
+  }
+};
+
+export const checkinFile = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id: projectId, fileId } = req.params;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
+    // Check if file exists and is in this project
+    const file = await prisma.file.findFirst({
+      where: { id: fileId, projectId },
+    });
+
+    if (!file) {
+      return res.status(404).json({ success: false, message: 'File not found' });
+    }
+
+    // Check if file is checked out
+    if (!file.checkedOutBy) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'File is not checked out' 
+      });
+    }
+
+    // Only the user who checked it out (or admin) can check it back in
+    if (file.checkedOutBy !== userId && req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Only the user who checked out the file can check it back in' 
+      });
+    }
+
+    // Check in the file
+    const updatedFile = await prisma.file.update({
+      where: { id: fileId },
+      data: {
+        checkedOutBy: null,
+        checkedOutByName: null,
+        checkedOutAt: null,
+      },
+    });
+
+    res.json({ success: true, data: updatedFile });
+  } catch (error) {
+    console.error('Checkin file error:', error);
+    res.status(500).json({ success: false, message: 'Failed to checkin file' });
+  }
+};
+
 export const addBudgetEntry = async (_req: Request, res: Response) => {
   res.status(501).json({ success: false, message: 'Budget entries not implemented' });
 };

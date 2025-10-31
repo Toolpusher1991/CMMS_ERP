@@ -46,5 +46,7 @@ router.delete('/:id/tasks/:taskId', projectController.deleteTask);
 router.get('/:id/files', projectController.getProjectFiles);
 router.post('/:id/files', projectController.createFile);
 router.delete('/:id/files/:fileId', projectController.deleteFile);
+router.post('/:id/files/:fileId/checkout', projectController.checkoutFile);
+router.post('/:id/files/:fileId/checkin', projectController.checkinFile);
 
 export default router;

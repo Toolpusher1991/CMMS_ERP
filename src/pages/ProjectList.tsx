@@ -7,6 +7,7 @@ import {
 import { authService } from "@/services/auth.service";
 import { userService } from "@/services/user.service";
 import { fileService } from "@/services/file.service";
+import { apiClient } from "@/services/api";
 import type { User } from "@/services/auth.service";
 import type { Comment } from "@/components/CommentSection";
 import { CommentSection } from "@/components/CommentSection";
@@ -102,6 +103,9 @@ interface FileAttachment {
   url: string;
   uploadedAt: string;
   uploadedBy: string;
+  checkedOutBy?: string | null;
+  checkedOutByName?: string | null;
+  checkedOutAt?: string | null;
 }
 
 interface Project {
@@ -358,36 +362,76 @@ export default function AnlagenProjektManagement({
       setUsers(userResponse.data);
 
       // Map backend projects to frontend format
-      const mappedProjects: Project[] = projectResponse.projects.map(
-        (p: BackendProject) => ({
-          id: p.id,
-          name: p.name,
-          anlage: (p.plant ||
-            p.projectNumber.match(/^(T\d+)/)?.[1] ||
-            "T208") as Anlage, // Use plant field or extract from projectNumber
-          category: mapBackendCategory(p.category || "MECHANICAL"), // Map backend category to frontend
-          status: mapBackendStatus(p.status),
-          startDate: p.startDate || "",
-          endDate: p.endDate || "",
-          description: p.description || "",
-          budget: p.totalBudget,
-          assignedUser: p.manager
-            ? `${p.manager.firstName} ${p.manager.lastName}`
-            : "",
-          assignedUserId: p.manager?.id,
-          progress: p.progress,
-          notes: "", // Default empty notes since backend doesn't have this field
-          tasks: (p.tasks || []).map((t: ProjectTask) => ({
-            id: t.id,
-            title: t.title,
-            description: t.description || "",
-            completed: t.status === "DONE",
-            assignedUser: t.assignedTo || "", // Use assignedTo string field directly
-            assignedUserId: t.assignedTo || "", // Use assignedTo as ID fallback
-            dueDate: t.dueDate || "",
-            createdAt: t.createdAt,
-          })), // Map backend tasks to frontend format
-          files: [], // Files will be managed separately via file service
+      const mappedProjects: Project[] = await Promise.all(
+        projectResponse.projects.map(async (p: BackendProject) => {
+          // Load files for each project
+          let projectFiles: FileAttachment[] = [];
+          try {
+            const filesResponse = await apiClient.get<{
+              success: boolean;
+              data: Array<{
+                id: string;
+                filename: string;
+                originalName: string;
+                fileType: string;
+                fileSize: number;
+                filePath: string;
+                uploadedBy: string;
+                uploadedAt: string;
+                checkedOutBy?: string | null;
+                checkedOutByName?: string | null;
+                checkedOutAt?: string | null;
+              }>;
+            }>(`/projects/${p.id}/files`);
+
+            if (filesResponse.success && filesResponse.data) {
+              projectFiles = filesResponse.data.map((f) => ({
+                id: f.id,
+                name: f.originalName,
+                type: f.fileType,
+                size: f.fileSize,
+                url: f.filePath,
+                uploadedAt: f.uploadedAt,
+                uploadedBy: f.uploadedBy || "Unbekannt",
+                checkedOutBy: f.checkedOutBy,
+                checkedOutByName: f.checkedOutByName,
+                checkedOutAt: f.checkedOutAt,
+              }));
+            }
+          } catch (error) {
+            console.error(`Failed to load files for project ${p.id}:`, error);
+          }
+
+          return {
+            id: p.id,
+            name: p.name,
+            anlage: (p.plant ||
+              p.projectNumber.match(/^(T\d+)/)?.[1] ||
+              "T208") as Anlage, // Use plant field or extract from projectNumber
+            category: mapBackendCategory(p.category || "MECHANICAL"), // Map backend category to frontend
+            status: mapBackendStatus(p.status),
+            startDate: p.startDate || "",
+            endDate: p.endDate || "",
+            description: p.description || "",
+            budget: p.totalBudget,
+            assignedUser: p.manager
+              ? `${p.manager.firstName} ${p.manager.lastName}`
+              : "",
+            assignedUserId: p.manager?.id,
+            progress: p.progress,
+            notes: "", // Default empty notes since backend doesn't have this field
+            tasks: (p.tasks || []).map((t: ProjectTask) => ({
+              id: t.id,
+              title: t.title,
+              description: t.description || "",
+              completed: t.status === "DONE",
+              assignedUser: t.assignedTo || "", // Use assignedTo string field directly
+              assignedUserId: t.assignedTo || "", // Use assignedTo as ID fallback
+              dueDate: t.dueDate || "",
+              createdAt: t.createdAt,
+            })), // Map backend tasks to frontend format
+            files: projectFiles, // Load files from backend
+          };
         })
       );
 
@@ -960,30 +1004,52 @@ export default function AnlagenProjektManagement({
     if (!selectedProject || uploadingFiles.length === 0) return;
 
     try {
-      // Upload files to backend
-      const uploadPromises = uploadingFiles.map((file) =>
-        fileService.uploadFile(file)
-      );
-      const uploadResults = await Promise.all(uploadPromises);
-
       // Get current user for uploadedBy field
       const currentUser = authService.getCurrentUser();
       const userName = currentUser
         ? `${currentUser.firstName} ${currentUser.lastName}`
         : "Unbekannt";
 
-      // Create file attachments from upload results
-      const newFiles: FileAttachment[] = uploadResults
-        .filter((result) => result.success && result.data)
-        .map((result) => ({
-          id: result.data!.filename,
-          name: result.data!.originalname,
-          type: result.data!.mimetype,
-          size: result.data!.size,
-          url: result.data!.url,
+      // Upload files to backend and create file records
+      const uploadPromises = uploadingFiles.map(async (file) => {
+        // 1. Upload file to storage
+        const uploadResult = await fileService.uploadFile(file);
+
+        if (!uploadResult.success || !uploadResult.data) {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+
+        // 2. Create file record in database
+        const fileRecord = await apiClient.post<{
+          success: boolean;
+          data: { id: string };
+        }>(
+          `/projects/${selectedProject.id}/files`,
+          {
+            filename: uploadResult.data.filename,
+            originalName: uploadResult.data.originalname,
+            fileType: uploadResult.data.mimetype,
+            fileSize: uploadResult.data.size,
+            filePath: uploadResult.data.url,
+            uploadedBy: userName,
+          }
+        );
+
+        return {
+          id: fileRecord.data.id,
+          name: uploadResult.data.originalname,
+          type: uploadResult.data.mimetype,
+          size: uploadResult.data.size,
+          url: uploadResult.data.url,
           uploadedAt: new Date().toISOString(),
           uploadedBy: userName,
-        }));
+          checkedOutBy: null,
+          checkedOutByName: null,
+          checkedOutAt: null,
+        };
+      });
+
+      const newFiles: FileAttachment[] = await Promise.all(uploadPromises);
 
       // Update project with new files
       const updatedProjects = projects.map((p) => {
@@ -1007,6 +1073,116 @@ export default function AnlagenProjektManagement({
       toast({
         title: "Fehler",
         description: "Fehler beim Hochladen der Dateien.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCheckoutFile = async (projectId: string, fileId: string) => {
+    try {
+      const response = await apiClient.post<{
+        success: boolean;
+        data: {
+          id: string;
+          checkedOutBy: string;
+          checkedOutByName: string;
+          checkedOutAt: string;
+        };
+      }>(`/projects/${projectId}/files/${fileId}/checkout`);
+      
+      if (response.success && response.data) {
+        // Update local state with checked out file
+        const updatedProjects = projects.map((p) => {
+          if (p.id === projectId) {
+            return {
+              ...p,
+              files: p.files.map((f) => 
+                f.id === fileId 
+                  ? {
+                      ...f,
+                      checkedOutBy: response.data.checkedOutBy,
+                      checkedOutByName: response.data.checkedOutByName,
+                      checkedOutAt: response.data.checkedOutAt,
+                    }
+                  : f
+              ),
+            };
+          }
+          return p;
+        });
+
+        setProjects(updatedProjects);
+
+        toast({
+          title: "Datei ausgecheckt",
+          description: "Die Datei wurde erfolgreich ausgecheckt.",
+        });
+      }
+    } catch (error: unknown) {
+      console.error("Fehler beim Auschecken der Datei:", error);
+      
+      const errorMessage = error && typeof error === 'object' && 'response' in error 
+        ? (error.response as { data?: { message?: string } })?.data?.message || "Unbekannter Fehler"
+        : "Fehler beim Auschecken der Datei";
+
+      toast({
+        title: "Fehler",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCheckinFile = async (projectId: string, fileId: string) => {
+    try {
+      const response = await apiClient.post<{
+        success: boolean;
+        data: {
+          id: string;
+          checkedOutBy: null;
+          checkedOutByName: null;
+          checkedOutAt: null;
+        };
+      }>(`/projects/${projectId}/files/${fileId}/checkin`);
+      
+      if (response.success) {
+        // Update local state to remove checkout info
+        const updatedProjects = projects.map((p) => {
+          if (p.id === projectId) {
+            return {
+              ...p,
+              files: p.files.map((f) => 
+                f.id === fileId 
+                  ? {
+                      ...f,
+                      checkedOutBy: null,
+                      checkedOutByName: null,
+                      checkedOutAt: null,
+                    }
+                  : f
+              ),
+            };
+          }
+          return p;
+        });
+
+        setProjects(updatedProjects);
+
+        toast({
+          title: "Datei eingecheckt",
+          description: "Die Datei wurde erfolgreich eingecheckt.",
+        });
+      }
+    } catch (error: unknown) {
+      console.error("Fehler beim Einchecken der Datei:", error);
+      
+      const errorMessage = error && typeof error === 'object' && 'response' in error 
+        ? (error.response as { data?: { message?: string } })?.data?.message || "Unbekannter Fehler"
+        : "Fehler beim Einchecken der Datei";
+
+      toast({
+        title: "Fehler",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -2604,6 +2780,73 @@ export default function AnlagenProjektManagement({
                                                                       )}
                                                                     </p>
                                                                   )}
+                                                                  
+                                                                  {/* Checkout Status */}
+                                                                  {file.checkedOutBy && (
+                                                                    <div className="mt-2 pt-2 border-t">
+                                                                      <Badge variant="secondary" className="text-xs">
+                                                                        🔒 Ausgecheckt von {file.checkedOutByName}
+                                                                      </Badge>
+                                                                    </div>
+                                                                  )}
+                                                                </div>
+                                                                
+                                                                {/* Checkout/Checkin Buttons */}
+                                                                <div className="mt-2 flex gap-1">
+                                                                  {!file.checkedOutBy ? (
+                                                                    <Button
+                                                                      size="sm"
+                                                                      variant="outline"
+                                                                      className="h-7 text-xs flex-1"
+                                                                      onClick={() =>
+                                                                        handleCheckoutFile(
+                                                                          project.id,
+                                                                          file.id
+                                                                        )
+                                                                      }
+                                                                    >
+                                                                      Auschecken
+                                                                    </Button>
+                                                                  ) : (
+                                                                    <>
+                                                                      {(() => {
+                                                                        const currentUser = authService.getCurrentUser();
+                                                                        const isOwner = currentUser?.id === file.checkedOutBy;
+                                                                        const isAdmin = currentUser?.role === 'ADMIN';
+                                                                        
+                                                                        if (isOwner || isAdmin) {
+                                                                          return (
+                                                                            <Button
+                                                                              size="sm"
+                                                                              variant="default"
+                                                                              className="h-7 text-xs flex-1"
+                                                                              onClick={() =>
+                                                                                handleCheckinFile(
+                                                                                  project.id,
+                                                                                  file.id
+                                                                                )
+                                                                              }
+                                                                            >
+                                                                              Einchecken
+                                                                            </Button>
+                                                                          );
+                                                                        }
+                                                                        return null;
+                                                                      })()}
+                                                                    </>
+                                                                  )}
+                                                                  <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="h-7 text-xs"
+                                                                    onClick={() => {
+                                                                      if (file.url) {
+                                                                        window.open(file.url, '_blank');
+                                                                      }
+                                                                    }}
+                                                                  >
+                                                                    ⬇️
+                                                                  </Button>
                                                                 </div>
                                                               </div>
                                                             </CardContent>
