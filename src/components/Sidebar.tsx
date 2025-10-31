@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Terminal,
   BarChart3,
+  ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ type AppPage =
   | "tender"
   | "failures"
   | "reporting"
+  | "inspections"
   | "debug";
 
 interface NavItem {
@@ -39,6 +41,7 @@ const allNavItems: NavItem[] = [
   { title: "Work Orders", page: "workorders", icon: FileText },
   { title: "Action Tracker", page: "actions", icon: ListTodo },
   { title: "Reporting", page: "reporting", icon: BarChart3 },
+  { title: "Inspektionsberichte", page: "inspections", icon: ClipboardCheck },
   { title: "Bohranlagen", page: "tender", icon: Building2 },
   { title: "Störungsmeldung", page: "failures", icon: AlertTriangle },
   { title: "System Debug", page: "debug", icon: Terminal, adminOnly: true },

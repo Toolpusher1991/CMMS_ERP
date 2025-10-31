@@ -367,5 +367,112 @@ model TenderConfiguration {
   @@map("tender_configurations")
 }
 
+// Inspection Reports (CAT III, etc.)
+model InspectionReport {
+  id                String                @id @default(uuid())
+  reportNumber      String                @unique // Auto-generated: CAT3-YYYYMM-NNN
+  
+  // Basic Info
+  title             String
+  type              String                // CAT_III_CROWN_BLOCK, CAT_II, etc.
+  plant             String                // T208, T207, T700, T46
+  equipment         String                // Equipment ID/Name
+  
+  // Inspection Details
+  inspectionDate    DateTime
+  inspector         String                // Inspector name
+  inspectorId       String?               // User ID
+  
+  // Status
+  status            String                @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, REJECTED
+  overallResult     String?               // PASSED, FAILED, CONDITIONAL
+  
+  // Signatures & Approval
+  inspectorSignature String?
+  supervisorSignature String?
+  approvedBy        String?
+  approvedAt        DateTime?
+  
+  // Notes & Summary
+  generalNotes      String?
+  recommendations   String?
+  
+  // Relations
+  sections          InspectionSection[]
+  attachments       InspectionAttachment[]
+  
+  createdBy         String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  
+  @@index([plant])
+  @@index([type])
+  @@index([status])
+  @@index([inspectionDate])
+  @@map("inspection_reports")
+}
+
+model InspectionSection {
+  id                String                @id @default(uuid())
+  reportId          String
+  report            InspectionReport      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  
+  sectionNumber     Int                   // Order/sequence
+  title             String
+  description       String?
+  
+  items             InspectionItem[]
+  
+  @@index([reportId])
+  @@map("inspection_sections")
+}
+
+model InspectionItem {
+  id                String                @id @default(uuid())
+  sectionId         String
+  section           InspectionSection     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  
+  itemNumber        String                // e.g., "1.1", "2.3"
+  description       String
+  itemType          String                @default("CHECKBOX") // CHECKBOX, MEASUREMENT, TEXT, RATING
+  
+  // For different item types
+  isChecked         Boolean?              // For CHECKBOX
+  measurementValue  String?               // For MEASUREMENT
+  measurementUnit   String?               // mm, kg, etc.
+  textValue         String?               // For TEXT
+  rating            Int?                  // 1-5 for RATING
+  
+  // Result
+  result            String?               // OK, NOT_OK, N/A
+  notes             String?
+  
+  // Reference values
+  minValue          String?
+  maxValue          String?
+  referenceValue    String?
+  
+  @@index([sectionId])
+  @@map("inspection_items")
+}
+
+model InspectionAttachment {
+  id                String                @id @default(uuid())
+  reportId          String
+  report            InspectionReport      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  
+  filename          String
+  originalName      String
+  fileType          String
+  fileSize          Int
+  filePath          String                // URL to file
+  
+  uploadedBy        String?
+  uploadedAt        DateTime              @default(now())
+  
+  @@index([reportId])
+  @@map("inspection_attachments")
+}
+
 // Add relation to User model
 // This will be added to the User model above
