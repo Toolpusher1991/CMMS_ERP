@@ -3,16 +3,17 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { authenticate } from "../middleware/auth.middleware";
+import { cloudinaryProjectFilesUpload } from "../lib/cloudinary";
 
 const router = express.Router();
 
-// Ensure uploads directory exists
+// Ensure uploads directory exists (for local development)
 const uploadsDir = path.join(__dirname, "../../uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure multer for file upload
+// Configure multer for LOCAL file upload (development only)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
@@ -26,7 +27,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({
+const localUpload = multer({
   storage,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
@@ -53,6 +54,10 @@ const upload = multer({
   },
 });
 
+// Use Cloudinary in production, local storage in development
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const upload = isDevelopment ? localUpload : cloudinaryProjectFilesUpload;
+
 // Upload single file
 router.post("/upload", authenticate, upload.single("file"), (req, res) => {
   try {
@@ -63,12 +68,27 @@ router.post("/upload", authenticate, upload.single("file"), (req, res) => {
       });
     }
 
-    const fileUrl = `/uploads/${req.file.filename}`;
+    // Generate URL based on environment
+    let fileUrl: string;
+    let filename: string;
+
+    // Check if file is from Cloudinary (production)
+    if ('path' in req.file && req.file.path.includes('cloudinary')) {
+      // Cloudinary file - use the secure URL
+      fileUrl = req.file.path;
+      filename = req.file.filename;
+    } else {
+      // Local file - generate full URL with protocol and host
+      const protocol = req.protocol;
+      const host = req.get('host');
+      filename = req.file.filename;
+      fileUrl = `${protocol}://${host}/uploads/${filename}`;
+    }
 
     res.status(200).json({
       success: true,
       data: {
-        filename: req.file.filename,
+        filename: filename,
         originalname: req.file.originalname,
         mimetype: req.file.mimetype,
         size: req.file.size,

@@ -9,8 +9,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Create Cloudinary storage for multer
-const storage = new CloudinaryStorage({
+// Create Cloudinary storage for failure report images
+const failureReportStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'cmms-erp/failure-reports',
@@ -19,9 +19,23 @@ const storage = new CloudinaryStorage({
   } as any,
 });
 
+// Create Cloudinary storage for project files (all types)
+const projectFilesStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'cmms-erp/project-files',
+    resource_type: 'auto', // Allows all file types (images, videos, documents, etc.)
+  } as any,
+});
+
 export const cloudinaryUpload = multer({ 
-  storage: storage,
+  storage: failureReportStorage,
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
+
+export const cloudinaryProjectFilesUpload = multer({
+  storage: projectFilesStorage,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit for project files
 });
 
 export { cloudinary };

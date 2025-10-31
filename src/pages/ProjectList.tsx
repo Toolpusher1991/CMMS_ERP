@@ -1023,17 +1023,14 @@ export default function AnlagenProjektManagement({
         const fileRecord = await apiClient.post<{
           success: boolean;
           data: { id: string };
-        }>(
-          `/projects/${selectedProject.id}/files`,
-          {
-            filename: uploadResult.data.filename,
-            originalName: uploadResult.data.originalname,
-            fileType: uploadResult.data.mimetype,
-            fileSize: uploadResult.data.size,
-            filePath: uploadResult.data.url,
-            uploadedBy: userName,
-          }
-        );
+        }>(`/projects/${selectedProject.id}/files`, {
+          filename: uploadResult.data.filename,
+          originalName: uploadResult.data.originalname,
+          fileType: uploadResult.data.mimetype,
+          fileSize: uploadResult.data.size,
+          filePath: uploadResult.data.url,
+          uploadedBy: userName,
+        });
 
         return {
           id: fileRecord.data.id,
@@ -1089,15 +1086,15 @@ export default function AnlagenProjektManagement({
           checkedOutAt: string;
         };
       }>(`/projects/${projectId}/files/${fileId}/checkout`);
-      
+
       if (response.success && response.data) {
         // Update local state with checked out file
         const updatedProjects = projects.map((p) => {
           if (p.id === projectId) {
             return {
               ...p,
-              files: p.files.map((f) => 
-                f.id === fileId 
+              files: p.files.map((f) =>
+                f.id === fileId
                   ? {
                       ...f,
                       checkedOutBy: response.data.checkedOutBy,
@@ -1120,10 +1117,12 @@ export default function AnlagenProjektManagement({
       }
     } catch (error: unknown) {
       console.error("Fehler beim Auschecken der Datei:", error);
-      
-      const errorMessage = error && typeof error === 'object' && 'response' in error 
-        ? (error.response as { data?: { message?: string } })?.data?.message || "Unbekannter Fehler"
-        : "Fehler beim Auschecken der Datei";
+
+      const errorMessage =
+        error && typeof error === "object" && "response" in error
+          ? (error.response as { data?: { message?: string } })?.data
+              ?.message || "Unbekannter Fehler"
+          : "Fehler beim Auschecken der Datei";
 
       toast({
         title: "Fehler",
@@ -1144,15 +1143,15 @@ export default function AnlagenProjektManagement({
           checkedOutAt: null;
         };
       }>(`/projects/${projectId}/files/${fileId}/checkin`);
-      
+
       if (response.success) {
         // Update local state to remove checkout info
         const updatedProjects = projects.map((p) => {
           if (p.id === projectId) {
             return {
               ...p,
-              files: p.files.map((f) => 
-                f.id === fileId 
+              files: p.files.map((f) =>
+                f.id === fileId
                   ? {
                       ...f,
                       checkedOutBy: null,
@@ -1175,10 +1174,12 @@ export default function AnlagenProjektManagement({
       }
     } catch (error: unknown) {
       console.error("Fehler beim Einchecken der Datei:", error);
-      
-      const errorMessage = error && typeof error === 'object' && 'response' in error 
-        ? (error.response as { data?: { message?: string } })?.data?.message || "Unbekannter Fehler"
-        : "Fehler beim Einchecken der Datei";
+
+      const errorMessage =
+        error && typeof error === "object" && "response" in error
+          ? (error.response as { data?: { message?: string } })?.data
+              ?.message || "Unbekannter Fehler"
+          : "Fehler beim Einchecken der Datei";
 
       toast({
         title: "Fehler",
@@ -2780,17 +2781,25 @@ export default function AnlagenProjektManagement({
                                                                       )}
                                                                     </p>
                                                                   )}
-                                                                  
+
                                                                   {/* Checkout Status */}
                                                                   {file.checkedOutBy && (
                                                                     <div className="mt-2 pt-2 border-t">
-                                                                      <Badge variant="secondary" className="text-xs">
-                                                                        🔒 Ausgecheckt von {file.checkedOutByName}
+                                                                      <Badge
+                                                                        variant="secondary"
+                                                                        className="text-xs"
+                                                                      >
+                                                                        🔒
+                                                                        Ausgecheckt
+                                                                        von{" "}
+                                                                        {
+                                                                          file.checkedOutByName
+                                                                        }
                                                                       </Badge>
                                                                     </div>
                                                                   )}
                                                                 </div>
-                                                                
+
                                                                 {/* Checkout/Checkin Buttons */}
                                                                 <div className="mt-2 flex gap-1">
                                                                   {!file.checkedOutBy ? (
@@ -2810,11 +2819,19 @@ export default function AnlagenProjektManagement({
                                                                   ) : (
                                                                     <>
                                                                       {(() => {
-                                                                        const currentUser = authService.getCurrentUser();
-                                                                        const isOwner = currentUser?.id === file.checkedOutBy;
-                                                                        const isAdmin = currentUser?.role === 'ADMIN';
-                                                                        
-                                                                        if (isOwner || isAdmin) {
+                                                                        const currentUser =
+                                                                          authService.getCurrentUser();
+                                                                        const isOwner =
+                                                                          currentUser?.id ===
+                                                                          file.checkedOutBy;
+                                                                        const isAdmin =
+                                                                          currentUser?.role ===
+                                                                          "ADMIN";
+
+                                                                        if (
+                                                                          isOwner ||
+                                                                          isAdmin
+                                                                        ) {
                                                                           return (
                                                                             <Button
                                                                               size="sm"
@@ -2840,8 +2857,13 @@ export default function AnlagenProjektManagement({
                                                                     variant="outline"
                                                                     className="h-7 text-xs"
                                                                     onClick={() => {
-                                                                      if (file.url) {
-                                                                        window.open(file.url, '_blank');
+                                                                      if (
+                                                                        file.url
+                                                                      ) {
+                                                                        window.open(
+                                                                          file.url,
+                                                                          "_blank"
+                                                                        );
                                                                       }
                                                                     }}
                                                                   >
