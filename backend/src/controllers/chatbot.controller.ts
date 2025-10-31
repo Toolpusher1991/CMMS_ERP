@@ -5,6 +5,34 @@ import { AppError } from '../middleware/error.middleware';
 
 const prisma = new PrismaClient();
 
+// Generate unique ticket number: ANLAGE-YYYYMM-NR (e.g., T208-202510-001)
+async function generateTicketNumber(plant: string): Promise<string> {
+  const now = new Date();
+  const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const prefix = `${plant}-${yearMonth}`;
+
+  // Get the latest ticket for this plant and month
+  const latestReport = await prisma.failureReport.findFirst({
+    where: {
+      ticketNumber: {
+        startsWith: prefix,
+      },
+    },
+    orderBy: {
+      ticketNumber: 'desc',
+    },
+  });
+
+  let nextNumber = 1;
+  if (latestReport && latestReport.ticketNumber) {
+    const lastNumber = parseInt(latestReport.ticketNumber.split('-')[2], 10);
+    nextNumber = lastNumber + 1;
+  }
+
+  const ticketNumber = `${prefix}-${String(nextNumber).padStart(3, '0')}`;
+  return ticketNumber;
+}
+
 export interface AuthRequest extends Request {
   user?: {
     id: string;
@@ -584,8 +612,11 @@ async function executeFunction(
       }
 
       case 'create_failure_report': {
+        const ticketNumber = await generateTicketNumber(args.plant);
+        
         const report = await prisma.failureReport.create({
           data: {
+            ticketNumber,
             title: args.title,
             plant: args.plant,
             severity: args.severity,

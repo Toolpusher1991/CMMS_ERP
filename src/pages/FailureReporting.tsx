@@ -64,8 +64,28 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
+// Global cache for user list (shared with ActionTracker)
+interface UserListItem {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  assignedPlant?: string;
+}
+
+const userListCache: {
+  data: UserListItem[] | null;
+  timestamp: number;
+  maxAge: number;
+} = {
+  data: null,
+  timestamp: 0,
+  maxAge: 5 * 60 * 1000, // 5 minutes
+};
+
 interface FailureReport {
   id: string;
+  ticketNumber: string; // Format: T208-202510-001
   plant: "T208" | "T207" | "T700" | "T46";
   title: string;
   description: string;
@@ -209,6 +229,18 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
 
   const loadUsers = async () => {
     try {
+      // Check cache first
+      const now = Date.now();
+      if (
+        userListCache.data &&
+        now - userListCache.timestamp < userListCache.maxAge
+      ) {
+        console.log("Using cached user list");
+        setUsers(userListCache.data);
+        return;
+      }
+
+      // Fetch from API
       const response = await apiClient.request<
         Array<{
           id: string;
@@ -218,6 +250,11 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
           assignedPlant?: string;
         }>
       >("/users/list");
+
+      // Update cache
+      userListCache.data = response;
+      userListCache.timestamp = Date.now();
+
       setUsers(response);
     } catch (error) {
       console.error("Fehler beim Laden der User:", error);
@@ -741,14 +778,56 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList
-              className={`grid w-full grid-cols-${getAvailablePlants().length}`}
-            >
-              {getAvailablePlants().map((plant) => (
-                <TabsTrigger key={plant} value={plant}>
-                  {plant}
-                </TabsTrigger>
-              ))}
+            <TabsList className="grid w-full grid-cols-4 h-20 bg-muted/30 p-2 gap-2">
+              {getAvailablePlants().map((plant) => {
+                const plantReports = reports.filter((r) => r.plant === plant);
+                const openCount = plantReports.filter(
+                  (r) => r.status === "REPORTED" || r.status === "IN_REVIEW"
+                ).length;
+                const totalCount = plantReports.length;
+
+                return (
+                  <TabsTrigger
+                    key={plant}
+                    value={plant}
+                    className="relative flex-col h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all shadow-sm hover:shadow-md py-2 px-3"
+                  >
+                    <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
+                      <span className="text-base font-bold leading-tight">
+                        {plant}
+                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                        {openCount > 0 && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] opacity-70 leading-tight">
+                              Offen:
+                            </span>
+                            <Badge
+                              variant="destructive"
+                              className="px-1.5 py-0 text-[10px] font-bold leading-tight h-4"
+                            >
+                              {openCount}
+                            </Badge>
+                          </div>
+                        )}
+                        {openCount === 0 && totalCount > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 leading-tight h-4"
+                          >
+                            ✓ Alle bearbeitet
+                          </Badge>
+                        )}
+                        {totalCount === 0 && (
+                          <span className="text-[10px] opacity-60 leading-tight">
+                            Keine Reports
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </TabsTrigger>
+                );
+              })}
             </TabsList>
 
             {getAvailablePlants().map((plant) => (
@@ -757,8 +836,8 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[50px] py-3 text-base">
-                          Nr.
+                        <TableHead className="w-[140px] py-3 text-base">
+                          Ticket-Nr.
                         </TableHead>
                         <TableHead className="py-3 text-base">Status</TableHead>
                         <TableHead className="py-3 text-base">Titel</TableHead>
@@ -786,11 +865,11 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredReports.map((report, index) => (
+                        filteredReports.map((report) => (
                           <TableRow key={report.id}>
                             <TableCell className="py-3">
-                              <span className="font-medium text-muted-foreground text-base">
-                                {index + 1}
+                              <span className="font-mono font-medium text-sm">
+                                {report.ticketNumber}
                               </span>
                             </TableCell>
                             <TableCell className="py-3">
@@ -1185,7 +1264,10 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
 
           <div className="space-y-4">
             {reportToConvert && (
-              <div className="p-4 bg-muted rounded-md">
+              <div className="p-4 bg-muted rounded-md space-y-2">
+                <div className="text-xs font-mono text-muted-foreground">
+                  Ticket: {reportToConvert.ticketNumber}
+                </div>
                 <div className="font-medium">{reportToConvert.title}</div>
                 <div className="text-sm text-muted-foreground">
                   {reportToConvert.description}

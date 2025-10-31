@@ -170,6 +170,26 @@ interface ActionTrackerProps {
   showOnlyMyActions?: boolean;
 }
 
+// Global cache for user list (outside component to persist across mounts)
+interface UserListItem {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role?: string;
+  assignedPlant?: string;
+}
+
+const userListCache: {
+  data: UserListItem[] | null;
+  timestamp: number;
+  maxAge: number;
+} = {
+  data: null,
+  timestamp: 0,
+  maxAge: 5 * 60 * 1000, // 5 minutes
+};
+
 const ActionTracker = ({
   initialActionId,
   showOnlyMyActions = false,
@@ -339,6 +359,38 @@ const ActionTracker = ({
 
   const loadUsers = async () => {
     try {
+      // Check cache first
+      const now = Date.now();
+      if (
+        userListCache.data &&
+        now - userListCache.timestamp < userListCache.maxAge
+      ) {
+        console.log("Using cached user list");
+        setUsers(userListCache.data);
+
+        // Process cached data
+        const currentUser = authService.getCurrentUser();
+        const allUsers = userListCache.data.map((user) => ({
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email || "",
+          role: user.role || "USER",
+          plant: user.assignedPlant || "",
+        }));
+
+        const filteredUsers =
+          currentUser?.assignedPlant &&
+          currentUser.role !== "ADMIN" &&
+          currentUser.role !== "MANAGER"
+            ? allUsers.filter((u) => u.plant === currentUser.assignedPlant)
+            : allUsers;
+
+        setAvailableUsers(filteredUsers);
+        return;
+      }
+
+      // Fetch from API
       const response = await apiClient.request<
         Array<{
           id: string;
@@ -349,6 +401,11 @@ const ActionTracker = ({
           assignedPlant?: string;
         }>
       >("/users/list");
+
+      // Update cache
+      userListCache.data = response;
+      userListCache.timestamp = Date.now();
+
       setUsers(response);
 
       // Alle User laden für Multi-User Assignment

@@ -5,6 +5,35 @@ import { notifyManagers } from './notification.controller';
 
 const prisma = new PrismaClient();
 
+// Generate unique ticket number: ANLAGE-YYYYMM-NR (e.g., T208-202510-001)
+async function generateTicketNumber(plant: string): Promise<string> {
+  const now = new Date();
+  const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const prefix = `${plant}-${yearMonth}`;
+
+  // Get the latest ticket for this plant and month
+  const latestReport = await prisma.failureReport.findFirst({
+    where: {
+      ticketNumber: {
+        startsWith: prefix,
+      },
+    },
+    orderBy: {
+      ticketNumber: 'desc',
+    },
+  });
+
+  let nextNumber = 1;
+  if (latestReport && latestReport.ticketNumber) {
+    // Extract the number from the last ticket (e.g., "001" from "T208-202510-001")
+    const lastNumber = parseInt(latestReport.ticketNumber.split('-')[2], 10);
+    nextNumber = lastNumber + 1;
+  }
+
+  const ticketNumber = `${prefix}-${String(nextNumber).padStart(3, '0')}`;
+  return ticketNumber;
+}
+
 export const getFailureReports = async (req: AuthRequest, res: Response) => {
   try {
     const user = req.user;
@@ -96,8 +125,12 @@ export const createFailureReport = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // Generate ticket number
+    const ticketNumber = await generateTicketNumber(plant);
+
     const report = await prisma.failureReport.create({
       data: {
+        ticketNumber,
         plant,
         title,
         description,

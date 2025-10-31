@@ -20,6 +20,7 @@ import { Progress } from "@/components/ui/progress";
 
 interface FailureReport {
   id: string;
+  ticketNumber: string; // Format: T208-202510-001
   plant: "T208" | "T207" | "T700" | "T46";
   title: string;
   description: string;

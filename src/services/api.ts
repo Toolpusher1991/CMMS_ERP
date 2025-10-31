@@ -142,6 +142,13 @@ class ApiClient {
       }
 
       if (!response.ok) {
+        // Handle 429 Too Many Requests with retry after delay
+        if (response.status === 429 && !isRetry) {
+          console.warn('Rate limit hit, retrying after 2 seconds...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          return this.request<T>(endpoint, { ...options, responseType }, true);
+        }
+
         let error: { message?: string } = {};
         try {
           error = await response.json();

@@ -263,6 +263,7 @@ model Equipment {
 
 model FailureReport {
   id              String   @id @default(uuid())
+  ticketNumber    String   @unique // Format: T208-202510-001
   plant           String   // T208, T207, T700, T46
   title           String
   description     String
