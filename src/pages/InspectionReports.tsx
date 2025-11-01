@@ -334,46 +334,17 @@ const InspectionReports = () => {
       }>(`/inspection-reports/items/${itemId}`, updates);
 
       if (response.success && selectedReport) {
-        // Upload photos if any
-        if (notOkPhotos.length > 0) {
-          try {
-            const formData = new FormData();
-            notOkPhotos.forEach((photo) => {
-              formData.append("files", photo);
-            });
-
-            await apiClient.post(
-              `/inspection-reports/${selectedReport.id}/attachments`,
-              formData,
-              {
-                headers: {
-                  "Content-Type": "multipart/form-data",
-                },
-              }
-            );
-
-            toast({
-              title: "Fotos hochgeladen",
-              description: `${notOkPhotos.length} Foto(s) wurden hinzugefügt.`,
-            });
-          } catch (photoError) {
-            console.error("Error uploading photos:", photoError);
-            toast({
-              title: "Warnung",
-              description: "Fotos konnten nicht hochgeladen werden.",
-              variant: "destructive",
-            });
-          }
-        }
-
         // Create action if requested
         if (createAction) {
           const pendingData = pendingNotOkUpdate;
           if (pendingData) {
             try {
-              await apiClient.post("/actions", {
+              const actionResponse = await apiClient.post<{
+                success: boolean;
+                data: { id: string };
+              }>("/actions", {
                 title: `Inspektionsfehler: ${pendingData.itemDescription}`,
-                description: `Bei der Inspektion "${selectedReport.title}" wurde ein Problem festgestellt:\n\nSektion: ${pendingData.sectionTitle}\nItem: ${pendingData.itemDescription}\n\nBericht: ${selectedReport.reportNumber}${notOkPhotos.length > 0 ? `\n\nFotos: ${notOkPhotos.length} angehängt` : ''}`,
+                description: `Bei der Inspektion "${selectedReport.title}" wurde ein Problem festgestellt:\n\nSektion: ${pendingData.sectionTitle}\nItem: ${pendingData.itemDescription}\n\nBericht: ${selectedReport.reportNumber}`,
                 priority: "HIGH",
                 status: "OPEN",
                 plant: selectedReport.plant,
@@ -383,15 +354,79 @@ const InspectionReports = () => {
                 ).toISOString(),
               });
 
-              toast({
-                title: "Action erstellt",
-                description: "Eine neue Aufgabe wurde automatisch erstellt.",
-              });
+              // Upload photos to the created action
+              if (notOkPhotos.length > 0 && actionResponse.data?.id) {
+                try {
+                  const formData = new FormData();
+                  notOkPhotos.forEach((photo) => {
+                    formData.append("files", photo);
+                  });
+
+                  await apiClient.post(
+                    `/actions/${actionResponse.data.id}/files`,
+                    formData,
+                    {
+                      headers: {
+                        "Content-Type": "multipart/form-data",
+                      },
+                    }
+                  );
+
+                  toast({
+                    title: "Action mit Fotos erstellt",
+                    description: `Aufgabe erstellt und ${notOkPhotos.length} Foto(s) angehängt.`,
+                  });
+                } catch (photoError) {
+                  console.error("Error uploading photos to action:", photoError);
+                  toast({
+                    title: "Warnung",
+                    description: "Action erstellt, aber Fotos konnten nicht hochgeladen werden.",
+                    variant: "destructive",
+                  });
+                }
+              } else {
+                toast({
+                  title: "Action erstellt",
+                  description: "Eine neue Aufgabe wurde automatisch erstellt.",
+                });
+              }
             } catch (actionError) {
               console.error("Error creating action:", actionError);
               toast({
                 title: "Warnung",
                 description: "Item wurde aktualisiert, aber Action konnte nicht erstellt werden.",
+                variant: "destructive",
+              });
+            }
+          }
+        } else {
+          // If not creating action but have photos, upload to inspection report
+          if (notOkPhotos.length > 0) {
+            try {
+              const formData = new FormData();
+              notOkPhotos.forEach((photo) => {
+                formData.append("files", photo);
+              });
+
+              await apiClient.post(
+                `/inspection-reports/${selectedReport.id}/attachments`,
+                formData,
+                {
+                  headers: {
+                    "Content-Type": "multipart/form-data",
+                  },
+                }
+              );
+
+              toast({
+                title: "Fotos hochgeladen",
+                description: `${notOkPhotos.length} Foto(s) zum Bericht hinzugefügt.`,
+              });
+            } catch (photoError) {
+              console.error("Error uploading photos:", photoError);
+              toast({
+                title: "Warnung",
+                description: "Fotos konnten nicht hochgeladen werden.",
                 variant: "destructive",
               });
             }
