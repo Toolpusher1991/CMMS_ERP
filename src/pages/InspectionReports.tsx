@@ -50,7 +50,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   FileText,
   Plus,
@@ -1485,9 +1484,6 @@ const InspectionReports = () => {
                               <TableHead className="w-24">Nr.</TableHead>
                               <TableHead>Beschreibung</TableHead>
                               <TableHead className="w-32">Typ</TableHead>
-                              <TableHead className="w-48">
-                                Wert/Prüfung
-                              </TableHead>
                               <TableHead className="w-32">Ergebnis</TableHead>
                               <TableHead>Notizen</TableHead>
                             </TableRow>
@@ -1510,60 +1506,6 @@ const InspectionReports = () => {
                                       {item.itemType === "RATING" &&
                                         "Bewertung"}
                                     </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    {item.itemType === "CHECKBOX" && (
-                                      <Checkbox
-                                        checked={item.isChecked || false}
-                                        onCheckedChange={(checked) =>
-                                          handleUpdateItem(item.id, {
-                                            isChecked: checked as boolean,
-                                            result: checked ? "OK" : "NOT_OK",
-                                          })
-                                        }
-                                        disabled={
-                                          selectedReport.status === "APPROVED"
-                                        }
-                                      />
-                                    )}
-                                    {item.itemType === "MEASUREMENT" && (
-                                      <div className="flex items-center gap-2">
-                                        <Input
-                                          type="number"
-                                          value={item.measurementValue || ""}
-                                          onChange={(e) =>
-                                            handleUpdateItem(item.id, {
-                                              measurementValue: e.target.value,
-                                            })
-                                          }
-                                          className="w-24"
-                                          disabled={
-                                            selectedReport.status === "APPROVED"
-                                          }
-                                        />
-                                        <span className="text-sm text-muted-foreground">
-                                          {item.measurementUnit}
-                                        </span>
-                                        {item.referenceValue && (
-                                          <span className="text-xs text-muted-foreground">
-                                            (Ref: {item.referenceValue})
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                    {item.itemType === "TEXT" && (
-                                      <Input
-                                        value={item.textValue || ""}
-                                        onChange={(e) =>
-                                          handleUpdateItem(item.id, {
-                                            textValue: e.target.value,
-                                          })
-                                        }
-                                        disabled={
-                                          selectedReport.status === "APPROVED"
-                                        }
-                                      />
-                                    )}
                                   </TableCell>
                                   <TableCell>
                                     <div className="flex gap-1">
