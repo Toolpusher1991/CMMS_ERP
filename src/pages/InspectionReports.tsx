@@ -393,6 +393,14 @@ const InspectionReports = () => {
                   description: "Eine neue Aufgabe wurde automatisch erstellt.",
                 });
               }
+
+              // Add note to item that action was created
+              await apiClient.put(
+                `/inspection-reports/items/${itemId}`,
+                {
+                  notes: `Action erstellt (${new Date().toLocaleDateString("de-DE")})`,
+                }
+              );
             } catch (actionError) {
               console.error("Error creating action:", actionError);
               toast({
@@ -642,35 +650,34 @@ const InspectionReports = () => {
 
         // Items Table
         const tableData = section.items.map((item) => {
-          let value = "";
-          if (item.itemType === "CHECKBOX") {
-            value = item.isChecked ? "✓" : "✗";
-          } else if (item.itemType === "MEASUREMENT") {
-            value = `${item.measurementValue || "-"} ${
-              item.measurementUnit || ""
-            }`;
-          } else if (item.itemType === "TEXT") {
-            value = item.textValue || "-";
-          } else if (item.itemType === "RATING") {
-            value = item.rating ? `${item.rating}/5` : "-";
-          }
+          const resultText = item.result === "OK" ? "OK" : 
+                            item.result === "NOT_OK" ? "NOT_OK" : 
+                            "-";
+          
+          // Add action comment if result is NOT_OK
+          const description = item.result === "NOT_OK" && item.notes?.includes("Action erstellt")
+            ? `${item.description} [Action erstellt]`
+            : item.description;
 
           return [
             item.itemNumber,
-            item.description,
-            value,
-            item.result || "-",
-            item.notes || "-",
+            description,
+            resultText,
           ];
         });
 
         autoTable(doc, {
           startY: yPos,
-          head: [["Nr.", "Beschreibung", "Wert", "Ergebnis", "Notizen"]],
+          head: [["Nr.", "Beschreibung", "Ergebnis"]],
           body: tableData,
           theme: "grid",
           styles: { fontSize: 8 },
           headStyles: { fillColor: [66, 66, 66] },
+          columnStyles: {
+            0: { cellWidth: 15 },
+            1: { cellWidth: 140 },
+            2: { cellWidth: 25 },
+          },
           margin: { left: 20, right: 20 },
           didDrawPage: (data) => {
             yPos = data.cursor?.y || yPos;
@@ -1498,8 +1505,16 @@ const InspectionReports = () => {
                                     <div className="flex gap-1">
                                       <Button
                                         size="sm"
-                                        variant={item.result === "OK" ? "default" : "outline"}
-                                        className={item.result === "OK" ? "bg-green-600 hover:bg-green-700" : ""}
+                                        variant={
+                                          item.result === "OK"
+                                            ? "default"
+                                            : "outline"
+                                        }
+                                        className={
+                                          item.result === "OK"
+                                            ? "bg-green-600 hover:bg-green-700"
+                                            : ""
+                                        }
                                         onClick={() =>
                                           handleUpdateItem(item.id, {
                                             result: "OK",
@@ -1514,7 +1529,11 @@ const InspectionReports = () => {
                                       </Button>
                                       <Button
                                         size="sm"
-                                        variant={item.result === "NOT_OK" ? "destructive" : "outline"}
+                                        variant={
+                                          item.result === "NOT_OK"
+                                            ? "destructive"
+                                            : "outline"
+                                        }
                                         onClick={() =>
                                           handleUpdateItem(item.id, {
                                             result: "NOT_OK",
