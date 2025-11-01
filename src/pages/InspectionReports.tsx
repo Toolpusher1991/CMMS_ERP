@@ -362,14 +362,10 @@ const InspectionReports = () => {
                     formData.append("files", photo);
                   });
 
+                  // Don't set Content-Type header - browser will set it with boundary
                   await apiClient.post(
                     `/actions/${actionResponse.id}/files`,
-                    formData,
-                    {
-                      headers: {
-                        "Content-Type": "multipart/form-data",
-                      },
-                    }
+                    formData
                   );
 
                   toast({
@@ -420,14 +416,10 @@ const InspectionReports = () => {
                 formData.append("files", photo);
               });
 
+              // Don't set Content-Type header - browser will set it with boundary
               await apiClient.post(
                 `/inspection-reports/${selectedReport.id}/attachments`,
-                formData,
-                {
-                  headers: {
-                    "Content-Type": "multipart/form-data",
-                  },
-                }
+                formData
               );
 
               toast({
@@ -1765,19 +1757,20 @@ const InspectionReports = () => {
         <AlertDialogContent className="max-w-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Item als "Nicht OK" markiert</AlertDialogTitle>
-            <AlertDialogDescription>
-              Dieses Item wurde als "Nicht OK" markiert.
-              {pendingNotOkUpdate && (
-                <div className="mt-3 space-y-3">
-                  <div>
-                    <p className="font-semibold text-foreground">Item:</p>
-                    <p className="text-muted-foreground">
-                      {pendingNotOkUpdate.itemDescription}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">Sektion:</p>
-                    <p className="text-muted-foreground">
+            <AlertDialogDescription asChild>
+              <div>
+                Dieses Item wurde als "Nicht OK" markiert.
+                {pendingNotOkUpdate && (
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <p className="font-semibold text-foreground">Item:</p>
+                      <p className="text-muted-foreground">
+                        {pendingNotOkUpdate.itemDescription}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Sektion:</p>
+                      <p className="text-muted-foreground">
                       {pendingNotOkUpdate.sectionTitle}
                     </p>
                   </div>
@@ -1854,6 +1847,7 @@ const InspectionReports = () => {
                   </div>
                 </div>
               )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
