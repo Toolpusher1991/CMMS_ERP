@@ -1483,9 +1483,7 @@ const InspectionReports = () => {
                             <TableRow>
                               <TableHead className="w-24">Nr.</TableHead>
                               <TableHead>Beschreibung</TableHead>
-                              <TableHead className="w-32">Typ</TableHead>
-                              <TableHead className="w-32">Ergebnis</TableHead>
-                              <TableHead>Notizen</TableHead>
+                              <TableHead className="w-48">Ergebnis</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1496,17 +1494,6 @@ const InspectionReports = () => {
                                     {item.itemNumber}
                                   </TableCell>
                                   <TableCell>{item.description}</TableCell>
-                                  <TableCell>
-                                    <Badge variant="outline">
-                                      {item.itemType === "CHECKBOX" &&
-                                        "Checkbox"}
-                                      {item.itemType === "MEASUREMENT" &&
-                                        "Messung"}
-                                      {item.itemType === "TEXT" && "Text"}
-                                      {item.itemType === "RATING" &&
-                                        "Bewertung"}
-                                    </Badge>
-                                  </TableCell>
                                   <TableCell>
                                     <div className="flex gap-1">
                                       <Button
@@ -1541,20 +1528,6 @@ const InspectionReports = () => {
                                         Nicht OK
                                       </Button>
                                     </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Input
-                                      value={item.notes || ""}
-                                      onChange={(e) =>
-                                        handleUpdateItem(item.id, {
-                                          notes: e.target.value,
-                                        })
-                                      }
-                                      placeholder="Notizen..."
-                                      disabled={
-                                        selectedReport.status === "APPROVED"
-                                      }
-                                    />
                                   </TableCell>
                                 </TableRow>
                               ))}
