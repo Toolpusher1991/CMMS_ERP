@@ -130,11 +130,13 @@ export class PDFParserService {
           };
         }
 
-        const item = this.parseChecklistItem(line, itemCounter);
+        // Parse multi-line item
+        const { item, linesConsumed } = this.parseMultiLineChecklistItem(lines, i, itemCounter);
         if (item) {
           currentSection.items.push(item);
           itemCounter++;
         }
+        i += linesConsumed - 1; // -1 because for loop will i++
       }
     }
 
@@ -213,6 +215,82 @@ export class PDFParserService {
       line.toLowerCase().includes('verify') ||
       line.toLowerCase().includes('ensure')
     ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Parse a multi-line checklist item
+   * Reads lines until the next [ ] or section header
+   */
+  private parseMultiLineChecklistItem(
+    lines: string[], 
+    startIndex: number, 
+    itemNumber: number
+  ): { item: ParsedInspectionItem | null; linesConsumed: number } {
+    let fullDescription = '';
+    let linesConsumed = 0;
+    let hasCheckboxIndicator = false;
+
+    for (let i = startIndex; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Stop at next checkbox item (but include current line if it has one)
+      if (i > startIndex && this.startsWithCheckbox(line)) {
+        break;
+      }
+
+      // Stop at section header
+      if (i > startIndex && this.isSectionHeader(line)) {
+        break;
+      }
+
+      // Check if this line has a checkbox
+      if (this.startsWithCheckbox(line)) {
+        hasCheckboxIndicator = true;
+      }
+
+      // Add line to description
+      if (fullDescription) {
+        fullDescription += ' ';
+      }
+      fullDescription += line;
+      linesConsumed++;
+
+      // Stop if we hit a clear end indicator (period followed by capital or new item)
+      if (line.endsWith('.') && i + 1 < lines.length) {
+        const nextLine = lines[i + 1].trim();
+        if (this.startsWithCheckbox(nextLine) || this.isSectionHeader(nextLine)) {
+          break;
+        }
+      }
+
+      // Safety limit: max 10 lines per item
+      if (linesConsumed >= 10) {
+        break;
+      }
+    }
+
+    // Parse the complete description
+    const item = this.parseChecklistItem(fullDescription, itemNumber);
+    return { item, linesConsumed: Math.max(1, linesConsumed) };
+  }
+
+  /**
+   * Check if line starts with a checkbox or item indicator
+   */
+  private startsWithCheckbox(line: string): boolean {
+    const trimmed = line.trim();
+    
+    // Has checkbox indicators at the start
+    if (/^[☐□▢\[\]]/.test(trimmed)) {
+      return true;
+    }
+
+    // Numbered items at the start
+    if (/^\d+[.)]\s+\[/.test(trimmed)) {
       return true;
     }
 

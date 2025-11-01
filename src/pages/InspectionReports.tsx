@@ -31,6 +31,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -53,6 +63,7 @@ import {
   Clock,
   Upload,
   X,
+  Camera,
 } from "lucide-react";
 
 interface InspectionItem {
@@ -120,6 +131,14 @@ const InspectionReports = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isPDFUploadDialogOpen, setIsPDFUploadDialogOpen] = useState(false);
+  const [isActionConfirmOpen, setIsActionConfirmOpen] = useState(false);
+  const [pendingNotOkUpdate, setPendingNotOkUpdate] = useState<{
+    itemId: string;
+    updates: Partial<InspectionItem>;
+    itemDescription: string;
+    sectionTitle: string;
+  } | null>(null);
+  const [notOkPhotos, setNotOkPhotos] = useState<File[]>([]);
   const [selectedReport, setSelectedReport] = useState<InspectionReport | null>(
     null
   );
@@ -265,50 +284,122 @@ const InspectionReports = () => {
     updates: Partial<InspectionItem>
   ) => {
     try {
+      // Check if result changed to NOT_OK - show confirmation dialog
+      if (updates.result === "NOT_OK" && selectedReport) {
+        // Find the item to prepare action data
+        let itemDescription = "";
+        let sectionTitle = "";
+
+        for (const section of selectedReport.sections || []) {
+          const item = section.items.find((i) => i.id === itemId);
+          if (item) {
+            itemDescription = item.description;
+            sectionTitle = section.title;
+            break;
+          }
+        }
+
+        // Store pending update and open confirmation dialog
+        setPendingNotOkUpdate({
+          itemId,
+          updates,
+          itemDescription,
+          sectionTitle,
+        });
+        setIsActionConfirmOpen(true);
+        return; // Don't update yet, wait for user confirmation
+      }
+
+      // Normal update without action creation
+      await performItemUpdate(itemId, updates, false);
+    } catch (error) {
+      console.error("Error updating item:", error);
+      toast({
+        title: "Fehler",
+        description: "Element konnte nicht aktualisiert werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const performItemUpdate = async (
+    itemId: string,
+    updates: Partial<InspectionItem>,
+    createAction: boolean
+  ) => {
+    try {
       const response = await apiClient.put<{
         success: boolean;
         data: InspectionItem;
       }>(`/inspection-reports/items/${itemId}`, updates);
 
       if (response.success && selectedReport) {
-        // Check if result changed to NOT_OK
-        if (updates.result === "NOT_OK") {
-          // Find the item to create an action
-          let itemDescription = "";
-          let sectionTitle = "";
-
-          for (const section of selectedReport.sections || []) {
-            const item = section.items.find((i) => i.id === itemId);
-            if (item) {
-              itemDescription = item.description;
-              sectionTitle = section.title;
-              break;
-            }
-          }
-
-          // Create an action automatically
+        // Upload photos if any
+        if (notOkPhotos.length > 0) {
           try {
-            await apiClient.post("/actions", {
-              title: `Inspektionsfehler: ${itemDescription}`,
-              description: `Bei der Inspektion "${selectedReport.title}" wurde ein Problem festgestellt:\n\nSektion: ${sectionTitle}\nItem: ${itemDescription}\n\nBericht: ${selectedReport.reportNumber}`,
-              priority: "HIGH",
-              status: "OPEN",
-              plant: selectedReport.plant,
-              equipment: selectedReport.equipment,
-              dueDate: new Date(
-                Date.now() + 7 * 24 * 60 * 60 * 1000
-              ).toISOString(), // 7 days from now
+            const formData = new FormData();
+            notOkPhotos.forEach((photo) => {
+              formData.append("files", photo);
             });
+
+            await apiClient.post(
+              `/inspection-reports/${selectedReport.id}/attachments`,
+              formData,
+              {
+                headers: {
+                  "Content-Type": "multipart/form-data",
+                },
+              }
+            );
 
             toast({
-              title: "Action erstellt",
-              description: "Eine neue Aufgabe wurde automatisch erstellt.",
+              title: "Fotos hochgeladen",
+              description: `${notOkPhotos.length} Foto(s) wurden hinzugefügt.`,
             });
-          } catch (actionError) {
-            console.error("Error creating action:", actionError);
-            // Don't fail the item update if action creation fails
+          } catch (photoError) {
+            console.error("Error uploading photos:", photoError);
+            toast({
+              title: "Warnung",
+              description: "Fotos konnten nicht hochgeladen werden.",
+              variant: "destructive",
+            });
           }
         }
+
+        // Create action if requested
+        if (createAction) {
+          const pendingData = pendingNotOkUpdate;
+          if (pendingData) {
+            try {
+              await apiClient.post("/actions", {
+                title: `Inspektionsfehler: ${pendingData.itemDescription}`,
+                description: `Bei der Inspektion "${selectedReport.title}" wurde ein Problem festgestellt:\n\nSektion: ${pendingData.sectionTitle}\nItem: ${pendingData.itemDescription}\n\nBericht: ${selectedReport.reportNumber}${notOkPhotos.length > 0 ? `\n\nFotos: ${notOkPhotos.length} angehängt` : ''}`,
+                priority: "HIGH",
+                status: "OPEN",
+                plant: selectedReport.plant,
+                equipment: selectedReport.equipment,
+                dueDate: new Date(
+                  Date.now() + 7 * 24 * 60 * 60 * 1000
+                ).toISOString(),
+              });
+
+              toast({
+                title: "Action erstellt",
+                description: "Eine neue Aufgabe wurde automatisch erstellt.",
+              });
+            } catch (actionError) {
+              console.error("Error creating action:", actionError);
+              toast({
+                title: "Warnung",
+                description: "Item wurde aktualisiert, aber Action konnte nicht erstellt werden.",
+                variant: "destructive",
+              });
+            }
+          }
+        }
+
+        // Reset photos state
+        setNotOkPhotos([]);
 
         // Update local state
         const updatedReport = {
@@ -1683,6 +1774,131 @@ const InspectionReports = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Action Confirmation Dialog */}
+      <AlertDialog open={isActionConfirmOpen} onOpenChange={setIsActionConfirmOpen}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Item als "Nicht OK" markiert</AlertDialogTitle>
+            <AlertDialogDescription>
+              Dieses Item wurde als "Nicht OK" markiert.
+              {pendingNotOkUpdate && (
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <p className="font-semibold text-foreground">Item:</p>
+                    <p className="text-muted-foreground">{pendingNotOkUpdate.itemDescription}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">Sektion:</p>
+                    <p className="text-muted-foreground">{pendingNotOkUpdate.sectionTitle}</p>
+                  </div>
+                  
+                  {/* Photo Upload Section */}
+                  <div className="mt-4 space-y-2">
+                    <Label htmlFor="notok-photos" className="text-foreground">
+                      Fotos anhängen (optional)
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="notok-photos"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        capture="environment"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          setNotOkPhotos((prev) => [...prev, ...files]);
+                        }}
+                        className="cursor-pointer"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          const input = document.getElementById('notok-photos') as HTMLInputElement;
+                          input?.click();
+                        }}
+                      >
+                        <Camera className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    {notOkPhotos.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          {notOkPhotos.length} Foto(s) ausgewählt:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {notOkPhotos.map((photo, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-1 bg-secondary px-2 py-1 rounded text-xs"
+                            >
+                              <span>{photo.name}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 p-0"
+                                onClick={() => {
+                                  setNotOkPhotos((prev) =>
+                                    prev.filter((_, i) => i !== index)
+                                  );
+                                }}
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t">
+                    <p className="font-semibold text-foreground">
+                      Möchten Sie automatisch eine hochpriorisierte Aufgabe (Action) erstellen?
+                    </p>
+                  </div>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                // Update without creating action
+                if (pendingNotOkUpdate) {
+                  performItemUpdate(
+                    pendingNotOkUpdate.itemId,
+                    pendingNotOkUpdate.updates,
+                    false
+                  );
+                }
+                setPendingNotOkUpdate(null);
+                setNotOkPhotos([]);
+              }}
+            >
+              Nein, nur Status ändern
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                // Update and create action
+                if (pendingNotOkUpdate) {
+                  performItemUpdate(
+                    pendingNotOkUpdate.itemId,
+                    pendingNotOkUpdate.updates,
+                    true
+                  );
+                }
+                setPendingNotOkUpdate(null);
+              }}
+            >
+              Ja, Action erstellen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
