@@ -377,10 +377,14 @@ const InspectionReports = () => {
                     description: `Aufgabe erstellt und ${notOkPhotos.length} Foto(s) angehängt.`,
                   });
                 } catch (photoError) {
-                  console.error("Error uploading photos to action:", photoError);
+                  console.error(
+                    "Error uploading photos to action:",
+                    photoError
+                  );
                   toast({
                     title: "Warnung",
-                    description: "Action erstellt, aber Fotos konnten nicht hochgeladen werden.",
+                    description:
+                      "Action erstellt, aber Fotos konnten nicht hochgeladen werden.",
                     variant: "destructive",
                   });
                 }
@@ -394,7 +398,8 @@ const InspectionReports = () => {
               console.error("Error creating action:", actionError);
               toast({
                 title: "Warnung",
-                description: "Item wurde aktualisiert, aber Action konnte nicht erstellt werden.",
+                description:
+                  "Item wurde aktualisiert, aber Action konnte nicht erstellt werden.",
                 variant: "destructive",
               });
             }
@@ -1561,31 +1566,39 @@ const InspectionReports = () => {
                                     )}
                                   </TableCell>
                                   <TableCell>
-                                    <Select
-                                      value={item.result || ""}
-                                      onValueChange={(value) =>
-                                        handleUpdateItem(item.id, {
-                                          result: value as
-                                            | "OK"
-                                            | "NOT_OK"
-                                            | "N/A",
-                                        })
-                                      }
-                                      disabled={
-                                        selectedReport.status === "APPROVED"
-                                      }
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="-" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="OK">OK</SelectItem>
-                                        <SelectItem value="NOT_OK">
-                                          Nicht OK
-                                        </SelectItem>
-                                        <SelectItem value="N/A">N/A</SelectItem>
-                                      </SelectContent>
-                                    </Select>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        size="sm"
+                                        variant={item.result === "OK" ? "default" : "outline"}
+                                        className={item.result === "OK" ? "bg-green-600 hover:bg-green-700" : ""}
+                                        onClick={() =>
+                                          handleUpdateItem(item.id, {
+                                            result: "OK",
+                                          })
+                                        }
+                                        disabled={
+                                          selectedReport.status === "APPROVED"
+                                        }
+                                      >
+                                        <CheckCircle2 className="w-4 h-4 mr-1" />
+                                        OK
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant={item.result === "NOT_OK" ? "destructive" : "outline"}
+                                        onClick={() =>
+                                          handleUpdateItem(item.id, {
+                                            result: "NOT_OK",
+                                          })
+                                        }
+                                        disabled={
+                                          selectedReport.status === "APPROVED"
+                                        }
+                                      >
+                                        <XCircle className="w-4 h-4 mr-1" />
+                                        Nicht OK
+                                      </Button>
+                                    </div>
                                   </TableCell>
                                   <TableCell>
                                     <Input
@@ -1811,7 +1824,10 @@ const InspectionReports = () => {
       )}
 
       {/* Action Confirmation Dialog */}
-      <AlertDialog open={isActionConfirmOpen} onOpenChange={setIsActionConfirmOpen}>
+      <AlertDialog
+        open={isActionConfirmOpen}
+        onOpenChange={setIsActionConfirmOpen}
+      >
         <AlertDialogContent className="max-w-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Item als "Nicht OK" markiert</AlertDialogTitle>
@@ -1821,13 +1837,17 @@ const InspectionReports = () => {
                 <div className="mt-3 space-y-3">
                   <div>
                     <p className="font-semibold text-foreground">Item:</p>
-                    <p className="text-muted-foreground">{pendingNotOkUpdate.itemDescription}</p>
+                    <p className="text-muted-foreground">
+                      {pendingNotOkUpdate.itemDescription}
+                    </p>
                   </div>
                   <div>
                     <p className="font-semibold text-foreground">Sektion:</p>
-                    <p className="text-muted-foreground">{pendingNotOkUpdate.sectionTitle}</p>
+                    <p className="text-muted-foreground">
+                      {pendingNotOkUpdate.sectionTitle}
+                    </p>
                   </div>
-                  
+
                   {/* Photo Upload Section */}
                   <div className="mt-4 space-y-2">
                     <Label htmlFor="notok-photos" className="text-foreground">
@@ -1851,7 +1871,9 @@ const InspectionReports = () => {
                         variant="outline"
                         size="icon"
                         onClick={() => {
-                          const input = document.getElementById('notok-photos') as HTMLInputElement;
+                          const input = document.getElementById(
+                            "notok-photos"
+                          ) as HTMLInputElement;
                           input?.click();
                         }}
                       >
@@ -1892,7 +1914,8 @@ const InspectionReports = () => {
 
                   <div className="mt-4 pt-3 border-t">
                     <p className="font-semibold text-foreground">
-                      Möchten Sie automatisch eine hochpriorisierte Aufgabe (Action) erstellen?
+                      Möchten Sie automatisch eine hochpriorisierte Aufgabe
+                      (Action) erstellen?
                     </p>
                   </div>
                 </div>
