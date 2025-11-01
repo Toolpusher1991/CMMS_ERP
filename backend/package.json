@@ -18,7 +18,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@prisma/client": "^5.7.0",
+    "@prisma/client": "^6.18.0",
     "@sentry/node": "^10.22.0",
     "@sentry/tracing": "^7.120.4",
     "@types/bcryptjs": "^2.4.6",
