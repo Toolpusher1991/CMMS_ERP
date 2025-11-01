@@ -339,8 +339,9 @@ const InspectionReports = () => {
           if (pendingData) {
             try {
               const actionResponse = await apiClient.post<{
-                success: boolean;
-                data: { id: string };
+                id: string;
+                title: string;
+                description: string;
               }>("/actions", {
                 title: `Inspektionsfehler: ${pendingData.itemDescription}`,
                 description: `Bei der Inspektion "${selectedReport.title}" wurde ein Problem festgestellt:\n\nSektion: ${pendingData.sectionTitle}\nItem: ${pendingData.itemDescription}\n\nBericht: ${selectedReport.reportNumber}`,
@@ -354,7 +355,7 @@ const InspectionReports = () => {
               });
 
               // Upload photos to the created action
-              if (notOkPhotos.length > 0 && actionResponse.data?.id) {
+              if (notOkPhotos.length > 0 && actionResponse.id) {
                 try {
                   const formData = new FormData();
                   notOkPhotos.forEach((photo) => {
@@ -362,7 +363,7 @@ const InspectionReports = () => {
                   });
 
                   await apiClient.post(
-                    `/actions/${actionResponse.data.id}/files`,
+                    `/actions/${actionResponse.id}/files`,
                     formData,
                     {
                       headers: {
@@ -395,12 +396,11 @@ const InspectionReports = () => {
               }
 
               // Add note to item that action was created
-              await apiClient.put(
-                `/inspection-reports/items/${itemId}`,
-                {
-                  notes: `Action erstellt (${new Date().toLocaleDateString("de-DE")})`,
-                }
-              );
+              await apiClient.put(`/inspection-reports/items/${itemId}`, {
+                notes: `Action erstellt (${new Date().toLocaleDateString(
+                  "de-DE"
+                )})`,
+              });
             } catch (actionError) {
               console.error("Error creating action:", actionError);
               toast({
@@ -650,20 +650,20 @@ const InspectionReports = () => {
 
         // Items Table
         const tableData = section.items.map((item) => {
-          const resultText = item.result === "OK" ? "OK" : 
-                            item.result === "NOT_OK" ? "NOT_OK" : 
-                            "-";
-          
-          // Add action comment if result is NOT_OK
-          const description = item.result === "NOT_OK" && item.notes?.includes("Action erstellt")
-            ? `${item.description} [Action erstellt]`
-            : item.description;
+          const resultText =
+            item.result === "OK"
+              ? "OK"
+              : item.result === "NOT_OK"
+              ? "NOT_OK"
+              : "-";
 
-          return [
-            item.itemNumber,
-            description,
-            resultText,
-          ];
+          // Add action comment if result is NOT_OK
+          const description =
+            item.result === "NOT_OK" && item.notes?.includes("Action erstellt")
+              ? `${item.description} [Action erstellt]`
+              : item.description;
+
+          return [item.itemNumber, description, resultText];
         });
 
         autoTable(doc, {
