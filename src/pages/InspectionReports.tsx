@@ -138,6 +138,12 @@ const InspectionReports = () => {
     sectionTitle: string;
   } | null>(null);
   const [notOkPhotos, setNotOkPhotos] = useState<File[]>([]);
+  const [actionDiscipline, setActionDiscipline] = useState<
+    "MECHANIK" | "ELEKTRIK" | "ANLAGE"
+  >("MECHANIK");
+  const [actionPriority, setActionPriority] = useState<
+    "LOW" | "MEDIUM" | "HIGH" | "URGENT"
+  >("HIGH");
   const [selectedReport, setSelectedReport] = useState<InspectionReport | null>(
     null
   );
@@ -345,7 +351,8 @@ const InspectionReports = () => {
               }>("/actions", {
                 title: `Inspektionsfehler: ${pendingData.itemDescription}`,
                 description: `Bei der Inspektion "${selectedReport.title}" wurde ein Problem festgestellt:\n\nSektion: ${pendingData.sectionTitle}\nItem: ${pendingData.itemDescription}\n\nBericht: ${selectedReport.reportNumber}`,
-                priority: "HIGH",
+                priority: actionPriority,
+                discipline: actionDiscipline,
                 status: "OPEN",
                 plant: selectedReport.plant,
                 equipment: selectedReport.equipment,
@@ -1771,82 +1778,134 @@ const InspectionReports = () => {
                     <div>
                       <p className="font-semibold text-foreground">Sektion:</p>
                       <p className="text-muted-foreground">
-                      {pendingNotOkUpdate.sectionTitle}
-                    </p>
-                  </div>
-
-                  {/* Photo Upload Section */}
-                  <div className="mt-4 space-y-2">
-                    <Label htmlFor="notok-photos" className="text-foreground">
-                      Fotos anhängen (optional)
-                    </Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="notok-photos"
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        capture="environment"
-                        onChange={(e) => {
-                          const files = Array.from(e.target.files || []);
-                          setNotOkPhotos((prev) => [...prev, ...files]);
-                        }}
-                        className="cursor-pointer"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          const input = document.getElementById(
-                            "notok-photos"
-                          ) as HTMLInputElement;
-                          input?.click();
-                        }}
-                      >
-                        <Camera className="w-4 h-4" />
-                      </Button>
+                        {pendingNotOkUpdate.sectionTitle}
+                      </p>
                     </div>
-                    {notOkPhotos.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        <p className="text-sm text-muted-foreground">
-                          {notOkPhotos.length} Foto(s) ausgewählt:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {notOkPhotos.map((photo, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-1 bg-secondary px-2 py-1 rounded text-xs"
-                            >
-                              <span>{photo.name}</span>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-4 p-0"
-                                onClick={() => {
-                                  setNotOkPhotos((prev) =>
-                                    prev.filter((_, i) => i !== index)
-                                  );
-                                }}
+
+                    {/* Photo Upload Section */}
+                    <div className="mt-4 space-y-2">
+                      <Label htmlFor="notok-photos" className="text-foreground">
+                        Fotos anhängen (optional)
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="notok-photos"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          capture="environment"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            setNotOkPhotos((prev) => [...prev, ...files]);
+                          }}
+                          className="cursor-pointer"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            const input = document.getElementById(
+                              "notok-photos"
+                            ) as HTMLInputElement;
+                            input?.click();
+                          }}
+                        >
+                          <Camera className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      {notOkPhotos.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          <p className="text-sm text-muted-foreground">
+                            {notOkPhotos.length} Foto(s) ausgewählt:
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {notOkPhotos.map((photo, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-1 bg-secondary px-2 py-1 rounded text-xs"
                               >
-                                <X className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          ))}
+                                <span>{photo.name}</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4 p-0"
+                                  onClick={() => {
+                                    setNotOkPhotos((prev) =>
+                                      prev.filter((_, i) => i !== index)
+                                    );
+                                  }}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Discipline and Priority Selection */}
+                    <div className="mt-4 pt-3 border-t space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="action-discipline" className="text-foreground">
+                            Zuständigkeit
+                          </Label>
+                          <Select
+                            value={actionDiscipline}
+                            onValueChange={(value) =>
+                              setActionDiscipline(
+                                value as "MECHANIK" | "ELEKTRIK" | "ANLAGE"
+                              )
+                            }
+                          >
+                            <SelectTrigger id="action-discipline">
+                              <SelectValue placeholder="Wählen..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="MECHANIK">Mechanik</SelectItem>
+                              <SelectItem value="ELEKTRIK">Elektriker</SelectItem>
+                              <SelectItem value="ANLAGE">Anlage</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="action-priority" className="text-foreground">
+                            Dringlichkeit
+                          </Label>
+                          <Select
+                            value={actionPriority}
+                            onValueChange={(value) =>
+                              setActionPriority(
+                                value as "LOW" | "MEDIUM" | "HIGH" | "URGENT"
+                              )
+                            }
+                          >
+                            <SelectTrigger id="action-priority">
+                              <SelectValue placeholder="Wählen..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="LOW">Niedrig</SelectItem>
+                              <SelectItem value="MEDIUM">Mittel</SelectItem>
+                              <SelectItem value="HIGH">Hoch</SelectItem>
+                              <SelectItem value="URGENT">Dringend</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="mt-4 pt-3 border-t">
-                    <p className="font-semibold text-foreground">
-                      Möchten Sie automatisch eine hochpriorisierte Aufgabe
-                      (Action) erstellen?
-                    </p>
+                    <div className="mt-4 pt-3 border-t">
+                      <p className="font-semibold text-foreground">
+                        Möchten Sie automatisch eine hochpriorisierte Aufgabe
+                        (Action) erstellen?
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1863,6 +1922,8 @@ const InspectionReports = () => {
                 }
                 setPendingNotOkUpdate(null);
                 setNotOkPhotos([]);
+                setActionDiscipline("MECHANIK");
+                setActionPriority("HIGH");
               }}
             >
               Nein, nur Status ändern
@@ -1878,6 +1939,9 @@ const InspectionReports = () => {
                   );
                 }
                 setPendingNotOkUpdate(null);
+                setNotOkPhotos([]);
+                setActionDiscipline("MECHANIK");
+                setActionPriority("HIGH");
               }}
             >
               Ja, Action erstellen
