@@ -28,6 +28,15 @@ const projectFilesStorage = new CloudinaryStorage({
   } as any,
 });
 
+// Create Cloudinary storage for inspection report attachments
+const inspectionAttachmentsStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'cmms-erp/inspection-reports',
+    resource_type: 'auto', // Allows all file types
+  } as any,
+});
+
 export const cloudinaryUpload = multer({ 
   storage: failureReportStorage,
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
@@ -36,6 +45,11 @@ export const cloudinaryUpload = multer({
 export const cloudinaryProjectFilesUpload = multer({
   storage: projectFilesStorage,
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit for project files
+});
+
+export const cloudinaryInspectionAttachmentsUpload = multer({
+  storage: inspectionAttachmentsStorage,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
 });
 
 export { cloudinary };

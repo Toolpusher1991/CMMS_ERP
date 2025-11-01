@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
 import { useToast } from "@/components/ui/use-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   Card,
   CardContent,
@@ -49,6 +51,8 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  Upload,
+  X,
 } from "lucide-react";
 
 interface InspectionItem {
@@ -115,9 +119,12 @@ const InspectionReports = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isPDFUploadDialogOpen, setIsPDFUploadDialogOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<InspectionReport | null>(
     null
   );
+  const [pdfFile, setPDFFile] = useState<File | null>(null);
+  const [isUploadingPDF, setIsUploadingPDF] = useState(false);
 
   // Filters
   const [filterPlant, setFilterPlant] = useState<string>("all");
@@ -264,6 +271,45 @@ const InspectionReports = () => {
       }>(`/inspection-reports/items/${itemId}`, updates);
 
       if (response.success && selectedReport) {
+        // Check if result changed to NOT_OK
+        if (updates.result === "NOT_OK") {
+          // Find the item to create an action
+          let itemDescription = "";
+          let sectionTitle = "";
+
+          for (const section of selectedReport.sections || []) {
+            const item = section.items.find((i) => i.id === itemId);
+            if (item) {
+              itemDescription = item.description;
+              sectionTitle = section.title;
+              break;
+            }
+          }
+
+          // Create an action automatically
+          try {
+            await apiClient.post("/actions", {
+              title: `Inspektionsfehler: ${itemDescription}`,
+              description: `Bei der Inspektion "${selectedReport.title}" wurde ein Problem festgestellt:\n\nSektion: ${sectionTitle}\nItem: ${itemDescription}\n\nBericht: ${selectedReport.reportNumber}`,
+              priority: "HIGH",
+              status: "OPEN",
+              plant: selectedReport.plant,
+              equipment: selectedReport.equipment,
+              dueDate: new Date(
+                Date.now() + 7 * 24 * 60 * 60 * 1000
+              ).toISOString(), // 7 days from now
+            });
+
+            toast({
+              title: "Action erstellt",
+              description: "Eine neue Aufgabe wurde automatisch erstellt.",
+            });
+          } catch (actionError) {
+            console.error("Error creating action:", actionError);
+            // Don't fail the item update if action creation fails
+          }
+        }
+
         // Update local state
         const updatedReport = {
           ...selectedReport,
@@ -405,6 +451,304 @@ const InspectionReports = () => {
     return <Badge variant={config.variant}>{config.text}</Badge>;
   };
 
+  // PDF Export Function
+  const generateReportPDF = (report: InspectionReport) => {
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("Inspektionsbericht", 105, 20, { align: "center" });
+
+    // Report Info
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    let yPos = 35;
+
+    doc.text(`Berichtnummer: ${report.reportNumber}`, 20, yPos);
+    yPos += 7;
+    doc.text(`Titel: ${report.title}`, 20, yPos);
+    yPos += 7;
+    doc.text(`Typ: ${report.type}`, 20, yPos);
+    yPos += 7;
+    doc.text(`Anlage: ${report.plant}`, 20, yPos);
+    yPos += 7;
+    doc.text(`Equipment: ${report.equipment}`, 20, yPos);
+    yPos += 7;
+    doc.text(
+      `Inspektionsdatum: ${new Date(report.inspectionDate).toLocaleDateString(
+        "de-DE"
+      )}`,
+      20,
+      yPos
+    );
+    yPos += 7;
+    doc.text(`Inspektor: ${report.inspector}`, 20, yPos);
+    yPos += 7;
+    doc.text(`Status: ${report.status}`, 20, yPos);
+    yPos += 10;
+
+    // Sections and Items
+    if (report.sections && report.sections.length > 0) {
+      report.sections.forEach((section) => {
+        // Check if we need a new page
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        // Section Header
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${section.sectionNumber}. ${section.title}`, 20, yPos);
+        yPos += 7;
+
+        if (section.description) {
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "italic");
+          doc.text(section.description, 20, yPos);
+          yPos += 5;
+        }
+
+        // Items Table
+        const tableData = section.items.map((item) => {
+          let value = "";
+          if (item.itemType === "CHECKBOX") {
+            value = item.isChecked ? "✓" : "✗";
+          } else if (item.itemType === "MEASUREMENT") {
+            value = `${item.measurementValue || "-"} ${
+              item.measurementUnit || ""
+            }`;
+          } else if (item.itemType === "TEXT") {
+            value = item.textValue || "-";
+          } else if (item.itemType === "RATING") {
+            value = item.rating ? `${item.rating}/5` : "-";
+          }
+
+          return [
+            item.itemNumber,
+            item.description,
+            value,
+            item.result || "-",
+            item.notes || "-",
+          ];
+        });
+
+        autoTable(doc, {
+          startY: yPos,
+          head: [["Nr.", "Beschreibung", "Wert", "Ergebnis", "Notizen"]],
+          body: tableData,
+          theme: "grid",
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [66, 66, 66] },
+          margin: { left: 20, right: 20 },
+          didDrawPage: (data) => {
+            yPos = data.cursor?.y || yPos;
+          },
+        });
+
+        yPos += 10;
+      });
+    }
+
+    // General Notes
+    if (report.generalNotes) {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Allgemeine Notizen", 20, yPos);
+      yPos += 7;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      const splitNotes = doc.splitTextToSize(report.generalNotes, 170);
+      doc.text(splitNotes, 20, yPos);
+      yPos += splitNotes.length * 5 + 10;
+    }
+
+    // Recommendations
+    if (report.recommendations) {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Empfehlungen", 20, yPos);
+      yPos += 7;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      const splitRecs = doc.splitTextToSize(report.recommendations, 170);
+      doc.text(splitRecs, 20, yPos);
+    }
+
+    // Save PDF
+    doc.save(`${report.reportNumber}.pdf`);
+
+    toast({
+      title: "Erfolgreich",
+      description: "PDF wurde heruntergeladen.",
+    });
+  };
+
+  // File Upload Function
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (!selectedReport || !event.target.files) return;
+
+    const files = Array.from(event.target.files);
+    const formData = new FormData();
+
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+
+    try {
+      const response = await apiClient.post<{
+        success: boolean;
+        data: InspectionAttachment[];
+      }>(`/inspection-reports/${selectedReport.id}/attachments`, formData);
+
+      if (response.success && response.data) {
+        const updatedReport = {
+          ...selectedReport,
+          attachments: [
+            ...(selectedReport.attachments || []),
+            ...response.data,
+          ],
+        };
+        setSelectedReport(updatedReport);
+        setReports(
+          reports.map((r) => (r.id === updatedReport.id ? updatedReport : r))
+        );
+
+        toast({
+          title: "Erfolgreich",
+          description: `${files.length} Datei(en) hochgeladen.`,
+        });
+      }
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      toast({
+        title: "Fehler",
+        description: "Dateien konnten nicht hochgeladen werden.",
+        variant: "destructive",
+      });
+    }
+
+    // Reset input
+    event.target.value = "";
+  };
+
+  // Delete Attachment
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    if (!selectedReport) return;
+
+    try {
+      await apiClient.delete(
+        `/inspection-reports/${selectedReport.id}/attachments/${attachmentId}`
+      );
+
+      const updatedReport = {
+        ...selectedReport,
+        attachments: (selectedReport.attachments || []).filter(
+          (a) => a.id !== attachmentId
+        ),
+      };
+      setSelectedReport(updatedReport);
+      setReports(
+        reports.map((r) => (r.id === updatedReport.id ? updatedReport : r))
+      );
+
+      toast({
+        title: "Erfolgreich",
+        description: "Anhang wurde gelöscht.",
+      });
+    } catch (error) {
+      console.error("Error deleting attachment:", error);
+      toast({
+        title: "Fehler",
+        description: "Anhang konnte nicht gelöscht werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle PDF upload and parsing
+  const handlePDFUpload = async () => {
+    if (!pdfFile) {
+      toast({
+        title: "Fehler",
+        description: "Bitte wählen Sie eine PDF-Datei aus.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newReport.plant || !newReport.equipment) {
+      toast({
+        title: "Fehler",
+        description: "Bitte füllen Sie Anlage und Equipment aus.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingPDF(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("pdf", pdfFile);
+      formData.append("plant", newReport.plant);
+      formData.append("equipment", newReport.equipment);
+      formData.append(
+        "inspector",
+        newReport.inspector || user?.firstName + " " + user?.lastName || ""
+      );
+      formData.append("inspectionDate", newReport.inspectionDate);
+
+      const response = await apiClient.post<{
+        success: boolean;
+        data: InspectionReport;
+      }>("/inspection-reports/parse-pdf", formData);
+
+      if (response.success && response.data) {
+        setReports([response.data, ...reports]);
+        setIsPDFUploadDialogOpen(false);
+        setPDFFile(null);
+        setNewReport({
+          title: "",
+          type: "",
+          plant: "",
+          equipment: "",
+          inspectionDate: new Date().toISOString().split("T")[0],
+          inspector: "",
+        });
+
+        toast({
+          title: "Erfolgreich",
+          description: "PDF wurde analysiert und Bericht erstellt.",
+        });
+
+        // Open the new report for editing
+        setSelectedReport(response.data);
+        setIsViewDialogOpen(true);
+      }
+    } catch (error) {
+      console.error("Error uploading PDF:", error);
+      toast({
+        title: "Fehler",
+        description: "PDF konnte nicht verarbeitet werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingPDF(false);
+    }
+  };
+
   const getTemplateForType = (type: string) => {
     // CAT III Crown Block Template
     if (type === "CAT_III_CROWN_BLOCK") {
@@ -527,10 +871,19 @@ const InspectionReports = () => {
             CAT III Crown Block und weitere Inspektionen
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Neuer Bericht
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsPDFUploadDialogOpen(true)}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Aus PDF erstellen
+          </Button>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Neuer Bericht
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -788,6 +1141,137 @@ const InspectionReports = () => {
               Abbrechen
             </Button>
             <Button onClick={handleCreateReport}>Erstellen</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Upload Dialog */}
+      <Dialog
+        open={isPDFUploadDialogOpen}
+        onOpenChange={setIsPDFUploadDialogOpen}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Inspektionsbericht aus PDF erstellen</DialogTitle>
+            <DialogDescription>
+              Laden Sie eine PDF-Checkliste hoch. Die App extrahiert automatisch
+              die Checkboxen und erstellt einen interaktiven Bericht.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* PDF File Upload */}
+            <div>
+              <Label>PDF-Datei *</Label>
+              <div className="mt-2">
+                <input
+                  type="file"
+                  id="pdf-file-input"
+                  accept=".pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setPDFFile(file);
+                    }
+                  }}
+                  className="hidden"
+                />
+                <label htmlFor="pdf-file-input">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full cursor-pointer"
+                    onClick={() =>
+                      document.getElementById("pdf-file-input")?.click()
+                    }
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {pdfFile ? pdfFile.name : "PDF-Datei auswählen"}
+                  </Button>
+                </label>
+              </div>
+              {pdfFile && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Größe: {(pdfFile.size / 1024).toFixed(1)} KB
+                </p>
+              )}
+            </div>
+
+            {/* Required Fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Anlage *</Label>
+                <Select
+                  value={newReport.plant}
+                  onValueChange={(value) =>
+                    setNewReport({ ...newReport, plant: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Anlage wählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="T208">T208</SelectItem>
+                    <SelectItem value="T209">T209</SelectItem>
+                    <SelectItem value="T210">T210</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Equipment *</Label>
+                <Input
+                  value={newReport.equipment}
+                  onChange={(e) =>
+                    setNewReport({ ...newReport, equipment: e.target.value })
+                  }
+                  placeholder="z.B. Crown Block #1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Inspektionsdatum</Label>
+                <Input
+                  type="date"
+                  value={newReport.inspectionDate}
+                  onChange={(e) =>
+                    setNewReport({
+                      ...newReport,
+                      inspectionDate: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div>
+                <Label>Inspektor</Label>
+                <Input
+                  value={newReport.inspector}
+                  onChange={(e) =>
+                    setNewReport({ ...newReport, inspector: e.target.value })
+                  }
+                  placeholder={user ? `${user.firstName} ${user.lastName}` : ""}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsPDFUploadDialogOpen(false);
+                setPDFFile(null);
+              }}
+              disabled={isUploadingPDF}
+            >
+              Abbrechen
+            </Button>
+            <Button onClick={handlePDFUpload} disabled={isUploadingPDF}>
+              {isUploadingPDF ? "Wird verarbeitet..." : "PDF analysieren"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1099,6 +1583,31 @@ const InspectionReports = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    {/* Upload Button */}
+                    <div className="mb-4">
+                      <input
+                        type="file"
+                        id="file-upload"
+                        multiple
+                        accept="image/*,.pdf,.doc,.docx"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                      <label htmlFor="file-upload">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="cursor-pointer"
+                          onClick={() =>
+                            document.getElementById("file-upload")?.click()
+                          }
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Dateien hochladen
+                        </Button>
+                      </label>
+                    </div>
+
                     {!selectedReport.attachments ||
                     selectedReport.attachments.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
@@ -1135,6 +1644,15 @@ const InspectionReports = () => {
                               >
                                 <Download className="w-4 h-4" />
                               </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() =>
+                                  handleDeleteAttachment(attachment.id)
+                                }
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
                             </div>
                           </div>
                         ))}
@@ -1152,7 +1670,12 @@ const InspectionReports = () => {
               >
                 Schließen
               </Button>
-              <Button variant="outline">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  selectedReport && generateReportPDF(selectedReport)
+                }
+              >
                 <Download className="w-4 h-4 mr-2" />
                 PDF Export
               </Button>

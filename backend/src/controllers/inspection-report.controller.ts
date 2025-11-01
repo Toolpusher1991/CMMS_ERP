@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { pdfParserService } from '../services/pdf-parser.service';
 
 const prisma = new PrismaClient();
 
@@ -266,25 +267,36 @@ export const deleteInspectionReport = async (req: AuthRequest, res: Response) =>
 export const uploadAttachment = async (req: AuthRequest, res: Response) => {
   try {
     const { id: reportId } = req.params;
-    const { filename, originalName, fileType, fileSize, filePath } = req.body;
+    
+    if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+      return res.status(400).json({ success: false, message: 'No files uploaded' });
+    }
 
     const userName = req.user?.firstName && req.user?.lastName
       ? `${req.user.firstName} ${req.user.lastName}`
       : 'Unknown User';
 
-    const attachment = await prisma.inspectionAttachment.create({
-      data: {
-        reportId,
-        filename,
-        originalName,
-        fileType,
-        fileSize,
-        filePath,
-        uploadedBy: userName,
-      },
-    });
+    const attachments = [];
 
-    res.json({ success: true, data: attachment });
+    for (const file of req.files) {
+      const cloudinaryFile = file as any;
+      
+      const attachment = await prisma.inspectionAttachment.create({
+        data: {
+          reportId,
+          filename: cloudinaryFile.filename || cloudinaryFile.public_id,
+          originalName: cloudinaryFile.originalname,
+          fileType: cloudinaryFile.mimetype,
+          fileSize: cloudinaryFile.size,
+          filePath: cloudinaryFile.secure_url || cloudinaryFile.path,
+          uploadedBy: userName,
+        },
+      });
+
+      attachments.push(attachment);
+    }
+
+    res.json({ success: true, data: attachments });
   } catch (error) {
     console.error('Upload attachment error:', error);
     res.status(500).json({ success: false, message: 'Failed to upload attachment' });
@@ -306,3 +318,82 @@ export const deleteAttachment = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ success: false, message: 'Failed to delete attachment' });
   }
 };
+
+// Parse PDF and create inspection report
+export const parsePDFAndCreateReport = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No PDF file uploaded' });
+    }
+
+    const { plant, equipment, inspector, inspectionDate } = req.body;
+
+    if (!plant || !equipment) {
+      return res.status(400).json({ success: false, message: 'Plant and equipment are required' });
+    }
+
+    // Parse PDF
+    const pdfBuffer = req.file.buffer;
+    const parsedData = await pdfParserService.parsePDF(pdfBuffer);
+
+    // Generate report number
+    const reportNumber = await generateReportNumber(parsedData.type, plant);
+
+    // Parse inspectionDate to full ISO DateTime
+    let inspectionDateTime = new Date().toISOString();
+    if (inspectionDate) {
+      // If date format is YYYY-MM-DD, append time
+      if (/^\d{4}-\d{2}-\d{2}$/.test(inspectionDate)) {
+        inspectionDateTime = new Date(inspectionDate + 'T00:00:00Z').toISOString();
+      } else {
+        inspectionDateTime = new Date(inspectionDate).toISOString();
+      }
+    }
+
+    // Create inspection report
+    const report = await prisma.inspectionReport.create({
+      data: {
+        reportNumber,
+        title: parsedData.title,
+        type: parsedData.type,
+        plant,
+        equipment,
+        inspectionDate: inspectionDateTime,
+        inspector: inspector || `${req.user?.firstName} ${req.user?.lastName}`,
+        status: 'DRAFT',
+        createdBy: req.user?.id,
+        sections: {
+          create: parsedData.sections.map((section) => ({
+            sectionNumber: section.sectionNumber,
+            title: section.title,
+            description: section.description,
+            items: {
+              create: section.items.map((item) => ({
+                itemNumber: item.itemNumber,
+                description: item.description,
+                itemType: item.itemType,
+                minValue: item.minValue,
+                maxValue: item.maxValue,
+                measurementUnit: item.measurementUnit,
+                result: 'N/A',
+              })),
+            },
+          })),
+        },
+      },
+      include: {
+        sections: {
+          include: {
+            items: true,
+          },
+        },
+      },
+    });
+
+    res.json({ success: true, data: report });
+  } catch (error) {
+    console.error('Parse PDF error:', error);
+    res.status(500).json({ success: false, message: 'Failed to parse PDF and create report' });
+  }
+};
+
