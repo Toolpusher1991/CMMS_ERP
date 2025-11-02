@@ -474,5 +474,136 @@ model InspectionAttachment {
   @@map("inspection_attachments")
 }
 
+// Equipment Manual Management System (SAP IH01-inspired)
+model EquipmentManual {
+  id                String                @id @default(uuid())
+  
+  // Equipment Information
+  equipmentName     String                // z.B. "Crown Block", "Mud Pump"
+  equipmentNumber   String?               // SAP-like Equipment Number
+  manufacturer      String?
+  model             String?
+  serialNumber      String?
+  
+  // Plant Assignment
+  plant             String                // T208, T209, T210, etc.
+  location          String?               // Specific location on rig
+  
+  // Manual Document
+  manualFileName    String
+  manualFilePath    String                // Cloudinary URL
+  manualFileSize    Int
+  uploadedAt        DateTime              @default(now())
+  uploadedBy        String?
+  
+  // AI Extraction Status
+  aiProcessed       Boolean               @default(false)
+  aiProcessedAt     DateTime?
+  aiExtractionData  Json?                 // Raw AI response for debugging
+  
+  // Manual Summary (AI-generated)
+  summary           String?
+  
+  // Relations
+  maintenanceSchedules MaintenanceSchedule[]
+  spareParts           SparePart[]
+  specifications       Specification[]
+  
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  
+  @@index([plant])
+  @@index([equipmentName])
+  @@map("equipment_manuals")
+}
+
+// Maintenance Schedule extracted from manual
+model MaintenanceSchedule {
+  id                String                @id @default(uuid())
+  manualId          String
+  manual            EquipmentManual       @relation(fields: [manualId], references: [id], onDelete: Cascade)
+  
+  taskName          String                // "Oil Change", "Filter Replacement"
+  description       String?
+  interval          String                // "500h", "Monthly", "Annually"
+  intervalHours     Int?                  // Converted to hours for scheduling
+  intervalDays      Int?                  // Converted to days for scheduling
+  
+  priority          String                @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  category          String?               // "Lubrication", "Inspection", "Replacement"
+  
+  // Required resources
+  estimatedDuration String?               // "2h", "30min"
+  requiredTools     String?
+  safetyNotes       String?
+  
+  // Work Order Integration
+  autoCreateWorkOrder Boolean            @default(false)
+  lastWorkOrderDate   DateTime?
+  nextWorkOrderDate   DateTime?
+  
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  
+  @@index([manualId])
+  @@map("maintenance_schedules")
+}
+
+// Spare Parts extracted from manual
+model SparePart {
+  id                String                @id @default(uuid())
+  manualId          String
+  manual            EquipmentManual       @relation(fields: [manualId], references: [id], onDelete: Cascade)
+  
+  partNumber        String                // Manufacturer part number
+  partName          String
+  description       String?
+  
+  category          String?               // "Filter", "Bearing", "Seal", etc.
+  quantity          Int?                  // Recommended stock quantity
+  
+  // Supplier Information
+  manufacturer      String?
+  supplier          String?
+  supplierPartNumber String?
+  
+  // Pricing & Stock (optional future feature)
+  unitPrice         Float?
+  currency          String?               @default("USD")
+  minStockLevel     Int?
+  currentStock      Int?
+  
+  // Usage/Replacement
+  replacementInterval String?            // "1000h", "Annually"
+  criticalPart      Boolean               @default(false)
+  
+  notes             String?
+  
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  
+  @@index([manualId])
+  @@index([partNumber])
+  @@map("spare_parts")
+}
+
+// Equipment Specifications
+model Specification {
+  id                String                @id @default(uuid())
+  manualId          String
+  manual            EquipmentManual       @relation(fields: [manualId], references: [id], onDelete: Cascade)
+  
+  category          String                // "Dimensions", "Performance", "Electrical"
+  name              String                // "Max Load", "Voltage", "Weight"
+  value             String
+  unit              String?               // "kg", "V", "mm"
+  
+  notes             String?
+  
+  @@index([manualId])
+  @@map("specifications")
+}
+
 // Add relation to User model
 // This will be added to the User model above
+

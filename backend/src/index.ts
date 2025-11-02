@@ -20,6 +20,7 @@ import chatbotRoutes from './routes/chatbot.routes';
 import qrCodeRoutes from './routes/qr-code.routes';
 import tenderRoutes from './routes/tender.routes';
 import inspectionReportRoutes from './routes/inspection-report.routes';
+import equipmentManualRoutes from './routes/equipment-manuals';
 import { errorHandler } from './middleware/error.middleware';
 import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware';
 
@@ -202,6 +203,7 @@ app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/qr', qrCodeRoutes); // QR-Code Generation & Management
 app.use('/api/tender', tenderRoutes); // Tender configuration CRUD (requires prisma client/migrations)
 app.use('/api/inspection-reports', inspectionReportRoutes); // Inspection Reports (CAT III, etc.)
+app.use('/api/equipment-manuals', equipmentManualRoutes); // Equipment Manuals with AI extraction
 
 // Error handling
 app.use(errorHandler);

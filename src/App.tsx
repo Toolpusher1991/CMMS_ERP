@@ -10,6 +10,7 @@ import ActionTracker from "@/pages/ActionTracker";
 import RigConfigurator from "@/pages/RigConfigurator";
 import FailureReporting from "@/pages/FailureReporting";
 import InspectionReports from "@/pages/InspectionReports";
+import EquipmentManuals from "@/pages/EquipmentManuals";
 import SystemDebug from "@/pages/SystemDebug";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -33,6 +34,7 @@ type AppPage =
   | "tender"
   | "failures"
   | "inspections"
+  | "manuals"
   | "debug";
 
 function App() {
@@ -216,6 +218,9 @@ function App() {
                   <FailureReporting initialReportId={initialReportId} />
                 )}
                 {currentPage === "inspections" && <InspectionReports />}
+                {currentPage === "manuals" && user.role === "ADMIN" && (
+                  <EquipmentManuals />
+                )}
                 {currentPage === "tender" && <RigConfigurator />}
                 {currentPage === "debug" && <SystemDebug />}
                 {currentPage === "users" && user.role === "ADMIN" && (
