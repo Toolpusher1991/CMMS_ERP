@@ -141,10 +141,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-background to-muted/20">
+    <div className="flex flex-col h-full bg-background">
       {/* Header with Clear Button */}
       {messages.length > 0 && (
-        <div className="flex items-center justify-between p-4 border-b bg-background/50 backdrop-blur-sm">
+        <div className="flex items-center justify-between p-4 border-b bg-background backdrop-blur-sm">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             <h3 className="font-semibold text-sm">MaintAIn Assistant</h3>
@@ -162,11 +162,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       )}
 
       {/* Messages Area */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
-          {/* Welcome Message */}
+      <ScrollArea className="flex-1 p-4 bg-background">
+        <div className="space-y-4">{/* Welcome Message */}
           {messages.length === 0 && (
-            <div className="text-center py-8">
+            <div className="text-center py-8 bg-background">
               <div className="relative inline-block mb-4">
                 <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full"></div>
                 <Sparkles className="h-16 w-16 mx-auto text-primary relative animate-pulse" />
