@@ -136,20 +136,25 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
                   <div className="flex items-start gap-2">
                     <Camera className="h-5 w-5 flex-shrink-0 mt-0.5 text-red-500" />
                     <div>
-                      <p className="font-semibold text-foreground">Schadensmeldungen</p>
+                      <p className="font-semibold text-foreground">
+                        Schadensmeldungen
+                      </p>
                       <p>Schnelle Dokumentation mit Kamera-Integration</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <ClipboardList className="h-5 w-5 flex-shrink-0 mt-0.5 text-blue-500" />
                     <div>
-                      <p className="font-semibold text-foreground">Action Points</p>
+                      <p className="font-semibold text-foreground">
+                        Action Points
+                      </p>
                       <p>Aufgaben direkt vor Ort erfassen</p>
                     </div>
                   </div>
                   <div className="mt-4 p-3 bg-muted/50 rounded-md">
                     <p className="text-xs">
-                      💡 <strong>Hinweis:</strong> Bearbeitung und Verwaltung erfolgt am Desktop oder Tablet
+                      💡 <strong>Hinweis:</strong> Bearbeitung und Verwaltung
+                      erfolgt am Desktop oder Tablet
                     </p>
                   </div>
                 </div>

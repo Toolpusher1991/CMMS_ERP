@@ -1122,9 +1122,7 @@ const ActionTracker = ({
               <ClipboardList className="h-6 w-6" />
               Action Point erstellen
             </CardTitle>
-            <CardDescription>
-              Aufgabe vor Ort erfassen
-            </CardDescription>
+            <CardDescription>Aufgabe vor Ort erfassen</CardDescription>
           </CardHeader>
           <CardContent>
             <Button
@@ -1159,7 +1157,7 @@ const ActionTracker = ({
                   <Label htmlFor="plant">Anlage *</Label>
                   <Select
                     value={currentAction.plant}
-                    onValueChange={(value) =>
+                    onValueChange={(value: "T208" | "T207" | "T700" | "T46") =>
                       setCurrentAction({ ...currentAction, plant: value })
                     }
                   >
@@ -1215,7 +1213,7 @@ const ActionTracker = ({
                   <Label htmlFor="priority">Priorität *</Label>
                   <Select
                     value={currentAction.priority}
-                    onValueChange={(value) =>
+                    onValueChange={(value: "LOW" | "MEDIUM" | "HIGH" | "URGENT") =>
                       setCurrentAction({ ...currentAction, priority: value })
                     }
                   >
@@ -1232,10 +1230,16 @@ const ActionTracker = ({
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="h-12">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                  className="h-12"
+                >
                   Abbrechen
                 </Button>
-                <Button onClick={handleSave} className="h-12">Speichern</Button>
+                <Button onClick={handleSave} className="h-12">
+                  Speichern
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
