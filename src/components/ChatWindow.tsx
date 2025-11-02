@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from "react";
+import { useState, useEffect, useRef, useImperativeHandle, forwardRef } from "react";
 import { Send, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
