@@ -137,11 +137,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     chatService.clearConversation();
     setMessages([]);
     setShowQuickActions(true);
-    toast({
-      title: "Chat geleert",
-      description: "Die Konversation wurde erfolgreich gelöscht.",
-      duration: 2000, // Nur 2 Sekunden anzeigen
-    });
+    // Kein Toast mehr - die Willkommensnachricht erscheint wieder
   };
 
   return (
