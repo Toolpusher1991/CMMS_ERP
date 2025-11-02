@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Terminal,
-  BarChart3,
   ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,6 @@ type AppPage =
   | "actions"
   | "tender"
   | "failures"
-  | "reporting"
   | "inspections"
   | "debug";
 
@@ -40,7 +38,6 @@ const allNavItems: NavItem[] = [
   { title: "Projekte", page: "projects", icon: FolderKanban },
   { title: "Work Orders", page: "workorders", icon: FileText },
   { title: "Action Tracker", page: "actions", icon: ListTodo },
-  { title: "Reporting", page: "reporting", icon: BarChart3 },
   { title: "Inspektionsberichte", page: "inspections", icon: ClipboardCheck },
   { title: "Bohranlagen", page: "tender", icon: Building2 },
   { title: "Störungsmeldung", page: "failures", icon: AlertTriangle },

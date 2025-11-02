@@ -1850,7 +1850,10 @@ const InspectionReports = () => {
                     <div className="mt-4 pt-3 border-t space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2">
-                          <Label htmlFor="action-discipline" className="text-foreground">
+                          <Label
+                            htmlFor="action-discipline"
+                            className="text-foreground"
+                          >
                             Zuständigkeit
                           </Label>
                           <Select
@@ -1866,14 +1869,19 @@ const InspectionReports = () => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="MECHANIK">Mechanik</SelectItem>
-                              <SelectItem value="ELEKTRIK">Elektriker</SelectItem>
+                              <SelectItem value="ELEKTRIK">
+                                Elektriker
+                              </SelectItem>
                               <SelectItem value="ANLAGE">Anlage</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="action-priority" className="text-foreground">
+                          <Label
+                            htmlFor="action-priority"
+                            className="text-foreground"
+                          >
                             Dringlichkeit
                           </Label>
                           <Select

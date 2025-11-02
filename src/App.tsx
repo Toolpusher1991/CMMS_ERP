@@ -9,7 +9,6 @@ import WorkOrderManagement from "@/pages/WorkOrderManagement";
 import ActionTracker from "@/pages/ActionTracker";
 import RigConfigurator from "@/pages/RigConfigurator";
 import FailureReporting from "@/pages/FailureReporting";
-import Reporting from "@/pages/Reporting";
 import InspectionReports from "@/pages/InspectionReports";
 import SystemDebug from "@/pages/SystemDebug";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -33,7 +32,6 @@ type AppPage =
   | "actions"
   | "tender"
   | "failures"
-  | "reporting"
   | "inspections"
   | "debug";
 
@@ -217,7 +215,6 @@ function App() {
                 {currentPage === "failures" && (
                   <FailureReporting initialReportId={initialReportId} />
                 )}
-                {currentPage === "reporting" && <Reporting />}
                 {currentPage === "inspections" && <InspectionReports />}
                 {currentPage === "tender" && <RigConfigurator />}
                 {currentPage === "debug" && <SystemDebug />}
