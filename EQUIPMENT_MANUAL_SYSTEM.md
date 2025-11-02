@@ -9,6 +9,7 @@ Das Equipment Manual Management System ermöglicht es Administratoren, Equipment
 ## Features
 
 ### 1. **Manual Upload**
+
 - PDF-Upload (bis 50MB)
 - Equipment-Informationen erfassen:
   - Equipment Name (Pflicht)
@@ -20,9 +21,11 @@ Das Equipment Manual Management System ermöglicht es Administratoren, Equipment
   - Standort auf Rig
 
 ### 2. **AI-gestützte Extraktion**
+
 Nach dem Upload analysiert die AI automatisch das Manual und extrahiert:
 
 #### **Wartungspläne (Maintenance Schedules)**
+
 - Aufgabenname
 - Beschreibung
 - Intervall (z.B. "500h", "Monthly", "Annually")
@@ -33,6 +36,7 @@ Nach dem Upload analysiert die AI automatisch das Manual und extrahiert:
 - Sicherheitshinweise
 
 #### **Ersatzteile (Spare Parts)**
+
 - Teilenummer
 - Teilename
 - Beschreibung
@@ -42,11 +46,13 @@ Nach dem Upload analysiert die AI automatisch das Manual und extrahiert:
 - Kritisches Teil (Ja/Nein)
 
 #### **Technische Spezifikationen**
+
 - Kategorien (Performance, Dimensions, Electrical)
 - Parameter mit Werten und Einheiten
 - Notizen
 
 ### 3. **Moderne UI mit shadcn/ui**
+
 - Responsive Design
 - Dark Mode Support
 - Tab-Navigation (Übersicht, Wartung, Ersatzteile, Spezifikationen)
@@ -54,6 +60,7 @@ Nach dem Upload analysiert die AI automatisch das Manual und extrahiert:
 - Status-Badges für AI-Verarbeitung
 
 ### 4. **Admin-Only Zugriff**
+
 - Nur Admins können diese Seite sehen
 - BETA Badge in Sidebar
 - Sichere Backend-Routes
@@ -61,6 +68,7 @@ Nach dem Upload analysiert die AI automatisch das Manual und extrahiert:
 ## Datenbank Schema
 
 ### EquipmentManual
+
 ```prisma
 model EquipmentManual {
   id                String
@@ -83,6 +91,7 @@ model EquipmentManual {
 ```
 
 ### MaintenanceSchedule
+
 ```prisma
 model MaintenanceSchedule {
   taskName          String
@@ -98,6 +107,7 @@ model MaintenanceSchedule {
 ```
 
 ### SparePart
+
 ```prisma
 model SparePart {
   partNumber        String
@@ -110,6 +120,7 @@ model SparePart {
 ```
 
 ### Specification
+
 ```prisma
 model Specification {
   category          String
@@ -122,28 +133,36 @@ model Specification {
 ## API Endpoints
 
 ### GET /api/equipment-manuals
+
 Alle Manuals abrufen (mit Relations)
 
 ### GET /api/equipment-manuals/:id
+
 Einzelnes Manual abrufen
 
 ### POST /api/equipment-manuals/upload
+
 Manual hochladen
+
 - Multipart/form-data
 - File: PDF
 - Body: Equipment-Informationen
 
 ### POST /api/equipment-manuals/:id/process
+
 AI-Verarbeitung starten
+
 - Extrahiert Wartungspläne, Ersatzteile, Spezifikationen
 - Aktuell: Sample-Daten (TODO: Echte AI-Integration)
 
 ### DELETE /api/equipment-manuals/:id
+
 Manual löschen
 
 ## Verwendung
 
 ### 1. Manual hochladen
+
 1. Navigieren Sie zu **Equipment Manuals** (nur für Admins sichtbar)
 2. Klicken Sie auf **"Manual hochladen"**
 3. Füllen Sie die Equipment-Informationen aus
@@ -151,6 +170,7 @@ Manual löschen
 5. Klicken Sie auf **"Hochladen & Analysieren"**
 
 ### 2. Manual ansehen
+
 1. Klicken Sie auf das Auge-Symbol in der Tabelle
 2. Tabs durchsuchen:
    - **Übersicht**: Equipment-Info und AI-Zusammenfassung
@@ -159,11 +179,13 @@ Manual löschen
    - **Spezifikationen**: Technische Daten
 
 ### 3. Manual herunterladen
+
 - Original-PDF jederzeit über Download-Button verfügbar
 
 ## Zukünftige Features
 
 ### Phase 2: Echte AI-Integration
+
 - OpenAI GPT-4 oder Claude für PDF-Analyse
 - Automatische Textextraktion aus Tabellen
 - Intelligente Erkennung von:
@@ -172,16 +194,19 @@ Manual löschen
   - Spezifikationstabellen
 
 ### Phase 3: Work Order Integration
+
 - Automatische Work Order Erstellung basierend auf Intervallen
 - Equipment-Tracking mit Betriebsstunden
 - Erinnerungen für fällige Wartung
 
 ### Phase 4: Ersatzteillager
+
 - Bestandsverwaltung
 - Mindestbestandswarnung
 - Bestellvorschläge
 
 ### Phase 5: Equipment Hierarchie (SAP IH01)
+
 - Funktionale Standorte
 - Equipment-Struktur
 - BOM (Bill of Materials)
@@ -190,18 +215,21 @@ Manual löschen
 ## Technische Details
 
 ### Frontend
+
 - **Framework**: React 18 + TypeScript
 - **UI Library**: shadcn/ui (Radix UI + Tailwind)
 - **File Upload**: Multipart FormData
 - **State Management**: React useState/useEffect
 
 ### Backend
+
 - **Framework**: Express.js + TypeScript
 - **Database**: PostgreSQL (Prisma ORM)
 - **File Storage**: Cloudinary
 - **Authentication**: JWT with role-based access
 
 ### Storage
+
 - PDFs werden auf Cloudinary hochgeladen
 - Ordner: `cmms-erp/equipment-manuals`
 - Maximale Dateigröße: 50MB
@@ -218,15 +246,18 @@ Manual löschen
 ## Troubleshooting
 
 ### Manual wird nicht verarbeitet?
+
 - Überprüfen Sie, ob AI-Processing Endpoint aufgerufen wurde
 - Aktuell werden Sample-Daten erstellt (echte AI kommt in Phase 2)
 
 ### Upload schlägt fehl?
+
 - Überprüfen Sie Cloudinary-Konfiguration (.env)
 - Prüfen Sie Dateigröße (<50MB)
 - Nur PDF-Dateien erlaubt
 
 ### Keine Daten sichtbar?
+
 - Überprüfen Sie Datenbankverbindung
 - Prisma Client regenerieren: `npx prisma generate`
 - Backend neustarten
@@ -236,6 +267,7 @@ Manual löschen
 Dieses Feature ist in aktiver Entwicklung. Feedback willkommen!
 
 **Nächste Schritte:**
+
 1. Echte AI-Integration mit GPT-4/Claude
 2. Testing mit echten Equipment-Manuals
 3. Work Order Auto-Creation

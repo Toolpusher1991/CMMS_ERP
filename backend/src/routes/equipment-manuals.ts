@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import { Readable } from "stream";
+import { analyzeManualWithAI } from "../services/manual-ai.service";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -190,91 +191,49 @@ router.post("/:id/process", async (req: Request, res: Response) => {
       });
     }
 
-    // TODO: Implement AI processing here
-    // For now, we'll create some sample data
-    
-    // Sample maintenance schedules
-    await prisma.maintenanceSchedule.createMany({
-      data: [
-        {
-          manualId: id,
-          taskName: "Oil Change",
-          description: "Change oil and filter",
-          interval: "500 hours",
-          intervalHours: 500,
-          priority: "HIGH",
-          category: "Lubrication",
-          estimatedDuration: "2 hours",
-          requiredTools: "Oil filter wrench, drain pan",
-          safetyNotes: "Ensure equipment is cool before draining oil",
-        },
-        {
-          manualId: id,
-          taskName: "Visual Inspection",
-          description: "Check for leaks and damage",
-          interval: "Daily",
-          intervalDays: 1,
-          priority: "MEDIUM",
-          category: "Inspection",
-          estimatedDuration: "30 minutes",
-        },
-      ],
-    });
+    console.log(`🤖 Starting AI processing for manual: ${manual.equipmentName}`);
 
-    // Sample spare parts
-    await prisma.sparePart.createMany({
-      data: [
-        {
-          manualId: id,
-          partNumber: "12345-ABC",
-          partName: "Oil Filter",
-          description: "High-efficiency oil filter",
-          category: "Filter",
-          quantity: 5,
-          manufacturer: manual.manufacturer || "Unknown",
-          replacementInterval: "500 hours",
-          criticalPart: true,
-        },
-        {
-          manualId: id,
-          partNumber: "67890-XYZ",
-          partName: "Bearing Assembly",
-          description: "Main shaft bearing",
-          category: "Bearing",
-          quantity: 2,
-          manufacturer: manual.manufacturer || "Unknown",
-          replacementInterval: "2000 hours",
-          criticalPart: true,
-        },
-      ],
-    });
+    // Use AI to analyze the manual
+    const aiResult = await analyzeManualWithAI(
+      manual.manualFilePath,
+      manual.equipmentName,
+      manual.manufacturer || undefined
+    );
 
-    // Sample specifications
-    await prisma.specification.createMany({
-      data: [
-        {
+    console.log(`✅ AI analysis complete. Creating database records...`);
+
+    // Create maintenance schedules from AI result
+    if (aiResult.maintenanceSchedules.length > 0) {
+      await prisma.maintenanceSchedule.createMany({
+        data: aiResult.maintenanceSchedules.map(schedule => ({
           manualId: id,
-          category: "Performance",
-          name: "Max Load Capacity",
-          value: "50",
-          unit: "tons",
-        },
-        {
+          ...schedule,
+        })),
+      });
+      console.log(`✅ Created ${aiResult.maintenanceSchedules.length} maintenance schedules`);
+    }
+
+    // Create spare parts from AI result
+    if (aiResult.spareParts.length > 0) {
+      await prisma.sparePart.createMany({
+        data: aiResult.spareParts.map(part => ({
           manualId: id,
-          category: "Dimensions",
-          name: "Height",
-          value: "12",
-          unit: "meters",
-        },
-        {
+          ...part,
+        })),
+      });
+      console.log(`✅ Created ${aiResult.spareParts.length} spare parts`);
+    }
+
+    // Create specifications from AI result
+    if (aiResult.specifications.length > 0) {
+      await prisma.specification.createMany({
+        data: aiResult.specifications.map(spec => ({
           manualId: id,
-          category: "Electrical",
-          name: "Operating Voltage",
-          value: "480",
-          unit: "V",
-        },
-      ],
-    });
+          ...spec,
+        })),
+      });
+      console.log(`✅ Created ${aiResult.specifications.length} specifications`);
+    }
 
     // Update manual as processed
     const updatedManual = await prisma.equipmentManual.update({
@@ -282,7 +241,8 @@ router.post("/:id/process", async (req: Request, res: Response) => {
       data: {
         aiProcessed: true,
         aiProcessedAt: new Date(),
-        summary: `${manual.equipmentName} manual has been processed. Key maintenance intervals and spare parts have been extracted.`,
+        summary: aiResult.summary,
+        aiExtractionData: aiResult as any, // Store raw AI response for debugging
       },
       include: {
         maintenanceSchedules: true,
@@ -291,10 +251,12 @@ router.post("/:id/process", async (req: Request, res: Response) => {
       },
     });
 
+    console.log(`🎉 AI processing complete for ${manual.equipmentName}`);
+
     res.json({
       success: true,
       data: updatedManual,
-      message: "Manual processed successfully",
+      message: "Manual processed successfully with AI",
     });
   } catch (error) {
     console.error("Error processing manual:", error);
