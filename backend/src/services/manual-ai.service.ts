@@ -3,8 +3,7 @@ import pdfParse from 'pdf-parse';
 import fs from 'fs/promises';
 import path from 'path';
 import { createWorker } from 'tesseract.js';
-// @ts-ignore - pdf-poppler doesn't have types
-import pdf from 'pdf-poppler';
+import { fromPath } from 'pdf2pic';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -71,20 +70,31 @@ async function extractTextFromPDF(filePath: string): Promise<string> {
         const outputDir = path.join(path.dirname(filePath), 'temp_ocr');
         await fs.mkdir(outputDir, { recursive: true });
         
-        // Convert PDF pages to PNG images
-        const opts = {
-          format: 'png',
-          out_dir: outputDir,
-          out_prefix: path.basename(filePath, '.pdf'),
-          page: null, // Convert all pages
+        console.log(`🖼️ Converting PDF to images...`);
+        
+        // Configure pdf2pic
+        const options = {
+          density: 200,           // DPI for image quality
+          saveFilename: path.basename(filePath, '.pdf'),
+          savePath: outputDir,
+          format: "png",
+          width: 2000,
+          height: 2000
         };
         
-        console.log(`🖼️ Converting PDF to images...`);
-        await pdf.convert(filePath, opts);
+        const convert = fromPath(filePath, options);
         
-        // Get all generated PNG files
-        const files = await fs.readdir(outputDir);
-        const imageFiles = files.filter(f => f.endsWith('.png')).sort();
+        // Get page count from original PDF parse
+        const pageCount = data.numpages || 1;
+        
+        // Convert all pages
+        const imageFiles: string[] = [];
+        for (let i = 1; i <= pageCount; i++) {
+          const result = await convert(i, { responseType: "image" });
+          if (result && result.path) {
+            imageFiles.push(result.path);
+          }
+        }
         
         console.log(`📸 Found ${imageFiles.length} pages to OCR`);
         
@@ -95,7 +105,7 @@ async function extractTextFromPDF(filePath: string): Promise<string> {
         
         // OCR each page
         for (let i = 0; i < imageFiles.length; i++) {
-          const imagePath = path.join(outputDir, imageFiles[i]);
+          const imagePath = imageFiles[i];
           console.log(`🔍 OCR processing page ${i + 1}/${imageFiles.length}...`);
           
           const { data: { text } } = await worker.recognize(imagePath);
