@@ -2,11 +2,11 @@ services:
   # Backend API
   - type: web
     name: cmms-erp-backend
-    runtime: node
+    runtime: docker
     region: frankfurt
     plan: free
-    buildCommand: cd backend && npm install && npx prisma generate && npm run build
-    startCommand: cd backend && npx prisma migrate deploy && npm start
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     envVars:
       - key: NODE_ENV
         value: production

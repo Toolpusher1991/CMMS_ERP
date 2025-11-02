@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from "react";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
+import { isMobileDevice } from "@/lib/device-detection";
 import {
   Card,
   CardContent,
@@ -1109,6 +1110,141 @@ const ActionTracker = ({
     return getFilteredActionsForCategory(plant, category).length;
   };
 
+  const isMobile = isMobileDevice();
+
+  // Mobile View: Only show creation dialog
+  if (isMobile) {
+    return (
+      <div className="p-3 space-y-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <ClipboardList className="h-6 w-6" />
+              Action Point erstellen
+            </CardTitle>
+            <CardDescription>
+              Aufgabe vor Ort erfassen
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={openNewDialog}
+              className="w-full h-16 text-lg"
+              size="lg"
+            >
+              <Plus className="h-6 w-6 mr-2" />
+              Neue Action erstellen
+            </Button>
+            <p className="text-xs text-muted-foreground mt-3 text-center">
+              💡 Verwaltung und Bearbeitung am Desktop/Tablet
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Create Dialog - same as desktop */}
+        {isDialogOpen && (
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent className="max-w-full h-full m-0 max-h-full overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {isEditMode ? "Action bearbeiten" : "Neue Action erstellen"}
+                </DialogTitle>
+                <DialogDescription>
+                  Erstellen Sie eine neue Aufgabe für das Team
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                {/* Plant Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="plant">Anlage *</Label>
+                  <Select
+                    value={currentAction.plant}
+                    onValueChange={(value) =>
+                      setCurrentAction({ ...currentAction, plant: value })
+                    }
+                  >
+                    <SelectTrigger id="plant" className="h-12 text-base">
+                      <SelectValue placeholder="Anlage wählen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="T208">T208</SelectItem>
+                      <SelectItem value="T207">T207</SelectItem>
+                      <SelectItem value="T700">T700</SelectItem>
+                      <SelectItem value="T46">T46</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Title */}
+                <div className="space-y-2">
+                  <Label htmlFor="title">Titel *</Label>
+                  <Input
+                    id="title"
+                    value={currentAction.title}
+                    onChange={(e) =>
+                      setCurrentAction({
+                        ...currentAction,
+                        title: e.target.value,
+                      })
+                    }
+                    placeholder="Kurze Beschreibung"
+                    className="h-12 text-base"
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="description">Beschreibung</Label>
+                  <Textarea
+                    id="description"
+                    value={currentAction.description}
+                    onChange={(e) =>
+                      setCurrentAction({
+                        ...currentAction,
+                        description: e.target.value,
+                      })
+                    }
+                    placeholder="Detaillierte Beschreibung..."
+                    rows={4}
+                    className="text-base"
+                  />
+                </div>
+
+                {/* Priority */}
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Priorität *</Label>
+                  <Select
+                    value={currentAction.priority}
+                    onValueChange={(value) =>
+                      setCurrentAction({ ...currentAction, priority: value })
+                    }
+                  >
+                    <SelectTrigger id="priority" className="h-12 text-base">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="LOW">Niedrig</SelectItem>
+                      <SelectItem value="MEDIUM">Mittel</SelectItem>
+                      <SelectItem value="HIGH">Hoch</SelectItem>
+                      <SelectItem value="CRITICAL">Kritisch</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="h-12">
+                  Abbrechen
+                </Button>
+                <Button onClick={handleSave} className="h-12">Speichern</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop View: Full functionality
   return (
     <div className="space-y-6">
       <Card>

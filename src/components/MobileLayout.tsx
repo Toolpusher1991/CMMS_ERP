@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Camera, LogOut, FileText, User } from "lucide-react";
+import { Camera, LogOut, FileText, User, ClipboardList } from "lucide-react";
 
 interface MobileLayoutProps {
   children?: React.ReactNode;
@@ -13,7 +13,8 @@ interface MobileLayoutProps {
 
 /**
  * Mobile-optimized layout
- * Shows only essential features: Login, Failure Reporting, Logout
+ * Shows only essential features: Create Failure Reports and Action Points
+ * Editing/Management happens on Desktop/Tablet only
  */
 export const MobileLayout: React.FC<MobileLayoutProps> = ({
   children,
@@ -24,6 +25,10 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
 }) => {
   const handleFailureReport = () => {
     onNavigate("failures");
+  };
+
+  const handleActionTracker = () => {
+    onNavigate("actions");
   };
 
   if (!isLoggedIn) {
@@ -81,40 +86,73 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
       <div className="p-4">
         {children || (
           <div className="space-y-4 mt-8">
-            {/* Primary Action: Create Failure Report */}
-            <Card className="bg-primary/10 border-primary/20">
-              <CardContent className="p-6">
-                <Button
-                  onClick={handleFailureReport}
-                  className="w-full h-20 text-xl"
-                  size="lg"
-                >
-                  <Camera className="mr-3 h-8 w-8" />
-                  Schadensmeldung erstellen
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Primary Actions Grid */}
+            <div className="grid grid-cols-1 gap-4">
+              {/* Schadensmeldung */}
+              <Card className="bg-red-500/10 border-red-500/20">
+                <CardContent className="p-6">
+                  <Button
+                    onClick={handleFailureReport}
+                    className="w-full h-20 text-xl bg-red-600 hover:bg-red-700"
+                    size="lg"
+                  >
+                    <Camera className="mr-3 h-8 w-8" />
+                    Schadensmeldung
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Schaden mit Foto dokumentieren
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Action Point */}
+              <Card className="bg-blue-500/10 border-blue-500/20">
+                <CardContent className="p-6">
+                  <Button
+                    onClick={handleActionTracker}
+                    className="w-full h-20 text-xl bg-blue-600 hover:bg-blue-700"
+                    size="lg"
+                  >
+                    <ClipboardList className="mr-3 h-8 w-8" />
+                    Action Point
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Aufgabe vor Ort erstellen
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Info Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <FileText className="mr-2 h-5 w-5" />
-                  Deine Meldungen
+                  Mobile Funktionen
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Erstelle schnell und einfach Schadensmeldungen mit deinem
-                  Handy. Fotos können direkt mit der Kamera aufgenommen werden.
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={handleFailureReport}
-                  className="w-full"
-                >
-                  Zu den Meldungen
-                </Button>
+                <div className="space-y-3 text-sm text-muted-foreground">
+                  <div className="flex items-start gap-2">
+                    <Camera className="h-5 w-5 flex-shrink-0 mt-0.5 text-red-500" />
+                    <div>
+                      <p className="font-semibold text-foreground">Schadensmeldungen</p>
+                      <p>Schnelle Dokumentation mit Kamera-Integration</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <ClipboardList className="h-5 w-5 flex-shrink-0 mt-0.5 text-blue-500" />
+                    <div>
+                      <p className="font-semibold text-foreground">Action Points</p>
+                      <p>Aufgaben direkt vor Ort erfassen</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 p-3 bg-muted/50 rounded-md">
+                    <p className="text-xs">
+                      💡 <strong>Hinweis:</strong> Bearbeitung und Verwaltung erfolgt am Desktop oder Tablet
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

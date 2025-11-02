@@ -1,0 +1,148 @@
+/* Mobile-optimized styles for Action Tracker */
+
+.mobile-action-tracker {
+  /* Larger touch targets */
+  --mobile-touch-target: 48px;
+  --mobile-spacing: 16px;
+}
+
+.mobile-action-tracker button {
+  min-height: var(--mobile-touch-target);
+  min-width: var(--mobile-touch-target);
+  font-size: 16px;
+  padding: 12px 20px;
+}
+
+.mobile-action-tracker input,
+.mobile-action-tracker textarea,
+.mobile-action-tracker select {
+  min-height: var(--mobile-touch-target);
+  font-size: 16px; /* Prevents zoom on iOS */
+  padding: 12px;
+}
+
+.mobile-action-tracker label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* Card spacing */
+.mobile-action-tracker .space-y-4 > * + * {
+  margin-top: var(--mobile-spacing);
+}
+
+/* Primary action button - make it prominent */
+.mobile-action-tracker button[aria-label*="Action"],
+.mobile-action-tracker button:has(svg[class*="Plus"]) {
+  min-height: 60px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Table cells - more padding for touch */
+.mobile-action-tracker td,
+.mobile-action-tracker th {
+  padding: 12px 8px;
+  font-size: 14px;
+}
+
+/* Dialog content - full screen on mobile */
+.mobile-action-tracker [role="dialog"] {
+  max-width: 100%;
+  max-height: 100vh;
+  margin: 0;
+}
+
+/* Tabs - larger touch targets */
+.mobile-action-tracker [role="tablist"] button {
+  min-height: 44px;
+  padding: 8px 16px;
+  font-size: 15px;
+}
+
+/* Action buttons spacing */
+.mobile-action-tracker .flex.gap-2 {
+  gap: 12px;
+}
+
+/* Badge - larger text */
+.mobile-action-tracker [class*="badge"] {
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+/* Icon sizes */
+.mobile-action-tracker svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Prevent text selection on buttons */
+.mobile-action-tracker button {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Smooth scrolling */
+.mobile-action-tracker {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Photo preview - full width */
+.mobile-action-tracker img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Form grid - stack on mobile */
+.mobile-action-tracker .grid {
+  grid-template-columns: 1fr !important;
+  gap: var(--mobile-spacing);
+}
+
+/* Status badges - make them more prominent */
+.mobile-action-tracker [class*="badge"][class*="OPEN"] {
+  font-size: 14px;
+  padding: 8px 14px;
+}
+
+/* Date picker - larger touch area */
+.mobile-action-tracker [role="button"][aria-label*="date"] {
+  min-height: var(--mobile-touch-target);
+  font-size: 16px;
+}
+
+/* Select dropdowns - larger */
+.mobile-action-tracker [role="combobox"] {
+  min-height: var(--mobile-touch-target);
+  font-size: 16px;
+}
+
+/* Priority indicators - more visible */
+.mobile-action-tracker [class*="priority"] {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Compact card layout on mobile */
+.mobile-action-tracker .card-compact {
+  padding: 12px;
+}
+
+/* Action list items - card style */
+.mobile-action-tracker [data-action-item] {
+  padding: 16px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+
+/* Hide less important columns on mobile */
+@media (max-width: 640px) {
+  .mobile-action-tracker .hide-mobile {
+    display: none;
+  }
+}

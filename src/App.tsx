@@ -162,7 +162,7 @@ function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="cmms-erp-theme">
       {isMobile ? (
-        // Mobile View: Simplified layout with only Failure Reporting
+        // Mobile View: Simplified layout - Create Failures and Actions only
         <MobileLayout
           isLoggedIn={true}
           userName={`${user.firstName} ${user.lastName}`}
@@ -170,6 +170,7 @@ function App() {
           onNavigate={handleMobileNavigate}
         >
           {currentPage === "failures" && <FailureReporting />}
+          {currentPage === "actions" && <ActionTracker />}
         </MobileLayout>
       ) : (
         // Desktop View: Full app with Sidebar
