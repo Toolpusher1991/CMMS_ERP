@@ -8,6 +8,21 @@ import { analyzeManualWithAI } from "../services/manual-ai.service";
 const router = Router();
 const prisma = new PrismaClient();
 
+// Helper function to make existing Cloudinary file public
+const makeFilePublic = async (publicId: string): Promise<void> => {
+  try {
+    await cloudinary.uploader.explicit(publicId, {
+      type: "upload",
+      resource_type: "raw",
+      access_mode: "public",
+    });
+    console.log(`✅ Made file public: ${publicId}`);
+  } catch (error) {
+    console.error(`❌ Failed to make file public: ${publicId}`, error);
+    throw error;
+  }
+};
+
 // Configure Cloudinary upload for manuals
 const storage = multer.memoryStorage();
 const uploadManual = multer({
@@ -34,6 +49,8 @@ const uploadToCloudinary = (
       {
         folder: "cmms-erp/equipment-manuals",
         resource_type: "raw",
+        type: "upload",
+        access_mode: "public",
         public_id: `manual_${Date.now()}_${filename}`,
       },
       (error, result) => {
@@ -192,6 +209,16 @@ router.post("/:id/process", async (req: Request, res: Response) => {
     }
 
     console.log(`🤖 Starting AI processing for manual: ${manual.equipmentName}`);
+
+    // Extract public_id from Cloudinary URL
+    // URL format: https://res.cloudinary.com/dhb5tjle6/raw/upload/v1762069340/cmms-erp/equipment-manuals/manual_xxx.pdf
+    const urlParts = manual.manualFilePath.split('/');
+    const versionIndex = urlParts.findIndex((part: string) => part.startsWith('v'));
+    const publicId = urlParts.slice(versionIndex + 1).join('/').replace('.pdf', '');
+    
+    // Make sure the file is publicly accessible
+    console.log(`🔓 Making file public: ${publicId}`);
+    await makeFilePublic(publicId);
 
     // Use AI to analyze the manual
     const aiResult = await analyzeManualWithAI(
