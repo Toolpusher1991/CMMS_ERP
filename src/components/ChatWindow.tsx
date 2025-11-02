@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Send, Loader2, Sparkles, Trash2 } from "lucide-react";
+import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from "react";
+import { Send, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,11 +14,17 @@ import { useToast } from "@/components/ui/use-toast";
 
 interface ChatWindowProps {
   onClose?: () => void;
+  onMessagesChange?: (hasMessages: boolean) => void;
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({
+export interface ChatWindowRef {
+  clearChat: () => void;
+}
+
+export const ChatWindow = forwardRef<ChatWindowRef, ChatWindowProps>(({
   onClose: _onClose,
-}) => {
+  onMessagesChange,
+}, ref) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -32,9 +38,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const history = chatService.getHistory();
     setMessages(history);
     setShowQuickActions(history.length === 0);
+    onMessagesChange?.(history.length > 0);
 
     loadQuickActions();
-  }, []);
+  }, [onMessagesChange]);
+
+  // Notify parent when messages change
+  useEffect(() => {
+    onMessagesChange?.(messages.length > 0);
+  }, [messages.length, onMessagesChange]);
 
   // Auto-scroll to bottom when new message arrives
   useEffect(() => {
@@ -140,30 +152,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     // Kein Toast mehr - die Willkommensnachricht erscheint wieder
   };
 
+  // Expose clearChat method to parent
+  useImperativeHandle(ref, () => ({
+    clearChat: handleClearChat
+  }));
+
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Header with Clear Button */}
-      {messages.length > 0 && (
-        <div className="flex items-center justify-between p-4 border-b bg-background backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold text-sm">MaintAIn Assistant</h3>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClearChat}
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Chat leeren
-          </Button>
-        </div>
-      )}
-
       {/* Messages Area */}
       <ScrollArea className="flex-1 p-4 bg-background">
-        <div className="space-y-4">{/* Welcome Message */}
+        <div className="space-y-4">
+          {/* Welcome Message */}
           {messages.length === 0 && (
             <div className="text-center py-8 bg-background">
               <div className="relative inline-block mb-4">
@@ -345,4 +344,4 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       </div>
     </div>
   );
-};
+});

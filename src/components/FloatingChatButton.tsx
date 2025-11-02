@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { MessageCircle, X, Minus } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { MessageCircle, X, Minus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChatWindow } from "./ChatWindow";
@@ -8,6 +8,8 @@ import { chatService } from "@/services/chat.service";
 export const FloatingChatButton: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [hasUnreadSuggestions, setHasUnreadSuggestions] = useState(false);
+  const [hasMessages, setHasMessages] = useState(false);
+  const chatWindowRef = useRef<{ clearChat: () => void }>(null);
 
   useEffect(() => {
     // Check if user has unread suggestions
@@ -44,6 +46,10 @@ export const FloatingChatButton: React.FC = () => {
   const handleClose = () => {
     console.log("Closing chat"); // Debug log
     setIsOpen(false);
+  };
+
+  const handleClearChat = () => {
+    chatWindowRef.current?.clearChat();
   };
 
   return (
@@ -93,12 +99,36 @@ export const FloatingChatButton: React.FC = () => {
                     <h3 className="font-semibold text-white text-lg">
                       MaintAIn Assistant
                     </h3>
-                    <p className="text-xs text-white/80">Hier um zu helfen 🤖</p>
+                    <p className="text-xs text-white/80">
+                      Hier um zu helfen 🤖
+                    </p>
                   </div>
                 </div>
-                
-                {/* Minimize and Close Buttons - Always on top */}
+
+                {/* Action Buttons - Always on top */}
                 <div className="flex items-center gap-2 relative z-[10000]">
+                  {/* Clear Chat Button - only show when there are messages */}
+                  {hasMessages && (
+                    <button
+                      type="button"
+                      onClick={handleClearChat}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleClearChat();
+                      }}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        handleClearChat();
+                      }}
+                      className="text-white hover:bg-white/20 h-10 w-10 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer bg-white/10"
+                      style={{ WebkitTapHighlightColor: "transparent" }}
+                      aria-label="Chat leeren"
+                      title="Chat leeren"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  )}
+
                   {/* Minimize Button */}
                   <button
                     type="button"
@@ -112,7 +142,7 @@ export const FloatingChatButton: React.FC = () => {
                       handleClose();
                     }}
                     className="text-white hover:bg-white/20 h-10 w-10 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer bg-white/10"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    style={{ WebkitTapHighlightColor: "transparent" }}
                     aria-label="Chatbot minimieren"
                     title="Minimieren"
                   >
@@ -132,7 +162,7 @@ export const FloatingChatButton: React.FC = () => {
                       handleClose();
                     }}
                     className="text-white hover:bg-white/20 h-10 w-10 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer bg-white/10"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    style={{ WebkitTapHighlightColor: "transparent" }}
                     aria-label="Chatbot schließen"
                     title="Schließen"
                   >
@@ -142,7 +172,11 @@ export const FloatingChatButton: React.FC = () => {
               </div>
 
               {/* Chat Content */}
-              <ChatWindow onClose={handleClose} />
+              <ChatWindow 
+                ref={chatWindowRef}
+                onClose={handleClose} 
+                onMessagesChange={setHasMessages}
+              />
             </div>
           </div>
         </>
