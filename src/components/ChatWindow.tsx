@@ -140,6 +140,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     toast({
       title: "Chat geleert",
       description: "Die Konversation wurde erfolgreich gelöscht.",
+      duration: 2000, // Nur 2 Sekunden anzeigen
     });
   };
 

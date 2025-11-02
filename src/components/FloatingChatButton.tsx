@@ -82,9 +82,9 @@ export const FloatingChatButton: React.FC = () => {
           />
 
           <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-4 duration-300">
-            <div className="bg-background border-2 rounded-2xl shadow-2xl w-[400px] h-[600px] flex flex-col overflow-hidden">
+            <div className="bg-background border-2 rounded-2xl shadow-2xl w-[400px] h-[600px] flex flex-col overflow-hidden relative">
               {/* Header with close button */}
-              <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-4 flex items-center justify-between shrink-0">
+              <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-4 flex items-center justify-between shrink-0 relative z-[9999]">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                     <MessageCircle className="h-6 w-6 text-white" />
@@ -97,8 +97,8 @@ export const FloatingChatButton: React.FC = () => {
                   </div>
                 </div>
                 
-                {/* Minimize and Close Buttons */}
-                <div className="flex items-center gap-2">
+                {/* Minimize and Close Buttons - Always on top */}
+                <div className="flex items-center gap-2 relative z-[10000]">
                   {/* Minimize Button */}
                   <button
                     type="button"
@@ -111,7 +111,7 @@ export const FloatingChatButton: React.FC = () => {
                       e.preventDefault();
                       handleClose();
                     }}
-                    className="text-white hover:bg-white/20 h-10 w-10 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+                    className="text-white hover:bg-white/20 h-10 w-10 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer bg-white/10"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                     aria-label="Chatbot minimieren"
                     title="Minimieren"
@@ -131,7 +131,7 @@ export const FloatingChatButton: React.FC = () => {
                       e.preventDefault();
                       handleClose();
                     }}
-                    className="text-white hover:bg-white/20 h-10 w-10 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+                    className="text-white hover:bg-white/20 h-10 w-10 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer bg-white/10"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                     aria-label="Chatbot schließen"
                     title="Schließen"
