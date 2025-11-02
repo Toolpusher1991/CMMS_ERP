@@ -557,14 +557,24 @@ const ActionTracker = ({
   };
 
   const handleSave = async () => {
+    // Validation - relaxed for mobile (only title required)
+    if (!currentAction.title) {
+      toast({
+        title: "Fehler",
+        description: "Bitte geben Sie einen Titel ein.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Desktop: require assignedTo and dueDate
     if (
-      !currentAction.title ||
-      !currentAction.assignedTo ||
-      !currentAction.dueDate
+      !isMobileDevice() &&
+      (!currentAction.assignedTo || !currentAction.dueDate)
     ) {
       toast({
         title: "Fehler",
-        description: "Bitte füllen Sie alle Pflichtfelder aus.",
+        description: "Bitte füllen Sie alle Pflichtfelder aus (Zugewiesen an, Fälligkeitsdatum).",
         variant: "destructive",
       });
       return;

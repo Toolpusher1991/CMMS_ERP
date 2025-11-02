@@ -88,6 +88,10 @@ function App() {
       setIsAuthenticated(false);
     } else if (page === "failures") {
       setCurrentPage("failures");
+    } else if (page === "actions") {
+      setCurrentPage("actions");
+    } else if (page === "home") {
+      setCurrentPage("dashboard"); // Reset to dashboard to show menu
     }
   };
 
@@ -169,8 +173,11 @@ function App() {
           onLogout={handleLogout}
           onNavigate={handleMobileNavigate}
         >
-          {currentPage === "failures" && <FailureReporting />}
-          {currentPage === "actions" && <ActionTracker />}
+          {currentPage === "failures" ? (
+            <FailureReporting />
+          ) : currentPage === "actions" ? (
+            <ActionTracker />
+          ) : null}
         </MobileLayout>
       ) : (
         // Desktop View: Full app with Sidebar
