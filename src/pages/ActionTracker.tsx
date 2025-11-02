@@ -77,6 +77,9 @@ import {
   ListTodo,
   User as UserIcon,
   Filter,
+  Calendar,
+  MessageSquare,
+  Circle,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -574,7 +577,8 @@ const ActionTracker = ({
     ) {
       toast({
         title: "Fehler",
-        description: "Bitte füllen Sie alle Pflichtfelder aus (Zugewiesen an, Fälligkeitsdatum).",
+        description:
+          "Bitte füllen Sie alle Pflichtfelder aus (Zugewiesen an, Fälligkeitsdatum).",
         variant: "destructive",
       });
       return;
@@ -1122,32 +1126,330 @@ const ActionTracker = ({
 
   const isMobile = isMobileDevice();
 
-  // Mobile View: Only show creation dialog
+  // Mobile View: Compact list with cards
   if (isMobile) {
+    const mobileFilteredActions = getFilteredActionsForCategory(
+      activeTab,
+      activeCategoryTab[activeTab] || "alle"
+    );
+
     return (
-      <div className="p-3 space-y-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <ClipboardList className="h-6 w-6" />
-              Action Point erstellen
+      <div className="p-3 space-y-3 pb-20">
+        {/* Header Card */}
+        <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ClipboardList className="h-5 w-5" />
+              Action Points
             </CardTitle>
-            <CardDescription>Aufgabe vor Ort erfassen</CardDescription>
+            <CardDescription className="text-blue-50">
+              {mobileFilteredActions.length} Actions in {activeTab}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Button
               onClick={openNewDialog}
-              className="w-full h-16 text-lg"
+              className="w-full h-14 text-base bg-white text-blue-600 hover:bg-blue-50"
               size="lg"
             >
-              <Plus className="h-6 w-6 mr-2" />
+              <Plus className="h-5 w-5 mr-2" />
               Neue Action erstellen
             </Button>
-            <p className="text-xs text-muted-foreground mt-3 text-center">
-              💡 Verwaltung und Bearbeitung am Desktop/Tablet
-            </p>
           </CardContent>
         </Card>
+
+        {/* Plant Selector */}
+        <Card>
+          <CardContent className="pt-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Anlage</Label>
+              <Select
+                value={activeTab}
+                onValueChange={(value: "T208" | "T207" | "T700" | "T46") =>
+                  setActiveTab(value)
+                }
+              >
+                <SelectTrigger className="h-12 text-base">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {["T208", "T207", "T700", "T46"].map((plant) => {
+                    const stats = getActionStats(plant);
+                    const openCount = stats.open + stats.inProgress;
+                    return (
+                      <SelectItem key={plant} value={plant}>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-semibold">{plant}</span>
+                          {openCount > 0 && (
+                            <Badge variant="destructive" className="text-xs">
+                              {openCount} offen
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Action Cards */}
+        {mobileFilteredActions.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <ClipboardList className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-muted-foreground">
+                Keine Actions für {activeTab}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {mobileFilteredActions.map((action: Action) => {
+              const isExpanded = expandedRows.has(action.id);
+              const overdueClass = isOverdue(action.dueDate, action.status)
+                ? "border-red-500 border-l-4"
+                : "";
+
+              return (
+                <Card
+                  key={action.id}
+                  className={`${overdueClass} ${
+                    action.status === "COMPLETED" ? "opacity-60" : ""
+                  }`}
+                >
+                  <CardHeader
+                    className="pb-3 cursor-pointer"
+                    onClick={() => toggleRow(action.id)}
+                  >
+                    {/* Title & Status Row */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle
+                          className={`text-base leading-tight ${
+                            action.status === "COMPLETED"
+                              ? "line-through text-muted-foreground"
+                              : ""
+                          }`}
+                        >
+                          {action.title}
+                        </CardTitle>
+                        {action.description && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                            {action.description}
+                          </p>
+                        )}
+                      </div>
+                      <Badge
+                        className={`text-xs font-semibold shrink-0 ${
+                          action.status === "COMPLETED"
+                            ? "bg-green-500"
+                            : action.status === "IN_PROGRESS"
+                            ? "bg-blue-500"
+                            : "bg-yellow-500 text-black"
+                        }`}
+                      >
+                        {action.status === "OPEN" && "Geplant"}
+                        {action.status === "IN_PROGRESS" && "Aktiv"}
+                        {action.status === "COMPLETED" && "✓"}
+                      </Badge>
+                    </div>
+
+                    {/* Info Row */}
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {/* Priority Badge */}
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${
+                          action.priority === "URGENT"
+                            ? "bg-red-500/10 text-red-700 border-red-500/20"
+                            : action.priority === "HIGH"
+                            ? "bg-orange-500/10 text-orange-700 border-orange-500/20"
+                            : action.priority === "MEDIUM"
+                            ? "bg-yellow-500/10 text-yellow-700 border-yellow-500/20"
+                            : "bg-gray-500/10 text-gray-700 border-gray-500/20"
+                        }`}
+                      >
+                        {action.priority === "URGENT" && "🔥 Dringend"}
+                        {action.priority === "HIGH" && "⚠️ Hoch"}
+                        {action.priority === "MEDIUM" && "📋 Mittel"}
+                        {action.priority === "LOW" && "📌 Niedrig"}
+                      </Badge>
+
+                      {/* Discipline Badge */}
+                      {action.discipline && (
+                        <Badge
+                          className={`text-xs ${
+                            action.discipline === "MECHANIK"
+                              ? "bg-cyan-500"
+                              : action.discipline === "ELEKTRIK"
+                              ? "bg-purple-500"
+                              : "bg-pink-500"
+                          }`}
+                        >
+                          {action.discipline === "MECHANIK" && "🔧"}
+                          {action.discipline === "ELEKTRIK" && "⚡"}
+                          {action.discipline === "ANLAGE" && "🏭"}
+                        </Badge>
+                      )}
+
+                      {/* Tasks & Files */}
+                      {action.tasks.length > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          <ListTodo className="h-3 w-3 mr-1" />
+                          {
+                            action.tasks.filter((t: ActionTask) => t.completed)
+                              .length
+                          }
+                          /{action.tasks.length}
+                        </Badge>
+                      )}
+                      {action.files.length > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          <Paperclip className="h-3 w-3 mr-1" />
+                          {action.files.length}
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Assignee & Due Date */}
+                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <UserIcon className="h-3 w-3" />
+                        <span>{action.assignedTo || "Nicht zugewiesen"}</span>
+                      </div>
+                      {action.dueDate && (
+                        <div
+                          className={`flex items-center gap-1 ${
+                            isOverdue(action.dueDate, action.status)
+                              ? "text-red-600 font-semibold"
+                              : ""
+                          }`}
+                        >
+                          <Calendar className="h-3 w-3" />
+                          <span>
+                            {new Date(action.dueDate).toLocaleDateString(
+                              "de-DE",
+                              { day: "2-digit", month: "2-digit" }
+                            )}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+
+                  {/* Expanded Details */}
+                  {isExpanded && (
+                    <CardContent className="pt-0 space-y-3 border-t">
+                      {/* Description */}
+                      {action.description && (
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold">
+                            Beschreibung
+                          </Label>
+                          <p className="text-sm">{action.description}</p>
+                        </div>
+                      )}
+
+                      {/* Tasks */}
+                      {action.tasks.length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-xs font-semibold">
+                            Aufgaben (
+                            {
+                              action.tasks.filter(
+                                (t: ActionTask) => t.completed
+                              ).length
+                            }
+                            /{action.tasks.length})
+                          </Label>
+                          <div className="space-y-1">
+                            {action.tasks.map((task: ActionTask) => (
+                              <div
+                                key={task.id}
+                                className="flex items-center gap-2 text-sm"
+                              >
+                                {task.completed ? (
+                                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                                ) : (
+                                  <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
+                                )}
+                                <span
+                                  className={
+                                    task.completed
+                                      ? "line-through text-muted-foreground"
+                                      : ""
+                                  }
+                                >
+                                  {task.title}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Files */}
+                      {action.files.length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-xs font-semibold">
+                            Dateien ({action.files.length})
+                          </Label>
+                          <div className="space-y-1">
+                            {action.files.map((file: ActionFile) => (
+                              <div
+                                key={file.id}
+                                className="flex items-center gap-2 text-sm bg-muted p-2 rounded"
+                              >
+                                <Paperclip className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <span className="truncate flex-1">
+                                  {file.name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Comments Count */}
+                      {action.comments && action.comments.length > 0 && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MessageSquare className="h-4 w-4" />
+                          <span>{action.comments.length} Kommentare</span>
+                        </div>
+                      )}
+
+                      {/* Info Footer */}
+                      <div className="pt-2 text-xs text-muted-foreground border-t">
+                        <div className="flex justify-between">
+                          <span>
+                            Erstellt:{" "}
+                            {new Date(action.createdAt).toLocaleDateString(
+                              "de-DE"
+                            )}
+                          </span>
+                          {action.category && (
+                            <Badge variant="outline" className="text-xs">
+                              {action.category === "ALLGEMEIN"
+                                ? "Allgemein"
+                                : "Rigmove"}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-muted-foreground text-center pt-2 border-t">
+                        💡 Bearbeitung nur am Desktop/Tablet möglich
+                      </p>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
         {/* Create Dialog - same as desktop */}
         {isDialogOpen && (
@@ -1223,7 +1525,9 @@ const ActionTracker = ({
                   <Label htmlFor="priority">Priorität *</Label>
                   <Select
                     value={currentAction.priority}
-                    onValueChange={(value: "LOW" | "MEDIUM" | "HIGH" | "URGENT") =>
+                    onValueChange={(
+                      value: "LOW" | "MEDIUM" | "HIGH" | "URGENT"
+                    ) =>
                       setCurrentAction({ ...currentAction, priority: value })
                     }
                   >

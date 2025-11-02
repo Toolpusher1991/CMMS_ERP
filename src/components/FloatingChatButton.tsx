@@ -60,7 +60,7 @@ export const FloatingChatButton: React.FC = () => {
         <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-4 duration-300">
           <div className="bg-background border-2 rounded-2xl shadow-2xl w-[400px] h-[600px] flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-4 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-4 flex items-center justify-between relative z-10">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                   <MessageCircle className="h-6 w-6 text-white" />
@@ -75,8 +75,12 @@ export const FloatingChatButton: React.FC = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsOpen(false)}
-                className="text-white hover:bg-white/20 h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }}
+                className="text-white hover:bg-white/20 h-9 w-9 shrink-0 relative z-20"
+                title="Chatbot schließen"
               >
                 <X className="h-5 w-5" />
               </Button>
