@@ -5,12 +5,17 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // 2. Development: Force localhost für Backend in development
+  // 2. Development: Nutze gleichen Host wie Frontend
   const currentHost = window.location.hostname;
   
-  // Für Development immer localhost verwenden (auch wenn Frontend über IP aufgerufen wird)
-  if (currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost.startsWith('192.168.')) {
+  // Wenn über localhost/127.0.0.1 zugegriffen wird
+  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
     return 'http://localhost:5137';
+  }
+  
+  // Wenn über IP zugegriffen wird (z.B. 192.168.x.x), nutze gleiche IP für Backend
+  if (currentHost.startsWith('192.168.') || currentHost.startsWith('10.') || currentHost.startsWith('172.')) {
+    return `http://${currentHost}:5137`;
   }
   
   // 3. Production fallback

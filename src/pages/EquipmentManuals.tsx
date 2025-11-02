@@ -481,7 +481,10 @@ const EquipmentManuals: React.FC = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            window.open(manual.manualFilePath, "_blank")
+                            window.open(
+                              `/api/equipment-manuals/${manual.id}/download`,
+                              "_blank"
+                            )
                           }
                         >
                           <Download className="w-4 h-4" />
@@ -827,7 +830,10 @@ const EquipmentManuals: React.FC = () => {
                     </div>
                     <Button
                       onClick={() =>
-                        window.open(selectedManual.manualFilePath, "_blank")
+                        window.open(
+                          `/api/equipment-manuals/${selectedManual.id}/download`,
+                          "_blank"
+                        )
                       }
                       variant="outline"
                       className="w-full"

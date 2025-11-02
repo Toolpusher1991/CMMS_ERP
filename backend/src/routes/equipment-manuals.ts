@@ -1,30 +1,31 @@
 import { Router, Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
-import { Readable } from "stream";
+import path from "path";
+import fs from "fs/promises";
 import { analyzeManualWithAI } from "../services/manual-ai.service";
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// Helper function to make existing Cloudinary file public
-const makeFilePublic = async (publicId: string): Promise<void> => {
-  try {
-    await cloudinary.uploader.explicit(publicId, {
-      type: "upload",
-      resource_type: "raw",
-      access_mode: "public",
-    });
-    console.log(`✅ Made file public: ${publicId}`);
-  } catch (error) {
-    console.error(`❌ Failed to make file public: ${publicId}`, error);
-    throw error;
-  }
-};
+// Configure local disk storage for manuals
+const storage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    const uploadDir = path.join(__dirname, "../../uploads/manuals");
+    try {
+      await fs.mkdir(uploadDir, { recursive: true });
+      cb(null, uploadDir);
+    } catch (error) {
+      cb(error as Error, uploadDir);
+    }
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}_${Math.round(Math.random() * 1e9)}`;
+    const filename = `manual_${uniqueSuffix}_${file.originalname}`;
+    cb(null, filename);
+  },
+});
 
-// Configure Cloudinary upload for manuals
-const storage = multer.memoryStorage();
 const uploadManual = multer({
   storage: storage,
   limits: {
@@ -38,35 +39,6 @@ const uploadManual = multer({
     }
   },
 });
-
-// Helper function to upload to Cloudinary
-const uploadToCloudinary = (
-  buffer: Buffer,
-  filename: string
-): Promise<{ url: string; publicId: string }> => {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder: "cmms-erp/equipment-manuals",
-        resource_type: "raw",
-        type: "upload",
-        access_mode: "public",
-        public_id: `manual_${Date.now()}_${filename}`,
-      },
-      (error, result) => {
-        if (error) reject(error);
-        else
-          resolve({
-            url: result!.secure_url,
-            publicId: result!.public_id,
-          });
-      }
-    );
-
-    const readable = Readable.from(buffer);
-    readable.pipe(uploadStream);
-  });
-};
 
 // GET /equipment-manuals - Get all manuals
 router.get("/", async (req: Request, res: Response) => {
@@ -88,6 +60,44 @@ router.get("/", async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch manuals",
+    });
+  }
+});
+
+// GET /equipment-manuals/:id/download - Download PDF file
+router.get("/:id/download", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const manual = await prisma.equipmentManual.findUnique({
+      where: { id },
+    });
+
+    if (!manual) {
+      return res.status(404).json({
+        success: false,
+        message: "Manual not found",
+      });
+    }
+
+    // Construct absolute path to the PDF file
+    const filePath = path.join(__dirname, "../../uploads/manuals", manual.manualFilePath);
+
+    // Send file for download
+    res.download(filePath, manual.manualFileName, (err) => {
+      if (err) {
+        console.error("Error downloading file:", err);
+        res.status(500).json({
+          success: false,
+          message: "Failed to download file",
+        });
+      }
+    });
+  } catch (error) {
+    console.error("Error in download route:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to download manual",
     });
   }
 });
@@ -153,11 +163,9 @@ router.post(
         });
       }
 
-      // Upload to Cloudinary
-      const { url } = await uploadToCloudinary(
-        req.file.buffer,
-        req.file.originalname
-      );
+      // File is now saved locally via multer
+      const filePath = req.file.path; // Absolute path on disk
+      const filename = req.file.filename; // Generated filename
 
       // Create manual record
       const manual = await prisma.equipmentManual.create({
@@ -170,7 +178,7 @@ router.post(
           plant,
           location: location || null,
           manualFileName: req.file.originalname,
-          manualFilePath: url,
+          manualFilePath: filename, // Store just the filename, we know the folder
           manualFileSize: req.file.size,
           uploadedBy: (req as any).user?.id || null,
           aiProcessed: false,
@@ -210,19 +218,12 @@ router.post("/:id/process", async (req: Request, res: Response) => {
 
     console.log(`🤖 Starting AI processing for manual: ${manual.equipmentName}`);
 
-    // Extract public_id from Cloudinary URL
-    // URL format: https://res.cloudinary.com/dhb5tjle6/raw/upload/v1762069340/cmms-erp/equipment-manuals/manual_xxx.pdf
-    const urlParts = manual.manualFilePath.split('/');
-    const versionIndex = urlParts.findIndex((part: string) => part.startsWith('v'));
-    const publicId = urlParts.slice(versionIndex + 1).join('/').replace('.pdf', '');
+    // Construct absolute path to the PDF file
+    const manualPath = path.join(__dirname, "../../uploads/manuals", manual.manualFilePath);
     
-    // Make sure the file is publicly accessible
-    console.log(`🔓 Making file public: ${publicId}`);
-    await makeFilePublic(publicId);
-
     // Use AI to analyze the manual
     const aiResult = await analyzeManualWithAI(
-      manual.manualFilePath,
+      manualPath, // Pass local file path instead of URL
       manual.equipmentName,
       manual.manufacturer || undefined
     );

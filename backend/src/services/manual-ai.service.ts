@@ -1,6 +1,10 @@
 import OpenAI from 'openai';
 import pdfParse from 'pdf-parse';
-import axios from 'axios';
+import fs from 'fs/promises';
+import path from 'path';
+import { createWorker } from 'tesseract.js';
+// @ts-ignore - pdf-poppler doesn't have types
+import pdf from 'pdf-poppler';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -47,18 +51,74 @@ interface ManualAnalysisResult {
   specifications: SpecificationData[];
 }
 
-// Extract text from PDF URL
-async function extractTextFromPDF(pdfUrl: string): Promise<string> {
+// Extract text from local PDF file (with OCR fallback for scanned PDFs)
+async function extractTextFromPDF(filePath: string): Promise<string> {
   try {
-    // Download PDF from Cloudinary
-    const response = await axios.get(pdfUrl, {
-      responseType: 'arraybuffer',
-    });
-
-    // Parse PDF
-    const pdfBuffer = Buffer.from(response.data);
+    console.log(`📄 Extracting text from PDF: ${filePath}`);
+    
+    // Step 1: Try normal PDF text extraction first
+    const pdfBuffer = await fs.readFile(filePath);
     const data = await pdfParse(pdfBuffer);
 
+    console.log(`✅ Extracted ${data.text.length} characters from PDF`);
+    
+    // Step 2: If text is too short (< 500 chars), it's likely a scanned PDF - use OCR
+    if (data.text.length < 500) {
+      console.log(`⚠️ Text too short (${data.text.length} chars) - PDF appears to be scanned. Using OCR...`);
+      
+      try {
+        // Convert PDF to images and OCR them
+        const outputDir = path.join(path.dirname(filePath), 'temp_ocr');
+        await fs.mkdir(outputDir, { recursive: true });
+        
+        // Convert PDF pages to PNG images
+        const opts = {
+          format: 'png',
+          out_dir: outputDir,
+          out_prefix: path.basename(filePath, '.pdf'),
+          page: null, // Convert all pages
+        };
+        
+        console.log(`🖼️ Converting PDF to images...`);
+        await pdf.convert(filePath, opts);
+        
+        // Get all generated PNG files
+        const files = await fs.readdir(outputDir);
+        const imageFiles = files.filter(f => f.endsWith('.png')).sort();
+        
+        console.log(`📸 Found ${imageFiles.length} pages to OCR`);
+        
+        // Create Tesseract worker
+        const worker = await createWorker('eng'); // English language
+        
+        let ocrText = '';
+        
+        // OCR each page
+        for (let i = 0; i < imageFiles.length; i++) {
+          const imagePath = path.join(outputDir, imageFiles[i]);
+          console.log(`🔍 OCR processing page ${i + 1}/${imageFiles.length}...`);
+          
+          const { data: { text } } = await worker.recognize(imagePath);
+          ocrText += text + '\n\n';
+          
+          // Delete processed image to save space
+          await fs.unlink(imagePath);
+        }
+        
+        // Cleanup
+        await worker.terminate();
+        await fs.rmdir(outputDir);
+        
+        console.log(`✅ OCR complete! Extracted ${ocrText.length} characters`);
+        return ocrText;
+        
+      } catch (ocrError) {
+        console.error('❌ OCR failed:', ocrError);
+        console.log('⚠️ Falling back to original text extraction');
+        return data.text; // Return whatever we got from regular parsing
+      }
+    }
+    
     return data.text;
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
@@ -95,7 +155,7 @@ function parseInterval(interval: string): { hours?: number; days?: number } {
 
 // Analyze manual with OpenAI
 export async function analyzeManualWithAI(
-  pdfUrl: string,
+  filePath: string, // Changed from pdfUrl to filePath
   equipmentName: string,
   manufacturer?: string
 ): Promise<ManualAnalysisResult> {
@@ -103,14 +163,13 @@ export async function analyzeManualWithAI(
     console.log('🤖 Starting AI analysis of manual...');
     
     // Step 1: Extract text from PDF
-    console.log('📄 Extracting text from PDF...');
-    const pdfText = await extractTextFromPDF(pdfUrl);
+    const pdfText = await extractTextFromPDF(filePath);
     
     if (!pdfText || pdfText.length < 100) {
       throw new Error('PDF text extraction failed or text too short');
     }
     
-    console.log(`✅ Extracted ${pdfText.length} characters from PDF`);
+    console.log(`✅ Text ready for AI analysis (${pdfText.length} chars)`);
     
     // Truncate text if too long (OpenAI has token limits)
     const maxChars = 50000; // ~12,500 tokens for GPT-4
