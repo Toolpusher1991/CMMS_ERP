@@ -55,7 +55,7 @@ export const FloatingChatButton: React.FC = () => {
   return (
     <>
       {/* Floating Button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-50">
         {!isOpen && (
           <Button
             size="lg"
@@ -87,10 +87,10 @@ export const FloatingChatButton: React.FC = () => {
             onClick={handleClose}
           />
 
-          <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-4 duration-300">
-            <div className="bg-background border-2 rounded-2xl shadow-2xl w-[400px] h-[600px] flex flex-col overflow-hidden relative">
+          <div className="fixed bottom-0 right-0 left-0 md:bottom-6 md:right-6 md:left-auto z-50 animate-in slide-in-from-bottom-4 duration-300">
+            <div className="bg-background border-2 md:rounded-2xl rounded-t-2xl shadow-2xl w-full md:w-[400px] h-[90vh] md:h-[600px] flex flex-col overflow-hidden relative">
               {/* Header with close button */}
-              <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-4 flex items-center justify-between shrink-0 relative z-[9999]">
+              <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-3 md:p-4 flex items-center justify-between shrink-0 relative z-[9999]">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                     <MessageCircle className="h-6 w-6 text-white" />
