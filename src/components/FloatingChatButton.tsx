@@ -172,9 +172,9 @@ export const FloatingChatButton: React.FC = () => {
               </div>
 
               {/* Chat Content */}
-              <ChatWindow 
+              <ChatWindow
                 ref={chatWindowRef}
-                onClose={handleClose} 
+                onClose={handleClose}
                 onMessagesChange={setHasMessages}
               />
             </div>

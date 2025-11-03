@@ -167,26 +167,22 @@ function App() {
     <ThemeProvider defaultTheme="dark" storageKey="cmms-erp-theme">
       {isMobile ? (
         // Mobile View: Simplified layout - Create Failures and Actions only
-        <>
-          <MobileLayout
-            isLoggedIn={true}
-            userName={`${user.firstName} ${user.lastName}`}
-            onLogout={handleLogout}
-            onNavigate={handleMobileNavigate}
-          >
-            {currentPage === "failures" ? (
-              <FailureReporting />
-            ) : currentPage === "actions" ? (
-              <ActionTracker />
-            ) : null}
-          </MobileLayout>
-          
-          {/* Floating Chatbot - Mobile */}
-          <FloatingChatButton />
-        </>
+        <MobileLayout
+          isLoggedIn={true}
+          userName={`${user.firstName} ${user.lastName}`}
+          onLogout={handleLogout}
+          onNavigate={handleMobileNavigate}
+        >
+          {currentPage === "failures" ? (
+            <FailureReporting />
+          ) : currentPage === "actions" ? (
+            <ActionTracker />
+          ) : null}
+        </MobileLayout>
       ) : (
         // Desktop View: Full app with Sidebar
-        <div className="flex h-screen overflow-hidden">{/* Sidebar */}
+        <div className="flex h-screen overflow-hidden">
+          {/* Sidebar */}
           <Sidebar
             currentPage={currentPage}
             onPageChange={setCurrentPage}

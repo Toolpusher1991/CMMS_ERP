@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
@@ -80,6 +80,7 @@ import {
   Calendar,
   MessageSquare,
   Circle,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -237,6 +238,7 @@ const ActionTracker = ({
       email: string;
       firstName: string;
       lastName: string;
+      role?: string;
       assignedPlant?: string;
     }>
   >([]);
@@ -253,6 +255,9 @@ const ActionTracker = ({
     files: [],
   });
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [actions, setActions] = useState<Action[]>([]);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
@@ -523,9 +528,11 @@ const ActionTracker = ({
   const openNewDialog = () => {
     setIsEditMode(false);
     setPendingFiles([]);
+    setPhotoFile(null);
+    setPhotoPreview(null);
     setMaterials([]); // Reset materials for new action
     setCurrentAction({
-      plant: activeTab as Action["plant"],
+      plant: undefined as unknown as Action["plant"], // No plant preselected - user feedback
       title: "",
       description: "",
       status: "OPEN",
@@ -536,6 +543,18 @@ const ActionTracker = ({
     });
     setSelectedAssignees([]);
     setIsDialogOpen(true);
+  };
+
+  const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const openEditDialog = (action: Action) => {
@@ -560,11 +579,12 @@ const ActionTracker = ({
   };
 
   const handleSave = async () => {
-    // Validation - relaxed for mobile (only title required)
-    if (!currentAction.title) {
+    // Validation - plant and title are required
+    if (!currentAction.plant || !currentAction.title) {
       toast({
         title: "Fehler",
-        description: "Bitte geben Sie einen Titel ein.",
+        description:
+          "Bitte wählen Sie eine Anlage und geben Sie einen Titel ein.",
         variant: "destructive",
       });
       return;
@@ -657,10 +677,15 @@ const ActionTracker = ({
         }
       }
 
-      // Upload files if any
-      if (pendingFiles.length > 0) {
+      // Upload files if any (including photo from mobile)
+      const filesToUpload = [...pendingFiles];
+      if (photoFile) {
+        filesToUpload.push(photoFile);
+      }
+
+      if (filesToUpload.length > 0) {
         const formData = new FormData();
-        pendingFiles.forEach((file) => {
+        filesToUpload.forEach((file) => {
           formData.append("files", file);
         });
 
@@ -669,11 +694,13 @@ const ActionTracker = ({
         if (isMounted) {
           toast({
             title: "Dateien hochgeladen",
-            description: `${pendingFiles.length} Datei(en) erfolgreich hochgeladen.`,
+            description: `${filesToUpload.length} Datei(en) erfolgreich hochgeladen.`,
           });
         }
 
         setPendingFiles([]);
+        setPhotoFile(null);
+        setPhotoPreview(null);
       }
 
       await loadActions();
@@ -1126,438 +1153,309 @@ const ActionTracker = ({
 
   const isMobile = isMobileDevice();
 
-  // Mobile View: Compact list with cards
+  // Mobile View: Simple creation like FailureReporting
   if (isMobile) {
-    const mobileFilteredActions = getFilteredActionsForCategory(
-      activeTab,
-      activeCategoryTab[activeTab] || "alle"
-    );
-
     return (
-      <div className="p-3 space-y-3 pb-20">
-        {/* Header Card */}
-        <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <ClipboardList className="h-5 w-5" />
-              Action Points
+      <div className="p-3 space-y-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <ClipboardList className="h-6 w-6" />
+              Action Point
             </CardTitle>
-            <CardDescription className="text-blue-50">
-              {mobileFilteredActions.length} Actions in {activeTab}
-            </CardDescription>
+            <CardDescription>Wartungsaufgabe schnell erfassen</CardDescription>
           </CardHeader>
           <CardContent>
             <Button
               onClick={openNewDialog}
-              className="w-full h-14 text-base bg-white text-blue-600 hover:bg-blue-50"
+              className="w-full h-16 text-lg"
               size="lg"
             >
-              <Plus className="h-5 w-5 mr-2" />
+              <Plus className="h-6 w-6 mr-2" />
               Neue Action erstellen
             </Button>
           </CardContent>
         </Card>
 
-        {/* Plant Selector */}
+        {/* Show recent actions count */}
         <Card>
-          <CardContent className="pt-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Anlage</Label>
-              <Select
-                value={activeTab}
-                onValueChange={(value: "T208" | "T207" | "T700" | "T46") =>
-                  setActiveTab(value)
-                }
-              >
-                <SelectTrigger className="h-12 text-base">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {["T208", "T207", "T700", "T46"].map((plant) => {
-                    const stats = getActionStats(plant);
-                    const openCount = stats.open + stats.inProgress;
-                    return (
-                      <SelectItem key={plant} value={plant}>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="font-semibold">{plant}</span>
-                          {openCount > 0 && (
-                            <Badge variant="destructive" className="text-xs">
-                              {openCount} offen
-                            </Badge>
-                          )}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-primary">
+                {actions.length}
+              </p>
+              <p className="text-sm text-muted-foreground">Actions insgesamt</p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Action Cards */}
-        {mobileFilteredActions.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center">
-              <ClipboardList className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                Keine Actions für {activeTab}
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {mobileFilteredActions.map((action: Action) => {
-              const isExpanded = expandedRows.has(action.id);
-              const overdueClass = isOverdue(action.dueDate, action.status)
-                ? "border-red-500 border-l-4"
-                : "";
-
-              return (
-                <Card
-                  key={action.id}
-                  className={`${overdueClass} ${
-                    action.status === "COMPLETED" ? "opacity-60" : ""
-                  }`}
-                >
-                  <CardHeader
-                    className="pb-3 cursor-pointer"
-                    onClick={() => toggleRow(action.id)}
-                  >
-                    {/* Title & Status Row */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle
-                          className={`text-base leading-tight ${
-                            action.status === "COMPLETED"
-                              ? "line-through text-muted-foreground"
-                              : ""
-                          }`}
-                        >
-                          {action.title}
-                        </CardTitle>
-                        {action.description && (
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                            {action.description}
-                          </p>
-                        )}
-                      </div>
-                      <Badge
-                        className={`text-xs font-semibold shrink-0 ${
-                          action.status === "COMPLETED"
-                            ? "bg-green-500"
-                            : action.status === "IN_PROGRESS"
-                            ? "bg-blue-500"
-                            : "bg-yellow-500 text-black"
-                        }`}
-                      >
-                        {action.status === "OPEN" && "Geplant"}
-                        {action.status === "IN_PROGRESS" && "Aktiv"}
-                        {action.status === "COMPLETED" && "✓"}
-                      </Badge>
-                    </div>
-
-                    {/* Info Row */}
-                    <div className="flex items-center gap-2 mt-2 flex-wrap">
-                      {/* Priority Badge */}
-                      <Badge
-                        variant="outline"
-                        className={`text-xs ${
-                          action.priority === "URGENT"
-                            ? "bg-red-500/10 text-red-700 border-red-500/20"
-                            : action.priority === "HIGH"
-                            ? "bg-orange-500/10 text-orange-700 border-orange-500/20"
-                            : action.priority === "MEDIUM"
-                            ? "bg-yellow-500/10 text-yellow-700 border-yellow-500/20"
-                            : "bg-gray-500/10 text-gray-700 border-gray-500/20"
-                        }`}
-                      >
-                        {action.priority === "URGENT" && "🔥 Dringend"}
-                        {action.priority === "HIGH" && "⚠️ Hoch"}
-                        {action.priority === "MEDIUM" && "📋 Mittel"}
-                        {action.priority === "LOW" && "📌 Niedrig"}
-                      </Badge>
-
-                      {/* Discipline Badge */}
-                      {action.discipline && (
-                        <Badge
-                          className={`text-xs ${
-                            action.discipline === "MECHANIK"
-                              ? "bg-cyan-500"
-                              : action.discipline === "ELEKTRIK"
-                              ? "bg-purple-500"
-                              : "bg-pink-500"
-                          }`}
-                        >
-                          {action.discipline === "MECHANIK" && "🔧"}
-                          {action.discipline === "ELEKTRIK" && "⚡"}
-                          {action.discipline === "ANLAGE" && "🏭"}
-                        </Badge>
-                      )}
-
-                      {/* Tasks & Files */}
-                      {action.tasks.length > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          <ListTodo className="h-3 w-3 mr-1" />
-                          {
-                            action.tasks.filter((t: ActionTask) => t.completed)
-                              .length
-                          }
-                          /{action.tasks.length}
-                        </Badge>
-                      )}
-                      {action.files.length > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          <Paperclip className="h-3 w-3 mr-1" />
-                          {action.files.length}
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Assignee & Due Date */}
-                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <UserIcon className="h-3 w-3" />
-                        <span>{action.assignedTo || "Nicht zugewiesen"}</span>
-                      </div>
-                      {action.dueDate && (
-                        <div
-                          className={`flex items-center gap-1 ${
-                            isOverdue(action.dueDate, action.status)
-                              ? "text-red-600 font-semibold"
-                              : ""
-                          }`}
-                        >
-                          <Calendar className="h-3 w-3" />
-                          <span>
-                            {new Date(action.dueDate).toLocaleDateString(
-                              "de-DE",
-                              { day: "2-digit", month: "2-digit" }
-                            )}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </CardHeader>
-
-                  {/* Expanded Details */}
-                  {isExpanded && (
-                    <CardContent className="pt-0 space-y-3 border-t">
-                      {/* Description */}
-                      {action.description && (
-                        <div className="space-y-1">
-                          <Label className="text-xs font-semibold">
-                            Beschreibung
-                          </Label>
-                          <p className="text-sm">{action.description}</p>
-                        </div>
-                      )}
-
-                      {/* Tasks */}
-                      {action.tasks.length > 0 && (
-                        <div className="space-y-2">
-                          <Label className="text-xs font-semibold">
-                            Aufgaben (
-                            {
-                              action.tasks.filter(
-                                (t: ActionTask) => t.completed
-                              ).length
-                            }
-                            /{action.tasks.length})
-                          </Label>
-                          <div className="space-y-1">
-                            {action.tasks.map((task: ActionTask) => (
-                              <div
-                                key={task.id}
-                                className="flex items-center gap-2 text-sm"
-                              >
-                                {task.completed ? (
-                                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                                ) : (
-                                  <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
-                                )}
-                                <span
-                                  className={
-                                    task.completed
-                                      ? "line-through text-muted-foreground"
-                                      : ""
-                                  }
-                                >
-                                  {task.title}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Files */}
-                      {action.files.length > 0 && (
-                        <div className="space-y-2">
-                          <Label className="text-xs font-semibold">
-                            Dateien ({action.files.length})
-                          </Label>
-                          <div className="space-y-1">
-                            {action.files.map((file: ActionFile) => (
-                              <div
-                                key={file.id}
-                                className="flex items-center gap-2 text-sm bg-muted p-2 rounded"
-                              >
-                                <Paperclip className="h-3 w-3 text-muted-foreground shrink-0" />
-                                <span className="truncate flex-1">
-                                  {file.name}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Comments Count */}
-                      {action.comments && action.comments.length > 0 && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MessageSquare className="h-4 w-4" />
-                          <span>{action.comments.length} Kommentare</span>
-                        </div>
-                      )}
-
-                      {/* Info Footer */}
-                      <div className="pt-2 text-xs text-muted-foreground border-t">
-                        <div className="flex justify-between">
-                          <span>
-                            Erstellt:{" "}
-                            {new Date(action.createdAt).toLocaleDateString(
-                              "de-DE"
-                            )}
-                          </span>
-                          {action.category && (
-                            <Badge variant="outline" className="text-xs">
-                              {action.category === "ALLGEMEIN"
-                                ? "Allgemein"
-                                : "Rigmove"}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-muted-foreground text-center pt-2 border-t">
-                        💡 Bearbeitung nur am Desktop/Tablet möglich
-                      </p>
-                    </CardContent>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Create Dialog - same as desktop */}
-        {isDialogOpen && (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="max-w-full h-full m-0 max-h-full overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {isEditMode ? "Action bearbeiten" : "Neue Action erstellen"}
-                </DialogTitle>
-                <DialogDescription>
-                  Erstellen Sie eine neue Aufgabe für das Team
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                {/* Plant Selection */}
-                <div className="space-y-2">
-                  <Label htmlFor="plant">Anlage *</Label>
-                  <Select
-                    value={currentAction.plant}
-                    onValueChange={(value: "T208" | "T207" | "T700" | "T46") =>
-                      setCurrentAction({ ...currentAction, plant: value })
-                    }
-                  >
-                    <SelectTrigger id="plant" className="h-12 text-base">
-                      <SelectValue placeholder="Anlage wählen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="T208">T208</SelectItem>
-                      <SelectItem value="T207">T207</SelectItem>
-                      <SelectItem value="T700">T700</SelectItem>
-                      <SelectItem value="T46">T46</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Title */}
-                <div className="space-y-2">
-                  <Label htmlFor="title">Titel *</Label>
-                  <Input
-                    id="title"
-                    value={currentAction.title}
-                    onChange={(e) =>
-                      setCurrentAction({
-                        ...currentAction,
-                        title: e.target.value,
-                      })
-                    }
-                    placeholder="Kurze Beschreibung"
-                    className="h-12 text-base"
-                  />
-                </div>
-
-                {/* Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="description">Beschreibung</Label>
-                  <Textarea
-                    id="description"
-                    value={currentAction.description}
-                    onChange={(e) =>
-                      setCurrentAction({
-                        ...currentAction,
-                        description: e.target.value,
-                      })
-                    }
-                    placeholder="Detaillierte Beschreibung..."
-                    rows={4}
-                    className="text-base"
-                  />
-                </div>
-
-                {/* Priority */}
-                <div className="space-y-2">
-                  <Label htmlFor="priority">Priorität *</Label>
-                  <Select
-                    value={currentAction.priority}
-                    onValueChange={(
-                      value: "LOW" | "MEDIUM" | "HIGH" | "URGENT"
-                    ) =>
-                      setCurrentAction({ ...currentAction, priority: value })
-                    }
-                  >
-                    <SelectTrigger id="priority" className="h-12 text-base">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LOW">Niedrig</SelectItem>
-                      <SelectItem value="MEDIUM">Mittel</SelectItem>
-                      <SelectItem value="HIGH">Hoch</SelectItem>
-                      <SelectItem value="CRITICAL">Kritisch</SelectItem>
-                    </SelectContent>
-                  </Select>
+        {/* Create Dialog with button-based selection */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Neue Action erstellen</DialogTitle>
+              <DialogDescription>
+                Wählen Sie Anlage und Priorität aus
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {/* Plant Selection - Button Grid */}
+              <div className="space-y-2">
+                <Label>Anlage *</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {(["T208", "T207", "T700", "T46"] as const).map((plant) => (
+                    <Button
+                      key={plant}
+                      type="button"
+                      variant={
+                        currentAction.plant === plant ? "default" : "outline"
+                      }
+                      onClick={() =>
+                        setCurrentAction({ ...currentAction, plant })
+                      }
+                      className="h-12 text-base font-semibold"
+                    >
+                      {plant}
+                    </Button>
+                  ))}
                 </div>
               </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                  className="h-12"
+
+              {/* Priority Selection - Button Grid with colors (NO EMOJIS) */}
+              <div className="space-y-2">
+                <Label>Priorität *</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={
+                      currentAction.priority === "LOW" ? "default" : "outline"
+                    }
+                    onClick={() =>
+                      setCurrentAction({ ...currentAction, priority: "LOW" })
+                    }
+                    className={cn(
+                      "h-12 text-base font-semibold",
+                      currentAction.priority === "LOW" &&
+                        "bg-green-500 hover:bg-green-600 text-white"
+                    )}
+                  >
+                    Niedrig
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={
+                      currentAction.priority === "MEDIUM"
+                        ? "default"
+                        : "outline"
+                    }
+                    onClick={() =>
+                      setCurrentAction({ ...currentAction, priority: "MEDIUM" })
+                    }
+                    className={cn(
+                      "h-12 text-base font-semibold",
+                      currentAction.priority === "MEDIUM" &&
+                        "bg-yellow-500 hover:bg-yellow-600 text-white"
+                    )}
+                  >
+                    Mittel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={
+                      currentAction.priority === "HIGH" ? "default" : "outline"
+                    }
+                    onClick={() =>
+                      setCurrentAction({ ...currentAction, priority: "HIGH" })
+                    }
+                    className={cn(
+                      "h-12 text-base font-semibold",
+                      currentAction.priority === "HIGH" &&
+                        "bg-orange-500 hover:bg-orange-600 text-white"
+                    )}
+                  >
+                    Hoch
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={
+                      currentAction.priority === "URGENT"
+                        ? "default"
+                        : "outline"
+                    }
+                    onClick={() =>
+                      setCurrentAction({ ...currentAction, priority: "URGENT" })
+                    }
+                    className={cn(
+                      "h-12 text-base font-semibold",
+                      currentAction.priority === "URGENT" &&
+                        "bg-red-500 hover:bg-red-600 text-white"
+                    )}
+                  >
+                    Dringend
+                  </Button>
+                </div>
+              </div>
+
+              {/* Title */}
+              <div className="space-y-2">
+                <Label htmlFor="title">Titel *</Label>
+                <Input
+                  id="title"
+                  value={currentAction.title}
+                  onChange={(e) =>
+                    setCurrentAction({
+                      ...currentAction,
+                      title: e.target.value,
+                    })
+                  }
+                  placeholder="Kurze Beschreibung"
+                  className="h-12 text-base"
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Beschreibung</Label>
+                <Textarea
+                  id="description"
+                  value={currentAction.description}
+                  onChange={(e) =>
+                    setCurrentAction({
+                      ...currentAction,
+                      description: e.target.value,
+                    })
+                  }
+                  placeholder="Detaillierte Beschreibung..."
+                  rows={4}
+                  className="text-base"
+                />
+              </div>
+
+              {/* Assignee Selection - Dropdown filtered by selected plant */}
+              <div className="space-y-2">
+                <Label htmlFor="assignedTo">Verantwortlich</Label>
+                <Select
+                  value={currentAction.assignedTo}
+                  onValueChange={(value) =>
+                    setCurrentAction({ ...currentAction, assignedTo: value })
+                  }
                 >
-                  Abbrechen
-                </Button>
-                <Button onClick={handleSave} className="h-12">
-                  Speichern
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+                  <SelectTrigger id="assignedTo" className="h-12 text-base">
+                    <SelectValue placeholder="Person auswählen..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users
+                      .filter((user) => {
+                        // Show only users from selected plant + managers/admins
+                        if (!currentAction.plant) return false;
+
+                        // Check if user is manager/admin by role
+                        const isManager =
+                          user.role === "MANAGER" || user.role === "ADMIN";
+
+                        // Check if user has no plant assigned (likely admin/manager)
+                        const hasNoPlantAssignment = !user.assignedPlant;
+
+                        // Check if user is assigned to the selected plant
+                        const isSamePlant =
+                          user.assignedPlant === currentAction.plant;
+
+                        return isManager || hasNoPlantAssignment || isSamePlant;
+                      })
+                      .map((user) => (
+                        <SelectItem key={user.id} value={user.email}>
+                          {user.firstName} {user.lastName} (
+                          {user.role || "USER"})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Photo Upload like FailureReporting */}
+              <div className="space-y-2">
+                <Label>Foto hinzufügen</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.setAttribute(
+                          "capture",
+                          "environment"
+                        );
+                        fileInputRef.current.click();
+                      }
+                    }}
+                    className="w-full h-12"
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Kamera
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.removeAttribute("capture");
+                        fileInputRef.current.click();
+                      }
+                    }}
+                    className="w-full h-12"
+                  >
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Galerie
+                  </Button>
+                </div>
+                {photoPreview && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setPhotoPreview(null);
+                      setPhotoFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                    className="w-full mt-2"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Foto entfernen
+                  </Button>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoCapture}
+                  className="hidden"
+                />
+                {photoPreview && (
+                  <div className="mt-2">
+                    <img
+                      src={photoPreview}
+                      alt="Preview"
+                      className="max-w-full h-auto rounded-md border"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                className="h-12"
+              >
+                Abbrechen
+              </Button>
+              <Button onClick={handleSave} className="h-12">
+                Speichern
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -2899,48 +2797,71 @@ const ActionTracker = ({
                               <CommandInput placeholder="User suchen..." />
                               <CommandEmpty>Keine User gefunden.</CommandEmpty>
                               <CommandGroup>
-                                {availableUsers.map((user) => (
-                                  <CommandItem
-                                    key={user.id}
-                                    onSelect={() => {
-                                      const isSelected =
-                                        selectedAssignees.includes(user.id);
-                                      if (isSelected) {
-                                        setSelectedAssignees(
-                                          selectedAssignees.filter(
-                                            (id) => id !== user.id
-                                          )
-                                        );
-                                      } else {
-                                        setSelectedAssignees([
-                                          ...selectedAssignees,
-                                          user.id,
-                                        ]);
-                                      }
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        selectedAssignees.includes(user.id)
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      )}
-                                    />
-                                    {user.firstName} {user.lastName}
-                                    <Badge variant="outline" className="ml-2">
-                                      {user.role}
-                                    </Badge>
-                                    {user.plant && (
-                                      <Badge
-                                        variant="secondary"
-                                        className="ml-1"
-                                      >
-                                        {user.plant}
+                                {availableUsers
+                                  .filter((user) => {
+                                    // Show only users from selected plant + managers/admins
+                                    if (!currentAction.plant) return false;
+
+                                    // Check if user is manager/admin by role
+                                    const isManager =
+                                      user.role === "MANAGER" ||
+                                      user.role === "ADMIN";
+
+                                    // Check if user has no plant assigned (likely admin/manager)
+                                    const hasNoPlantAssignment = !user.plant;
+
+                                    // Check if user is assigned to the selected plant
+                                    const isSamePlant =
+                                      user.plant === currentAction.plant;
+
+                                    return (
+                                      isManager ||
+                                      hasNoPlantAssignment ||
+                                      isSamePlant
+                                    );
+                                  })
+                                  .map((user) => (
+                                    <CommandItem
+                                      key={user.id}
+                                      onSelect={() => {
+                                        const isSelected =
+                                          selectedAssignees.includes(user.id);
+                                        if (isSelected) {
+                                          setSelectedAssignees(
+                                            selectedAssignees.filter(
+                                              (id) => id !== user.id
+                                            )
+                                          );
+                                        } else {
+                                          setSelectedAssignees([
+                                            ...selectedAssignees,
+                                            user.id,
+                                          ]);
+                                        }
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          selectedAssignees.includes(user.id)
+                                            ? "opacity-100"
+                                            : "opacity-0"
+                                        )}
+                                      />
+                                      {user.firstName} {user.lastName}
+                                      <Badge variant="outline" className="ml-2">
+                                        {user.role}
                                       </Badge>
-                                    )}
-                                  </CommandItem>
-                                ))}
+                                      {user.plant && (
+                                        <Badge
+                                          variant="secondary"
+                                          className="ml-1"
+                                        >
+                                          {user.plant}
+                                        </Badge>
+                                      )}
+                                    </CommandItem>
+                                  ))}
                               </CommandGroup>
                             </Command>
                           </PopoverContent>
