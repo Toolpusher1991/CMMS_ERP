@@ -78,8 +78,6 @@ import {
   User as UserIcon,
   Filter,
   Calendar,
-  MessageSquare,
-  Circle,
   Image as ImageIcon,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -1347,12 +1345,7 @@ const ActionTracker = ({
                       key={action.id}
                       className={`${overdueClass} ${
                         action.status === "COMPLETED" ? "opacity-70" : ""
-                      } transition-all active:scale-95`}
-                      onClick={() => {
-                        if (action.status !== "COMPLETED") {
-                          handleToggleComplete(action);
-                        }
-                      }}
+                      }`}
                     >
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between gap-2">
@@ -1461,13 +1454,6 @@ const ActionTracker = ({
                               </Badge>
                             )}
                           </div>
-                        )}
-
-                        {/* Swipe hint */}
-                        {action.status !== "COMPLETED" && (
-                          <p className="text-xs text-center text-muted-foreground/60 mt-2 italic">
-                            Antippen um als erledigt zu markieren
-                          </p>
                         )}
                       </CardHeader>
                     </Card>
