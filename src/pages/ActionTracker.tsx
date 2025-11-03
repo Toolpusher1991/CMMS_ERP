@@ -270,6 +270,10 @@ const ActionTracker = ({
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [userFilter, setUserFilter] = useState<string>("all");
 
+  // Mobile States
+  const [mobileFilter, setMobileFilter] = useState<"all" | "open" | "progress" | "completed">("all");
+  const [showList, setShowList] = useState(false);
+
   // Helper function to format date without timezone issues
   const formatDateForInput = (date: Date): string => {
     const year = date.getFullYear();
@@ -1153,41 +1157,326 @@ const ActionTracker = ({
 
   const isMobile = isMobileDevice();
 
-  // Mobile View: Simple creation like FailureReporting
+  // Mobile View: Enhanced with action list and filters
   if (isMobile) {
+    // Get current user's actions
+    const currentUser = authService.getCurrentUser();
+    const myActions = actions
+      .filter((action) => {
+        // Filter by status
+        if (mobileFilter === "open" && action.status !== "OPEN") return false;
+        if (mobileFilter === "progress" && action.status !== "IN_PROGRESS") return false;
+        if (mobileFilter === "completed" && action.status !== "COMPLETED") return false;
+        
+        // Show user's own actions
+        return action.createdBy === currentUser?.email || 
+               action.assignedTo === currentUser?.email ||
+               action.assignedUsers?.includes(currentUser?.id || "");
+      })
+      .sort((a, b) => {
+        // Sort: overdue first, then by due date
+        const aOverdue = isOverdue(a.dueDate, a.status);
+        const bOverdue = isOverdue(b.dueDate, b.status);
+        
+        if (aOverdue && !bOverdue) return -1;
+        if (!aOverdue && bOverdue) return 1;
+        
+        if (a.dueDate && b.dueDate) {
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        }
+        
+        return 0;
+      });
+
+    const openCount = myActions.filter(a => a.status === "OPEN").length;
+    const progressCount = myActions.filter(a => a.status === "IN_PROGRESS").length;
+
     return (
-      <div className="p-3 space-y-3">
-        <Card>
+      <div className="p-3 space-y-3 pb-20">
+        {/* Header Card */}
+        <Card className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <ClipboardList className="h-6 w-6" />
-              Action Point
+              Action Points
             </CardTitle>
-            <CardDescription>Wartungsaufgabe schnell erfassen</CardDescription>
+            <CardDescription className="text-blue-50">
+              {myActions.length} Meine Actions
+            </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <Button
               onClick={openNewDialog}
-              className="w-full h-16 text-lg"
+              className="w-full h-16 text-lg bg-white text-blue-600 hover:bg-blue-50"
               size="lg"
             >
               <Plus className="h-6 w-6 mr-2" />
               Neue Action erstellen
             </Button>
+            
+            {/* Toggle View Button */}
+            <Button
+              onClick={() => setShowList(!showList)}
+              variant="outline"
+              className="w-full h-12 bg-white/10 text-white border-white/30 hover:bg-white/20"
+            >
+              {showList ? "Übersicht anzeigen" : "Meine Actions anzeigen"}
+            </Button>
           </CardContent>
         </Card>
 
-        {/* Show recent actions count */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-primary">
-                {actions.length}
-              </p>
-              <p className="text-sm text-muted-foreground">Actions insgesamt</p>
+        {!showList ? (
+          // Overview Cards
+          <>
+            {/* Status Filter Chips */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              <Button
+                variant={mobileFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setMobileFilter("all")}
+                className="shrink-0"
+              >
+                Alle ({myActions.length})
+              </Button>
+              <Button
+                variant={mobileFilter === "open" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setMobileFilter("open")}
+                className="shrink-0"
+              >
+                Offen ({openCount})
+              </Button>
+              <Button
+                variant={mobileFilter === "progress" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setMobileFilter("progress")}
+                className="shrink-0"
+              >
+                In Arbeit ({progressCount})
+              </Button>
+              <Button
+                variant={mobileFilter === "completed" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setMobileFilter("completed")}
+                className="shrink-0"
+              >
+                Erledigt ({myActions.filter(a => a.status === "COMPLETED").length})
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-yellow-500">{openCount}</p>
+                    <p className="text-sm text-muted-foreground">Offen</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-blue-500">{progressCount}</p>
+                    <p className="text-sm text-muted-foreground">In Arbeit</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        ) : (
+          // Action List
+          <>
+            {/* Status Filter Chips */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              <Button
+                variant={mobileFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setMobileFilter("all")}
+                className="shrink-0"
+              >
+                Alle
+              </Button>
+              <Button
+                variant={mobileFilter === "open" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setMobileFilter("open")}
+                className="shrink-0 bg-yellow-500 hover:bg-yellow-600 text-white"
+              >
+                Offen
+              </Button>
+              <Button
+                variant={mobileFilter === "progress" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setMobileFilter("progress")}
+                className="shrink-0 bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                In Arbeit
+              </Button>
+              <Button
+                variant={mobileFilter === "completed" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setMobileFilter("completed")}
+                className="shrink-0 bg-green-500 hover:bg-green-600 text-white"
+              >
+                Erledigt
+              </Button>
+            </div>
+
+            {/* Action Cards */}
+            {myActions.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <ClipboardList className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-20" />
+                  <p className="text-muted-foreground">
+                    {mobileFilter === "all" 
+                      ? "Keine Actions vorhanden" 
+                      : `Keine ${mobileFilter === "open" ? "offenen" : mobileFilter === "progress" ? "aktiven" : "erledigten"} Actions`}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {myActions.map((action) => {
+                  const overdueClass = isOverdue(action.dueDate, action.status)
+                    ? "border-l-4 border-l-red-500 bg-red-50 dark:bg-red-950/20"
+                    : "";
+                  
+                  return (
+                    <Card
+                      key={action.id}
+                      className={`${overdueClass} ${
+                        action.status === "COMPLETED" ? "opacity-70" : ""
+                      } transition-all active:scale-95`}
+                      onClick={() => {
+                        if (action.status !== "COMPLETED") {
+                          handleToggleComplete(action);
+                        }
+                      }}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge
+                                variant="outline"
+                                className="shrink-0 text-xs font-bold"
+                              >
+                                {action.plant}
+                              </Badge>
+                              <Badge
+                                className={`shrink-0 text-xs font-semibold ${
+                                  action.status === "COMPLETED"
+                                    ? "bg-green-500"
+                                    : action.status === "IN_PROGRESS"
+                                    ? "bg-blue-500"
+                                    : "bg-yellow-500 text-black"
+                                }`}
+                              >
+                                {action.status === "OPEN" && "Offen"}
+                                {action.status === "IN_PROGRESS" && "In Arbeit"}
+                                {action.status === "COMPLETED" && "✓ Erledigt"}
+                              </Badge>
+                            </div>
+                            <CardTitle
+                              className={`text-base leading-tight ${
+                                action.status === "COMPLETED"
+                                  ? "line-through text-muted-foreground"
+                                  : ""
+                              }`}
+                            >
+                              {action.title}
+                            </CardTitle>
+                          </div>
+                          
+                          {/* Priority Indicator */}
+                          <div
+                            className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
+                              action.priority === "URGENT"
+                                ? "bg-red-500"
+                                : action.priority === "HIGH"
+                                ? "bg-orange-500"
+                                : action.priority === "MEDIUM"
+                                ? "bg-yellow-500"
+                                : "bg-gray-400"
+                            }`}
+                          >
+                            <span className="text-white text-xs font-bold">
+                              {action.priority === "URGENT" && "!!!"}
+                              {action.priority === "HIGH" && "!!"}
+                              {action.priority === "MEDIUM" && "!"}
+                              {action.priority === "LOW" && "·"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Description Preview */}
+                        {action.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
+                            {action.description}
+                          </p>
+                        )}
+
+                        {/* Info Row */}
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t text-xs">
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <UserIcon className="h-3 w-3" />
+                            <span className="truncate">
+                              {action.assignedTo?.split("@")[0] || "Nicht zugewiesen"}
+                            </span>
+                          </div>
+                          {action.dueDate && (
+                            <div
+                              className={`flex items-center gap-1 font-medium ${
+                                isOverdue(action.dueDate, action.status)
+                                  ? "text-red-600"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              <Calendar className="h-3 w-3" />
+                              <span>
+                                {new Date(action.dueDate).toLocaleDateString("de-DE", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Files & Tasks indicators */}
+                        {(action.files.length > 0 || action.tasks.length > 0) && (
+                          <div className="flex gap-2 mt-2">
+                            {action.files.length > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                <Paperclip className="h-3 w-3 mr-1" />
+                                {action.files.length}
+                              </Badge>
+                            )}
+                            {action.tasks.length > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                <ListTodo className="h-3 w-3 mr-1" />
+                                {action.tasks.filter((t: ActionTask) => t.completed).length}/
+                                {action.tasks.length}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Swipe hint */}
+                        {action.status !== "COMPLETED" && (
+                          <p className="text-xs text-center text-muted-foreground/60 mt-2 italic">
+                            Antippen um als erledigt zu markieren
+                          </p>
+                        )}
+                      </CardHeader>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
 
         {/* Create Dialog with button-based selection */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
