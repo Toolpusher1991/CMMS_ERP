@@ -269,8 +269,12 @@ const ActionTracker = ({
   const [userFilter, setUserFilter] = useState<string>("all");
 
   // Mobile States
-  const [mobileFilter, setMobileFilter] = useState<"all" | "open" | "progress" | "completed">("all");
+  const [mobileFilter, setMobileFilter] = useState<
+    "all" | "open" | "progress" | "completed"
+  >("all");
   const [showList, setShowList] = useState(false);
+  const [selectedActionForEdit, setSelectedActionForEdit] = useState<Action | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   // Helper function to format date without timezone issues
   const formatDateForInput = (date: Date): string => {
@@ -1163,55 +1167,61 @@ const ActionTracker = ({
       .filter((action) => {
         // Filter by status
         if (mobileFilter === "open" && action.status !== "OPEN") return false;
-        if (mobileFilter === "progress" && action.status !== "IN_PROGRESS") return false;
-        if (mobileFilter === "completed" && action.status !== "COMPLETED") return false;
-        
+        if (mobileFilter === "progress" && action.status !== "IN_PROGRESS")
+          return false;
+        if (mobileFilter === "completed" && action.status !== "COMPLETED")
+          return false;
+
         // Show user's own actions
-        return action.createdBy === currentUser?.email || 
-               action.assignedTo === currentUser?.email ||
-               action.assignedUsers?.includes(currentUser?.id || "");
+        return (
+          action.createdBy === currentUser?.email ||
+          action.assignedTo === currentUser?.email ||
+          action.assignedUsers?.includes(currentUser?.id || "")
+        );
       })
       .sort((a, b) => {
         // Sort: overdue first, then by due date
         const aOverdue = isOverdue(a.dueDate, a.status);
         const bOverdue = isOverdue(b.dueDate, b.status);
-        
+
         if (aOverdue && !bOverdue) return -1;
         if (!aOverdue && bOverdue) return 1;
-        
+
         if (a.dueDate && b.dueDate) {
           return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         }
-        
+
         return 0;
       });
 
-    const openCount = myActions.filter(a => a.status === "OPEN").length;
-    const progressCount = myActions.filter(a => a.status === "IN_PROGRESS").length;
+    const openCount = myActions.filter((a) => a.status === "OPEN").length;
+    const progressCount = myActions.filter(
+      (a) => a.status === "IN_PROGRESS"
+    ).length;
 
     return (
       <div className="p-3 space-y-3 pb-20">
         {/* Header Card */}
-        <Card className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
+        <Card className="bg-gradient-to-br from-slate-700 to-slate-800 text-white border-slate-600">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <ClipboardList className="h-6 w-6" />
               Action Points
             </CardTitle>
-            <CardDescription className="text-blue-50">
+            <CardDescription className="text-slate-300">
               {myActions.length} Meine Actions
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <Button
               onClick={openNewDialog}
-              className="w-full h-16 text-lg bg-white text-blue-600 hover:bg-blue-50"
+              className="w-full h-16 text-lg bg-white text-slate-800 hover:bg-slate-100"
               size="lg"
             >
               <Plus className="h-6 w-6 mr-2" />
               Neue Action erstellen
             </Button>
-            
+
             {/* Toggle View Button */}
             <Button
               onClick={() => setShowList(!showList)}
@@ -1258,7 +1268,8 @@ const ActionTracker = ({
                 onClick={() => setMobileFilter("completed")}
                 className="shrink-0"
               >
-                Erledigt ({myActions.filter(a => a.status === "COMPLETED").length})
+                Erledigt (
+                {myActions.filter((a) => a.status === "COMPLETED").length})
               </Button>
             </div>
 
@@ -1267,7 +1278,9 @@ const ActionTracker = ({
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-yellow-500">{openCount}</p>
+                    <p className="text-3xl font-bold text-yellow-500">
+                      {openCount}
+                    </p>
                     <p className="text-sm text-muted-foreground">Offen</p>
                   </div>
                 </CardContent>
@@ -1275,7 +1288,9 @@ const ActionTracker = ({
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-blue-500">{progressCount}</p>
+                    <p className="text-3xl font-bold text-blue-500">
+                      {progressCount}
+                    </p>
                     <p className="text-sm text-muted-foreground">In Arbeit</p>
                   </div>
                 </CardContent>
@@ -1327,9 +1342,15 @@ const ActionTracker = ({
                 <CardContent className="py-12 text-center">
                   <ClipboardList className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-20" />
                   <p className="text-muted-foreground">
-                    {mobileFilter === "all" 
-                      ? "Keine Actions vorhanden" 
-                      : `Keine ${mobileFilter === "open" ? "offenen" : mobileFilter === "progress" ? "aktiven" : "erledigten"} Actions`}
+                    {mobileFilter === "all"
+                      ? "Keine Actions vorhanden"
+                      : `Keine ${
+                          mobileFilter === "open"
+                            ? "offenen"
+                            : mobileFilter === "progress"
+                            ? "aktiven"
+                            : "erledigten"
+                        } Actions`}
                   </p>
                 </CardContent>
               </Card>
@@ -1339,13 +1360,17 @@ const ActionTracker = ({
                   const overdueClass = isOverdue(action.dueDate, action.status)
                     ? "border-l-4 border-l-red-500 bg-red-50 dark:bg-red-950/20"
                     : "";
-                  
+
                   return (
                     <Card
                       key={action.id}
                       className={`${overdueClass} ${
                         action.status === "COMPLETED" ? "opacity-70" : ""
-                      }`}
+                      } cursor-pointer transition-all hover:shadow-md active:scale-95`}
+                      onClick={() => {
+                        setSelectedActionForEdit(action);
+                        setShowEditDialog(true);
+                      }}
                     >
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between gap-2">
@@ -1381,7 +1406,7 @@ const ActionTracker = ({
                               {action.title}
                             </CardTitle>
                           </div>
-                          
+
                           {/* Priority Indicator */}
                           <div
                             className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
@@ -1415,7 +1440,8 @@ const ActionTracker = ({
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <UserIcon className="h-3 w-3" />
                             <span className="truncate">
-                              {action.assignedTo?.split("@")[0] || "Nicht zugewiesen"}
+                              {action.assignedTo?.split("@")[0] ||
+                                "Nicht zugewiesen"}
                             </span>
                           </div>
                           {action.dueDate && (
@@ -1428,17 +1454,21 @@ const ActionTracker = ({
                             >
                               <Calendar className="h-3 w-3" />
                               <span>
-                                {new Date(action.dueDate).toLocaleDateString("de-DE", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                })}
+                                {new Date(action.dueDate).toLocaleDateString(
+                                  "de-DE",
+                                  {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                  }
+                                )}
                               </span>
                             </div>
                           )}
                         </div>
 
                         {/* Files & Tasks indicators */}
-                        {(action.files.length > 0 || action.tasks.length > 0) && (
+                        {(action.files.length > 0 ||
+                          action.tasks.length > 0) && (
                           <div className="flex gap-2 mt-2">
                             {action.files.length > 0 && (
                               <Badge variant="outline" className="text-xs">
@@ -1449,8 +1479,12 @@ const ActionTracker = ({
                             {action.tasks.length > 0 && (
                               <Badge variant="outline" className="text-xs">
                                 <ListTodo className="h-3 w-3 mr-1" />
-                                {action.tasks.filter((t: ActionTask) => t.completed).length}/
-                                {action.tasks.length}
+                                {
+                                  action.tasks.filter(
+                                    (t: ActionTask) => t.completed
+                                  ).length
+                                }
+                                /{action.tasks.length}
                               </Badge>
                             )}
                           </div>
@@ -1463,6 +1497,81 @@ const ActionTracker = ({
             )}
           </>
         )}
+
+        {/* Edit Action Dialog (Mobile Popup) */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-lg">Action bearbeiten</DialogTitle>
+              <DialogDescription className="text-sm">
+                Möchten Sie diese Action bearbeiten?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              {selectedActionForEdit && (
+                <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {selectedActionForEdit.plant}
+                    </Badge>
+                    <Badge
+                      className={`text-xs ${
+                        selectedActionForEdit.status === "COMPLETED"
+                          ? "bg-green-500"
+                          : selectedActionForEdit.status === "IN_PROGRESS"
+                          ? "bg-blue-500"
+                          : "bg-yellow-500 text-black"
+                      }`}
+                    >
+                      {selectedActionForEdit.status === "OPEN" && "Offen"}
+                      {selectedActionForEdit.status === "IN_PROGRESS" && "In Arbeit"}
+                      {selectedActionForEdit.status === "COMPLETED" && "Erledigt"}
+                    </Badge>
+                  </div>
+                  <p className="font-semibold text-sm">{selectedActionForEdit.title}</p>
+                  {selectedActionForEdit.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-3">
+                      {selectedActionForEdit.description}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  if (selectedActionForEdit) {
+                    // Parse materials from description
+                    const parsedMaterials = parseMaterialsFromDescription(selectedActionForEdit.description);
+                    const descriptionWithoutMaterials = selectedActionForEdit.description
+                      .split("--- Materialien ---")[0]
+                      .trim();
+
+                    setMaterials(parsedMaterials);
+                    setCurrentAction({
+                      ...selectedActionForEdit,
+                      description: descriptionWithoutMaterials,
+                    });
+                    setSelectedAssignees(selectedActionForEdit.assignedUsers || []);
+                    setIsDialogOpen(true);
+                    setShowEditDialog(false);
+                    setShowList(false); // Zurück zur Übersicht
+                  }
+                }}
+                className="flex-1 bg-slate-700 hover:bg-slate-800"
+              >
+                Bearbeiten
+              </Button>
+              <Button
+                onClick={() => setShowEditDialog(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Abbrechen
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Create Dialog with button-based selection */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
