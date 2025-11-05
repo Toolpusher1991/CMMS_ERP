@@ -273,7 +273,8 @@ const ActionTracker = ({
     "all" | "open" | "progress" | "completed"
   >("all");
   const [showList, setShowList] = useState(false);
-  const [selectedActionForEdit, setSelectedActionForEdit] = useState<Action | null>(null);
+  const [selectedActionForEdit, setSelectedActionForEdit] =
+    useState<Action | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
   // Helper function to format date without timezone issues
@@ -1524,11 +1525,15 @@ const ActionTracker = ({
                       }`}
                     >
                       {selectedActionForEdit.status === "OPEN" && "Offen"}
-                      {selectedActionForEdit.status === "IN_PROGRESS" && "In Arbeit"}
-                      {selectedActionForEdit.status === "COMPLETED" && "Erledigt"}
+                      {selectedActionForEdit.status === "IN_PROGRESS" &&
+                        "In Arbeit"}
+                      {selectedActionForEdit.status === "COMPLETED" &&
+                        "Erledigt"}
                     </Badge>
                   </div>
-                  <p className="font-semibold text-sm">{selectedActionForEdit.title}</p>
+                  <p className="font-semibold text-sm">
+                    {selectedActionForEdit.title}
+                  </p>
                   {selectedActionForEdit.description && (
                     <p className="text-xs text-muted-foreground line-clamp-3">
                       {selectedActionForEdit.description}
@@ -1542,17 +1547,22 @@ const ActionTracker = ({
                 onClick={() => {
                   if (selectedActionForEdit) {
                     // Parse materials from description
-                    const parsedMaterials = parseMaterialsFromDescription(selectedActionForEdit.description);
-                    const descriptionWithoutMaterials = selectedActionForEdit.description
-                      .split("--- Materialien ---")[0]
-                      .trim();
+                    const parsedMaterials = parseMaterialsFromDescription(
+                      selectedActionForEdit.description
+                    );
+                    const descriptionWithoutMaterials =
+                      selectedActionForEdit.description
+                        .split("--- Materialien ---")[0]
+                        .trim();
 
                     setMaterials(parsedMaterials);
                     setCurrentAction({
                       ...selectedActionForEdit,
                       description: descriptionWithoutMaterials,
                     });
-                    setSelectedAssignees(selectedActionForEdit.assignedUsers || []);
+                    setSelectedAssignees(
+                      selectedActionForEdit.assignedUsers || []
+                    );
                     setIsDialogOpen(true);
                     setShowEditDialog(false);
                     setShowList(false); // Zurück zur Übersicht
