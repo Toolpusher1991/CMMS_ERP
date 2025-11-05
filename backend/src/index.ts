@@ -106,6 +106,11 @@ app.use('/uploads', (req, res, next) => {
 app.use('/api/', apiLimiter);
 
 // Routes
+// Root redirect to API health (prevents 404 on monitoring)
+app.get('/', (req, res) => {
+  res.redirect(308, '/api/health');
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
