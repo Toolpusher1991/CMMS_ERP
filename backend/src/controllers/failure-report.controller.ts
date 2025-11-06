@@ -292,6 +292,7 @@ export const convertToAction = async (req: AuthRequest, res: Response) => {
     const action = await prisma.action.create({
       data: {
         plant: report.plant,
+        location: report.location, // Standort übertragen
         title: report.title,
         description: actionDescription,
         status: 'OPEN',

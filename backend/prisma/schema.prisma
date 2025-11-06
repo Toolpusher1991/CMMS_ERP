@@ -173,6 +173,7 @@ model File {
 model Action {
   id              String       @id @default(uuid())
   plant           String       // T208, T207, T700, T46
+  location        String?      // TD, DW, MP1, MP2, MP3, PCR, Generatoren, Grid Container, Mud System
   category        String?      @default("ALLGEMEIN") // ALLGEMEIN, RIGMOVE
   discipline      String?      // MECHANIK, ELEKTRIK, ANLAGE
   title           String
