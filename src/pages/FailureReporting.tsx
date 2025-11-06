@@ -661,7 +661,9 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
                     <SelectItem value="MP3">MP3</SelectItem>
                     <SelectItem value="PCR">PCR</SelectItem>
                     <SelectItem value="Generatoren">Generatoren</SelectItem>
-                    <SelectItem value="Grid Container">Grid Container</SelectItem>
+                    <SelectItem value="Grid Container">
+                      Grid Container
+                    </SelectItem>
                     <SelectItem value="Mud System">Mud System</SelectItem>
                   </SelectContent>
                 </Select>

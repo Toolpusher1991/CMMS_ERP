@@ -115,6 +115,7 @@ interface Action {
   plant: "T208" | "T207" | "T700" | "T46";
   category?: "ALLGEMEIN" | "RIGMOVE";
   discipline?: "MECHANIK" | "ELEKTRIK" | "ANLAGE";
+  location?: string; // Standort: TD, DW, MP1-3, PCR, etc.
   title: string;
   description: string;
   status: "OPEN" | "IN_PROGRESS" | "COMPLETED";
@@ -244,6 +245,7 @@ const ActionTracker = ({
   const [currentAction, setCurrentAction] = useState<Partial<Action>>({
     plant: "T208",
     category: "ALLGEMEIN",
+    location: "",
     title: "",
     description: "",
     status: "OPEN",
@@ -1690,6 +1692,37 @@ const ActionTracker = ({
                 </div>
               </div>
 
+              {/* Location Selection - Dropdown */}
+              <div className="space-y-2">
+                <Label>Standort</Label>
+                <Select
+                  value={currentAction.location || ""}
+                  onValueChange={(value) =>
+                    setCurrentAction({
+                      ...currentAction,
+                      location: value,
+                    })
+                  }
+                >
+                  <SelectTrigger className="h-12 text-base">
+                    <SelectValue placeholder="Standort auswählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TD">TD</SelectItem>
+                    <SelectItem value="DW">DW</SelectItem>
+                    <SelectItem value="MP1">MP1</SelectItem>
+                    <SelectItem value="MP2">MP2</SelectItem>
+                    <SelectItem value="MP3">MP3</SelectItem>
+                    <SelectItem value="PCR">PCR</SelectItem>
+                    <SelectItem value="Generatoren">Generatoren</SelectItem>
+                    <SelectItem value="Grid Container">
+                      Grid Container
+                    </SelectItem>
+                    <SelectItem value="Mud System">Mud System</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="title">Titel *</Label>
@@ -2134,6 +2167,9 @@ const ActionTracker = ({
                                         Kategorie
                                       </TableHead>
                                       <TableHead className="py-3 text-base">
+                                        Standort
+                                      </TableHead>
+                                      <TableHead className="py-3 text-base">
                                         Status
                                       </TableHead>
                                       <TableHead className="py-3 text-base">
@@ -2234,6 +2270,11 @@ const ActionTracker = ({
                                                 "Anlage"}
                                               {!action.discipline && "-"}
                                             </Badge>
+                                          </TableCell>
+                                          <TableCell className="py-3">
+                                            <span className="text-sm text-muted-foreground">
+                                              {action.location || "-"}
+                                            </span>
                                           </TableCell>
                                           <TableCell className="py-3">
                                             <Badge
@@ -3048,6 +3089,36 @@ const ActionTracker = ({
                         Anlage
                       </Button>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Standort</Label>
+                    <Select
+                      value={currentAction.location || ""}
+                      onValueChange={(value) =>
+                        setCurrentAction({
+                          ...currentAction,
+                          location: value,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Standort auswählen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="TD">TD</SelectItem>
+                        <SelectItem value="DW">DW</SelectItem>
+                        <SelectItem value="MP1">MP1</SelectItem>
+                        <SelectItem value="MP2">MP2</SelectItem>
+                        <SelectItem value="MP3">MP3</SelectItem>
+                        <SelectItem value="PCR">PCR</SelectItem>
+                        <SelectItem value="Generatoren">Generatoren</SelectItem>
+                        <SelectItem value="Grid Container">
+                          Grid Container
+                        </SelectItem>
+                        <SelectItem value="Mud System">Mud System</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
