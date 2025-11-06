@@ -79,8 +79,12 @@ import {
   Filter,
   Calendar,
   Image as ImageIcon,
+  Download,
+  Upload,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { exportActionsToExcel, importActionsFromExcel, downloadActionTemplate } from "@/services/excel.service";
 
 interface ActionFile {
   id: string;
@@ -1160,6 +1164,59 @@ const ActionTracker = ({
     return getFilteredActionsForCategory(plant, category).length;
   };
 
+  // Excel Export Handler
+  const handleExport = () => {
+    // Get all actions from current plant tab
+    const filteredActions = actions.filter(a => a.plant === activeTab);
+    exportActionsToExcel(filteredActions, `actions_${activeTab}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast({
+      title: "Export erfolgreich",
+      description: `${filteredActions.length} Actions von ${activeTab} wurden exportiert.`,
+    });
+  };
+
+  // Excel Import Handler
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const importedActions = await importActionsFromExcel(file);
+      
+      // Send to backend
+      for (const action of importedActions) {
+        if (action.id) {
+          // Update existing action
+          await apiClient.put(`/actions/${action.id}`, action);
+        } else {
+          // Create new action
+          await apiClient.post('/actions', {
+            ...action,
+            createdBy: authService.getCurrentUser()?.email || 'System',
+          });
+        }
+      }
+
+      // Refresh actions
+      await loadActions();
+      
+      toast({
+        title: "Import erfolgreich",
+        description: `${importedActions.length} Actions wurden importiert.`,
+      });
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({
+        title: "Import fehlgeschlagen",
+        description: "Fehler beim Importieren der Excel-Datei.",
+        variant: "destructive",
+      });
+    }
+
+    // Reset file input
+    event.target.value = '';
+  };
+
   const isMobile = isMobileDevice();
 
   // Mobile View: Enhanced with action list and filters
@@ -1902,10 +1959,35 @@ const ActionTracker = ({
                 Aufgabenverfolgung für alle Anlagen
               </CardDescription>
             </div>
-            <Button onClick={openNewDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              Neue Action
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={downloadActionTemplate} variant="outline" size="sm">
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Template
+              </Button>
+              <Button onClick={handleExport} variant="outline" size="sm">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+              <Button
+                onClick={() => document.getElementById('excel-upload')?.click()}
+                variant="outline"
+                size="sm"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Import
+              </Button>
+              <input
+                id="excel-upload"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleImport}
+                className="hidden"
+              />
+              <Button onClick={openNewDialog}>
+                <Plus className="mr-2 h-4 w-4" />
+                Neue Action
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
