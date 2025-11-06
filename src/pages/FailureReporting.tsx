@@ -640,18 +640,31 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Standort</Label>
-                <Input
-                  id="location"
+                <Label>Standort</Label>
+                <Select
                   value={currentReport.location}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     setCurrentReport({
                       ...currentReport,
-                      location: e.target.value,
+                      location: value,
                     })
                   }
-                  placeholder="z.B. Deck 3, Pumpenraum A"
-                />
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Standort auswählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TD">TD</SelectItem>
+                    <SelectItem value="DW">DW</SelectItem>
+                    <SelectItem value="MP1">MP1</SelectItem>
+                    <SelectItem value="MP2">MP2</SelectItem>
+                    <SelectItem value="MP3">MP3</SelectItem>
+                    <SelectItem value="PCR">PCR</SelectItem>
+                    <SelectItem value="Generatoren">Generatoren</SelectItem>
+                    <SelectItem value="Grid Container">Grid Container</SelectItem>
+                    <SelectItem value="Mud System">Mud System</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -1166,18 +1179,31 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location">Standort</Label>
-              <Input
-                id="location"
+              <Label>Standort</Label>
+              <Select
                 value={currentReport.location}
-                onChange={(e) =>
+                onValueChange={(value) =>
                   setCurrentReport({
                     ...currentReport,
-                    location: e.target.value,
+                    location: value,
                   })
                 }
-                placeholder="z.B. Deck 3, Pumpenraum A"
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Standort auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TD">TD</SelectItem>
+                  <SelectItem value="DW">DW</SelectItem>
+                  <SelectItem value="MP1">MP1</SelectItem>
+                  <SelectItem value="MP2">MP2</SelectItem>
+                  <SelectItem value="MP3">MP3</SelectItem>
+                  <SelectItem value="PCR">PCR</SelectItem>
+                  <SelectItem value="Generatoren">Generatoren</SelectItem>
+                  <SelectItem value="Grid Container">Grid Container</SelectItem>
+                  <SelectItem value="Mud System">Mud System</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

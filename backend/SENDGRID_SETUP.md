@@ -11,12 +11,14 @@
 ### 2. Sender Identity einrichten
 
 **Option A: Single Sender Verification (Einfach)**
+
 1. Gehe zu: Settings → Sender Authentication
 2. Wähle "Single Sender Verification"
 3. Trage deine E-Mail ein (z.B. `nils@yourdomain.com`)
 4. Bestätige die Verifizierungs-E-Mail
 
 **Option B: Domain Authentication (Professionell)**
+
 1. Gehe zu: Settings → Sender Authentication
 2. Wähle "Authenticate Your Domain"
 3. Füge die DNS-Records zu deiner Domain hinzu
@@ -32,6 +34,7 @@
 ### 4. Environment Variables setzen
 
 **Lokal (Backend/.env):**
+
 ```bash
 SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 SENDGRID_FROM_EMAIL=noreply@yourdomain.com
@@ -39,6 +42,7 @@ FRONTEND_URL=http://localhost:5173
 ```
 
 **Production (Render.com):**
+
 1. Gehe zu: Render Dashboard → Backend Service → Environment
 2. Füge hinzu:
    - `SENDGRID_API_KEY`: (dein API Key)
@@ -48,8 +52,9 @@ FRONTEND_URL=http://localhost:5173
 ### 5. Verwendung im Code
 
 **Action zuweisen mit E-Mail:**
+
 ```typescript
-import { sendActionAssignedEmail } from '../services/email.service';
+import { sendActionAssignedEmail } from "../services/email.service";
 
 // In deiner Action-Route:
 await sendActionAssignedEmail(action.assignedTo, {
@@ -62,25 +67,27 @@ await sendActionAssignedEmail(action.assignedTo, {
 ```
 
 **Kommentar-Benachrichtigung:**
+
 ```typescript
-import { sendCommentNotificationEmail } from '../services/email.service';
+import { sendCommentNotificationEmail } from "../services/email.service";
 
 await sendCommentNotificationEmail(recipientEmail, {
   commentText: comment.text,
   itemTitle: action.title,
-  itemType: 'action',
+  itemType: "action",
   commentedBy: req.user.name,
 });
 ```
 
 **Deadline-Erinnerung:**
+
 ```typescript
-import { sendDeadlineReminderEmail } from '../services/email.service';
+import { sendDeadlineReminderEmail } from "../services/email.service";
 
 await sendDeadlineReminderEmail(action.assignedTo, {
   title: action.title,
   dueDate: action.dueDate,
-  itemType: 'action',
+  itemType: "action",
 });
 ```
 
@@ -95,6 +102,7 @@ await sendDeadlineReminderEmail(action.assignedTo, {
 ### E-Mails kommen nicht an?
 
 1. **Prüfe API Key:**
+
    ```bash
    curl --request POST \
      --url https://api.sendgrid.com/v3/mail/send \
@@ -104,6 +112,7 @@ await sendDeadlineReminderEmail(action.assignedTo, {
    ```
 
 2. **Prüfe Sender-Verifizierung:**
+
    - Settings → Sender Authentication
    - Status muss "Verified" sein
 
@@ -127,11 +136,13 @@ npm run dev
 ## Kosten & Limits
 
 **Free Plan:**
+
 - 12.000 E-Mails/Monat
 - 100 E-Mails/Tag
 - Alle Features
 
 **Essentials Plan ($19.95/Monat):**
+
 - 50.000 E-Mails/Monat
 - 1.500 E-Mails/Tag
 - E-Mail-Validierung
