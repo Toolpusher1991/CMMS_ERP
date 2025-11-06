@@ -18,6 +18,8 @@ async function recoverProductionUsers() {
       update: {
         password: nilsPassword,
         role: 'ADMIN',
+        isActive: true,
+        approvalStatus: 'APPROVED',
       },
       create: {
         email: 'nils@maintain.com',
@@ -26,6 +28,8 @@ async function recoverProductionUsers() {
         lastName: 'Werkmeister',
         role: 'ADMIN',
         assignedPlant: null, // Admin can access all plants
+        isActive: true,
+        approvalStatus: 'APPROVED',
       },
     });
     console.log('✅ Restored Nils:', nils.email);
@@ -36,6 +40,8 @@ async function recoverProductionUsers() {
       update: {
         password: adminPassword,
         role: 'ADMIN',
+        isActive: true,
+        approvalStatus: 'APPROVED',
       },
       create: {
         email: 'admin@maintain.com',
@@ -44,6 +50,8 @@ async function recoverProductionUsers() {
         lastName: 'User',
         role: 'ADMIN',
         assignedPlant: null,
+        isActive: true,
+        approvalStatus: 'APPROVED',
       },
     });
     console.log('✅ Restored Admin:', admin.email);
@@ -54,6 +62,8 @@ async function recoverProductionUsers() {
       update: {
         password: managerPassword,
         role: 'MANAGER',
+        isActive: true,
+        approvalStatus: 'APPROVED',
       },
       create: {
         email: 'thomas@maintain.com',
@@ -62,6 +72,8 @@ async function recoverProductionUsers() {
         lastName: 'Manager',
         role: 'MANAGER',
         assignedPlant: null, // Managers can access all plants
+        isActive: true,
+        approvalStatus: 'APPROVED',
       },
     });
     console.log('✅ Restored Manager:', manager.email);
