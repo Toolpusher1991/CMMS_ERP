@@ -12,6 +12,7 @@ import FailureReporting from "@/pages/FailureReporting";
 import InspectionReports from "@/pages/InspectionReports";
 import EquipmentManuals from "@/pages/EquipmentManuals";
 import SystemDebug from "@/pages/SystemDebug";
+import { LocationManagement } from "@/components/LocationManagement";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -35,6 +36,7 @@ type AppPage =
   | "failures"
   | "inspections"
   | "manuals"
+  | "locations"
   | "debug";
 
 function App() {
@@ -237,6 +239,9 @@ function App() {
                 {currentPage === "debug" && <SystemDebug />}
                 {currentPage === "users" && user.role === "ADMIN" && (
                   <EnhancedUserAdminPage />
+                )}
+                {currentPage === "locations" && user.role === "ADMIN" && (
+                  <LocationManagement />
                 )}
               </div>
             </main>

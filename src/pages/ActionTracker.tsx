@@ -2,6 +2,7 @@
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
+import { getActiveLocations } from "@/config/locations";
 import {
   Card,
   CardContent,
@@ -83,6 +84,7 @@ import {
   Upload,
   FileSpreadsheet,
   ArrowLeft,
+  MapPin,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -1554,6 +1556,16 @@ const ActionTracker = ({
                           </p>
                         )}
 
+                        {/* Location Display */}
+                        {action.location && (
+                          <div className="flex items-center gap-1 mt-2">
+                            <Badge variant="secondary" className="text-xs">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {action.location}
+                            </Badge>
+                          </div>
+                        )}
+
                         {/* Info Row */}
                         <div className="flex items-center justify-between mt-3 pt-3 border-t text-xs">
                           <div className="flex items-center gap-1 text-muted-foreground">
@@ -1837,17 +1849,11 @@ const ActionTracker = ({
                     <SelectValue placeholder="Standort auswählen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="TD">TD</SelectItem>
-                    <SelectItem value="DW">DW</SelectItem>
-                    <SelectItem value="MP1">MP1</SelectItem>
-                    <SelectItem value="MP2">MP2</SelectItem>
-                    <SelectItem value="MP3">MP3</SelectItem>
-                    <SelectItem value="PCR">PCR</SelectItem>
-                    <SelectItem value="Generatoren">Generatoren</SelectItem>
-                    <SelectItem value="Grid Container">
-                      Grid Container
-                    </SelectItem>
-                    <SelectItem value="Mud System">Mud System</SelectItem>
+                    {getActiveLocations().map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

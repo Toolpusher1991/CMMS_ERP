@@ -12,6 +12,7 @@ import {
   Terminal,
   ClipboardCheck,
   BookOpen,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ type AppPage =
   | "failures"
   | "inspections"
   | "manuals"
+  | "locations"
   | "debug";
 
 interface NavItem {
@@ -51,6 +53,7 @@ const allNavItems: NavItem[] = [
   { title: "Störungsmeldung", page: "failures", icon: AlertTriangle },
   { title: "System Debug", page: "debug", icon: Terminal, adminOnly: true },
   { title: "Benutzerverwaltung", page: "users", icon: Users, adminOnly: true },
+  { title: "Standorte", page: "locations", icon: MapPin, adminOnly: true },
 ];
 
 interface SidebarProps {

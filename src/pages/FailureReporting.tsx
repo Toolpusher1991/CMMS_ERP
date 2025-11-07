@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
+import { getActiveLocations } from "@/config/locations";
 import { cn } from "@/lib/utils";
 import "./FailureReporting.mobile.css";
 import {
@@ -698,17 +699,11 @@ const FailureReportingPage = ({ initialReportId, onNavigateBack }: FailureReport
                     <SelectValue placeholder="Standort auswählen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="TD">TD</SelectItem>
-                    <SelectItem value="DW">DW</SelectItem>
-                    <SelectItem value="MP1">MP1</SelectItem>
-                    <SelectItem value="MP2">MP2</SelectItem>
-                    <SelectItem value="MP3">MP3</SelectItem>
-                    <SelectItem value="PCR">PCR</SelectItem>
-                    <SelectItem value="Generatoren">Generatoren</SelectItem>
-                    <SelectItem value="Grid Container">
-                      Grid Container
-                    </SelectItem>
-                    <SelectItem value="Mud System">Mud System</SelectItem>
+                    {getActiveLocations().map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1258,15 +1253,11 @@ const FailureReportingPage = ({ initialReportId, onNavigateBack }: FailureReport
                   <SelectValue placeholder="Standort auswählen" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="TD">TD</SelectItem>
-                  <SelectItem value="DW">DW</SelectItem>
-                  <SelectItem value="MP1">MP1</SelectItem>
-                  <SelectItem value="MP2">MP2</SelectItem>
-                  <SelectItem value="MP3">MP3</SelectItem>
-                  <SelectItem value="PCR">PCR</SelectItem>
-                  <SelectItem value="Generatoren">Generatoren</SelectItem>
-                  <SelectItem value="Grid Container">Grid Container</SelectItem>
-                  <SelectItem value="Mud System">Mud System</SelectItem>
+                  {getActiveLocations().map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
