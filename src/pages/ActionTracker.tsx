@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
@@ -82,6 +83,7 @@ import {
   Download,
   Upload,
   FileSpreadsheet,
+  ArrowLeft,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -207,6 +209,7 @@ const ActionTracker = ({
   showOnlyMyActions = false,
 }: ActionTrackerProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("T208");
   const [activeCategoryTab, setActiveCategoryTab] = useState<
     Record<string, string>
@@ -705,7 +708,7 @@ const ActionTracker = ({
       if (filesToUpload.length > 0 && !uploadInProgressRef.current) {
         uploadInProgressRef.current = true;
         setIsUploadingFiles(true);
-        
+
         const formData = new FormData();
         filesToUpload.forEach((file) => {
           formData.append("files", file);
@@ -1044,23 +1047,26 @@ const ActionTracker = ({
 
     // Speichere die echten File-Objekte für den Upload
     const fileArray = Array.from(files);
-    
+
     // Überprüfe auf Duplikate basierend auf Dateiname, Größe und Type
-    const existingFileSignatures = pendingFiles.map(f => `${f.name}-${f.size}-${f.type}`);
-    const newFiles = fileArray.filter(file => {
+    const existingFileSignatures = pendingFiles.map(
+      (f) => `${f.name}-${f.size}-${f.type}`
+    );
+    const newFiles = fileArray.filter((file) => {
       const signature = `${file.name}-${file.size}-${file.type}`;
       return !existingFileSignatures.includes(signature);
     });
-    
+
     if (newFiles.length === 0) {
       toast({
         title: "Datei bereits hinzugefügt",
-        description: "Diese Datei(en) wurden bereits zur Upload-Liste hinzugefügt.",
+        description:
+          "Diese Datei(en) wurden bereits zur Upload-Liste hinzugefügt.",
         variant: "destructive",
       });
       return;
     }
-    
+
     setPendingFiles([...pendingFiles, ...newFiles]);
 
     // Erstelle Preview-Objekte für die UI
@@ -1304,6 +1310,16 @@ const ActionTracker = ({
 
     return (
       <div className="p-3 space-y-3 pb-20">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="mb-2 -ml-2"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Zurück
+        </Button>
+
         {/* Header Card */}
         <Card className="bg-gradient-to-br from-slate-700 to-slate-800 text-white border-slate-600">
           <CardHeader>
@@ -1675,6 +1691,19 @@ const ActionTracker = ({
                 Bearbeiten
               </Button>
               <Button
+                onClick={() => {
+                  if (selectedActionForEdit) {
+                    handleDelete(selectedActionForEdit.id);
+                    setShowEditDialog(false);
+                  }
+                }}
+                variant="destructive"
+                className="flex-1"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Löschen
+              </Button>
+              <Button
                 onClick={() => setShowEditDialog(false)}
                 variant="outline"
                 className="flex-1"
@@ -1974,11 +2003,23 @@ const ActionTracker = ({
                 variant="outline"
                 onClick={() => setIsDialogOpen(false)}
                 className="h-12"
+                disabled={isUploadingFiles}
               >
                 Abbrechen
               </Button>
-              <Button onClick={handleSave} className="h-12">
-                Speichern
+              <Button
+                onClick={handleSave}
+                className="h-12"
+                disabled={isUploadingFiles}
+              >
+                {isUploadingFiles ? (
+                  <>
+                    <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Lädt hoch...
+                  </>
+                ) : (
+                  "Speichern"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1990,6 +2031,12 @@ const ActionTracker = ({
   // Desktop View: Full functionality
   return (
     <div className="space-y-6">
+      {/* Back Button */}
+      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-2">
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Zurück
+      </Button>
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -3771,11 +3818,24 @@ const ActionTracker = ({
           </div>
 
           <DialogFooter className="flex-shrink-0">
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+              disabled={isUploadingFiles}
+            >
               Abbrechen
             </Button>
-            <Button onClick={handleSave}>
-              {isEditMode ? "Speichern" : "Erstellen"}
+            <Button onClick={handleSave} disabled={isUploadingFiles}>
+              {isUploadingFiles ? (
+                <>
+                  <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Lädt hoch...
+                </>
+              ) : isEditMode ? (
+                "Speichern"
+              ) : (
+                "Erstellen"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3785,16 +3845,35 @@ const ActionTracker = ({
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Action löschen?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Action wirklich löschen?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Diese Aktion kann nicht rückgängig gemacht werden. Die Action wird
-              dauerhaft gelöscht.
+              {actionToDelete && (
+                <>
+                  <p className="mb-2">
+                    Sie sind dabei, die folgende Action zu löschen:
+                  </p>
+                  <p className="font-semibold text-foreground">
+                    "{actions.find((a) => a.id === actionToDelete)?.title}"
+                  </p>
+                  <p className="mt-3">
+                    Diese Aktion kann nicht rückgängig gemacht werden. Die
+                    Action wird dauerhaft aus der Datenbank entfernt.
+                  </p>
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600">
-              Löschen
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Endgültig löschen
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

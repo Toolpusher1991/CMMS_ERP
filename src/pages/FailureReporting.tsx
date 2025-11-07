@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
@@ -58,6 +59,7 @@ import {
   Image as ImageIcon,
   Trash2,
   ArrowRight,
+  ArrowLeft,
   X,
   MapPin,
   Clock,
@@ -109,6 +111,7 @@ interface FailureReportingProps {
 
 const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const isMobile = isMobileDevice();
   const [activeTab, setActiveTab] = useState<string>("T208");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -123,6 +126,8 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoViewDialogOpen, setPhotoViewDialogOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const photoUploadInProgressRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isMounted, setIsMounted] = useState(true);
 
@@ -263,7 +268,21 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
 
   const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file && !photoUploadInProgressRef.current) {
+      // Prüfe ob bereits ein Foto geladen ist
+      if (
+        photoFile &&
+        photoFile.name === file.name &&
+        photoFile.size === file.size
+      ) {
+        toast({
+          title: "Foto bereits hinzugefügt",
+          description: "Dieses Foto wurde bereits ausgewählt.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setPhotoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -287,7 +306,20 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
       return;
     }
 
+    // Verhindere Doppel-Uploads
+    if (photoUploadInProgressRef.current) {
+      toast({
+        title: "Bitte warten",
+        description: "Upload läuft bereits...",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      photoUploadInProgressRef.current = true;
+      setIsUploadingPhoto(true);
+
       const formData = new FormData();
       formData.append("plant", currentReport.plant);
       formData.append("title", currentReport.title);
@@ -336,6 +368,9 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
         description: `${errorMessage}. Bitte prüfen Sie Ihre Internetverbindung.`,
         variant: "destructive",
       });
+    } finally {
+      setIsUploadingPhoto(false);
+      photoUploadInProgressRef.current = false;
     }
   };
 
@@ -463,6 +498,16 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
   if (isMobile) {
     return (
       <div className="mobile-failure-reporting p-3 space-y-3">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="mb-2 -ml-2"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Zurück
+        </Button>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -756,10 +801,23 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                disabled={isUploadingPhoto}
+              >
                 Abbrechen
               </Button>
-              <Button onClick={handleSubmit}>Report erstellen</Button>
+              <Button onClick={handleSubmit} disabled={isUploadingPhoto}>
+                {isUploadingPhoto ? (
+                  <>
+                    <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Lädt hoch...
+                  </>
+                ) : (
+                  "Report erstellen"
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -770,6 +828,12 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
   // Desktop View: Full table
   return (
     <div className="space-y-3 sm:space-y-4">
+      {/* Back Button for Desktop */}
+      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-2">
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Zurück
+      </Button>
+
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1272,10 +1336,23 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+              disabled={isUploadingPhoto}
+            >
               Abbrechen
             </Button>
-            <Button onClick={handleSubmit}>Report erstellen</Button>
+            <Button onClick={handleSubmit} disabled={isUploadingPhoto}>
+              {isUploadingPhoto ? (
+                <>
+                  <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Lädt hoch...
+                </>
+              ) : (
+                "Report erstellen"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

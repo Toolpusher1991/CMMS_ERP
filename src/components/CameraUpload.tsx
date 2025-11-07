@@ -76,14 +76,14 @@ export const CameraUpload = ({
     if (selectedFile && !uploadInProgressRef.current) {
       uploadInProgressRef.current = true;
       setIsUploading(true);
-      
+
       onPhotoCapture(selectedFile);
-      
+
       toast({
         title: "Foto wird hochgeladen...",
         description: `Foto wird zu "${actionTitle || "Action"}" hinzugefügt.`,
       });
-      
+
       // Reset nach kurzer Verzögerung um visuelles Feedback zu geben
       setTimeout(() => {
         handleClose();
@@ -96,7 +96,7 @@ export const CameraUpload = ({
   // Reset and close
   const handleClose = () => {
     if (uploadInProgressRef.current) return; // Verhindere Schließen während Upload
-    
+
     setPreviewUrl(null);
     setSelectedFile(null);
     setIsOpen(false);
@@ -227,8 +227,8 @@ export const CameraUpload = ({
           </div>
 
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleClose}
               disabled={isUploading}
             >
