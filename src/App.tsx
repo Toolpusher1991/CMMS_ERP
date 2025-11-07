@@ -174,9 +174,13 @@ function App() {
           onNavigate={handleMobileNavigate}
         >
           {currentPage === "failures" ? (
-            <FailureReporting />
+            <FailureReporting 
+              onNavigateBack={() => handleMobileNavigate("home")}
+            />
           ) : currentPage === "actions" ? (
-            <ActionTracker />
+            <ActionTracker 
+              onNavigateBack={() => handleMobileNavigate("home")}
+            />
           ) : null}
         </MobileLayout>
       ) : (

@@ -106,9 +106,10 @@ interface FailureReport {
 
 interface FailureReportingProps {
   initialReportId?: string;
+  onNavigateBack?: () => void;
 }
 
-const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
+const FailureReportingPage = ({ initialReportId, onNavigateBack }: FailureReportingProps) => {
   const { toast } = useToast();
   const isMobile = isMobileDevice();
   const [activeTab, setActiveTab] = useState<string>("T208");
@@ -499,7 +500,7 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
         {/* Back Button */}
         <Button
           variant="ghost"
-          onClick={() => window.history.back()}
+          onClick={() => onNavigateBack ? onNavigateBack() : window.history.back()}
           className="mb-2 -ml-2"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -827,7 +828,7 @@ const FailureReportingPage = ({ initialReportId }: FailureReportingProps) => {
   return (
     <div className="space-y-3 sm:space-y-4">
       {/* Back Button for Desktop */}
-      <Button variant="ghost" onClick={() => window.history.back()} className="mb-2">
+      <Button variant="ghost" onClick={() => onNavigateBack ? onNavigateBack() : window.history.back()} className="mb-2">
         <ArrowLeft className="h-4 w-4 mr-2" />
         Zurück
       </Button>
