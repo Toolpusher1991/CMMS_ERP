@@ -265,6 +265,8 @@ const ActionTracker = ({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
+  const uploadInProgressRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [actions, setActions] = useState<Action[]>([]);
@@ -700,24 +702,41 @@ const ActionTracker = ({
         filesToUpload.push(photoFile);
       }
 
-      if (filesToUpload.length > 0) {
+      if (filesToUpload.length > 0 && !uploadInProgressRef.current) {
+        uploadInProgressRef.current = true;
+        setIsUploadingFiles(true);
+        
         const formData = new FormData();
         filesToUpload.forEach((file) => {
           formData.append("files", file);
         });
 
-        await apiClient.post(`/actions/${actionId}/files`, formData);
+        try {
+          await apiClient.post(`/actions/${actionId}/files`, formData);
 
-        if (isMounted) {
-          toast({
-            title: "Dateien hochgeladen",
-            description: `${filesToUpload.length} Datei(en) erfolgreich hochgeladen.`,
-          });
+          if (isMounted) {
+            toast({
+              title: "Dateien hochgeladen",
+              description: `${filesToUpload.length} Datei(en) erfolgreich hochgeladen.`,
+            });
+          }
+
+          setPendingFiles([]);
+          setPhotoFile(null);
+          setPhotoPreview(null);
+        } catch (uploadError) {
+          console.error("Fehler beim Datei-Upload:", uploadError);
+          if (isMounted) {
+            toast({
+              title: "Upload-Fehler",
+              description: "Dateien konnten nicht hochgeladen werden.",
+              variant: "destructive",
+            });
+          }
+        } finally {
+          setIsUploadingFiles(false);
+          uploadInProgressRef.current = false;
         }
-
-        setPendingFiles([]);
-        setPhotoFile(null);
-        setPhotoPreview(null);
       }
 
       await loadActions();
@@ -1021,14 +1040,31 @@ const ActionTracker = ({
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files) return;
+    if (!files || uploadInProgressRef.current) return;
 
     // Speichere die echten File-Objekte für den Upload
     const fileArray = Array.from(files);
-    setPendingFiles([...pendingFiles, ...fileArray]);
+    
+    // Überprüfe auf Duplikate basierend auf Dateiname, Größe und Type
+    const existingFileSignatures = pendingFiles.map(f => `${f.name}-${f.size}-${f.type}`);
+    const newFiles = fileArray.filter(file => {
+      const signature = `${file.name}-${file.size}-${file.type}`;
+      return !existingFileSignatures.includes(signature);
+    });
+    
+    if (newFiles.length === 0) {
+      toast({
+        title: "Datei bereits hinzugefügt",
+        description: "Diese Datei(en) wurden bereits zur Upload-Liste hinzugefügt.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setPendingFiles([...pendingFiles, ...newFiles]);
 
     // Erstelle Preview-Objekte für die UI
-    const newFiles: ActionFile[] = fileArray.map((file) => ({
+    const newFileObjects: ActionFile[] = newFiles.map((file) => ({
       id: Date.now().toString() + Math.random(),
       name: file.name,
       type: file.type,
@@ -1039,7 +1075,7 @@ const ActionTracker = ({
 
     setCurrentAction({
       ...currentAction,
-      files: [...(currentAction.files || []), ...newFiles],
+      files: [...(currentAction.files || []), ...newFileObjects],
     });
 
     if (isMounted) {

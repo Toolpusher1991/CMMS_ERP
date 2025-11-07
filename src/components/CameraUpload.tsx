@@ -28,8 +28,10 @@ export const CameraUpload = ({
   const [isOpen, setIsOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const uploadInProgressRef = useRef(false);
 
   // Handle file selection from gallery
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,21 +73,34 @@ export const CameraUpload = ({
 
   // Handle photo upload
   const handleUpload = () => {
-    if (selectedFile) {
+    if (selectedFile && !uploadInProgressRef.current) {
+      uploadInProgressRef.current = true;
+      setIsUploading(true);
+      
       onPhotoCapture(selectedFile);
+      
       toast({
-        title: "Foto hochgeladen",
-        description: `Foto wurde zu "${actionTitle || "Action"}" hinzugefügt.`,
+        title: "Foto wird hochgeladen...",
+        description: `Foto wird zu "${actionTitle || "Action"}" hinzugefügt.`,
       });
-      handleClose();
+      
+      // Reset nach kurzer Verzögerung um visuelles Feedback zu geben
+      setTimeout(() => {
+        handleClose();
+        setIsUploading(false);
+        uploadInProgressRef.current = false;
+      }, 500);
     }
   };
 
   // Reset and close
   const handleClose = () => {
+    if (uploadInProgressRef.current) return; // Verhindere Schließen während Upload
+    
     setPreviewUrl(null);
     setSelectedFile(null);
     setIsOpen(false);
+    setIsUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
@@ -212,15 +227,24 @@ export const CameraUpload = ({
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={handleClose}>
+            <Button 
+              variant="outline" 
+              onClick={handleClose}
+              disabled={isUploading}
+            >
               Abbrechen
             </Button>
             <Button
               onClick={handleUpload}
-              disabled={!selectedFile}
+              disabled={!selectedFile || isUploading}
               className="gap-2"
             >
-              {selectedFile ? (
+              {isUploading ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Lädt hoch...
+                </>
+              ) : selectedFile ? (
                 <>
                   <Check className="h-4 w-4" />
                   Hochladen
