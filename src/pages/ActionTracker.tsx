@@ -1,5 +1,4 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
@@ -209,7 +208,6 @@ const ActionTracker = ({
   showOnlyMyActions = false,
 }: ActionTrackerProps) => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("T208");
   const [activeCategoryTab, setActiveCategoryTab] = useState<
     Record<string, string>
@@ -1313,7 +1311,7 @@ const ActionTracker = ({
         {/* Back Button */}
         <Button
           variant="ghost"
-          onClick={() => navigate(-1)}
+          onClick={() => window.history.back()}
           className="mb-2 -ml-2"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -2032,7 +2030,7 @@ const ActionTracker = ({
   return (
     <div className="space-y-6">
       {/* Back Button */}
-      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-2">
+      <Button variant="ghost" onClick={() => window.history.back()} className="mb-2">
         <ArrowLeft className="h-4 w-4 mr-2" />
         Zurück
       </Button>
