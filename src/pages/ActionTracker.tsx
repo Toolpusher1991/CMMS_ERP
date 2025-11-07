@@ -603,12 +603,12 @@ const ActionTracker = ({
   };
 
   const handleSave = async () => {
-    // Validation - plant and title are required
-    if (!currentAction.plant || !currentAction.title) {
+    // Validation - plant, location and title are required
+    if (!currentAction.plant || !currentAction.location || !currentAction.title) {
       toast({
         title: "Fehler",
         description:
-          "Bitte wählen Sie eine Anlage und geben Sie einen Titel ein.",
+          "Bitte wählen Sie eine Anlage, einen Standort und geben Sie einen Titel ein.",
         variant: "destructive",
       });
       return;
@@ -653,6 +653,7 @@ const ActionTracker = ({
           method: "PUT",
           body: JSON.stringify({
             plant: currentAction.plant,
+            location: currentAction.location,
             category: currentAction.category,
             discipline: currentAction.discipline,
             title: currentAction.title,
@@ -679,6 +680,7 @@ const ActionTracker = ({
           method: "POST",
           body: JSON.stringify({
             plant: currentAction.plant,
+            location: currentAction.location,
             category: currentAction.category,
             discipline: currentAction.discipline,
             title: currentAction.title,
