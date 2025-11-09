@@ -1,16 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegistrationPage } from "@/pages/RegistrationPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
-import AdminPanel from "@/pages/AdminPanel";
-import Dashboard from "@/pages/Dashboard";
-import ProjectList from "@/pages/ProjectList";
-import WorkOrderManagement from "@/pages/WorkOrderManagement";
-import ActionTracker from "@/pages/ActionTracker";
-import RigConfigurator from "@/pages/RigConfigurator";
-import FailureReporting from "@/pages/FailureReporting";
-import InspectionReports from "@/pages/InspectionReports";
-import EquipmentManuals from "@/pages/EquipmentManuals";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -19,9 +10,22 @@ import { MobileLayout } from "@/components/MobileLayout";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
 import type { User } from "@/services/auth.service";
+
+// Lazy load heavy components to reduce initial bundle size
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const ProjectList = lazy(() => import("@/pages/ProjectList"));
+const WorkOrderManagement = lazy(() => import("@/pages/WorkOrderManagement"));
+const ActionTracker = lazy(() => import("@/pages/ActionTracker"));
+const RigConfigurator = lazy(() => import("@/pages/RigConfigurator"));
+const FailureReporting = lazy(() => import("@/pages/FailureReporting"));
+const InspectionReports = lazy(() => import("@/pages/InspectionReports"));
+const EquipmentManuals = lazy(() => import("@/pages/EquipmentManuals"));
+const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
 
 type AuthView = "login" | "register" | "forgot-password";
 type AppPage =
@@ -130,14 +134,7 @@ function App() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Laden...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen message="Anwendung wird geladen..." />;
   }
 
   if (!isAuthenticated || !user) {
@@ -172,13 +169,21 @@ function App() {
           onNavigate={handleMobileNavigate}
         >
           {currentPage === "failures" ? (
-            <FailureReporting
-              onNavigateBack={() => handleMobileNavigate("home")}
-            />
+            <ErrorBoundary>
+              <Suspense fallback={<LoadingSpinner />}>
+                <FailureReporting
+                  onNavigateBack={() => handleMobileNavigate("home")}
+                />
+              </Suspense>
+            </ErrorBoundary>
           ) : currentPage === "actions" ? (
-            <ActionTracker
-              onNavigateBack={() => handleMobileNavigate("home")}
-            />
+            <ErrorBoundary>
+              <Suspense fallback={<LoadingSpinner />}>
+                <ActionTracker
+                  onNavigateBack={() => handleMobileNavigate("home")}
+                />
+              </Suspense>
+            </ErrorBoundary>
           ) : null}
         </MobileLayout>
       ) : (
@@ -209,31 +214,73 @@ function App() {
             <main className="flex-1 overflow-y-auto bg-background">
               <div className="container mx-auto max-w-full p-4 sm:p-6 lg:p-8">
                 {currentPage === "dashboard" && (
-                  <Dashboard onNavigate={handleNavigate} />
+                  <ErrorBoundary>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Dashboard onNavigate={handleNavigate} />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
                 {currentPage === "projects" && (
-                  <ProjectList
-                    initialProjectId={initialProjectId}
-                    showOnlyMyProjects={showOnlyMyProjects}
-                  />
+                  <ErrorBoundary>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <ProjectList
+                        initialProjectId={initialProjectId}
+                        showOnlyMyProjects={showOnlyMyProjects}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
-                {currentPage === "workorders" && <WorkOrderManagement />}
+                {currentPage === "workorders" && (
+                  <ErrorBoundary>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <WorkOrderManagement />
+                    </Suspense>
+                  </ErrorBoundary>
+                )}
                 {currentPage === "actions" && (
-                  <ActionTracker
-                    initialActionId={initialActionId}
-                    showOnlyMyActions={showOnlyMyActions}
-                  />
+                  <ErrorBoundary>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <ActionTracker
+                        initialActionId={initialActionId}
+                        showOnlyMyActions={showOnlyMyActions}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
                 {currentPage === "failures" && (
-                  <FailureReporting initialReportId={initialReportId} />
+                  <ErrorBoundary>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <FailureReporting initialReportId={initialReportId} />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
-                {currentPage === "inspections" && <InspectionReports />}
+                {currentPage === "inspections" && (
+                  <ErrorBoundary>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <InspectionReports />
+                    </Suspense>
+                  </ErrorBoundary>
+                )}
                 {currentPage === "manuals" && user.role === "ADMIN" && (
-                  <EquipmentManuals />
+                  <ErrorBoundary>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <EquipmentManuals />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
-                {currentPage === "tender" && <RigConfigurator />}
+                {currentPage === "tender" && (
+                  <ErrorBoundary>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <RigConfigurator />
+                    </Suspense>
+                  </ErrorBoundary>
+                )}
                 {currentPage === "admin" && user.role === "ADMIN" && (
-                  <AdminPanel />
+                  <ErrorBoundary>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminPanel />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
               </div>
             </main>
