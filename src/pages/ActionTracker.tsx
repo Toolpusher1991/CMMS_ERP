@@ -88,7 +88,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
-  exportActionsToExcel,
+  exportActionsToExcelProfessional,
   importActionsFromExcel,
   downloadActionTemplate,
 } from "@/services/excel.service";
@@ -1227,16 +1227,19 @@ const ActionTracker = ({
   };
 
   // Excel Export Handler
-  const handleExport = () => {
+  const handleExport = async () => {
     // Get all actions from current plant tab
     const filteredActions = actions.filter((a) => a.plant === activeTab);
-    exportActionsToExcel(
+    
+    // Use professional export
+    await exportActionsToExcelProfessional(
       filteredActions,
-      `actions_${activeTab}_${new Date().toISOString().split("T")[0]}.xlsx`
+      `MaintAIn_${activeTab}_Actions_${new Date().toISOString().split("T")[0]}.xlsx`
     );
+    
     toast({
       title: "Export erfolgreich",
-      description: `${filteredActions.length} Actions von ${activeTab} wurden exportiert.`,
+      description: `${filteredActions.length} Actions von ${activeTab} wurden mit Dashboard exportiert.`,
     });
   };
 

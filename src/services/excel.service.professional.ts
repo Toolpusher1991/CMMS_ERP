@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
@@ -18,169 +17,6 @@ interface Action {
   createdBy?: string;
   createdAt: string;
 }
-
-/**
- * Export Actions to Excel file
- */
-export const exportActionsToExcel = (actions: Action[], filename = 'actions.xlsx') => {
-  // Prepare data for Excel
-  const excelData = actions.map(action => ({
-    'ID': action.id,
-    'Anlage': action.plant,
-    'Standort': action.location || '',
-    'Kategorie': action.category || 'ALLGEMEIN',
-    'Fachbereich': action.discipline || '',
-    'Titel': action.title,
-    'Beschreibung': action.description || '',
-    'Status': action.status,
-    'Priorität': action.priority,
-    'Zugewiesen an': action.assignedTo || '',
-    'Fälligkeitsdatum': action.dueDate ? new Date(action.dueDate).toLocaleDateString('de-DE') : '',
-    'Abgeschlossen am': action.completedAt ? new Date(action.completedAt).toLocaleDateString('de-DE') : '',
-    'Erstellt von': action.createdBy || '',
-    'Erstellt am': new Date(action.createdAt).toLocaleDateString('de-DE'),
-  }));
-
-  // Create workbook and worksheet
-  const worksheet = XLSX.utils.json_to_sheet(excelData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Actions');
-
-  // Set column widths
-  const colWidths = [
-    { wch: 10 }, // ID
-    { wch: 8 },  // Anlage
-    { wch: 15 }, // Standort
-    { wch: 12 }, // Kategorie
-    { wch: 15 }, // Fachbereich
-    { wch: 30 }, // Titel
-    { wch: 50 }, // Beschreibung
-    { wch: 12 }, // Status
-    { wch: 10 }, // Priorität
-    { wch: 20 }, // Zugewiesen an
-    { wch: 15 }, // Fälligkeitsdatum
-    { wch: 15 }, // Abgeschlossen am
-    { wch: 20 }, // Erstellt von
-    { wch: 15 }, // Erstellt am
-  ];
-  worksheet['!cols'] = colWidths;
-
-  // Generate Excel file and download
-  XLSX.writeFile(workbook, filename);
-};
-
-/**
- * Import Actions from Excel file
- */
-export const importActionsFromExcel = (file: File): Promise<Partial<Action>[]> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const worksheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[worksheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, string>[];
-
-        // Map Excel rows to Action objects
-        const actions: Partial<Action>[] = jsonData.map((row) => {
-          // Parse dates
-          const parseDueDate = (dateStr: string) => {
-            if (!dateStr) return undefined;
-            const parts = dateStr.split('.');
-            if (parts.length === 3) {
-              return new Date(
-                parseInt(parts[2], 10),
-                parseInt(parts[1], 10) - 1,
-                parseInt(parts[0], 10)
-              ).toISOString();
-            }
-            return undefined;
-          };
-
-          return {
-            id: row['ID'] || undefined, // Keep ID if updating existing action
-            plant: row['Anlage'] || 'T208',
-            location: row['Standort'] || undefined,
-            category: row['Kategorie'] || 'ALLGEMEIN',
-            discipline: row['Fachbereich'] || undefined,
-            title: row['Titel'] || 'Ohne Titel',
-            description: row['Beschreibung'] || '',
-            status: row['Status'] || 'OPEN',
-            priority: row['Priorität'] || 'MEDIUM',
-            assignedTo: row['Zugewiesen an'] || undefined,
-            dueDate: parseDueDate(row['Fälligkeitsdatum']),
-          };
-        });
-
-        resolve(actions);
-      } catch (error) {
-        reject(error);
-      }
-    };
-
-    reader.onerror = () => {
-      reject(new Error('Fehler beim Lesen der Datei'));
-    };
-
-    reader.readAsArrayBuffer(file);
-  });
-};
-
-/**
- * Create Excel template for Actions
- */
-export const downloadActionTemplate = () => {
-  const templateData = [
-    {
-      'ID': '(leer lassen für neue Actions)',
-      'Anlage': 'T208',
-      'Standort': 'TD',
-      'Kategorie': 'ALLGEMEIN',
-      'Fachbereich': 'MECHANIK',
-      'Titel': 'Beispiel Action',
-      'Beschreibung': 'Detaillierte Beschreibung',
-      'Status': 'OPEN',
-      'Priorität': 'MEDIUM',
-      'Zugewiesen an': 'user@example.com',
-      'Fälligkeitsdatum': '31.12.2025',
-      'Abgeschlossen am': '',
-      'Erstellt von': '',
-      'Erstellt am': '',
-    },
-  ];
-
-  const worksheet = XLSX.utils.json_to_sheet(templateData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Actions Template');
-
-  // Set column widths
-  const colWidths = [
-    { wch: 35 }, // ID
-    { wch: 8 },  // Anlage
-    { wch: 15 }, // Standort
-    { wch: 12 }, // Kategorie
-    { wch: 15 }, // Fachbereich
-    { wch: 30 }, // Titel
-    { wch: 50 }, // Beschreibung
-    { wch: 12 }, // Status
-    { wch: 10 }, // Priorität
-    { wch: 20 }, // Zugewiesen an
-    { wch: 15 }, // Fälligkeitsdatum
-    { wch: 15 }, // Abgeschlossen am
-    { wch: 20 }, // Erstellt von
-    { wch: 15 }, // Erstellt am
-  ];
-  worksheet['!cols'] = colWidths;
-
-  XLSX.writeFile(workbook, 'action_template.xlsx');
-};
-
-// ==================================================================================
-// PROFESSIONAL EXCEL EXPORT WITH ExcelJS
-// ==================================================================================
 
 // Color scheme matching the app
 const COLORS = {
@@ -204,7 +40,7 @@ const COLORS = {
 };
 
 /**
- * Professional Excel Export with Dashboard, Charts, Filters, and Styling
+ * Professional Excel Export with Charts, Filters, and Styling
  */
 export const exportActionsToExcelProfessional = async (
   actions: Action[],
@@ -228,10 +64,14 @@ export const exportActionsToExcelProfessional = async (
     views: [{ state: 'frozen', xSplit: 0, ySplit: 3 }]
   });
 
-  // Create Dashboard
+  // =====================================================
+  // DASHBOARD SHEET
+  // =====================================================
   await createDashboard(dashboardSheet, actions);
 
-  // Create Actions Sheet
+  // =====================================================
+  // ACTIONS DATA SHEET
+  // =====================================================
   await createActionsSheet(dataSheet, actions);
 
   // Generate Excel file
@@ -243,7 +83,7 @@ export const exportActionsToExcelProfessional = async (
 };
 
 /**
- * Create Dashboard Sheet with KPIs and Statistics
+ * Create Dashboard Sheet with KPIs and Charts
  */
 async function createDashboard(sheet: ExcelJS.Worksheet, actions: Action[]) {
   // Calculate statistics
@@ -289,6 +129,8 @@ async function createDashboard(sheet: ExcelJS.Worksheet, actions: Action[]) {
   sheet.getRow(3).height = 10;
 
   // === KPI CARDS ===
+  const kpiRow = 4;
+  
   // Total Actions
   createKpiCard(sheet, 'A4:B5', '📋 Gesamt', stats.total, COLORS.primary);
   
@@ -301,8 +143,10 @@ async function createDashboard(sheet: ExcelJS.Worksheet, actions: Action[]) {
   // Completed Actions
   createKpiCard(sheet, 'G4:H5', '✅ Abgeschlossen', stats.completed, COLORS.statusCompleted);
 
-  // === STATISTICS TABLES ===
-  // Status Distribution
+  // === CHARTS DATA ===
+  const chartDataRow = 7;
+  
+  // Status Distribution Table
   sheet.getCell('A7').value = 'Status Verteilung';
   sheet.getCell('A7').font = { bold: true, size: 12 };
   sheet.getCell('A8').value = 'Status';
@@ -310,14 +154,14 @@ async function createDashboard(sheet: ExcelJS.Worksheet, actions: Action[]) {
   sheet.getCell('A8').font = { bold: true };
   sheet.getCell('B8').font = { bold: true };
   
-  sheet.getCell('A9').value = '🟡 Offen';
+  sheet.getCell('A9').value = 'Offen';
   sheet.getCell('B9').value = stats.open;
-  sheet.getCell('A10').value = '🔵 In Bearbeitung';
+  sheet.getCell('A10').value = 'In Bearbeitung';
   sheet.getCell('B10').value = stats.inProgress;
-  sheet.getCell('A11').value = '✅ Abgeschlossen';
+  sheet.getCell('A11').value = 'Abgeschlossen';
   sheet.getCell('B11').value = stats.completed;
 
-  // Priority Distribution
+  // Priority Distribution Table
   sheet.getCell('D7').value = 'Prioritäten Verteilung';
   sheet.getCell('D7').font = { bold: true, size: 12 };
   sheet.getCell('D8').value = 'Priorität';
@@ -325,13 +169,13 @@ async function createDashboard(sheet: ExcelJS.Worksheet, actions: Action[]) {
   sheet.getCell('D8').font = { bold: true };
   sheet.getCell('E8').font = { bold: true };
   
-  sheet.getCell('D9').value = '🟢 Niedrig';
+  sheet.getCell('D9').value = 'Niedrig';
   sheet.getCell('E9').value = stats.low;
-  sheet.getCell('D10').value = '🟡 Mittel';
+  sheet.getCell('D10').value = 'Mittel';
   sheet.getCell('E10').value = stats.medium;
-  sheet.getCell('D11').value = '🟠 Hoch';
+  sheet.getCell('D11').value = 'Hoch';
   sheet.getCell('E11').value = stats.high;
-  sheet.getCell('D12').value = '🔴 Dringend';
+  sheet.getCell('D12').value = 'Dringend';
   sheet.getCell('E12').value = stats.urgent;
 
   // Location Breakdown
@@ -465,6 +309,7 @@ async function createActionsSheet(sheet: ExcelJS.Worksheet, actions: Action[]) {
   // === DATA ROWS ===
   actions.forEach((action, index) => {
     const row = sheet.getRow(4 + index);
+    const rowNum = 4 + index;
     
     // Check if overdue
     const isOverdue = action.dueDate && 
@@ -580,3 +425,132 @@ async function createActionsSheet(sheet: ExcelJS.Worksheet, actions: Action[]) {
   sheet.getColumn(13).width = 15; // Abgeschlossen
   sheet.getColumn(14).width = 20; // Erstellt von
 }
+
+/**
+ * Export Actions Template for Import
+ */
+export const downloadActionTemplate = async () => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Actions Template');
+
+  // Header
+  sheet.mergeCells('A1:N1');
+  const titleCell = sheet.getCell('A1');
+  titleCell.value = '📋 MaintAIn - Action Import Template';
+  titleCell.font = { size: 18, bold: true, color: { argb: COLORS.white } };
+  titleCell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: COLORS.primary },
+  };
+  titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  sheet.getRow(1).height = 35;
+
+  // Instructions
+  sheet.mergeCells('A2:N2');
+  const instructionCell = sheet.getCell('A2');
+  instructionCell.value = 'Füllen Sie die Felder aus und importieren Sie die Datei. Pflichtfelder: Anlage, Titel';
+  instructionCell.font = { size: 10, italic: true };
+  instructionCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+  // Table header
+  const headerRow = sheet.getRow(3);
+  const headers = [
+    'ID (leer für neu)',
+    'Anlage *',
+    'Standort',
+    'Kategorie',
+    'Fachbereich',
+    'Titel *',
+    'Beschreibung',
+    'Status',
+    'Priorität',
+    'Zugewiesen an',
+    'Fälligkeitsdatum',
+    'Abgeschlossen am',
+    'Erstellt von',
+    'Erstellt am',
+  ];
+
+  headers.forEach((header, index) => {
+    const cell = headerRow.getCell(index + 1);
+    cell.value = header;
+    cell.font = { bold: true, color: { argb: COLORS.white } };
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: COLORS.primary },
+    };
+    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+  });
+
+  // Data validation for dropdowns
+  // Anlage dropdown
+  sheet.dataValidations.add('B4:B1000', {
+    type: 'list',
+    allowBlank: false,
+    formulae: ['"T208,T207,T700,T46"'],
+    showErrorMessage: true,
+    errorTitle: 'Ungültige Anlage',
+    error: 'Bitte wählen Sie eine gültige Anlage aus',
+  });
+
+  // Status dropdown
+  sheet.dataValidations.add('H4:H1000', {
+    type: 'list',
+    allowBlank: true,
+    formulae: ['"OPEN,IN_PROGRESS,COMPLETED"'],
+  });
+
+  // Priority dropdown
+  sheet.dataValidations.add('I4:I1000', {
+    type: 'list',
+    allowBlank: true,
+    formulae: ['"LOW,MEDIUM,HIGH,URGENT"'],
+  });
+
+  // Category dropdown
+  sheet.dataValidations.add('D4:D1000', {
+    type: 'list',
+    allowBlank: true,
+    formulae: ['"ALLGEMEIN,RIGMOVE"'],
+  });
+
+  // Discipline dropdown
+  sheet.dataValidations.add('E4:E1000', {
+    type: 'list',
+    allowBlank: true,
+    formulae: ['"MECHANIK,ELEKTRIK,ANLAGE"'],
+  });
+
+  // Column widths
+  sheet.columns.forEach((column, index) => {
+    column.width = index === 6 || index === 7 ? 40 : 15;
+  });
+
+  // Example row
+  const exampleRow = sheet.getRow(4);
+  exampleRow.values = [
+    '', // ID
+    'T208', // Anlage
+    'TD', // Standort
+    'ALLGEMEIN', // Kategorie
+    'MECHANIK', // Fachbereich
+    'Beispiel Action', // Titel
+    'Detaillierte Beschreibung', // Beschreibung
+    'OPEN', // Status
+    'MEDIUM', // Priorität
+    'user@example.com', // Zugewiesen
+    '31.12.2025', // Fälligkeitsdatum
+    '', // Abgeschlossen
+    'admin@example.com', // Erstellt von
+    new Date().toLocaleDateString('de-DE'), // Erstellt am
+  ];
+
+  // Generate file
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  saveAs(blob, 'MaintAIn_Actions_Import_Template.xlsx');
+};
