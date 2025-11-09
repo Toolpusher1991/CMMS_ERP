@@ -34,11 +34,13 @@ Die neue Komponente `LocationManagement` bietet:
 ### Für Administratoren
 
 1. **Standorte verwalten**:
+
    - Im Menü auf "Standorte" klicken (nur für Admins sichtbar)
    - Standorte hinzufügen, bearbeiten oder löschen
    - Mit dem Switch können Standorte temporär deaktiviert werden
 
 2. **Standort hinzufügen**:
+
    - Button "Neuer Standort" klicken
    - **ID** (Pflicht): Kurzform (z.B. "TD", "MP1") - wird in GROSSBUCHSTABEN gespeichert
    - **Name** (Pflicht): Vollständiger Name (z.B. "Top Drive")
@@ -56,22 +58,22 @@ Die neue Komponente `LocationManagement` bietet:
 
 ```typescript
 interface Location {
-  id: string;           // Eindeutige ID (z.B. "TD", "MP1")
-  name: string;         // Anzeigename (z.B. "Top Drive")
+  id: string; // Eindeutige ID (z.B. "TD", "MP1")
+  name: string; // Anzeigename (z.B. "Top Drive")
   description?: string; // Optionale Beschreibung
-  active: boolean;      // Ist der Standort aktiv?
+  active: boolean; // Ist der Standort aktiv?
 }
 ```
 
 #### Verfügbare Funktionen
 
 ```typescript
-import { 
-  getLocations,        // Alle Standorte abrufen
-  getActiveLocations,  // Nur aktive Standorte abrufen
-  saveLocations,       // Standorte speichern
-  resetLocations,      // Auf Standardwerte zurücksetzen
-  DEFAULT_LOCATIONS    // Standard-Standorte-Array
+import {
+  getLocations, // Alle Standorte abrufen
+  getActiveLocations, // Nur aktive Standorte abrufen
+  saveLocations, // Standorte speichern
+  resetLocations, // Auf Standardwerte zurücksetzen
+  DEFAULT_LOCATIONS, // Standard-Standorte-Array
 } from "@/config/locations";
 ```
 
@@ -87,24 +89,24 @@ import { getActiveLocations } from "@/config/locations";
       {location.name}
     </SelectItem>
   ))}
-</SelectContent>
+</SelectContent>;
 ```
 
 ## Standard-Standorte
 
 Die folgenden Standorte sind standardmäßig konfiguriert:
 
-| ID | Name | Beschreibung |
-|----|------|--------------|
-| TD | Top Drive | Top Drive System |
-| DW | Drawworks | Drawworks System |
-| MP1 | Mud Pump 1 | Erste Schlammpumpe |
-| MP2 | Mud Pump 2 | Zweite Schlammpumpe |
-| MP3 | Mud Pump 3 | Dritte Schlammpumpe |
+| ID  | Name               | Beschreibung         |
+| --- | ------------------ | -------------------- |
+| TD  | Top Drive          | Top Drive System     |
+| DW  | Drawworks          | Drawworks System     |
+| MP1 | Mud Pump 1         | Erste Schlammpumpe   |
+| MP2 | Mud Pump 2         | Zweite Schlammpumpe  |
+| MP3 | Mud Pump 3         | Dritte Schlammpumpe  |
 | PCR | Power Control Room | Energie-Kontrollraum |
-| GEN | Generatoren | Stromgeneratoren |
-| GC | Grid Container | Netz-Container |
-| MS | Mud System | Schlammsystem |
+| GEN | Generatoren        | Stromgeneratoren     |
+| GC  | Grid Container     | Netz-Container       |
+| MS  | Mud System         | Schlammsystem        |
 
 ## Technische Details
 

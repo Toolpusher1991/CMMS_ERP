@@ -2,12 +2,31 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, MapPin, RotateCcw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { getLocations, saveLocations, resetLocations, DEFAULT_LOCATIONS, type Location } from "@/config/locations";
+import {
+  getLocations,
+  saveLocations,
+  resetLocations,
+  DEFAULT_LOCATIONS,
+  type Location,
+} from "@/config/locations";
 import { Switch } from "@/components/ui/switch";
 
 export const LocationManagement = () => {
@@ -45,7 +64,7 @@ export const LocationManagement = () => {
     if (editingLocation) {
       // Update existing
       updatedLocations = locations.map((loc) =>
-        loc.id === editingLocation.id ? { ...formData as Location } : loc
+        loc.id === editingLocation.id ? { ...(formData as Location) } : loc
       );
     } else {
       // Add new
@@ -83,7 +102,11 @@ export const LocationManagement = () => {
   };
 
   const handleReset = () => {
-    if (confirm("Möchten Sie wirklich alle Standorte auf die Standardwerte zurücksetzen?")) {
+    if (
+      confirm(
+        "Möchten Sie wirklich alle Standorte auf die Standardwerte zurücksetzen?"
+      )
+    ) {
       resetLocations();
       setLocations(DEFAULT_LOCATIONS);
       toast({
@@ -129,7 +152,8 @@ export const LocationManagement = () => {
                 Standort-Verwaltung
               </CardTitle>
               <CardDescription>
-                Verwalten Sie die verfügbaren Standorte für Actions und Schadensmeldungen
+                Verwalten Sie die verfügbaren Standorte für Actions und
+                Schadensmeldungen
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -174,7 +198,10 @@ export const LocationManagement = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2">
-                    <Label htmlFor={`active-${location.id}`} className="text-xs">
+                    <Label
+                      htmlFor={`active-${location.id}`}
+                      className="text-xs"
+                    >
                       Aktiv
                     </Label>
                     <Switch
@@ -233,7 +260,9 @@ export const LocationManagement = () => {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="z.B. Top Drive"
               />
             </div>

@@ -73,6 +73,7 @@ router.post('/', authenticateToken, validatePlantAccess, async (req: Request, re
   try {
     const {
       plant,
+      location,
       category,
       discipline,
       title,
@@ -97,6 +98,7 @@ router.post('/', authenticateToken, validatePlantAccess, async (req: Request, re
     const action = await prisma.action.create({
       data: {
         plant,
+        location,
         category: category || 'ALLGEMEIN',
         discipline,
         title,
@@ -157,6 +159,7 @@ router.put('/:id', authenticateToken, validatePlantAccess, async (req: Request, 
     const { id } = req.params;
     const {
       plant,
+      location,
       category,
       discipline,
       title,
@@ -187,6 +190,7 @@ router.put('/:id', authenticateToken, validatePlantAccess, async (req: Request, 
 
     const updateData: Record<string, unknown> = {};
     if (plant !== undefined) updateData.plant = plant;
+    if (location !== undefined) updateData.location = location;
     if (category !== undefined) updateData.category = category;
     if (discipline !== undefined) updateData.discipline = discipline;
     if (title !== undefined) updateData.title = title;

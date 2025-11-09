@@ -604,7 +604,11 @@ const ActionTracker = ({
 
   const handleSave = async () => {
     // Validation - plant, location and title are required
-    if (!currentAction.plant || !currentAction.location || !currentAction.title) {
+    if (
+      !currentAction.plant ||
+      !currentAction.location ||
+      !currentAction.title
+    ) {
       toast({
         title: "Fehler",
         description:
@@ -1317,7 +1321,9 @@ const ActionTracker = ({
         {/* Back Button */}
         <Button
           variant="ghost"
-          onClick={() => onNavigateBack ? onNavigateBack() : window.history.back()}
+          onClick={() =>
+            onNavigateBack ? onNavigateBack() : window.history.back()
+          }
           className="mb-2 -ml-2"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -2040,7 +2046,13 @@ const ActionTracker = ({
   return (
     <div className="space-y-6">
       {/* Back Button */}
-      <Button variant="ghost" onClick={() => onNavigateBack ? onNavigateBack() : window.history.back()} className="mb-2">
+      <Button
+        variant="ghost"
+        onClick={() =>
+          onNavigateBack ? onNavigateBack() : window.history.back()
+        }
+        className="mb-2"
+      >
         <ArrowLeft className="h-4 w-4 mr-2" />
         Zurück
       </Button>
