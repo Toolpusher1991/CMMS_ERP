@@ -7,15 +7,15 @@ interface LoadingSpinnerProps {
 
 /**
  * Loading Spinner Component
- * 
+ *
  * Used as fallback for lazy-loaded components
  * Shows centered spinner with optional message
  */
-export function LoadingSpinner({ 
-  message = "Laden...", 
-  fullScreen = false 
+export function LoadingSpinner({
+  message = "Laden...",
+  fullScreen = false,
 }: LoadingSpinnerProps) {
-  const containerClasses = fullScreen 
+  const containerClasses = fullScreen
     ? "min-h-screen flex items-center justify-center bg-background"
     : "flex items-center justify-center p-8";
 

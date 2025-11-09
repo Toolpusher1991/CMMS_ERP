@@ -1,9 +1,9 @@
-import React, { Component } from 'react';
-import type { ErrorInfo, ReactNode } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { logger } from '@/lib/logger';
+import React, { Component } from "react";
+import type { ErrorInfo, ReactNode } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface Props {
   children: ReactNode;
@@ -19,11 +19,11 @@ interface State {
 
 /**
  * Error Boundary Component
- * 
+ *
  * Catches React errors and prevents white screen of death
  * Logs errors to Sentry in production
  * Shows user-friendly error message with recovery options
- * 
+ *
  * Usage:
  * <ErrorBoundary>
  *   <YourComponent />
@@ -45,7 +45,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Log error to console in development
-    logger.error('React Error Boundary caught an error', error, {
+    logger.error("React Error Boundary caught an error", error, {
       componentStack: errorInfo.componentStack,
     });
 
@@ -68,7 +68,7 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   handleGoHome = (): void => {
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
   render(): ReactNode {
@@ -99,7 +99,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Error Details (only in development) */}
-              {import.meta.env.MODE === 'development' && this.state.error && (
+              {import.meta.env.MODE === "development" && this.state.error && (
                 <div className="bg-muted p-4 rounded-lg overflow-auto">
                   <p className="font-mono text-sm text-destructive font-semibold mb-2">
                     {this.state.error.name}: {this.state.error.message}
@@ -115,7 +115,8 @@ export class ErrorBoundary extends Component<Props, State> {
               {/* User-friendly message */}
               <div className="bg-muted/50 p-4 rounded-lg">
                 <p className="text-sm">
-                  Keine Sorge, Ihre Daten sind sicher. Versuchen Sie eine der folgenden Optionen:
+                  Keine Sorge, Ihre Daten sind sicher. Versuchen Sie eine der
+                  folgenden Optionen:
                 </p>
               </div>
 
@@ -142,10 +143,11 @@ export class ErrorBoundary extends Component<Props, State> {
               {/* Support info */}
               <div className="text-center pt-4 border-t">
                 <p className="text-xs text-muted-foreground">
-                  Problem besteht weiterhin? Kontaktieren Sie den Support mit dem Fehlercode:
+                  Problem besteht weiterhin? Kontaktieren Sie den Support mit
+                  dem Fehlercode:
                   <br />
                   <code className="bg-muted px-2 py-1 rounded mt-2 inline-block">
-                    {this.state.error?.message.substring(0, 50) || 'UNKNOWN'}
+                    {this.state.error?.message.substring(0, 50) || "UNKNOWN"}
                   </code>
                 </p>
               </div>
