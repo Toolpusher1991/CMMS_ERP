@@ -1115,7 +1115,7 @@ const RigConfigurator = () => {
           // Formel: 10 - (Überschuss / Anforderung * 10), mindestens 0
           const excess = rig.maxDepth - depth;
           const excessRatio = excess / depth;
-          const proximityBonus = Math.max(0, 10 - (excessRatio * 10));
+          const proximityBonus = Math.max(0, 10 - excessRatio * 10);
           score += proximityBonus;
         } else {
           warnings.push(`Tiefe überschreitet Maximum (${rig.maxDepth}m)`);
@@ -1128,7 +1128,7 @@ const RigConfigurator = () => {
           score += 25;
           const excess = rig.maxHookLoad - hookLoad;
           const excessRatio = excess / hookLoad;
-          const proximityBonus = Math.max(0, 10 - (excessRatio * 10));
+          const proximityBonus = Math.max(0, 10 - excessRatio * 10);
           score += proximityBonus;
         } else {
           warnings.push(`Hakenlast zu hoch (Max: ${rig.maxHookLoad}t)`);
@@ -1141,7 +1141,7 @@ const RigConfigurator = () => {
           score += 25;
           const excess = rig.rotaryTorque - torque;
           const excessRatio = excess / torque;
-          const proximityBonus = Math.max(0, 10 - (excessRatio * 10));
+          const proximityBonus = Math.max(0, 10 - excessRatio * 10);
           score += proximityBonus;
         } else {
           warnings.push("Drehmoment unzureichend");
@@ -1154,7 +1154,7 @@ const RigConfigurator = () => {
           score += 25;
           const excess = rig.pumpPressure - pressure;
           const excessRatio = excess / pressure;
-          const proximityBonus = Math.max(0, 10 - (excessRatio * 10));
+          const proximityBonus = Math.max(0, 10 - excessRatio * 10);
           score += proximityBonus;
         } else {
           warnings.push("Pumpendruck zu niedrig");
@@ -1164,7 +1164,10 @@ const RigConfigurator = () => {
       // Footprint exact match bonus
       if (requirements.footprint && rig.footprint === requirements.footprint) {
         score += 5;
-      } else if (requirements.footprint && rig.footprint !== requirements.footprint) {
+      } else if (
+        requirements.footprint &&
+        rig.footprint !== requirements.footprint
+      ) {
         score -= 10;
       }
 
@@ -1520,43 +1523,45 @@ const RigConfigurator = () => {
       {/* Main Content */}
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <Tabs defaultValue="requirements" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 h-auto">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto gap-1">
             <TabsTrigger
               value="requirements"
-              className="flex flex-col gap-1 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="flex flex-col gap-1 py-2 sm:py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
-              <FileText className="h-5 w-5" />
-              <span className="text-xs">Anforderungen</span>
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-[10px] sm:text-xs">Anforderungen</span>
             </TabsTrigger>
             <TabsTrigger
               value="rigs"
-              className="flex flex-col gap-1 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="flex flex-col gap-1 py-2 sm:py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
-              <Building2 className="h-5 w-5" />
-              <span className="text-xs">Anlagen ({matchedRigs.length})</span>
+              <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-[10px] sm:text-xs">
+                Anlagen ({matchedRigs.length})
+              </span>
             </TabsTrigger>
             <TabsTrigger
               value="equipment"
-              className="flex flex-col gap-1 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="flex flex-col gap-1 py-2 sm:py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               disabled={!selectedRig}
             >
-              <Package className="h-5 w-5" />
-              <span className="text-xs">Equipment</span>
+              <Package className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-[10px] sm:text-xs">Equipment</span>
             </TabsTrigger>
             <TabsTrigger
               value="summary"
-              className="flex flex-col gap-1 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="flex flex-col gap-1 py-2 sm:py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               disabled={!selectedRig}
             >
-              <BarChart3 className="h-5 w-5" />
-              <span className="text-xs">Zusammenfassung</span>
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-[10px] sm:text-xs">Zusammenfassung</span>
             </TabsTrigger>
             <TabsTrigger
               value="tender"
-              className="flex flex-col gap-1 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="flex flex-col gap-1 py-2 sm:py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground col-span-2 sm:col-span-1"
             >
-              <Calculator className="h-5 w-5" />
-              <span className="text-xs">
+              <Calculator className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-[10px] sm:text-xs">
                 Tender ({savedConfigurations.length})
               </span>
             </TabsTrigger>

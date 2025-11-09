@@ -30,21 +30,30 @@ export default function AdminPanel() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="debug" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-3 h-auto">
+              <TabsTrigger
+                value="debug"
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 py-2"
+              >
                 <Terminal className="h-4 w-4" />
-                System Debug
+                <span className="hidden sm:inline">System Debug</span>
+                <span className="sm:hidden">Debug</span>
               </TabsTrigger>
-              <TabsTrigger value="users" className="flex items-center gap-2">
+              <TabsTrigger
+                value="users"
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 py-2"
+              >
                 <Users className="h-4 w-4" />
-                Benutzerverwaltung
+                <span className="hidden sm:inline">Benutzerverwaltung</span>
+                <span className="sm:hidden">User</span>
               </TabsTrigger>
               <TabsTrigger
                 value="locations"
-                className="flex items-center gap-2"
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 py-2"
               >
                 <MapPin className="h-4 w-4" />
-                Standorte
+                <span className="hidden sm:inline">Standorte</span>
+                <span className="sm:hidden">Orte</span>
               </TabsTrigger>
             </TabsList>
 
