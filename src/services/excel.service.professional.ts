@@ -129,8 +129,6 @@ async function createDashboard(sheet: ExcelJS.Worksheet, actions: Action[]) {
   sheet.getRow(3).height = 10;
 
   // === KPI CARDS ===
-  const kpiRow = 4;
-  
   // Total Actions
   createKpiCard(sheet, 'A4:B5', '📋 Gesamt', stats.total, COLORS.primary);
   
@@ -144,8 +142,6 @@ async function createDashboard(sheet: ExcelJS.Worksheet, actions: Action[]) {
   createKpiCard(sheet, 'G4:H5', '✅ Abgeschlossen', stats.completed, COLORS.statusCompleted);
 
   // === CHARTS DATA ===
-  const chartDataRow = 7;
-  
   // Status Distribution Table
   sheet.getCell('A7').value = 'Status Verteilung';
   sheet.getCell('A7').font = { bold: true, size: 12 };
@@ -309,7 +305,6 @@ async function createActionsSheet(sheet: ExcelJS.Worksheet, actions: Action[]) {
   // === DATA ROWS ===
   actions.forEach((action, index) => {
     const row = sheet.getRow(4 + index);
-    const rowNum = 4 + index;
     
     // Check if overdue
     const isOverdue = action.dueDate && 
@@ -482,45 +477,6 @@ export const downloadActionTemplate = async () => {
       fgColor: { argb: COLORS.primary },
     };
     cell.alignment = { vertical: 'middle', horizontal: 'center' };
-  });
-
-  // Data validation for dropdowns
-  // Anlage dropdown
-  sheet.dataValidations.add('B4:B1000', {
-    type: 'list',
-    allowBlank: false,
-    formulae: ['"T208,T207,T700,T46"'],
-    showErrorMessage: true,
-    errorTitle: 'Ungültige Anlage',
-    error: 'Bitte wählen Sie eine gültige Anlage aus',
-  });
-
-  // Status dropdown
-  sheet.dataValidations.add('H4:H1000', {
-    type: 'list',
-    allowBlank: true,
-    formulae: ['"OPEN,IN_PROGRESS,COMPLETED"'],
-  });
-
-  // Priority dropdown
-  sheet.dataValidations.add('I4:I1000', {
-    type: 'list',
-    allowBlank: true,
-    formulae: ['"LOW,MEDIUM,HIGH,URGENT"'],
-  });
-
-  // Category dropdown
-  sheet.dataValidations.add('D4:D1000', {
-    type: 'list',
-    allowBlank: true,
-    formulae: ['"ALLGEMEIN,RIGMOVE"'],
-  });
-
-  // Discipline dropdown
-  sheet.dataValidations.add('E4:E1000', {
-    type: 'list',
-    allowBlank: true,
-    formulae: ['"MECHANIK,ELEKTRIK,ANLAGE"'],
   });
 
   // Column widths
