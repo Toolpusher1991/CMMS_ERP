@@ -1230,13 +1230,15 @@ const ActionTracker = ({
   const handleExport = async () => {
     // Get all actions from current plant tab
     const filteredActions = actions.filter((a) => a.plant === activeTab);
-    
+
     // Use professional export
     await exportActionsToExcelProfessional(
       filteredActions,
-      `MaintAIn_${activeTab}_Actions_${new Date().toISOString().split("T")[0]}.xlsx`
+      `MaintAIn_${activeTab}_Actions_${
+        new Date().toISOString().split("T")[0]
+      }.xlsx`
     );
-    
+
     toast({
       title: "Export erfolgreich",
       description: `${filteredActions.length} Actions von ${activeTab} wurden mit Dashboard exportiert.`,

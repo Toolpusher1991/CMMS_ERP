@@ -21,12 +21,11 @@ interface NotificationBellProps {
     page:
       | "dashboard"
       | "projects"
-      | "users"
       | "workorders"
       | "actions"
       | "tender"
       | "failures"
-      | "debug"
+      | "admin"
   ) => void;
 }
 

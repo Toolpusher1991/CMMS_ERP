@@ -6,13 +6,11 @@ import {
   ListTodo,
   Building2,
   AlertTriangle,
-  Users,
   ChevronLeft,
   ChevronRight,
-  Terminal,
   ClipboardCheck,
   BookOpen,
-  MapPin,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,15 +18,13 @@ import { cn } from "@/lib/utils";
 type AppPage =
   | "dashboard"
   | "projects"
-  | "users"
   | "workorders"
   | "actions"
   | "tender"
   | "failures"
   | "inspections"
   | "manuals"
-  | "locations"
-  | "debug";
+  | "admin";
 
 interface NavItem {
   title: string;
@@ -51,9 +47,7 @@ const allNavItems: NavItem[] = [
   },
   { title: "Bohranlagen", page: "tender", icon: Building2 },
   { title: "Störungsmeldung", page: "failures", icon: AlertTriangle },
-  { title: "System Debug", page: "debug", icon: Terminal, adminOnly: true },
-  { title: "Benutzerverwaltung", page: "users", icon: Users, adminOnly: true },
-  { title: "Standorte", page: "locations", icon: MapPin, adminOnly: true },
+  { title: "Admin", page: "admin", icon: Settings, adminOnly: true },
 ];
 
 interface SidebarProps {

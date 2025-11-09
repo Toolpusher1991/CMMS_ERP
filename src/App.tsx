@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegistrationPage } from "@/pages/RegistrationPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
-import { EnhancedUserAdminPage } from "@/pages/EnhancedUserAdminPage";
+import AdminPanel from "@/pages/AdminPanel";
 import Dashboard from "@/pages/Dashboard";
 import ProjectList from "@/pages/ProjectList";
 import WorkOrderManagement from "@/pages/WorkOrderManagement";
@@ -11,8 +11,6 @@ import RigConfigurator from "@/pages/RigConfigurator";
 import FailureReporting from "@/pages/FailureReporting";
 import InspectionReports from "@/pages/InspectionReports";
 import EquipmentManuals from "@/pages/EquipmentManuals";
-import SystemDebug from "@/pages/SystemDebug";
-import { LocationManagement } from "@/components/LocationManagement";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -29,15 +27,13 @@ type AuthView = "login" | "register" | "forgot-password";
 type AppPage =
   | "dashboard"
   | "projects"
-  | "users"
   | "workorders"
   | "actions"
   | "tender"
   | "failures"
   | "inspections"
   | "manuals"
-  | "locations"
-  | "debug";
+  | "admin";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -236,12 +232,8 @@ function App() {
                   <EquipmentManuals />
                 )}
                 {currentPage === "tender" && <RigConfigurator />}
-                {currentPage === "debug" && <SystemDebug />}
-                {currentPage === "users" && user.role === "ADMIN" && (
-                  <EnhancedUserAdminPage />
-                )}
-                {currentPage === "locations" && user.role === "ADMIN" && (
-                  <LocationManagement />
+                {currentPage === "admin" && user.role === "ADMIN" && (
+                  <AdminPanel />
                 )}
               </div>
             </main>
