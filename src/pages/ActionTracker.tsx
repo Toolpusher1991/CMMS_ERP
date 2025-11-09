@@ -284,6 +284,7 @@ const ActionTracker = ({
   const [disciplineFilter, setDisciplineFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [userFilter, setUserFilter] = useState<string>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
 
   // Mobile States
   const [mobileFilter, setMobileFilter] = useState<
@@ -1179,6 +1180,11 @@ const ActionTracker = ({
         );
         return user ? a.assignedTo === user.email : false;
       });
+    }
+
+    // Apply location filter
+    if (locationFilter !== "all") {
+      filtered = filtered.filter((a) => a.location === locationFilter);
     }
 
     // Sort by due date and status
@@ -2123,7 +2129,7 @@ const ActionTracker = ({
                       <span className="font-semibold text-sm">Filter</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mt-3">
+                  <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mt-3">
                     <div className="space-y-2">
                       <Label>Suche</Label>
                       <Input
@@ -2183,6 +2189,25 @@ const ActionTracker = ({
                           <SelectItem value="MEDIUM">Mittel</SelectItem>
                           <SelectItem value="HIGH">Hoch</SelectItem>
                           <SelectItem value="URGENT">Dringend</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Standort</Label>
+                      <Select
+                        value={locationFilter}
+                        onValueChange={setLocationFilter}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Standort filtern" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle Standorte</SelectItem>
+                          {getActiveLocations().map((location) => (
+                            <SelectItem key={location.id} value={location.id}>
+                              {location.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
