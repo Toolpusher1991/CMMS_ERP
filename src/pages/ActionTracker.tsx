@@ -165,6 +165,7 @@ interface User {
 interface ApiAction {
   id: string;
   plant: string;
+  location?: string;
   category?: string;
   discipline?: string;
   title: string;
@@ -480,6 +481,7 @@ const ActionTracker = ({
       const loadedActions: Action[] = response.map((item: ApiAction) => ({
         id: item.id,
         plant: item.plant as Action["plant"],
+        location: item.location,
         category: item.category as Action["category"],
         discipline: item.discipline as Action["discipline"],
         title: item.title,
