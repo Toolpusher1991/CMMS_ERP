@@ -1106,27 +1106,65 @@ const RigConfigurator = () => {
       let score = 0;
       const warnings: string[] = [];
 
+      // Depth Scoring - bevorzuge Rigs, die näher an der Anforderung sind
       if (depth > 0) {
-        if (rig.maxDepth >= depth) score += 25;
-        else warnings.push(`Tiefe überschreitet Maximum (${rig.maxDepth}m)`);
+        if (rig.maxDepth >= depth) {
+          // Base score für Erfüllung
+          score += 25;
+          // Bonus: Je näher an der Anforderung, desto besser (max +10)
+          // Formel: 10 - (Überschuss / Anforderung * 10), mindestens 0
+          const excess = rig.maxDepth - depth;
+          const excessRatio = excess / depth;
+          const proximityBonus = Math.max(0, 10 - (excessRatio * 10));
+          score += proximityBonus;
+        } else {
+          warnings.push(`Tiefe überschreitet Maximum (${rig.maxDepth}m)`);
+        }
       }
 
+      // Hook Load Scoring - bevorzuge Rigs, die näher an der Anforderung sind
       if (hookLoad > 0) {
-        if (rig.maxHookLoad >= hookLoad) score += 25;
-        else warnings.push(`Hakenlast zu hoch (Max: ${rig.maxHookLoad}t)`);
+        if (rig.maxHookLoad >= hookLoad) {
+          score += 25;
+          const excess = rig.maxHookLoad - hookLoad;
+          const excessRatio = excess / hookLoad;
+          const proximityBonus = Math.max(0, 10 - (excessRatio * 10));
+          score += proximityBonus;
+        } else {
+          warnings.push(`Hakenlast zu hoch (Max: ${rig.maxHookLoad}t)`);
+        }
       }
 
+      // Torque Scoring - bevorzuge Rigs, die näher an der Anforderung sind
       if (torque > 0) {
-        if (rig.rotaryTorque >= torque) score += 25;
-        else warnings.push("Drehmoment unzureichend");
+        if (rig.rotaryTorque >= torque) {
+          score += 25;
+          const excess = rig.rotaryTorque - torque;
+          const excessRatio = excess / torque;
+          const proximityBonus = Math.max(0, 10 - (excessRatio * 10));
+          score += proximityBonus;
+        } else {
+          warnings.push("Drehmoment unzureichend");
+        }
       }
 
+      // Pressure Scoring - bevorzuge Rigs, die näher an der Anforderung sind
       if (pressure > 0) {
-        if (rig.pumpPressure >= pressure) score += 25;
-        else warnings.push("Pumpendruck zu niedrig");
+        if (rig.pumpPressure >= pressure) {
+          score += 25;
+          const excess = rig.pumpPressure - pressure;
+          const excessRatio = excess / pressure;
+          const proximityBonus = Math.max(0, 10 - (excessRatio * 10));
+          score += proximityBonus;
+        } else {
+          warnings.push("Pumpendruck zu niedrig");
+        }
       }
 
-      if (requirements.footprint && rig.footprint !== requirements.footprint) {
+      // Footprint exact match bonus
+      if (requirements.footprint && rig.footprint === requirements.footprint) {
+        score += 5;
+      } else if (requirements.footprint && rig.footprint !== requirements.footprint) {
         score -= 10;
       }
 
@@ -1138,10 +1176,11 @@ const RigConfigurator = () => {
       };
     });
 
-    // Don't hide rigs with score === 0. Instead always show all rigs
-    // sorted by score so users see best matches first and warnings for
-    // rigs that don't meet the requirements.
-    return evaluated.sort((a, b) => b.score - a.score);
+    // Sort by score (highest first), then by warnings (fewest first)
+    return evaluated.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.warnings.length - b.warnings.length;
+    });
   }, [requirements, rigs]);
 
   // Equipment Toggle
