@@ -374,6 +374,27 @@ const ActionTracker = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showOnlyMyActions]);
 
+  // Listen for location changes in localStorage
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'customLocations') {
+        setAvailableLocations(getActiveLocations());
+      }
+    };
+
+    // Also check periodically for changes (in case storage event doesn't fire)
+    const intervalId = setInterval(() => {
+      setAvailableLocations(getActiveLocations());
+    }, 2000);
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(intervalId);
+    };
+  }, []);
+
   // Expand row if initialActionId is provided
   useEffect(() => {
     if (initialActionId && actions.length > 0) {
