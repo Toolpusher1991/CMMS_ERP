@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Terminal, Users, MapPin } from "lucide-react";
 import SystemDebug from "@/pages/SystemDebug";
 import { EnhancedUserAdminPage } from "@/pages/EnhancedUserAdminPage";
@@ -18,7 +24,8 @@ export default function AdminPanel() {
             Admin Panel
           </CardTitle>
           <CardDescription>
-            Zentrale Verwaltung für System-Debugging, Benutzerverwaltung und Standorte
+            Zentrale Verwaltung für System-Debugging, Benutzerverwaltung und
+            Standorte
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -32,7 +39,10 @@ export default function AdminPanel() {
                 <Users className="h-4 w-4" />
                 Benutzerverwaltung
               </TabsTrigger>
-              <TabsTrigger value="locations" className="flex items-center gap-2">
+              <TabsTrigger
+                value="locations"
+                className="flex items-center gap-2"
+              >
                 <MapPin className="h-4 w-4" />
                 Standorte
               </TabsTrigger>

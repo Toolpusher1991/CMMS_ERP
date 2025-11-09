@@ -278,6 +278,9 @@ const ActionTracker = ({
   const [actions, setActions] = useState<Action[]>([]);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [availableLocations, setAvailableLocations] = useState(
+    getActiveLocations()
+  );
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -569,6 +572,8 @@ const ActionTracker = ({
       files: [],
     });
     setSelectedAssignees([]);
+    // Reload locations to get any newly added ones
+    setAvailableLocations(getActiveLocations());
     setIsDialogOpen(true);
   };
 
@@ -602,6 +607,8 @@ const ActionTracker = ({
       description: descriptionWithoutMaterials,
     });
     setSelectedAssignees(action.assignedUsers || []);
+    // Reload locations to get any newly added ones
+    setAvailableLocations(getActiveLocations());
     setIsDialogOpen(true);
   };
 
@@ -1870,7 +1877,7 @@ const ActionTracker = ({
                     <SelectValue placeholder="Standort auswählen" />
                   </SelectTrigger>
                   <SelectContent>
-                    {getActiveLocations().map((location) => (
+                    {availableLocations.map((location) => (
                       <SelectItem key={location.id} value={location.id}>
                         {location.name}
                       </SelectItem>
@@ -2210,7 +2217,7 @@ const ActionTracker = ({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Alle Standorte</SelectItem>
-                          {getActiveLocations().map((location) => (
+                          {availableLocations.map((location) => (
                             <SelectItem key={location.id} value={location.id}>
                               {location.name}
                             </SelectItem>
