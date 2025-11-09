@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { actionService, type Action } from "@/services/action.service";
 import { projectService, type Project } from "@/services/project.service";
 import { apiClient } from "@/services/api";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import {
   CheckCircle2,
@@ -106,7 +107,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       setProjects(projectsData.projects);
       setFailureReports(failureReportsData);
     } catch (error) {
-      console.error("Failed to load data:", error);
+      logger.error("Failed to load dashboard data", error);
     } finally {
       setLoading(false);
     }
