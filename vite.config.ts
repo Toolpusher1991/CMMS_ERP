@@ -20,30 +20,46 @@ export default defineConfig({
     // Optimize chunk splitting for better caching
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks(id) {
           // Separate vendor chunks
-          'react-vendor': ['react', 'react-dom'],
-          'ui-vendor': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-select',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-toast',
-            '@radix-ui/react-label',
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-calendar'
-          ],
-          'chart-vendor': ['recharts'],
-          'excel-vendor': ['exceljs', 'file-saver'],
-          'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
-          'date-vendor': ['date-fns'],
-          'icon-vendor': ['lucide-react'],
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@radix-ui')) {
+              return 'ui-vendor';
+            }
+            if (id.includes('recharts')) {
+              return 'chart-vendor';
+            }
+            if (id.includes('exceljs') || id.includes('file-saver')) {
+              return 'excel-vendor';
+            }
+            if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
+              return 'form-vendor';
+            }
+            if (id.includes('date-fns')) {
+              return 'date-vendor';
+            }
+            if (id.includes('lucide-react')) {
+              return 'icon-vendor';
+            }
+            // Other node_modules go to vendor chunk
+            return 'vendor';
+          }
           // Large page components
-          'action-tracker': ['./src/pages/ActionTracker.tsx'],
-          'rig-configurator': ['./src/pages/RigConfigurator.tsx'],
-          'failure-reporting': ['./src/pages/FailureReporting.tsx'],
-          'inspection-reports': ['./src/pages/InspectionReports.tsx'],
+          if (id.includes('/pages/ActionTracker')) {
+            return 'action-tracker';
+          }
+          if (id.includes('/pages/RigConfigurator')) {
+            return 'rig-configurator';
+          }
+          if (id.includes('/pages/FailureReporting')) {
+            return 'failure-reporting';
+          }
+          if (id.includes('/pages/InspectionReports')) {
+            return 'inspection-reports';
+          }
         },
       },
     },
