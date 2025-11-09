@@ -2983,7 +2983,15 @@ const ActionTracker = ({
                                                                     alt={
                                                                       file.name
                                                                     }
-                                                                    className="w-full aspect-square object-cover"
+                                                                    className="w-full aspect-square object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                                                    onClick={() => {
+                                                                      setSelectedPhoto(
+                                                                        file.url
+                                                                      );
+                                                                      setPhotoViewDialogOpen(
+                                                                        true
+                                                                      );
+                                                                    }}
                                                                   />
                                                                 ) : (
                                                                   <div className="w-full aspect-square flex items-center justify-center bg-muted">
