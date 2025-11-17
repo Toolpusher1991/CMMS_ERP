@@ -4,6 +4,7 @@ import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
 import { getActiveLocations } from "@/config/locations";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import "./FailureReporting.mobile.css";
 import {
   Card,
@@ -220,7 +221,7 @@ const FailureReportingPage = ({
         });
       }
     } catch (error) {
-      console.error("Fehler beim Laden der Failure Reports:", error);
+      logger.error("Fehler beim Laden der Failure Reports", error);
       if (isMounted) {
         toast({
           title: "Fehler",
@@ -243,7 +244,7 @@ const FailureReportingPage = ({
         userListCache.data &&
         now - userListCache.timestamp < userListCache.maxAge
       ) {
-        console.log("Using cached user list");
+        logger.debug("Using cached user list");
         setUsers(userListCache.data);
         return;
       }
@@ -265,7 +266,7 @@ const FailureReportingPage = ({
 
       setUsers(response);
     } catch (error) {
-      console.error("Fehler beim Laden der User:", error);
+      logger.error("Fehler beim Laden der User", error);
     }
   };
 
@@ -363,7 +364,7 @@ const FailureReportingPage = ({
         description: "Failure Report wurde erstellt.",
       });
     } catch (error) {
-      console.error("Fehler beim Erstellen:", error);
+      logger.error("Fehler beim Erstellen", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unbekannter Fehler";
       toast({
@@ -450,7 +451,7 @@ const FailureReportingPage = ({
         dueDate: undefined,
       });
     } catch (error) {
-      console.error("Fehler beim Konvertieren:", error);
+      logger.error("Fehler beim Konvertieren", error);
       toast({
         title: "Fehler",
         description: "Konvertierung fehlgeschlagen.",
@@ -1522,3 +1523,4 @@ const FailureReportingPage = ({
 };
 
 export default FailureReportingPage;
+
