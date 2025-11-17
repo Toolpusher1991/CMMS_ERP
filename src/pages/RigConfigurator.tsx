@@ -24,6 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import {
   Building2,
   Settings,
@@ -230,7 +231,7 @@ const RigConfigurator = () => {
         const tenders = await tenderService.getAllTenders();
         setSavedConfigurations(tenders);
       } catch (error) {
-        console.error("Error loading tenders:", error);
+        logger.error("Error loading tenders", error);
         toast({
           title: "❌ Fehler beim Laden",
           description:
@@ -243,7 +244,7 @@ const RigConfigurator = () => {
     };
 
     loadTenders();
-  }, []);
+  }, [toast]);
 
   // Bohranlagen Datenbank (wird vom Backend geladen)
   const [rigs, setRigs] = useState<Rig[]>([]);
@@ -593,7 +594,7 @@ const RigConfigurator = () => {
           description: "Gespeicherte Equipment-Daten wurden wiederhergestellt.",
         });
       } catch (error) {
-        console.error("Fehler beim Laden der Equipment-Daten:", error);
+        logger.error("Fehler beim Laden der Equipment-Daten", error);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -613,7 +614,7 @@ const RigConfigurator = () => {
           });
         }
       } catch (error) {
-        console.error("Fehler beim Laden der Rigs:", error);
+        logger.error("Fehler beim Laden der Rigs", error);
         toast({
           title: "Backend-Fehler",
           description:
@@ -771,7 +772,7 @@ const RigConfigurator = () => {
         >("/users/list");
         setUsers(response);
       } catch (error) {
-        console.error("Fehler beim Laden der User:", error);
+        logger.error("Fehler beim Laden der User", error);
       }
     };
     loadUsers();
@@ -1065,7 +1066,7 @@ const RigConfigurator = () => {
         setEditingRigData(null);
       }
     } catch (error) {
-      console.error("Fehler beim Speichern:", error);
+      logger.error("Fehler beim Speichern", error);
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -1245,7 +1246,7 @@ const RigConfigurator = () => {
         description: `Tender-Konfiguration für "${requirements.projectName}" wurde gespeichert.`,
       });
     } catch (error) {
-      console.error("Error saving tender:", error);
+      logger.error("Error saving tender", error);
       toast({
         title: "❌ Fehler beim Speichern",
         description:
@@ -1256,21 +1257,21 @@ const RigConfigurator = () => {
   };
 
   const toggleContractStatus = async (configId: string) => {
-    console.log("🔄 toggleContractStatus called with:", configId);
+    logger.debug("toggleContractStatus called", { configId });
     const config = savedConfigurations.find((c) => c.id === configId);
     if (!config) {
-      console.log("❌ Config not found");
+      logger.debug("Config not found", { configId });
       return;
     }
 
-    console.log("📋 Config found:", {
+    logger.debug("Config found", {
       name: config.selectedRig?.name,
       isUnderContract: config.isUnderContract,
     });
 
     // Wenn von "Ausstehend" zu "Unter Vertrag" gewechselt wird
     if (!config.isUnderContract) {
-      console.log("✅ Opening contract date dialog");
+      logger.debug("Opening contract date dialog");
       setPendingContractConfig(config);
       setContractStartDate(new Date());
       setContractDateDialogOpen(true);
@@ -1289,7 +1290,7 @@ const RigConfigurator = () => {
           description: "Anlage ist nicht mehr unter Vertrag.",
         });
       } catch (error) {
-        console.error("Error toggling contract status:", error);
+        logger.error("Error toggling contract status", error);
         toast({
           title: "❌ Fehler",
           description: "Der Vertragsstatus konnte nicht geändert werden.",
@@ -1301,14 +1302,14 @@ const RigConfigurator = () => {
 
   // Confirm Contract Start Date
   const confirmContractStartDate = async () => {
-    console.log("🔵 confirmContractStartDate called", {
+    logger.debug("confirmContractStartDate called", {
       pendingContractConfig,
       contractStartDate,
       isSubmittingContract,
     });
 
     if (!pendingContractConfig || !contractStartDate || isSubmittingContract) {
-      console.log("❌ Missing data or already submitting:", {
+      logger.debug("Missing data or already submitting", {
         hasPendingConfig: !!pendingContractConfig,
         hasContractDate: !!contractStartDate,
         isSubmitting: isSubmittingContract,
@@ -1319,7 +1320,7 @@ const RigConfigurator = () => {
     setIsSubmittingContract(true);
 
     try {
-      console.log("📤 Sending update request...");
+      logger.debug("Sending update request");
       const updatedTender = await tenderService.updateTender(
         pendingContractConfig.id,
         {
@@ -1328,7 +1329,7 @@ const RigConfigurator = () => {
         }
       );
 
-      console.log("✅ Update successful:", updatedTender);
+      logger.debug("Update successful", { updatedTender });
 
       setSavedConfigurations((prev) =>
         prev.map((config) =>
@@ -1347,7 +1348,7 @@ const RigConfigurator = () => {
       setPendingContractConfig(null);
       setContractStartDate(undefined);
     } catch (error) {
-      console.error("❌ Error setting contract status:", error);
+      logger.error("Error setting contract status", error);
       toast({
         title: "❌ Fehler",
         description: "Der Vertragsstatus konnte nicht gesetzt werden.",
@@ -1374,7 +1375,7 @@ const RigConfigurator = () => {
         description: "Die Tender-Konfiguration wurde erfolgreich entfernt.",
       });
     } catch (error) {
-      console.error("Error deleting tender:", error);
+      logger.error("Error deleting tender", error);
       toast({
         title: "❌ Fehler beim Löschen",
         description: "Die Tender-Konfiguration konnte nicht gelöscht werden.",
@@ -1416,7 +1417,7 @@ const RigConfigurator = () => {
       setEquipmentManagementDialogOpen(false);
       setEditingTenderConfig(null);
     } catch (error) {
-      console.error("Error updating equipment:", error);
+      logger.error("Error updating equipment", error);
       toast({
         title: "❌ Fehler beim Speichern",
         description: "Equipment-Änderungen konnten nicht gespeichert werden.",
@@ -1482,7 +1483,7 @@ const RigConfigurator = () => {
         description: `PDF wurde erfolgreich generiert: ${filename}`,
       });
     } catch (error) {
-      console.error("Export error:", error);
+      logger.error("Export error", error);
       toast({
         title: "❌ Export fehlgeschlagen",
         description: "PDF konnte nicht erstellt werden.",

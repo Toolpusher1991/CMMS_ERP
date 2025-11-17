@@ -3,6 +3,7 @@ import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
 import { getActiveLocations } from "@/config/locations";
+import { logger } from "@/lib/logger";
 import {
   Card,
   CardContent,
@@ -424,7 +425,7 @@ const ActionTracker = ({
         userListCache.data &&
         now - userListCache.timestamp < userListCache.maxAge
       ) {
-        console.log("Using cached user list");
+        logger.debug("Using cached user list");
         setUsers(userListCache.data);
 
         // Process cached data
@@ -490,10 +491,10 @@ const ActionTracker = ({
             )
           : allUsers; // Show all users for admins/managers
 
-      console.log("Loaded users:", filteredUsers); // Debug log
+      logger.debug("Loaded users", { count: filteredUsers.length });
       setAvailableUsers(filteredUsers);
     } catch (error) {
-      console.error("Fehler beim Laden der User:", error);
+      logger.error("Fehler beim Laden der User", error);
     }
   };
 
@@ -546,7 +547,7 @@ const ActionTracker = ({
         });
       }
     } catch (error) {
-      console.error("Fehler beim Laden der Actions:", error);
+      logger.error("Fehler beim Laden der Actions", error);
       // Nur Toast anzeigen wenn Component mounted ist und kein Token-Refresh-Fehler
       if (
         isMounted &&
@@ -767,7 +768,7 @@ const ActionTracker = ({
           setPhotoFile(null);
           setPhotoPreview(null);
         } catch (uploadError) {
-          console.error("Fehler beim Datei-Upload:", uploadError);
+          logger.error("Fehler beim Datei-Upload", uploadError);
           if (isMounted) {
             toast({
               title: "Upload-Fehler",
@@ -784,7 +785,7 @@ const ActionTracker = ({
       await loadActions();
       setIsDialogOpen(false);
     } catch (error) {
-      console.error("Fehler beim Speichern:", error);
+      logger.error("Fehler beim Speichern", error);
       if (isMounted) {
         toast({
           title: "Fehler",
@@ -830,7 +831,7 @@ const ActionTracker = ({
             relatedId: action.id,
           });
         } catch (notifError) {
-          console.error("Notification error:", notifError);
+          logger.error("Notification error", notifError);
         }
       }
 
@@ -846,7 +847,7 @@ const ActionTracker = ({
 
       await loadActions();
     } catch (error) {
-      console.error("Fehler beim Ändern des Status:", error);
+      logger.error("Fehler beim Ändern des Status", error);
       toast({
         title: "Fehler",
         description: "Status konnte nicht geändert werden.",
@@ -878,7 +879,7 @@ const ActionTracker = ({
             relatedId: actionToComplete,
           });
         } catch (notifError) {
-          console.error("Notification error:", notifError);
+          logger.error("Notification error", notifError);
           // Continue even if notification fails
         }
 
@@ -891,7 +892,7 @@ const ActionTracker = ({
         setCompleteDialogOpen(false);
         setActionToComplete(null);
       } catch (error) {
-        console.error("Fehler beim Abschließen:", error);
+        logger.error("Fehler beim Abschließen", error);
         toast({
           title: "Fehler",
           description: "Action konnte nicht abgeschlossen werden.",
@@ -919,7 +920,7 @@ const ActionTracker = ({
         setDeleteDialogOpen(false);
         setActionToDelete(null);
       } catch (error) {
-        console.error("Fehler beim Löschen:", error);
+        logger.error("Fehler beim Löschen", error);
         toast({
           title: "Fehler",
           description: "Action konnte nicht gelöscht werden.",
@@ -1149,7 +1150,7 @@ const ActionTracker = ({
         files: currentAction.files?.filter((f) => f.id !== fileId) || [],
       });
     } catch (error) {
-      console.error("Fehler beim Löschen der Datei:", error);
+      logger.error("Fehler beim Löschen der Datei", error);
       toast({
         title: "Fehler",
         description: "Datei konnte nicht gelöscht werden.",
@@ -1303,7 +1304,7 @@ const ActionTracker = ({
         description: `${importedActions.length} Actions wurden importiert.`,
       });
     } catch (error) {
-      console.error("Import error:", error);
+      logger.error("Import error", error);
       toast({
         title: "Import fehlgeschlagen",
         description: "Fehler beim Importieren der Excel-Datei.",
@@ -2769,9 +2770,12 @@ const ActionTracker = ({
                                                                 size="sm"
                                                                 onClick={async () => {
                                                                   try {
-                                                                    console.log(
-                                                                      "📷 Loading photo via API:",
-                                                                      photoFilename
+                                                                    logger.debug(
+                                                                      "Loading photo via API",
+                                                                      {
+                                                                        filename:
+                                                                          photoFilename,
+                                                                      }
                                                                     );
                                                                     const blob =
                                                                       await apiClient.request<Blob>(
@@ -2801,8 +2805,8 @@ const ActionTracker = ({
                                                                       10000
                                                                     );
                                                                   } catch (error) {
-                                                                    console.error(
-                                                                      "❌ Error loading photo:",
+                                                                    logger.error(
+                                                                      "Error loading photo",
                                                                       error
                                                                     );
                                                                     toast({
@@ -4016,7 +4020,9 @@ const ActionTracker = ({
                 alt="Failure Report Foto"
                 className="max-w-full max-h-[85vh] object-contain"
                 onError={() => {
-                  console.error("Fehler beim Laden des Fotos:", selectedPhoto);
+                  logger.error("Fehler beim Laden des Fotos", {
+                    url: selectedPhoto,
+                  });
                   toast({
                     title: "Fehler",
                     description: "Foto konnte nicht geladen werden.",
