@@ -85,13 +85,13 @@ export const register = async (
     // Hash password
     const hashedPassword = await bcrypt.hash(validated.password, 12);
 
-    // Create user with PENDING approval status
+    // Create user with automatic APPROVED status
     const user = await prisma.user.create({
       data: {
         ...validated,
         password: hashedPassword,
-        approvalStatus: 'PENDING',
-        isActive: false, // User is inactive until approved
+        approvalStatus: 'APPROVED',
+        isActive: true, // User is active immediately
       },
       select: {
         id: true,
@@ -109,7 +109,7 @@ export const register = async (
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful! Your account is pending approval by an administrator.',
+      message: 'Registration successful! You can now log in.',
       data: user,
     });
   } catch (error) {

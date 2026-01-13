@@ -377,7 +377,7 @@ const ActionTracker = ({
   // Listen for location changes in localStorage
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'customLocations') {
+      if (e.key === "customLocations") {
         setAvailableLocations(getActiveLocations());
       }
     };
@@ -387,10 +387,10 @@ const ActionTracker = ({
       setAvailableLocations(getActiveLocations());
     }, 2000);
 
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
       clearInterval(intervalId);
     };
   }, []);
