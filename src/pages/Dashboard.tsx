@@ -191,13 +191,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   };
 
   const stats = calculateStats();
-  
+
   // Animated counts
   const animatedFailures = useCountUp(stats.openFailureReports, 1200, 100);
   const animatedProjects = useCountUp(stats.myProjects, 1200, 200);
   const animatedActions = useCountUp(stats.myActions, 1200, 300);
   const animatedCompleted = useCountUp(stats.completed, 1200, 400);
-  
+
   const totalItems =
     stats.openFailureReports + stats.myProjects + stats.myActions;
   const completionRate =
@@ -434,7 +434,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 dark:from-slate-900 dark:via-slate-800 dark:to-black p-8 shadow-xl border border-slate-700/50">
         {/* Decorative Background Pattern */}
         <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.3))]"></div>
-        
+
         <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           {/* Left: Greeting & Logo */}
           <div className="space-y-3">
@@ -466,11 +466,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           {/* Right: Quick Stats */}
           <div className="flex gap-4">
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 min-w-[120px]">
-              <div className="text-2xl font-bold text-white">{animatedFailures + animatedProjects + animatedActions}</div>
+              <div className="text-2xl font-bold text-white">
+                {animatedFailures + animatedProjects + animatedActions}
+              </div>
               <div className="text-slate-300 text-sm">Offene Tasks</div>
             </div>
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 min-w-[120px]">
-              <div className="text-2xl font-bold text-white">{animatedCompletionRate}%</div>
+              <div className="text-2xl font-bold text-white">
+                {animatedCompletionRate}%
+              </div>
               <div className="text-slate-300 text-sm">Erledigt</div>
             </div>
           </div>
@@ -479,7 +483,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card
           className={`bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer ${
-            quickAccessFilter === "failures" ? "ring-2 ring-red-500 shadow-xl" : ""
+            quickAccessFilter === "failures"
+              ? "ring-2 ring-red-500 shadow-xl"
+              : ""
           }`}
           onClick={() => {
             setQuickAccessFilter("failures");
@@ -506,7 +512,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </Card>
         <Card
           className={`bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer ${
-            quickAccessFilter === "projects" ? "ring-2 ring-blue-500 shadow-xl" : ""
+            quickAccessFilter === "projects"
+              ? "ring-2 ring-blue-500 shadow-xl"
+              : ""
           }`}
           onClick={() => {
             setQuickAccessFilter("projects");
@@ -533,7 +541,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </Card>
         <Card
           className={`bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer ${
-            quickAccessFilter === "actions" ? "ring-2 ring-orange-500 shadow-xl" : ""
+            quickAccessFilter === "actions"
+              ? "ring-2 ring-orange-500 shadow-xl"
+              : ""
           }`}
           onClick={() => {
             setQuickAccessFilter("actions");

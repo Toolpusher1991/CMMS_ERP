@@ -13,6 +13,12 @@ import {
   Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 type AppPage =
@@ -75,17 +81,26 @@ export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
       )}
     >
       {/* Logo / Header */}
-      <div className="flex items-center justify-between p-4 border-b border-sidebar-border bg-sidebar-accent">
+      <div className="flex items-center justify-between p-4 border-b border-sidebar-border bg-gradient-to-r from-slate-900 to-slate-800">
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <LayoutDashboard className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg text-sidebar-foreground">
-              MaintAIn
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 shadow-lg">
+              <Building2 className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-base bg-gradient-to-r from-blue-400 to-cyan-500 bg-clip-text text-transparent">
+                MaintAIn
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium">
+                Maintenance Intelligence
+              </span>
+            </div>
           </div>
         )}
         {collapsed && (
-          <LayoutDashboard className="h-6 w-6 text-primary mx-auto" />
+          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 shadow-lg mx-auto">
+            <Building2 className="h-5 w-5 text-white" />
+          </div>
         )}
       </div>
 
@@ -106,40 +121,98 @@ export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-2 space-y-2">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentPage === item.page;
+      <TooltipProvider delayDuration={300}>
+        <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentPage === item.page;
 
-          return (
-            <button
-              key={item.page}
-              onClick={() => onPageChange(item.page)}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all text-sm font-medium",
-                isActive
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent",
-                collapsed && "justify-center"
-              )}
-            >
-              <Icon className="h-5 w-5 flex-shrink-0" />
-              {!collapsed && (
-                <span className="text-sm font-medium truncate text-left">
-                  {item.title}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
+            // Farbcodierung für verschiedene Bereiche
+            const getIconColor = () => {
+              if (isActive) return "";
+              switch (item.page) {
+                case "dashboard":
+                  return "text-blue-500";
+                case "projects":
+                  return "text-purple-500";
+                case "workorders":
+                  return "text-cyan-500";
+                case "actions":
+                  return "text-orange-500";
+                case "inspections":
+                  return "text-green-500";
+                case "manuals":
+                  return "text-pink-500";
+                case "tender":
+                  return "text-indigo-500";
+                case "failures":
+                  return "text-red-500";
+                case "admin":
+                  return "text-slate-400";
+                default:
+                  return "text-slate-400";
+              }
+            };
+
+            const navButton = (
+              <button
+                key={item.page}
+                onClick={() => onPageChange(item.page)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium group relative",
+                  isActive
+                    ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/20"
+                    : "text-sidebar-foreground hover:bg-slate-800/50 hover:shadow-md",
+                  collapsed && "justify-center"
+                )}
+              >
+                {/* Active Indicator */}
+                {isActive && !collapsed && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full" />
+                )}
+                <Icon
+                  className={cn(
+                    "h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110",
+                    isActive ? "text-white" : getIconColor()
+                  )}
+                />
+                {!collapsed && (
+                  <span className="text-sm font-medium truncate text-left">
+                    {item.title}
+                  </span>
+                )}
+              </button>
+            );
+
+            // Wrap mit Tooltip wenn collapsed
+            if (collapsed) {
+              return (
+                <Tooltip key={item.page}>
+                  <TooltipTrigger asChild>{navButton}</TooltipTrigger>
+                  <TooltipContent side="right" className="font-medium">
+                    {item.title}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            }
+
+            return navButton;
+          })}
+        </nav>
+      </TooltipProvider>
 
       {/* Footer - Optional */}
       {!collapsed && (
-        <div className="p-4 border-t border-slate-800">
-          <p className="text-xs text-slate-500 text-center">
-            MaintAIn CMMS v1.0
-          </p>
+        <div className="p-3 border-t border-slate-800 bg-slate-900/50">
+          <div className="flex items-center justify-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <p className="text-xs text-slate-400 font-medium">v1.0.0</p>
+          </div>
+        </div>
+      )}
+      {collapsed && (
+        <div className="p-3 border-t border-slate-800 bg-slate-900/50 flex justify-center">
+          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
         </div>
       )}
     </div>

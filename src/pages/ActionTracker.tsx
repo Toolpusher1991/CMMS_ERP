@@ -2411,39 +2411,39 @@ const ActionTracker = ({
                               <div className="rounded-md border">
                                 <Table>
                                   <TableHeader>
-                                    <TableRow>
-                                      <TableHead className="w-[40px] py-3 text-base"></TableHead>
-                                      <TableHead className="w-[40px] py-3 text-base">
+                                    <TableRow className="border-b">
+                                      <TableHead className="w-[32px] py-2 h-9"></TableHead>
+                                      <TableHead className="w-[45px] py-2 h-9 text-xs font-semibold">
                                         Nr.
                                       </TableHead>
-                                      <TableHead className="py-3 text-base">
+                                      <TableHead className="py-2 h-9 text-xs font-semibold">
                                         Titel
                                       </TableHead>
-                                      <TableHead className="py-3 text-base">
+                                      <TableHead className="py-2 h-9 text-xs font-semibold">
                                         Kategorie
                                       </TableHead>
-                                      <TableHead className="py-3 text-base">
+                                      <TableHead className="py-2 h-9 text-xs font-semibold">
                                         Standort
                                       </TableHead>
-                                      <TableHead className="py-3 text-base">
+                                      <TableHead className="py-2 h-9 text-xs font-semibold">
                                         Status
                                       </TableHead>
-                                      <TableHead className="py-3 text-base">
+                                      <TableHead className="py-2 h-9 text-xs font-semibold">
                                         Priorität
                                       </TableHead>
-                                      <TableHead className="py-3 text-base">
-                                        Zugewiesen an
+                                      <TableHead className="py-2 h-9 text-xs font-semibold">
+                                        Zugewiesen
                                       </TableHead>
-                                      <TableHead className="py-3 text-base">
-                                        Fälligkeitsdatum
+                                      <TableHead className="py-2 h-9 text-xs font-semibold">
+                                        Fällig
                                       </TableHead>
-                                      <TableHead className="text-center py-3 text-base">
-                                        Aufgaben
+                                      <TableHead className="text-center py-2 h-9 w-[70px] text-xs font-semibold">
+                                        Tasks
                                       </TableHead>
-                                      <TableHead className="text-center py-3 text-base">
+                                      <TableHead className="text-center py-2 h-9 w-[70px] text-xs font-semibold">
                                         Dateien
                                       </TableHead>
-                                      <TableHead className="text-right py-3 text-base">
+                                      <TableHead className="text-right py-2 h-9 w-[90px] text-xs font-semibold">
                                         Aktionen
                                       </TableHead>
                                     </TableRow>
@@ -2453,7 +2453,7 @@ const ActionTracker = ({
                                       <React.Fragment key={action.id}>
                                         <TableRow
                                           id={`action-${action.id}`}
-                                          className={`hover:bg-muted/50 transition-colors ${
+                                          className={`hover:bg-muted/50 transition-colors cursor-pointer ${
                                             isOverdue(
                                               action.dueDate,
                                               action.status
@@ -2462,34 +2462,34 @@ const ActionTracker = ({
                                               : ""
                                           }`}
                                         >
-                                          <TableCell className="py-3">
+                                          <TableCell className="py-2">
                                             <Button
                                               variant="ghost"
                                               size="icon"
-                                              className="h-7 w-7"
+                                              className="h-6 w-6"
                                               onClick={() =>
                                                 toggleRow(action.id)
                                               }
                                             >
                                               {expandedRows.has(action.id) ? (
-                                                <ChevronDown className="h-4 w-4" />
+                                                <ChevronDown className="h-3.5 w-3.5" />
                                               ) : (
-                                                <ChevronRight className="h-4 w-4" />
+                                                <ChevronRight className="h-3.5 w-3.5" />
                                               )}
                                             </Button>
                                           </TableCell>
-                                          <TableCell className="py-3">
-                                            <span className="font-medium text-muted-foreground text-base">
-                                              {index + 1}
+                                          <TableCell className="py-2">
+                                            <span className="font-medium text-muted-foreground text-xs">
+                                              #{index + 1}
                                             </span>
                                           </TableCell>
                                           <TableCell
-                                            className="py-3"
+                                            className="py-2 max-w-[250px]"
                                             onClick={() => toggleRow(action.id)}
                                           >
-                                            <div className="space-y-1">
+                                            <div className="space-y-0.5">
                                               <div
-                                                className={`font-medium text-base ${
+                                                className={`font-medium text-sm leading-tight ${
                                                   action.status === "COMPLETED"
                                                     ? "line-through text-muted-foreground"
                                                     : ""
@@ -2498,24 +2498,25 @@ const ActionTracker = ({
                                                 {action.title}
                                               </div>
                                               {action.description && (
-                                                <div className="text-sm text-muted-foreground line-clamp-1">
+                                                <div className="text-xs text-muted-foreground line-clamp-1">
                                                   {action.description}
                                                 </div>
                                               )}
                                             </div>
                                           </TableCell>
-                                          <TableCell className="py-3">
+                                          <TableCell className="py-2">
                                             <Badge
-                                              className={`text-sm font-semibold ${
+                                              variant="outline"
+                                              className={`text-xs font-medium ${
                                                 action.discipline === "MECHANIK"
-                                                  ? "bg-cyan-500 text-white hover:bg-cyan-600"
+                                                  ? "border-cyan-500 text-cyan-700 dark:text-cyan-400"
                                                   : action.discipline ===
                                                     "ELEKTRIK"
-                                                  ? "bg-purple-500 text-white hover:bg-purple-600"
+                                                  ? "border-purple-500 text-purple-700 dark:text-purple-400"
                                                   : action.discipline ===
                                                     "ANLAGE"
-                                                  ? "bg-pink-500 text-white hover:bg-pink-600"
-                                                  : "bg-gray-500 text-white hover:bg-gray-600"
+                                                  ? "border-pink-500 text-pink-700 dark:text-pink-400"
+                                                  : "border-gray-400 text-gray-600 dark:text-gray-400"
                                               }`}
                                             >
                                               {action.discipline ===
@@ -2527,20 +2528,21 @@ const ActionTracker = ({
                                               {!action.discipline && "-"}
                                             </Badge>
                                           </TableCell>
-                                          <TableCell className="py-3">
-                                            <span className="text-sm text-muted-foreground">
+                                          <TableCell className="py-2">
+                                            <span className="text-xs text-muted-foreground">
                                               {action.location || "-"}
                                             </span>
                                           </TableCell>
-                                          <TableCell className="py-3">
+                                          <TableCell className="py-2">
                                             <Badge
-                                              className={`text-sm font-semibold ${
+                                              variant="outline"
+                                              className={`text-xs font-medium ${
                                                 action.status === "COMPLETED"
-                                                  ? "bg-green-500 text-white hover:bg-green-600"
+                                                  ? "border-green-500 text-green-700 dark:text-green-400"
                                                   : action.status ===
                                                     "IN_PROGRESS"
-                                                  ? "bg-green-500 text-white hover:bg-green-600"
-                                                  : "bg-yellow-500 text-black hover:bg-yellow-600"
+                                                  ? "border-blue-500 text-blue-700 dark:text-blue-400"
+                                                  : "border-yellow-500 text-yellow-700 dark:text-yellow-400"
                                               }`}
                                             >
                                               {action.status === "OPEN" &&
@@ -2551,33 +2553,34 @@ const ActionTracker = ({
                                                 "Abgeschlossen"}
                                             </Badge>
                                           </TableCell>
-                                          <TableCell className="py-3">
+                                          <TableCell className="py-2">
                                             <Badge
-                                              className={`text-sm ${
+                                              variant="outline"
+                                              className={`text-xs font-medium ${
                                                 action.priority === "URGENT"
-                                                  ? "bg-red-500/10 text-red-700 border-red-500/20"
+                                                  ? "border-red-500 text-red-700 dark:text-red-400"
                                                   : action.priority === "HIGH"
-                                                  ? "bg-orange-500/10 text-orange-700 border-orange-500/20"
+                                                  ? "border-orange-500 text-orange-700 dark:text-orange-400"
                                                   : action.priority === "MEDIUM"
-                                                  ? "bg-yellow-500/10 text-yellow-700 border-yellow-500/20"
-                                                  : "bg-gray-500/10 text-gray-700 border-gray-500/20"
+                                                  ? "border-yellow-500 text-yellow-700 dark:text-yellow-400"
+                                                  : "border-gray-500 text-gray-700 dark:text-gray-400"
                                               }`}
                                             >
                                               {action.priority}
                                             </Badge>
                                           </TableCell>
-                                          <TableCell className="py-3">
-                                            <div className="flex items-center gap-2">
-                                              <UserIcon className="h-4 w-4 text-muted-foreground" />
-                                              <span className="text-base">
+                                          <TableCell className="py-2">
+                                            <div className="flex items-center gap-1.5">
+                                              <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                                              <span className="text-xs">
                                                 {action.assignedTo ||
                                                   "Nicht zugewiesen"}
                                               </span>
                                             </div>
                                           </TableCell>
-                                          <TableCell className="py-3">
+                                          <TableCell className="py-2">
                                             <span
-                                              className={`text-base font-medium ${
+                                              className={`text-xs font-medium ${
                                                 isOverdue(
                                                   action.dueDate,
                                                   action.status
@@ -2593,16 +2596,16 @@ const ActionTracker = ({
                                                 : "-"}
                                             </span>
                                           </TableCell>
-                                          <TableCell className="py-3">
+                                          <TableCell className="py-2">
                                             <Button
                                               variant="outline"
                                               size="sm"
-                                              className="h-8 text-sm"
+                                              className="h-7 text-xs px-2"
                                               onClick={() =>
                                                 toggleRow(action.id)
                                               }
                                             >
-                                              <ListTodo className="h-3.5 w-3.5 mr-1" />
+                                              <ListTodo className="h-3 w-3 mr-1" />
                                               {
                                                 action.tasks.filter(
                                                   (t) => t.completed
@@ -2611,16 +2614,16 @@ const ActionTracker = ({
                                               /{action.tasks.length}
                                             </Button>
                                           </TableCell>
-                                          <TableCell className="py-3">
+                                          <TableCell className="py-2">
                                             <Button
                                               variant="outline"
                                               size="sm"
-                                              className="h-8 text-sm"
+                                              className="h-7 text-xs px-2"
                                               onClick={() =>
                                                 toggleRow(action.id)
                                               }
                                             >
-                                              <Paperclip className="h-3.5 w-3.5 mr-1" />
+                                              <Paperclip className="h-3 w-3 mr-1" />
                                               {action.files.length}
                                             </Button>
                                           </TableCell>
@@ -2647,29 +2650,29 @@ const ActionTracker = ({
                                                     : "Action abschließen"
                                                 }
                                               >
-                                                <CheckCircle2 className="h-4 w-4" />
+                                                <CheckCircle2 className="h-3.5 w-3.5" />
                                               </Button>
                                               <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8"
+                                                className="h-7 w-7"
                                                 onClick={() =>
                                                   openEditDialog(action)
                                                 }
                                                 title="Action bearbeiten"
                                               >
-                                                <Edit className="h-4 w-4" />
+                                                <Edit className="h-3.5 w-3.5" />
                                               </Button>
                                               <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8"
+                                                className="h-7 w-7"
                                                 onClick={() =>
                                                   handleDelete(action.id)
                                                 }
                                                 title="Action löschen"
                                               >
-                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
                                               </Button>
                                             </div>
                                           </TableCell>
