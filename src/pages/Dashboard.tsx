@@ -15,8 +15,6 @@ import {
   Clock,
   ArrowRight,
   Building2,
-  ArrowUp,
-  ArrowDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
