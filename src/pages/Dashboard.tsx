@@ -14,9 +14,13 @@ import {
   AlertCircle,
   Clock,
   ArrowRight,
+  Building2,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useCountUp } from "@/hooks/useCountUp";
 
 interface FailureReport {
   id: string;
@@ -178,8 +182,29 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       }
     });
 
-    return { openFailureReports, myProjects, myActions, completed };
+    return {
+      openFailureReports,
+      myProjects,
+      myActions,
+      completed,
+    };
   };
+
+  const stats = calculateStats();
+  
+  // Animated counts
+  const animatedFailures = useCountUp(stats.openFailureReports, 1200, 100);
+  const animatedProjects = useCountUp(stats.myProjects, 1200, 200);
+  const animatedActions = useCountUp(stats.myActions, 1200, 300);
+  const animatedCompleted = useCountUp(stats.completed, 1200, 400);
+  
+  const totalItems =
+    stats.openFailureReports + stats.myProjects + stats.myActions;
+  const completionRate =
+    totalItems > 0
+      ? Math.round((stats.completed / (totalItems + stats.completed)) * 100)
+      : 0;
+  const animatedCompletionRate = useCountUp(completionRate, 1500, 500);
 
   const getQuickAccessItems = (): QuickAccessItem[] => {
     if (!currentUser) return [];
@@ -310,7 +335,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     });
   };
 
-  const stats = calculateStats();
   const quickAccessItems = getQuickAccessItems();
 
   const handleItemClick = (item: QuickAccessItem) => {
@@ -396,13 +420,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     });
   };
 
-  const totalItems =
-    stats.openFailureReports + stats.myProjects + stats.myActions;
-  const completionRate =
-    totalItems > 0
-      ? Math.round((stats.completed / (totalItems + stats.completed)) * 100)
-      : 0;
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -412,25 +429,57 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   }
 
   return (
-    <div className="space-y-8 p-6">
-      <div className="space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight">
-          {getGreeting()}, {currentUser?.firstName || "User"}! 👋
-        </h1>
-        <p className="text-muted-foreground text-lg">
-          {lastNavigatedPage === "projects"
-            ? "Hier sind deine offenen Projekte"
-            : lastNavigatedPage === "actions"
-            ? "Hier sind deine offenen Actions"
-            : lastNavigatedPage === "failures"
-            ? "Hier sind die offenen Störmeldungen"
-            : "Hier ist deine persönliche Übersicht für heute"}
-        </p>
+    <div className="space-y-6 p-6">
+      {/* Welcome Banner with Gradient */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 dark:from-slate-900 dark:via-slate-800 dark:to-black p-8 shadow-xl border border-slate-700/50">
+        {/* Decorative Background Pattern */}
+        <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.3))]"></div>
+        
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          {/* Left: Greeting & Logo */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-4">
+              {/* Company Logo Placeholder */}
+              <div className="h-14 w-14 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                <Building2 className="h-8 w-8 text-slate-200" />
+              </div>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
+                  {getGreeting()}, {currentUser?.firstName || "User"}!
+                </h1>
+                <p className="text-slate-300 text-sm md:text-base mt-1">
+                  {currentUser?.email || "Willkommen im CMMS"}
+                </p>
+              </div>
+            </div>
+            <p className="text-slate-400 text-base md:text-lg max-w-2xl">
+              {lastNavigatedPage === "projects"
+                ? "Hier sind deine offenen Projekte"
+                : lastNavigatedPage === "actions"
+                ? "Hier sind deine offenen Actions"
+                : lastNavigatedPage === "failures"
+                ? "Hier sind die offenen Störmeldungen"
+                : "Deine persönliche Übersicht für heute"}
+            </p>
+          </div>
+
+          {/* Right: Quick Stats */}
+          <div className="flex gap-4">
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 min-w-[120px]">
+              <div className="text-2xl font-bold text-white">{animatedFailures + animatedProjects + animatedActions}</div>
+              <div className="text-slate-300 text-sm">Offene Tasks</div>
+            </div>
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 min-w-[120px]">
+              <div className="text-2xl font-bold text-white">{animatedCompletionRate}%</div>
+              <div className="text-slate-300 text-sm">Erledigt</div>
+            </div>
+          </div>
+        </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card
-          className={`bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800 hover:shadow-lg transition-shadow cursor-pointer ${
-            quickAccessFilter === "failures" ? "ring-2 ring-red-500" : ""
+          className={`bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer ${
+            quickAccessFilter === "failures" ? "ring-2 ring-red-500 shadow-xl" : ""
           }`}
           onClick={() => {
             setQuickAccessFilter("failures");
@@ -438,24 +487,26 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           }}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">
+            <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
               Offene Störmeldungen
             </CardTitle>
-            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <div className="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-900 dark:text-red-100">
-              {stats.openFailureReports}
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+              {animatedFailures}
             </div>
-            <p className="text-xs text-red-700 dark:text-red-400 mt-2 flex items-center gap-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
               Noch nicht bearbeitet
             </p>
           </CardContent>
         </Card>
         <Card
-          className={`bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-shadow cursor-pointer ${
-            quickAccessFilter === "projects" ? "ring-2 ring-purple-500" : ""
+          className={`bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer ${
+            quickAccessFilter === "projects" ? "ring-2 ring-blue-500 shadow-xl" : ""
           }`}
           onClick={() => {
             setQuickAccessFilter("projects");
@@ -463,24 +514,26 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           }}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">
+            <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
               Meine Projekte
             </CardTitle>
-            <FolderKanban className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+              <FolderKanban className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-              {stats.myProjects}
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+              {animatedProjects}
             </div>
-            <p className="text-xs text-purple-700 dark:text-purple-400 mt-2 flex items-center gap-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
               <TrendingUp className="h-3 w-3" />
               Aktive Projekte
             </p>
           </CardContent>
         </Card>
         <Card
-          className={`bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800 hover:shadow-lg transition-shadow cursor-pointer ${
-            quickAccessFilter === "actions" ? "ring-2 ring-orange-500" : ""
+          className={`bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer ${
+            quickAccessFilter === "actions" ? "ring-2 ring-orange-500 shadow-xl" : ""
           }`}
           onClick={() => {
             setQuickAccessFilter("actions");
@@ -488,36 +541,40 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           }}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">
+            <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
               Meine Actions
             </CardTitle>
-            <ClipboardList className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+            <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+              <ClipboardList className="h-5 w-5 text-orange-600 dark:text-orange-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">
-              {stats.myActions}
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+              {animatedActions}
             </div>
-            <p className="text-xs text-orange-700 dark:text-orange-400 mt-2 flex items-center gap-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
               Zu bearbeiten
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 hover:shadow-lg transition-shadow cursor-pointer">
+        <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">
+            <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
               Diese Woche erledigt
             </CardTitle>
-            <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-900 dark:text-green-100">
-              {stats.completed}
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+              {animatedCompleted}
             </div>
             <div className="mt-3">
-              <Progress value={completionRate} className="h-2" />
-              <p className="text-xs text-green-700 dark:text-green-400 mt-1">
-                {completionRate}% Completion Rate
+              <Progress value={animatedCompletionRate} className="h-2" />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {animatedCompletionRate}% Erledigungsrate
               </p>
             </div>
           </CardContent>
