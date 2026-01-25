@@ -15,6 +15,7 @@ export interface Project {
   plant?: string; // Add plant field
   category?: 'MECHANICAL' | 'ELECTRICAL' | 'FACILITY'; // Add category field
   flowData?: string; // JSON string for React Flow nodes & edges
+  managerId?: string;
   manager?: {
     id: string;
     firstName: string;

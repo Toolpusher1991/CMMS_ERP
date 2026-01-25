@@ -117,6 +117,13 @@ interface MilestoneNodeData extends Record<string, unknown> {
   completed?: boolean;
 }
 
+interface GroupNodeData extends Record<string, unknown> {
+  label?: string;
+  childCount?: number;
+  onRename?: (newLabel: string) => void;
+  onDissolve?: () => void;
+}
+
 interface SavedFlowData {
   nodes: Node[];
   edges: Edge[];
@@ -325,11 +332,70 @@ function EndNode() {
   );
 }
 
+// Group Node - Sauberer Container für gruppierte Aufgaben
+function GroupNode({ data }: { data: GroupNodeData }) {
+  const count = data.childCount || 0;
+  
+  const handleDoubleClick = () => {
+    const newLabel = prompt("Gruppenname:", data.label || `${count} Aufgaben`);
+    if (newLabel !== null && data.onRename) {
+      data.onRename(newLabel.trim() || `${count} Aufgaben`);
+    }
+  };
+
+  return (
+    <div 
+      className="rounded-lg"
+      style={{
+        border: '2px solid #6366f1',
+        backgroundColor: 'transparent',
+      }}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="w-3 h-3 !bg-indigo-500"
+        style={{ top: '50%' }}
+      />
+      {/* Header - Doppelklick zum Umbenennen */}
+      <div 
+        className="px-3 py-1 rounded-t-md text-xs font-semibold text-white flex items-center justify-between gap-2 cursor-pointer"
+        style={{ backgroundColor: '#6366f1' }}
+        onDoubleClick={handleDoubleClick}
+        title="Doppelklick zum Umbenennen"
+      >
+        <span>{data.label || `${count} Aufgaben`}</span>
+        {data.onDissolve && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm("Gruppe auflösen? Aufgaben bleiben erhalten.")) {
+                data.onDissolve?.();
+              }
+            }}
+            className="hover:bg-white/20 rounded px-1 text-[10px]"
+            title="Gruppe auflösen"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="w-3 h-3 !bg-indigo-500"
+        style={{ top: '50%' }}
+      />
+    </div>
+  );
+}
+
 const nodeTypes = {
   task: TaskFlowNode,
   start: StartNode,
   end: EndNode,
   milestone: MilestoneNode,
+  group: GroupNode,
 };
 
 // ===== Helper Functions =====
@@ -433,6 +499,7 @@ export default function ProjectsPage() {
     plant: "T208" as Plant,
     startDate: "",
     endDate: "",
+    managerId: "",
   });
   const [taskForm, setTaskForm] = useState({
     title: "",
@@ -840,15 +907,329 @@ export default function ProjectsPage() {
     });
   }, [milestoneForm, setNodes, toast]);
 
-  // Auto-Layout Function
+  // Constants for grouping
+  const NODE_WIDTH = 240;
+  const NODE_HEIGHT = 95;
+  const NODE_MIN_WIDTH = 240;
+  const GROUP_PADDING = 12;
+  const GROUP_HEADER = 32;
+  const NODE_GAP = 10;
+
+  // Helper: Recalculate group size and reposition children
+  const recalculateGroup = useCallback((groupId: string, currentNodes: Node[]): Node[] => {
+    const childNodes = currentNodes.filter(n => n.parentId === groupId);
+    if (childNodes.length === 0) {
+      // Remove empty group
+      return currentNodes.filter(n => n.id !== groupId);
+    }
+
+    // Find the widest child node (use measured width if available)
+    const maxChildWidth = Math.max(
+      NODE_MIN_WIDTH,
+      ...childNodes.map(n => (n.measured?.width as number) || NODE_MIN_WIDTH)
+    );
+
+    // Stack children vertically
+    const sortedChildren = [...childNodes].sort((a, b) => a.position.y - b.position.y);
+    const baseY = GROUP_HEADER + GROUP_PADDING;
+    
+    const repositionedNodes = currentNodes.map(node => {
+      const childIndex = sortedChildren.findIndex(c => c.id === node.id);
+      if (childIndex !== -1) {
+        return {
+          ...node,
+          position: { x: GROUP_PADDING, y: baseY + childIndex * (NODE_HEIGHT + NODE_GAP) },
+        };
+      }
+      return node;
+    });
+
+    // Update group size - use max child width
+    const groupHeight = GROUP_HEADER + GROUP_PADDING * 2 + childNodes.length * NODE_HEIGHT + (childNodes.length - 1) * NODE_GAP;
+    const groupWidth = maxChildWidth + GROUP_PADDING * 2;
+
+    return repositionedNodes.map(node => {
+      if (node.id === groupId) {
+        return {
+          ...node,
+          style: { ...node.style, width: groupWidth, height: groupHeight },
+          data: { ...node.data, childCount: childNodes.length, label: `${childNodes.length} Aufgaben` },
+        };
+      }
+      return node;
+    });
+  }, []);
+
+  // Handle drag stop - grouping logic
+  const handleNodeDragStop = useCallback(
+    (_event: React.MouseEvent, draggedNode: Node) => {
+      if (draggedNode.type !== "task") return;
+
+      // Get absolute position of dragged node
+      let dragAbsX = draggedNode.position.x;
+      let dragAbsY = draggedNode.position.y;
+      if (draggedNode.parentId) {
+        const parent = nodes.find(n => n.id === draggedNode.parentId);
+        if (parent) {
+          dragAbsX += parent.position.x;
+          dragAbsY += parent.position.y;
+        }
+      }
+      
+      // Center of dragged node
+      const dragCenterX = dragAbsX + NODE_WIDTH / 2;
+      const dragCenterY = dragAbsY + NODE_HEIGHT / 2;
+
+      // Check if dropped on existing group (not the one it's already in)
+      const targetGroup = nodes.find(node => {
+        if (node.type !== "group") return false;
+        if (draggedNode.parentId === node.id) return false;
+        
+        const groupWidth = (node.style?.width as number) || 250;
+        const groupHeight = (node.style?.height as number) || 200;
+        
+        // Check if center of dragged node is inside group
+        return dragCenterX >= node.position.x && 
+               dragCenterX <= node.position.x + groupWidth &&
+               dragCenterY >= node.position.y && 
+               dragCenterY <= node.position.y + groupHeight;
+      });
+
+      if (targetGroup) {
+        // Add to existing group
+        setNodes(nds => {
+          const oldParentId = draggedNode.parentId;
+          let updatedNodes = nds.map(node => {
+            if (node.id === draggedNode.id) {
+              return {
+                ...node,
+                position: { x: GROUP_PADDING, y: 0 },
+                parentId: targetGroup.id,
+              };
+            }
+            return node;
+          });
+          
+          updatedNodes = recalculateGroup(targetGroup.id, updatedNodes);
+          
+          if (oldParentId) {
+            updatedNodes = recalculateGroup(oldParentId, updatedNodes);
+          }
+          
+          return updatedNodes;
+        });
+
+        setEdges(eds => eds.filter(e => 
+          e.source !== draggedNode.id && e.target !== draggedNode.id
+        ));
+
+        setHasFlowChanges(true);
+        toast({
+          title: "Zur Gruppe hinzugefügt",
+          description: "Aufgabe wurde zur Gruppe hinzugefügt.",
+        });
+        return;
+      }
+
+      // Check if overlapping with another task (create new group)
+      // Skip if dragged node is in a group (it should be added to existing group instead)
+      if (draggedNode.parentId) {
+        // Node was dragged out of group but not into another group
+        // Check if it's outside its current group
+        const currentGroup = nodes.find(n => n.id === draggedNode.parentId);
+        if (currentGroup) {
+          const groupWidth = (currentGroup.style?.width as number) || 250;
+          const groupHeight = (currentGroup.style?.height as number) || 200;
+          const isOutsideGroup = 
+            dragCenterX < currentGroup.position.x ||
+            dragCenterX > currentGroup.position.x + groupWidth ||
+            dragCenterY < currentGroup.position.y ||
+            dragCenterY > currentGroup.position.y + groupHeight;
+          
+          if (isOutsideGroup) {
+            // Remove from group
+            setNodes(nds => {
+              let updatedNodes = nds.map(node => {
+                if (node.id === draggedNode.id) {
+                  return {
+                    ...node,
+                    position: { x: dragAbsX, y: dragAbsY },
+                    parentId: undefined,
+                  };
+                }
+                return node;
+              });
+              // Recalculate old group
+              updatedNodes = recalculateGroup(draggedNode.parentId!, updatedNodes);
+              return updatedNodes;
+            });
+            setHasFlowChanges(true);
+            toast({
+              title: "Aus Gruppe entfernt",
+              description: "Aufgabe wurde aus der Gruppe entfernt.",
+            });
+          }
+        }
+        return;
+      }
+
+      const overlappingTask = nodes.find(node => {
+        if (node.id === draggedNode.id) return false;
+        if (node.type !== "task") return false;
+        if (node.parentId) return false; // Task already in a group
+        
+        // Calculate center of other node
+        const nodeCenterX = node.position.x + NODE_WIDTH / 2;
+        const nodeCenterY = node.position.y + NODE_HEIGHT / 2;
+        
+        // Distance between centers
+        const dx = Math.abs(dragCenterX - nodeCenterX);
+        const dy = Math.abs(dragCenterY - nodeCenterY);
+        
+        // Overlap if centers are close enough
+        return dx < NODE_WIDTH * 0.7 && dy < NODE_HEIGHT * 0.7;
+      });
+
+      if (overlappingTask) {
+        // Create new group - use absolute positions
+        const groupId = `group-${Date.now()}`;
+        const groupX = Math.min(dragAbsX, overlappingTask.position.x) - GROUP_PADDING;
+        const groupY = Math.min(dragAbsY, overlappingTask.position.y) - GROUP_HEADER - GROUP_PADDING;
+        const groupHeight = GROUP_HEADER + GROUP_PADDING * 2 + 2 * NODE_HEIGHT + NODE_GAP;
+        
+        // Use measured widths if available, otherwise use minimum
+        const draggedWidth = (draggedNode.measured?.width as number) || NODE_MIN_WIDTH;
+        const overlappingWidth = (overlappingTask.measured?.width as number) || NODE_MIN_WIDTH;
+        const maxWidth = Math.max(draggedWidth, overlappingWidth, NODE_MIN_WIDTH);
+        const groupWidth = maxWidth + GROUP_PADDING * 2;
+
+        const groupNode: Node = {
+          id: groupId,
+          type: "group",
+          position: { x: groupX, y: groupY },
+          style: { width: groupWidth, height: groupHeight },
+          data: { label: "2 Aufgaben", childCount: 2 },
+          zIndex: -1,
+        };
+
+        setNodes(nds => {
+          const updatedNodes = nds.map(node => {
+            if (node.id === draggedNode.id) {
+              return {
+                ...node,
+                position: { x: GROUP_PADDING, y: GROUP_HEADER + GROUP_PADDING },
+                parentId: groupId,
+              };
+            }
+            if (node.id === overlappingTask.id) {
+              return {
+                ...node,
+                position: { x: GROUP_PADDING, y: GROUP_HEADER + GROUP_PADDING + NODE_HEIGHT + NODE_GAP },
+                parentId: groupId,
+              };
+            }
+            return node;
+          });
+          return [groupNode, ...updatedNodes];
+        });
+
+        // Remove ALL edges connected to grouped nodes (no edges from/to grouped nodes)
+        setEdges(eds => eds.filter(e => 
+          e.source !== draggedNode.id && e.target !== draggedNode.id &&
+          e.source !== overlappingTask.id && e.target !== overlappingTask.id
+        ));
+
+        setHasFlowChanges(true);
+        toast({
+          title: "Gruppe erstellt",
+          description: "2 Aufgaben wurden gruppiert.",
+        });
+      }
+    },
+    [nodes, setNodes, setEdges, recalculateGroup, toast]
+  );
+
+  // Group rename handler
+  const handleRenameGroup = useCallback((groupId: string, newLabel: string) => {
+    setNodes(nds => nds.map(node => {
+      if (node.id === groupId) {
+        return { ...node, data: { ...node.data, label: newLabel } };
+      }
+      return node;
+    }));
+    setHasFlowChanges(true);
+  }, [setNodes]);
+
+  // Group dissolve handler
+  const handleDissolveGroup = useCallback((groupId: string) => {
+    const groupNode = nodes.find(n => n.id === groupId);
+    if (!groupNode) return;
+
+    setNodes(nds => {
+      // Get children and remove parentId, set absolute position
+      const children = nds.filter(n => n.parentId === groupId);
+      const updatedNodes = nds
+        .filter(n => n.id !== groupId) // Remove group
+        .map((node) => {
+          if (node.parentId === groupId) {
+            const childIndex = children.findIndex(c => c.id === node.id);
+            return {
+              ...node,
+              position: {
+                x: groupNode.position.x + GROUP_PADDING,
+                y: groupNode.position.y + GROUP_HEADER + GROUP_PADDING + childIndex * (NODE_HEIGHT + NODE_GAP),
+              },
+              parentId: undefined,
+            };
+          }
+          return node;
+        });
+      return updatedNodes;
+    });
+    setHasFlowChanges(true);
+    toast({
+      title: "Gruppe aufgelöst",
+      description: "Die Aufgaben wurden aus der Gruppe entfernt.",
+    });
+  }, [nodes, setNodes, toast]);
+
+  // Add callbacks to group nodes AND ensure task nodes have their callbacks
+  const nodesWithGroupCallbacks = nodes.map(node => {
+    if (node.type === "group") {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          onRename: (newLabel: string) => handleRenameGroup(node.id, newLabel),
+          onDissolve: () => handleDissolveGroup(node.id),
+        },
+      };
+    }
+    // Ensure all task nodes have their callbacks (especially important for grouped tasks)
+    if (node.type === "task") {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          onEdit: handleEditTaskFromFlow,
+          onToggleStatus: handleToggleTaskFromFlow,
+          onDelete: handleDeleteTaskFromFlow,
+        },
+      };
+    }
+    return node;
+  });
+
+  // Auto-Layout Function - preserves groups
   const handleAutoLayout = useCallback(() => {
     const startNode = nodes.find((n) => n.type === "start");
     const endNode = nodes.find((n) => n.type === "end");
-    const taskNodes = nodes.filter((n) => n.type === "task");
+    const groupNodes = nodes.filter((n) => n.type === "group");
+    const standaloneTaskNodes = nodes.filter((n) => n.type === "task" && !n.parentId);
     const milestoneNodes = nodes.filter((n) => n.type === "milestone");
 
     const layoutNodes: Node[] = [];
-    const spacing = { x: 280, y: 140 };
+    const spacing = { x: 300, y: 150 };
     const startX = 50;
     const startY = 150;
 
@@ -857,24 +1238,57 @@ export default function ProjectsPage() {
       layoutNodes.push({ ...startNode, position: { x: startX, y: startY } });
     }
 
-    // Task nodes in grid
-    taskNodes.forEach((node, index) => {
+    // Standalone task nodes in grid
+    let currentX = startX + 200;
+    let currentY = startY - 50;
+    let maxRowHeight = 0;
+    let itemsInRow = 0;
+
+    standaloneTaskNodes.forEach((node) => {
       layoutNodes.push({
         ...node,
-        position: {
-          x: startX + 200 + (index % 3) * spacing.x,
-          y: startY - 50 + Math.floor(index / 3) * spacing.y,
-        },
+        position: { x: currentX, y: currentY },
       });
+      maxRowHeight = Math.max(maxRowHeight, NODE_HEIGHT);
+      itemsInRow++;
+      if (itemsInRow >= 3) {
+        currentX = startX + 200;
+        currentY += spacing.y;
+        itemsInRow = 0;
+        maxRowHeight = 0;
+      } else {
+        currentX += spacing.x;
+      }
     });
 
-    // Milestone nodes after tasks
-    const tasksWidth = Math.max(1, Math.ceil(taskNodes.length / 3)) * spacing.x;
+    // Groups - place after standalone tasks
+    if (itemsInRow > 0) {
+      currentY += spacing.y;
+      currentX = startX + 200;
+    }
+    groupNodes.forEach((groupNode) => {
+      const groupHeight = (groupNode.style?.height as number) || 200;
+      layoutNodes.push({
+        ...groupNode,
+        position: { x: currentX, y: currentY },
+      });
+      // Keep children as they are (relative to group)
+      nodes.filter(n => n.parentId === groupNode.id).forEach(child => {
+        layoutNodes.push(child);
+      });
+      currentY += groupHeight + 30;
+    });
+
+    // Milestone nodes
+    const maxTaskX = Math.max(
+      startX + 200,
+      ...layoutNodes.filter(n => n.type === "task" || n.type === "group").map(n => n.position.x + 300)
+    );
     milestoneNodes.forEach((node, index) => {
       layoutNodes.push({
         ...node,
         position: {
-          x: startX + 200 + tasksWidth + 100,
+          x: maxTaskX + 100,
           y: startY + index * 100,
         },
       });
@@ -883,12 +1297,12 @@ export default function ProjectsPage() {
     // End node
     if (endNode) {
       const maxX = Math.max(
-        ...layoutNodes.map((n) => n.position.x),
-        startX + 200 + tasksWidth
+        ...layoutNodes.map((n) => n.position.x + 200),
+        maxTaskX
       );
       layoutNodes.push({
         ...endNode,
-        position: { x: maxX + spacing.x, y: startY },
+        position: { x: maxX + 100, y: startY },
       });
     }
 
@@ -896,7 +1310,7 @@ export default function ProjectsPage() {
     setHasFlowChanges(true);
     toast({
       title: "Layout angewendet",
-      description: "Nodes wurden automatisch angeordnet.",
+      description: "Nodes wurden automatisch angeordnet. Gruppen bleiben erhalten.",
     });
   }, [nodes, setNodes, toast]);
 
@@ -953,6 +1367,13 @@ export default function ProjectsPage() {
               if (task) {
                 return {
                   ...node,
+                  id: node.id,
+                  type: node.type,
+                  position: node.position,
+                  parentId: node.parentId,
+                  expandParent: node.expandParent,
+                  style: node.style,
+                  zIndex: node.zIndex,
                   data: {
                     ...node.data,
                     label: task.title,
@@ -968,9 +1389,26 @@ export default function ProjectsPage() {
                 };
               }
             }
-            return node;
+            // For group nodes and other types, preserve all properties
+            return {
+              ...node,
+              id: node.id,
+              type: node.type,
+              position: node.position,
+              parentId: node.parentId,
+              expandParent: node.expandParent,
+              style: node.style,
+              zIndex: node.zIndex,
+              data: node.data,
+            };
           });
-          setNodes(updatedNodes);
+          // Sort nodes so parents come before children
+          const sortedNodes = updatedNodes.sort((a, b) => {
+            if (a.type === "group" && b.type !== "group") return -1;
+            if (a.type !== "group" && b.type === "group") return 1;
+            return 0;
+          });
+          setNodes(sortedNodes);
           setEdges(savedFlow.edges || []);
           return;
         } catch {
@@ -1051,13 +1489,19 @@ export default function ProjectsPage() {
     try {
       // Remove callback functions from nodes before saving (they can't be serialized)
       const cleanedNodes = nodes.map((node) => ({
-        ...node,
+        id: node.id,
+        type: node.type,
+        position: node.position,
         data: {
           ...node.data,
           onEdit: undefined,
           onToggleStatus: undefined,
           onDelete: undefined,
         },
+        style: node.style,
+        parentId: node.parentId,
+        expandParent: node.expandParent,
+        zIndex: node.zIndex,
       }));
 
       const flowData: SavedFlowData = { nodes: cleanedNodes, edges };
@@ -1092,6 +1536,7 @@ export default function ProjectsPage() {
       plant: activeTab,
       startDate: new Date().toISOString().split("T")[0],
       endDate: "",
+      managerId: "",
     });
     setShowProjectDialog(true);
   };
@@ -1107,6 +1552,7 @@ export default function ProjectsPage() {
       plant: project.plant as Plant,
       startDate: project.startDate?.split("T")[0] || "",
       endDate: project.endDate?.split("T")[0] || "",
+      managerId: project.managerId || "",
     });
     setShowProjectDialog(true);
   };
@@ -1123,7 +1569,10 @@ export default function ProjectsPage() {
 
     try {
       if (isEditMode && selectedProject) {
-        await projectService.updateProject(selectedProject.id, projectForm);
+        await projectService.updateProject(selectedProject.id, {
+          ...projectForm,
+          managerId: projectForm.managerId || undefined,
+        });
         toast({
           title: "Projekt aktualisiert",
           description: `${projectForm.name} wurde erfolgreich aktualisiert.`,
@@ -1138,6 +1587,7 @@ export default function ProjectsPage() {
           plant: projectForm.plant,
           startDate: projectForm.startDate,
           endDate: projectForm.endDate,
+          managerId: projectForm.managerId || undefined,
         });
         toast({
           title: "Projekt erstellt",
@@ -1826,8 +2276,14 @@ export default function ProjectsPage() {
             ref={flowRef}
           >
             <ReactFlow
-              nodes={nodes}
-              edges={edges}
+              nodes={nodesWithGroupCallbacks}
+              edges={edges.filter(e => {
+                // Hide edges from/to nodes that are in a group
+                const sourceNode = nodes.find(n => n.id === e.source);
+                const targetNode = nodes.find(n => n.id === e.target);
+                if (sourceNode?.parentId || targetNode?.parentId) return false;
+                return true;
+              })}
               onNodesChange={(changes) => {
                 onNodesChange(changes);
                 setHasFlowChanges(true);
@@ -1836,8 +2292,10 @@ export default function ProjectsPage() {
                 onEdgesChange(changes);
                 setHasFlowChanges(true);
               }}
+              onNodeDragStop={handleNodeDragStop}
               onConnect={onConnect}
               nodeTypes={nodeTypes}
+              deleteKeyCode={["Backspace", "Delete"]}
               fitView
               className="bg-slate-50 dark:bg-slate-900"
             >
@@ -2198,6 +2656,30 @@ export default function ProjectsPage() {
                   }
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Projektleiter</Label>
+              <Select
+                value={projectForm.managerId || "none"}
+                onValueChange={(v) =>
+                  setProjectForm({
+                    ...projectForm,
+                    managerId: v === "none" ? "" : v,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Projektleiter auswählen..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Kein Projektleiter</SelectItem>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.firstName} {user.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

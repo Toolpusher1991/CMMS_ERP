@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { createNotification } from './notification.controller';
 
 const prisma = new PrismaClient();
 
@@ -180,6 +181,28 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    // Send notification if manager was assigned
+    if (managerId) {
+      try {
+        const assigningUser = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'System' : 'System';
+        await createNotification({
+          userId: managerId,
+          type: 'PROJECT_ASSIGNMENT',
+          title: `Projekt zugewiesen: ${project.name}`,
+          message: `${assigningUser} hat Ihnen das Projekt "${project.name}" zugewiesen.`,
+          metadata: {
+            projectId: project.id,
+            projectName: project.name,
+            assignedBy: user?.id,
+          },
+          relatedId: project.id,
+        });
+      } catch (notificationError) {
+        console.error('Failed to send project assignment notification:', notificationError);
+        // Don't fail the request if notification fails
+      }
+    }
+
     res.status(201).json({ success: true, data: project });
   } catch (error) {
     console.error('Create project error:', error);
@@ -290,6 +313,28 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
         },
       },
     });
+
+    // Send notification if manager was assigned or changed
+    if (managerId && managerId !== existingProject.managerId) {
+      try {
+        const assigningUser = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'System' : 'System';
+        await createNotification({
+          userId: managerId,
+          type: 'PROJECT_ASSIGNMENT',
+          title: `Projekt zugewiesen: ${project.name}`,
+          message: `${assigningUser} hat Ihnen das Projekt "${project.name}" zugewiesen.`,
+          metadata: {
+            projectId: project.id,
+            projectName: project.name,
+            assignedBy: user?.id,
+          },
+          relatedId: project.id,
+        });
+      } catch (notificationError) {
+        console.error('Failed to send project assignment notification:', notificationError);
+        // Don't fail the request if notification fails
+      }
+    }
 
     res.json({ success: true, data: project });
   } catch (error) {
