@@ -1979,16 +1979,16 @@ export default function ProjectsPage() {
               <div className="space-y-2">
                 <Label>Zugewiesen an</Label>
                 <Select
-                  value={flowTaskForm.assignedTo}
+                  value={flowTaskForm.assignedTo || "none"}
                   onValueChange={(v) =>
-                    setFlowTaskForm({ ...flowTaskForm, assignedTo: v })
+                    setFlowTaskForm({ ...flowTaskForm, assignedTo: v === "none" ? "" : v })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Auswählen..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Niemand</SelectItem>
+                    <SelectItem value="none">Niemand</SelectItem>
                     {users.map((user) => (
                       <SelectItem
                         key={user.id}
