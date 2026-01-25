@@ -453,6 +453,7 @@ export default function ProjectsPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [hasFlowChanges, setHasFlowChanges] = useState(false);
   const flowRef = useRef<HTMLDivElement>(null);
+  const selectedProjectRef = useRef<Project | null>(null);
 
   // Flow Dialog States for adding tasks/milestones
   const [showFlowTaskDialog, setShowFlowTaskDialog] = useState(false);
@@ -565,8 +566,9 @@ export default function ProjectsPage() {
   // Flow Dialog Handlers
   const handleEditTaskFromFlow = useCallback(
     (taskId: string) => {
-      if (!selectedProject) return;
-      const task = selectedProject.tasks?.find((t) => t.id === taskId);
+      const project = selectedProjectRef.current;
+      if (!project) return;
+      const task = project.tasks?.find((t) => t.id === taskId);
       if (task) {
         setIsEditMode(true);
         setTaskForm({
@@ -575,17 +577,18 @@ export default function ProjectsPage() {
           status: task.status,
           assignedTo: task.assignedTo || "",
         });
-        setTaskToDelete({ projectId: selectedProject.id, taskId: task.id });
+        setTaskToDelete({ projectId: project.id, taskId: task.id });
         setShowTaskDialog(true);
       }
     },
-    [selectedProject]
+    []
   );
 
   const handleToggleTaskFromFlow = useCallback(
     async (taskId: string) => {
-      if (!selectedProject) return;
-      const task = selectedProject.tasks?.find((t) => t.id === taskId);
+      const project = selectedProjectRef.current;
+      if (!project) return;
+      const task = project.tasks?.find((t) => t.id === taskId);
       if (!task) return;
 
       const statusOrder: TaskStatus[] = [
@@ -598,7 +601,7 @@ export default function ProjectsPage() {
       const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
 
       try {
-        await projectService.updateTask(selectedProject.id, task.id, {
+        await projectService.updateTask(project.id, task.id, {
           status: nextStatus,
         });
 
@@ -623,10 +626,11 @@ export default function ProjectsPage() {
           await projectService.getProjects();
         setProjects(updatedProjects);
         const updatedProject = updatedProjects.find(
-          (p) => p.id === selectedProject.id
+          (p) => p.id === project.id
         );
         if (updatedProject) {
           setSelectedProject(updatedProject);
+          selectedProjectRef.current = updatedProject;
         }
 
         setHasFlowChanges(true);
@@ -634,18 +638,19 @@ export default function ProjectsPage() {
         console.error("Error updating task status:", error);
       }
     },
-    [selectedProject, setNodes]
+    [setNodes]
   );
 
   // Delete Task from Flow
   const handleDeleteTaskFromFlow = useCallback(
     async (taskId: string) => {
-      if (!selectedProject) return;
+      const project = selectedProjectRef.current;
+      if (!project) return;
 
       if (!confirm("Möchten Sie diese Aufgabe wirklich löschen?")) return;
 
       try {
-        await projectService.deleteTask(selectedProject.id, taskId);
+        await projectService.deleteTask(project.id, taskId);
 
         // Remove node from flow
         setNodes((nds) => nds.filter((node) => node.id !== `task-${taskId}`));
@@ -663,10 +668,11 @@ export default function ProjectsPage() {
           await projectService.getProjects();
         setProjects(updatedProjects);
         const updatedProject = updatedProjects.find(
-          (p) => p.id === selectedProject.id
+          (p) => p.id === project.id
         );
         if (updatedProject) {
           setSelectedProject(updatedProject);
+          selectedProjectRef.current = updatedProject;
         }
 
         setHasFlowChanges(true);
@@ -683,7 +689,7 @@ export default function ProjectsPage() {
         });
       }
     },
-    [selectedProject, setNodes, setEdges, toast]
+    [setNodes, setEdges, toast]
   );
 
   // Add Task in Flow - Open Dialog
@@ -926,6 +932,7 @@ export default function ProjectsPage() {
   // Open Flow Dialog
   const openFlowDialog = (project: Project) => {
     setSelectedProject(project);
+    selectedProjectRef.current = project;
     initializeFlow(project);
     setShowFlowDialog(true);
     setHasFlowChanges(false);
@@ -1981,7 +1988,10 @@ export default function ProjectsPage() {
                 <Select
                   value={flowTaskForm.assignedTo || "none"}
                   onValueChange={(v) =>
-                    setFlowTaskForm({ ...flowTaskForm, assignedTo: v === "none" ? "" : v })
+                    setFlowTaskForm({
+                      ...flowTaskForm,
+                      assignedTo: v === "none" ? "" : v,
+                    })
                   }
                 >
                   <SelectTrigger>
