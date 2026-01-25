@@ -121,6 +121,7 @@ interface GroupNodeData extends Record<string, unknown> {
   childCount?: number;
   onRename?: (newLabel: string) => void;
   onDissolve?: () => void;
+  onRequestDissolve?: () => void;
 }
 
 interface SavedFlowData {
@@ -468,7 +469,7 @@ const getTaskStatusBadgeClass = (status: TaskStatus): string => {
 // Helper function to get task order from flowchart
 const getFlowchartTaskOrder = (project: Project): Map<string, number> => {
   const orderMap = new Map<string, number>();
-  
+
   if (!project.flowData) {
     return orderMap;
   }
@@ -497,8 +498,11 @@ const getFlowchartTaskOrder = (project: Project): Map<string, number> => {
     edges.forEach((edge) => {
       const source = edge.source;
       const target = edge.target;
-      
-      if (adjacency.has(source) && (adjacency.has(target) || target === "end")) {
+
+      if (
+        adjacency.has(source) &&
+        (adjacency.has(target) || target === "end")
+      ) {
         if (adjacency.has(target)) {
           adjacency.get(source)?.push(target);
           inDegree.set(target, (inDegree.get(target) || 0) + 1);
@@ -517,7 +521,7 @@ const getFlowchartTaskOrder = (project: Project): Map<string, number> => {
     let orderNumber = 1;
     while (queue.length > 0) {
       const current = queue.shift()!;
-      
+
       // Assign order to task nodes (not start node)
       if (current !== "start") {
         const node = nodes.find((n) => n.id === current);
@@ -542,7 +546,6 @@ const getFlowchartTaskOrder = (project: Project): Map<string, number> => {
         orderMap.set(task.id, orderNumber++);
       }
     });
-
   } catch {
     // If parsing fails, return empty map
   }
@@ -551,11 +554,14 @@ const getFlowchartTaskOrder = (project: Project): Map<string, number> => {
 };
 
 // Sort tasks by flowchart order
-const sortTasksByFlowOrder = (tasks: ProjectTask[], orderMap: Map<string, number>): ProjectTask[] => {
+const sortTasksByFlowOrder = (
+  tasks: ProjectTask[],
+  orderMap: Map<string, number>
+): ProjectTask[] => {
   if (orderMap.size === 0) {
     return tasks;
   }
-  
+
   return [...tasks].sort((a, b) => {
     const orderA = orderMap.get(a.id) ?? Number.MAX_VALUE;
     const orderB = orderMap.get(b.id) ?? Number.MAX_VALUE;
@@ -638,14 +644,17 @@ export default function ProjectsPage() {
   // Flow Dialog States for adding tasks/milestones
   const [showFlowTaskDialog, setShowFlowTaskDialog] = useState(false);
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
-  
+
   // Confirmation Dialog States
   const [showDeleteEdgeDialog, setShowDeleteEdgeDialog] = useState(false);
   const [edgeToDelete, setEdgeToDelete] = useState<Edge | null>(null);
-  const [showDeleteFlowTaskDialog, setShowDeleteFlowTaskDialog] = useState(false);
+  const [showDeleteFlowTaskDialog, setShowDeleteFlowTaskDialog] =
+    useState(false);
   const [flowTaskToDelete, setFlowTaskToDelete] = useState<string | null>(null);
   const [showDissolveGroupDialog, setShowDissolveGroupDialog] = useState(false);
-  const [groupToDissolve, setGroupToDissolve] = useState<(() => void) | null>(null);
+  const [groupToDissolve, setGroupToDissolve] = useState<(() => void) | null>(
+    null
+  );
   const [flowTaskForm, setFlowTaskForm] = useState({
     title: "",
     description: "",
@@ -825,71 +834,63 @@ export default function ProjectsPage() {
   );
 
   // Delete Task from Flow
-  const handleDeleteTaskFromFlow = useCallback(
-    async (taskId: string) => {
-      const project = selectedProjectRef.current;
-      if (!project) return;
+  const handleDeleteTaskFromFlow = useCallback(async (taskId: string) => {
+    const project = selectedProjectRef.current;
+    if (!project) return;
 
-      setFlowTaskToDelete(taskId);
-      setShowDeleteFlowTaskDialog(true);
-    },
-    []
-  );
+    setFlowTaskToDelete(taskId);
+    setShowDeleteFlowTaskDialog(true);
+  }, []);
 
   // Confirm task deletion from flow
-  const confirmDeleteTaskFromFlow = useCallback(
-    async () => {
-      const taskId = flowTaskToDelete;
-      const project = selectedProjectRef.current;
-      if (!project || !taskId) {
-        setFlowTaskToDelete(null);
-        setShowDeleteFlowTaskDialog(false);
-        return;
+  const confirmDeleteTaskFromFlow = useCallback(async () => {
+    const taskId = flowTaskToDelete;
+    const project = selectedProjectRef.current;
+    if (!project || !taskId) {
+      setFlowTaskToDelete(null);
+      setShowDeleteFlowTaskDialog(false);
+      return;
+    }
+
+    try {
+      await projectService.deleteTask(project.id, taskId);
+
+      // Remove node from flow
+      setNodes((nds) => nds.filter((node) => node.id !== `task-${taskId}`));
+      // Remove edges connected to this node
+      setEdges((eds) =>
+        eds.filter(
+          (edge) =>
+            edge.source !== `task-${taskId}` && edge.target !== `task-${taskId}`
+        )
+      );
+
+      // Reload project data
+      const { projects: updatedProjects } = await projectService.getProjects();
+      setProjects(updatedProjects);
+      const updatedProject = updatedProjects.find((p) => p.id === project.id);
+      if (updatedProject) {
+        setSelectedProject(updatedProject);
+        selectedProjectRef.current = updatedProject;
       }
 
-      try {
-        await projectService.deleteTask(project.id, taskId);
-
-        // Remove node from flow
-        setNodes((nds) => nds.filter((node) => node.id !== `task-${taskId}`));
-        // Remove edges connected to this node
-        setEdges((eds) =>
-          eds.filter(
-            (edge) =>
-              edge.source !== `task-${taskId}` &&
-              edge.target !== `task-${taskId}`
-          )
-        );
-
-        // Reload project data
-        const { projects: updatedProjects } =
-          await projectService.getProjects();
-        setProjects(updatedProjects);
-        const updatedProject = updatedProjects.find((p) => p.id === project.id);
-        if (updatedProject) {
-          setSelectedProject(updatedProject);
-          selectedProjectRef.current = updatedProject;
-        }
-
-        setHasFlowChanges(true);
-        toast({
-          title: "Aufgabe gelöscht",
-          description: "Die Aufgabe wurde aus dem Flow entfernt.",
-        });
-      } catch (error) {
-        console.error("Error deleting task:", error);
-        toast({
-          title: "Fehler",
-          description: "Aufgabe konnte nicht gelöscht werden.",
-          variant: "destructive",
-        });
-      } finally {
-        setFlowTaskToDelete(null);
-        setShowDeleteFlowTaskDialog(false);
-      }
-    },
-    [flowTaskToDelete, setNodes, setEdges, toast]
-  );
+      setHasFlowChanges(true);
+      toast({
+        title: "Aufgabe gelöscht",
+        description: "Die Aufgabe wurde aus dem Flow entfernt.",
+      });
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      toast({
+        title: "Fehler",
+        description: "Aufgabe konnte nicht gelöscht werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setFlowTaskToDelete(null);
+      setShowDeleteFlowTaskDialog(false);
+    }
+  }, [flowTaskToDelete, setNodes, setEdges, toast]);
 
   // Add Task in Flow - Open Dialog
   const openFlowTaskDialog = useCallback(() => {
@@ -1594,13 +1595,10 @@ export default function ProjectsPage() {
   );
 
   // Handler for deleting edges on click/tap (for iPad support)
-  const onEdgeClick = useCallback(
-    (_event: React.MouseEvent, edge: Edge) => {
-      setEdgeToDelete(edge);
-      setShowDeleteEdgeDialog(true);
-    },
-    []
-  );
+  const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
+    setEdgeToDelete(edge);
+    setShowDeleteEdgeDialog(true);
+  }, []);
 
   // Confirm edge deletion
   const handleConfirmDeleteEdge = useCallback(() => {
@@ -2076,7 +2074,10 @@ export default function ProjectsPage() {
                         const isExpanded = expandedProjects.has(project.id);
                         const progress = getProjectProgress(project);
                         const flowOrderMap = getFlowchartTaskOrder(project);
-                        const tasks = sortTasksByFlowOrder(project.tasks || [], flowOrderMap);
+                        const tasks = sortTasksByFlowOrder(
+                          project.tasks || [],
+                          flowOrderMap
+                        );
                         const completedTasks = tasks.filter(
                           (t) => t.status === "DONE"
                         ).length;
@@ -2260,115 +2261,128 @@ export default function ProjectsPage() {
                                   ) : (
                                     <div className="space-y-1">
                                       {tasks.map((task, index) => {
-                                        const flowOrder = flowOrderMap.get(task.id);
-                                        const priorityBorderColors: Record<string, string> = {
+                                        const flowOrder = flowOrderMap.get(
+                                          task.id
+                                        );
+                                        const priorityBorderColors: Record<
+                                          string,
+                                          string
+                                        > = {
                                           URGENT: "border-l-red-500",
                                           HIGH: "border-l-orange-500",
                                           NORMAL: "border-l-blue-500",
                                           LOW: "border-l-gray-400",
                                         };
                                         return (
-                                        <div
-                                          key={task.id}
-                                          className={cn(
-                                            "flex items-center justify-between p-2 px-3 bg-muted/30 rounded-md hover:bg-muted/60 transition-all border-l-4 group",
-                                            priorityBorderColors[task.priority || "NORMAL"],
-                                            task.status === "DONE" && "opacity-60"
-                                          )}
-                                        >
-                                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                                            {/* Task Number from Flow */}
-                                            <span className={cn(
-                                              "w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0",
-                                              task.status === "DONE" 
-                                                ? "bg-green-500/20 text-green-600" 
-                                                : "bg-primary/10 text-primary"
-                                            )}>
-                                              {flowOrder ?? index + 1}
-                                            </span>
-                                            <button
-                                              onClick={() =>
-                                                toggleTaskStatus(project, task)
-                                              }
-                                              className="hover:scale-110 transition-transform flex-shrink-0"
-                                            >
-                                              {task.status === "DONE" ? (
-                                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                              ) : task.status ===
-                                                "IN_PROGRESS" ? (
-                                                <Clock className="h-4 w-4 text-blue-500" />
-                                              ) : task.status === "REVIEW" ? (
-                                                <Eye className="h-4 w-4 text-yellow-600" />
-                                              ) : (
-                                                <Circle className="h-4 w-4 text-gray-400" />
-                                              )}
-                                            </button>
-                                            <div className="min-w-0 flex-1">
-                                              <p
+                                          <div
+                                            key={task.id}
+                                            className={cn(
+                                              "flex items-center justify-between p-2 px-3 bg-muted/30 rounded-md hover:bg-muted/60 transition-all border-l-4 group",
+                                              priorityBorderColors[
+                                                task.priority || "NORMAL"
+                                              ],
+                                              task.status === "DONE" &&
+                                                "opacity-60"
+                                            )}
+                                          >
+                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                              {/* Task Number from Flow */}
+                                              <span
                                                 className={cn(
-                                                  "font-medium text-sm truncate",
-                                                  task.status === "DONE" &&
-                                                    "line-through text-muted-foreground"
+                                                  "w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0",
+                                                  task.status === "DONE"
+                                                    ? "bg-green-500/20 text-green-600"
+                                                    : "bg-primary/10 text-primary"
                                                 )}
                                               >
-                                                {task.title}
-                                              </p>
-                                              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                                                {task.description && (
-                                                  <span className="truncate max-w-[200px]">
-                                                    {task.description}
-                                                  </span>
+                                                {flowOrder ?? index + 1}
+                                              </span>
+                                              <button
+                                                onClick={() =>
+                                                  toggleTaskStatus(
+                                                    project,
+                                                    task
+                                                  )
+                                                }
+                                                className="hover:scale-110 transition-transform flex-shrink-0"
+                                              >
+                                                {task.status === "DONE" ? (
+                                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                                ) : task.status ===
+                                                  "IN_PROGRESS" ? (
+                                                  <Clock className="h-4 w-4 text-blue-500" />
+                                                ) : task.status === "REVIEW" ? (
+                                                  <Eye className="h-4 w-4 text-yellow-600" />
+                                                ) : (
+                                                  <Circle className="h-4 w-4 text-gray-400" />
                                                 )}
-                                                {task.assignedTo && (
-                                                  <span className="flex items-center gap-1 flex-shrink-0">
-                                                    <UserIcon className="h-3 w-3" />
-                                                    {task.assignedTo}
-                                                  </span>
-                                                )}
+                                              </button>
+                                              <div className="min-w-0 flex-1">
+                                                <p
+                                                  className={cn(
+                                                    "font-medium text-sm truncate",
+                                                    task.status === "DONE" &&
+                                                      "line-through text-muted-foreground"
+                                                  )}
+                                                >
+                                                  {task.title}
+                                                </p>
+                                                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                                  {task.description && (
+                                                    <span className="truncate max-w-[200px]">
+                                                      {task.description}
+                                                    </span>
+                                                  )}
+                                                  {task.assignedTo && (
+                                                    <span className="flex items-center gap-1 flex-shrink-0">
+                                                      <UserIcon className="h-3 w-3" />
+                                                      {task.assignedTo}
+                                                    </span>
+                                                  )}
+                                                </div>
                                               </div>
                                             </div>
+                                            <div className="flex items-center gap-1 flex-shrink-0">
+                                              <Badge
+                                                className={cn(
+                                                  "text-[10px] px-1.5 py-0 h-5",
+                                                  getTaskStatusBadgeClass(
+                                                    task.status
+                                                  )
+                                                )}
+                                              >
+                                                {getStatusLabel(task.status)}
+                                              </Badge>
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() =>
+                                                  openEditTaskDialog(
+                                                    project,
+                                                    task
+                                                  )
+                                                }
+                                              >
+                                                <Edit className="h-3 w-3" />
+                                              </Button>
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                                onClick={() => {
+                                                  setTaskToDelete({
+                                                    projectId: project.id,
+                                                    taskId: task.id,
+                                                  });
+                                                  setShowDeleteTaskDialog(true);
+                                                }}
+                                              >
+                                                <Trash2 className="h-3 w-3" />
+                                              </Button>
+                                            </div>
                                           </div>
-                                          <div className="flex items-center gap-1 flex-shrink-0">
-                                            <Badge
-                                              className={cn(
-                                                "text-[10px] px-1.5 py-0 h-5",
-                                                getTaskStatusBadgeClass(
-                                                  task.status
-                                                )
-                                              )}
-                                            >
-                                              {getStatusLabel(task.status)}
-                                            </Badge>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                              onClick={() =>
-                                                openEditTaskDialog(
-                                                  project,
-                                                  task
-                                                )
-                                              }
-                                            >
-                                              <Edit className="h-3 w-3" />
-                                            </Button>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                                              onClick={() => {
-                                                setTaskToDelete({
-                                                  projectId: project.id,
-                                                  taskId: task.id,
-                                                });
-                                                setShowDeleteTaskDialog(true);
-                                              }}
-                                            >
-                                              <Trash2 className="h-3 w-3" />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      );
+                                        );
                                       })}
                                     </div>
                                   )}
@@ -2996,7 +3010,8 @@ export default function ProjectsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Verbindung löschen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Möchten Sie diese Verbindung zwischen den Elementen wirklich entfernen?
+              Möchten Sie diese Verbindung zwischen den Elementen wirklich
+              entfernen?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -3023,8 +3038,8 @@ export default function ProjectsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Aufgabe löschen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Möchten Sie diese Aufgabe wirklich aus dem Flowchart löschen? 
-              Die Aufgabe wird dauerhaft entfernt.
+              Möchten Sie diese Aufgabe wirklich aus dem Flowchart löschen? Die
+              Aufgabe wird dauerhaft entfernt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -3051,8 +3066,8 @@ export default function ProjectsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Gruppe auflösen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Möchten Sie diese Gruppe wirklich auflösen? 
-              Die enthaltenen Aufgaben bleiben erhalten und werden einzeln angezeigt.
+              Möchten Sie diese Gruppe wirklich auflösen? Die enthaltenen
+              Aufgaben bleiben erhalten und werden einzeln angezeigt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
