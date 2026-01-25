@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { actionService, type Action } from "@/services/action.service";
 import { projectService, type Project } from "@/services/project.service";
@@ -19,46 +19,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useCountUp } from "@/hooks/useCountUp";
-
-interface FailureReport {
-  id: string;
-  ticketNumber: string; // Format: T208-202510-001
-  plant: "T208" | "T207" | "T700" | "T46";
-  title: string;
-  description: string;
-  location?: string;
-  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-  status: "REPORTED" | "IN_REVIEW" | "CONVERTED_TO_ACTION" | "RESOLVED";
-  photoFilename?: string;
-  photoPath?: string;
-  reportedBy: string;
-  reportedByName: string;
-  convertedToActionId?: string;
-  convertedAt?: string;
-  convertedBy?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface DashboardStats {
-  openFailureReports: number;
-  myProjects: number;
-  myActions: number;
-  completed: number;
-}
-
-interface QuickAccessItem {
-  id: string;
-  type: "project" | "action" | "task" | "failure";
-  title: string;
-  description?: string;
-  status: string;
-  priority: string;
-  dueDate?: string;
-  projectId?: string;
-  isOverdue: boolean;
-  plant?: string;
-}
+import {
+  DashboardStatsSkeleton,
+  QuickAccessSkeleton,
+} from "@/components/ui/skeleton";
+import type { FailureReport, DashboardStats, QuickAccessItem } from "@/types";
 
 interface DashboardProps {
   onNavigate?: (page: string, itemId?: string) => void;
@@ -121,12 +86,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     return "Guten Abend";
   };
 
-  const isOverdue = (dueDate?: string) => {
+  const isOverdue = useCallback((dueDate?: string) => {
     if (!dueDate) return false;
     return new Date(dueDate) < new Date();
-  };
+  }, []);
 
-  const calculateStats = (): DashboardStats => {
+  // Memoized stats calculation for better performance
+  const stats = useMemo((): DashboardStats => {
     if (!currentUser)
       return {
         openFailureReports: 0,
@@ -186,9 +152,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       myActions,
       completed,
     };
-  };
-
-  const stats = calculateStats();
+  }, [currentUser, failureReports, projects, actions]);
 
   // Animated counts
   const animatedFailures = useCountUp(stats.openFailureReports, 1200, 100);
@@ -420,8 +384,23 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="space-y-6 p-6">
+        {/* Skeleton Welcome Banner */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 dark:from-slate-900 dark:via-slate-800 dark:to-black p-8 shadow-xl border border-slate-700/50">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-xl bg-white/10 animate-pulse"></div>
+            <div className="space-y-2">
+              <div className="h-8 w-48 bg-white/10 rounded animate-pulse"></div>
+              <div className="h-4 w-32 bg-white/10 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Skeleton */}
+        <DashboardStatsSkeleton />
+
+        {/* Quick Access Skeleton */}
+        <QuickAccessSkeleton />
       </div>
     );
   }

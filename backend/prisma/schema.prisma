@@ -117,6 +117,9 @@ model Project {
   createdBy       String
   creator         User      @relation("ProjectCreator", fields: [createdBy], references: [id])
   
+  // Flow Visualization Data - JSON für React Flow Nodes & Edges
+  flowData        String?   @db.Text
+  
   // Timestamps
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

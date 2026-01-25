@@ -230,6 +230,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       endDate,
       managerId,
       category,
+      flowData,
     } = req.body;
 
     const user = req.user;
@@ -269,6 +270,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
         ...(endDate && { endDate: new Date(endDate) }),
         ...(managerId !== undefined && { managerId }),
         ...(category && { category }),
+        ...(flowData !== undefined && { flowData }),
       },
       include: {
         manager: {

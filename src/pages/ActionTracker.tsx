@@ -4,6 +4,12 @@ import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
 import { getActiveLocations } from "@/config/locations";
 import {
+  PhotoViewDialog,
+  TaskDialog,
+  ActionFilterCard,
+} from "@/components/action-tracker";
+import { ActionTrackerSkeleton } from "@/components/ui/skeleton";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -77,7 +83,6 @@ import {
   CheckCircle2,
   ListTodo,
   User as UserIcon,
-  Filter,
   Calendar,
   Image as ImageIcon,
   Download,
@@ -2147,127 +2152,26 @@ const ActionTracker = ({
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-sm text-muted-foreground">Lade Actions...</p>
-              </div>
-            </div>
+            <ActionTrackerSkeleton />
           ) : (
             <>
               {/* Filter Card */}
-              <Card className="mb-4">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Filter className="h-4 w-4" />
-                      <span className="font-semibold text-sm">Filter</span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mt-3">
-                    <div className="space-y-2">
-                      <Label>Suche</Label>
-                      <Input
-                        placeholder="Action suchen..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Status</Label>
-                      <Select
-                        value={statusFilter}
-                        onValueChange={setStatusFilter}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Status filtern" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Alle Status</SelectItem>
-                          <SelectItem value="OPEN">Geplant</SelectItem>
-                          <SelectItem value="IN_PROGRESS">Aktiv</SelectItem>
-                          <SelectItem value="COMPLETED">
-                            Abgeschlossen
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Kategorie</Label>
-                      <Select
-                        value={disciplineFilter}
-                        onValueChange={setDisciplineFilter}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Kategorie filtern" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Alle Kategorien</SelectItem>
-                          <SelectItem value="MECHANIK">Mechanik</SelectItem>
-                          <SelectItem value="ELEKTRIK">Elektrisch</SelectItem>
-                          <SelectItem value="ANLAGE">Anlage</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Priorität</Label>
-                      <Select
-                        value={priorityFilter}
-                        onValueChange={setPriorityFilter}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Priorität filtern" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Alle Prioritäten</SelectItem>
-                          <SelectItem value="LOW">Niedrig</SelectItem>
-                          <SelectItem value="MEDIUM">Mittel</SelectItem>
-                          <SelectItem value="HIGH">Hoch</SelectItem>
-                          <SelectItem value="URGENT">Dringend</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Standort</Label>
-                      <Select
-                        value={locationFilter}
-                        onValueChange={setLocationFilter}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Standort filtern" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Alle Standorte</SelectItem>
-                          {availableLocations.map((location) => (
-                            <SelectItem key={location.id} value={location.id}>
-                              {location.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>User</Label>
-                      <Select value={userFilter} onValueChange={setUserFilter}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="User filtern" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Alle User</SelectItem>
-                          {users.map((user) => {
-                            const fullName = `${user.firstName} ${user.lastName}`;
-                            return (
-                              <SelectItem key={user.id} value={fullName}>
-                                {fullName}
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
+              <ActionFilterCard
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                disciplineFilter={disciplineFilter}
+                onDisciplineChange={setDisciplineFilter}
+                priorityFilter={priorityFilter}
+                onPriorityChange={setPriorityFilter}
+                locationFilter={locationFilter}
+                onLocationChange={setLocationFilter}
+                userFilter={userFilter}
+                onUserChange={setUserFilter}
+                users={users}
+                availableLocations={availableLocations}
+              />
 
               <Tabs
                 value={activeTab}
@@ -3996,162 +3900,27 @@ const ActionTracker = ({
       </AlertDialog>
 
       {/* Photo View Dialog */}
-      <Dialog open={photoViewDialogOpen} onOpenChange={setPhotoViewDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[95vh] p-0 gap-0">
-          {/* Close Button - Top Right */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-4 top-4 z-50 rounded-full bg-black/50 hover:bg-black/70 text-white"
-            onClick={() => {
-              setPhotoViewDialogOpen(false);
-              setSelectedPhoto(null);
-            }}
-          >
-            <X className="h-6 w-6" />
-          </Button>
-
-          {/* Full Screen Photo */}
-          <div className="flex items-center justify-center bg-black/90 min-h-[80vh] p-4">
-            {selectedPhoto && (
-              <img
-                src={selectedPhoto}
-                alt="Failure Report Foto"
-                className="max-w-full max-h-[85vh] object-contain"
-                onError={() => {
-                  console.error("Fehler beim Laden des Fotos:", selectedPhoto);
-                  toast({
-                    title: "Fehler",
-                    description: "Foto konnte nicht geladen werden.",
-                    variant: "destructive",
-                  });
-                }}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <PhotoViewDialog
+        open={photoViewDialogOpen}
+        onOpenChange={(open) => {
+          setPhotoViewDialogOpen(open);
+          if (!open) setSelectedPhoto(null);
+        }}
+        photoUrl={selectedPhoto}
+      />
 
       {/* Task Dialog */}
-      <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>
-              {currentTask.id ? "Aufgabe bearbeiten" : "Neue Aufgabe erstellen"}
-            </DialogTitle>
-            <DialogDescription>
-              {currentTask.id
-                ? "Bearbeiten Sie die Unteraufgabe für diese Action."
-                : "Fügen Sie eine Unteraufgabe für diese Action hinzu."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="task-title">Titel *</Label>
-              <Input
-                id="task-title"
-                value={currentTask.title || ""}
-                onChange={(e) =>
-                  setCurrentTask({ ...currentTask, title: e.target.value })
-                }
-                placeholder="z.B. Kabel verlegen"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="task-description">Beschreibung</Label>
-              <Textarea
-                id="task-description"
-                value={currentTask.description || ""}
-                onChange={(e) =>
-                  setCurrentTask({
-                    ...currentTask,
-                    description: e.target.value,
-                  })
-                }
-                placeholder="Detaillierte Beschreibung der Aufgabe"
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="task-assigned">Zugewiesen an</Label>
-              <Select
-                value={currentTask.assignedUser || ""}
-                onValueChange={(value) =>
-                  setCurrentTask({ ...currentTask, assignedUser: value })
-                }
-              >
-                <SelectTrigger id="task-assigned">
-                  <SelectValue placeholder="User auswählen..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {(() => {
-                    const currentAction = actions.find(
-                      (a) => a.id === currentTaskActionId
-                    );
-                    if (!currentAction) return null;
-
-                    const filteredUsers = availableUsers.filter(
-                      (user) =>
-                        // Alle Admins und Manager
-                        user.role === "ADMIN" ||
-                        user.role === "MANAGER" ||
-                        // ODER User der gleichen Anlage
-                        user.plant === currentAction.plant ||
-                        // ODER wenn keine plant zugewiesen, dann alle User
-                        !user.plant
-                    );
-
-                    if (filteredUsers.length === 0) {
-                      return (
-                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                          Keine verfügbaren User
-                        </div>
-                      );
-                    }
-
-                    return filteredUsers.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        <div className="flex items-center gap-2">
-                          <span>
-                            {user.firstName} {user.lastName}
-                          </span>
-                          <Badge variant="outline" className="text-xs">
-                            {user.role}
-                          </Badge>
-                          {user.plant && (
-                            <Badge variant="secondary" className="text-xs">
-                              {user.plant}
-                            </Badge>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ));
-                  })()}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="task-duedate">Fälligkeitsdatum</Label>
-              <Input
-                id="task-duedate"
-                type="date"
-                value={currentTask.dueDate || ""}
-                onChange={(e) =>
-                  setCurrentTask({ ...currentTask, dueDate: e.target.value })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTaskDialogOpen(false)}>
-              Abbrechen
-            </Button>
-            <Button onClick={handleSaveTask}>
-              {currentTask.id ? "Aufgabe speichern" : "Aufgabe erstellen"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TaskDialog
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+        task={currentTask}
+        onTaskChange={setCurrentTask}
+        onSave={handleSaveTask}
+        availableUsers={availableUsers}
+        currentActionPlant={
+          actions.find((a) => a.id === currentTaskActionId)?.plant
+        }
+      />
     </div>
   );
 };

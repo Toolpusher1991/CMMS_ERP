@@ -14,6 +14,7 @@ export default defineConfig({
   },
   server: {
     host: true, // Netzwerk-Zugriff aktiviert (aber keine Mobile-Features)
-    port: 5173
+    port: 5173,
+    strictPort: true // Fehler wenn Port belegt, nicht automatisch wechseln
   }
 })

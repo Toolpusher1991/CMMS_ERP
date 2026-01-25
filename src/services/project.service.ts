@@ -14,6 +14,7 @@ export interface Project {
   endDate?: string;
   plant?: string; // Add plant field
   category?: 'MECHANICAL' | 'ELECTRICAL' | 'FACILITY'; // Add category field
+  flowData?: string; // JSON string for React Flow nodes & edges
   manager?: {
     id: string;
     firstName: string;
@@ -192,6 +193,12 @@ export const projectService = {
       }
     );
     return response.data;
+  },
+
+  async deleteTask(projectId: string, taskId: string): Promise<void> {
+    await apiClient.request(`/projects/${projectId}/tasks/${taskId}`, {
+      method: 'DELETE',
+    });
   },
 
   // Budget

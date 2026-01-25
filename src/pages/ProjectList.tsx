@@ -11,6 +11,7 @@ import { apiClient } from "@/services/api";
 import type { User } from "@/services/auth.service";
 import type { Comment } from "@/components/CommentSection";
 import { CommentSection } from "@/components/CommentSection";
+import { ProjectListSkeleton } from "@/components/ui/skeleton";
 import * as Sentry from "@sentry/react";
 import {
   getProjectComments,
@@ -79,6 +80,7 @@ import {
   ChevronDown,
   ChevronRight,
   CheckCircle2,
+  Workflow,
 } from "lucide-react";
 
 type Anlage = "T208" | "T207" | "T700" | "T46";
@@ -178,11 +180,13 @@ const initialProjects: Project[] = [
 interface ProjectListProps {
   initialProjectId?: string;
   showOnlyMyProjects?: boolean;
+  onOpenFlow?: (projectId: string) => void;
 }
 
 export default function AnlagenProjektManagement({
   initialProjectId,
   showOnlyMyProjects = false,
+  onOpenFlow,
 }: ProjectListProps) {
   // State Management
   const { toast } = useToast();
@@ -1423,15 +1427,8 @@ export default function AnlagenProjektManagement({
 
   return (
     <div className="w-full space-y-4 sm:space-y-6">
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Lade Projekte...</p>
-          </div>
-        </div>
-      )}
+      {/* Loading State with Skeleton */}
+      {isLoading && <ProjectListSkeleton />}
 
       {/* Error Alert */}
       {error && !isLoading && (
@@ -2250,6 +2247,20 @@ export default function AnlagenProjektManagement({
                                       </TableCell>
                                       <TableCell className="text-right py-3">
                                         <div className="flex justify-end gap-1">
+                                          {onOpenFlow && (
+                                            <Button
+                                              variant="default"
+                                              size="sm"
+                                              className="h-8 px-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-md"
+                                              onClick={() =>
+                                                onOpenFlow(project.id)
+                                              }
+                                              title="Flow Editor öffnen"
+                                            >
+                                              <Workflow className="h-4 w-4 mr-1.5" />
+                                              Flow
+                                            </Button>
+                                          )}
                                           <Button
                                             variant={
                                               project.status === "Abgeschlossen"
@@ -2305,6 +2316,45 @@ export default function AnlagenProjektManagement({
                                           className="p-0 bg-muted/30"
                                         >
                                           <div className="p-6 space-y-6">
+                                            {/* Flow Editor CTA - Prominent am Anfang */}
+                                            {onOpenFlow && (
+                                              <Card className="border-2 border-indigo-500/30 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 overflow-hidden">
+                                                <CardContent className="p-0">
+                                                  <div className="flex items-center justify-between p-4 md:p-6">
+                                                    <div className="flex items-center gap-4">
+                                                      <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                                                        <Workflow className="h-7 w-7 text-white" />
+                                                      </div>
+                                                      <div>
+                                                        <h3 className="text-lg font-bold text-foreground">
+                                                          Projekt Flow
+                                                          Visualisierung
+                                                        </h3>
+                                                        <p className="text-sm text-muted-foreground max-w-md">
+                                                          Visualisiere den
+                                                          Projektablauf mit Drag
+                                                          & Drop. Erstelle
+                                                          Aufgaben, Meilensteine
+                                                          und Abhängigkeiten auf
+                                                          einen Blick.
+                                                        </p>
+                                                      </div>
+                                                    </div>
+                                                    <Button
+                                                      size="lg"
+                                                      className="h-12 px-6 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg text-base font-semibold"
+                                                      onClick={() =>
+                                                        onOpenFlow(project.id)
+                                                      }
+                                                    >
+                                                      <Workflow className="h-5 w-5 mr-2" />
+                                                      Flow Editor öffnen
+                                                    </Button>
+                                                  </div>
+                                                </CardContent>
+                                              </Card>
+                                            )}
+
                                             {/* Projektinformationen */}
                                             <div className="grid grid-cols-2 gap-6">
                                               <Card>

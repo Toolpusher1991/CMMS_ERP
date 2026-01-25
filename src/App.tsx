@@ -4,7 +4,7 @@ import { RegistrationPage } from "@/pages/RegistrationPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import AdminPanel from "@/pages/AdminPanel";
 import Dashboard from "@/pages/Dashboard";
-import ProjectList from "@/pages/ProjectList";
+import ProjectsPage from "@/pages/ProjectsPage";
 import WorkOrderManagement from "@/pages/WorkOrderManagement";
 import ActionTracker from "@/pages/ActionTracker";
 import RigConfigurator from "@/pages/RigConfigurator";
@@ -17,6 +17,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { FloatingChatButton } from "@/components/FloatingChatButton";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Sidebar } from "@/components/Sidebar";
+import { ErrorBoundary, PageErrorBoundary } from "@/components/ErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
 import { authService } from "@/services/auth.service";
@@ -43,11 +44,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [initialActionId, setInitialActionId] = useState<string | undefined>();
-  const [initialProjectId, setInitialProjectId] = useState<
-    string | undefined
-  >();
   const [initialReportId, setInitialReportId] = useState<string | undefined>();
-  const [showOnlyMyProjects, setShowOnlyMyProjects] = useState(false);
   const [showOnlyMyActions, setShowOnlyMyActions] = useState(false);
 
   useEffect(() => {
@@ -96,9 +93,7 @@ function App() {
   const handleNavigate = (page: string, itemId?: string) => {
     // Reset IDs and filters when navigating
     setInitialActionId(undefined);
-    setInitialProjectId(undefined);
     setInitialReportId(undefined);
-    setShowOnlyMyProjects(false);
     setShowOnlyMyActions(false);
 
     if (page === "actions") {
@@ -112,13 +107,6 @@ function App() {
       }
     } else if (page === "projects") {
       setCurrentPage("projects");
-      // Only filter if no specific itemId is provided (clicked on card)
-      if (!itemId) {
-        setShowOnlyMyProjects(true);
-      }
-      if (itemId) {
-        setInitialProjectId(itemId);
-      }
     } else if (page === "failure-reporting") {
       setCurrentPage("failures");
       if (itemId) {
@@ -208,33 +196,56 @@ function App() {
             {/* Content Area with Scroll */}
             <main className="flex-1 overflow-y-auto bg-background">
               <div className="container mx-auto max-w-full p-4 sm:p-6 lg:p-8">
-                {currentPage === "dashboard" && (
-                  <Dashboard onNavigate={handleNavigate} />
-                )}
-                {currentPage === "projects" && (
-                  <ProjectList
-                    initialProjectId={initialProjectId}
-                    showOnlyMyProjects={showOnlyMyProjects}
-                  />
-                )}
-                {currentPage === "workorders" && <WorkOrderManagement />}
-                {currentPage === "actions" && (
-                  <ActionTracker
-                    initialActionId={initialActionId}
-                    showOnlyMyActions={showOnlyMyActions}
-                  />
-                )}
-                {currentPage === "failures" && (
-                  <FailureReporting initialReportId={initialReportId} />
-                )}
-                {currentPage === "inspections" && <InspectionReports />}
-                {currentPage === "manuals" && user.role === "ADMIN" && (
-                  <EquipmentManuals />
-                )}
-                {currentPage === "tender" && <RigConfigurator />}
-                {currentPage === "admin" && user.role === "ADMIN" && (
-                  <AdminPanel />
-                )}
+                <ErrorBoundary>
+                  {currentPage === "dashboard" && (
+                    <PageErrorBoundary>
+                      <Dashboard onNavigate={handleNavigate} />
+                    </PageErrorBoundary>
+                  )}
+                  {currentPage === "projects" && (
+                    <PageErrorBoundary>
+                      <ProjectsPage />
+                    </PageErrorBoundary>
+                  )}
+                  {currentPage === "workorders" && (
+                    <PageErrorBoundary>
+                      <WorkOrderManagement />
+                    </PageErrorBoundary>
+                  )}
+                  {currentPage === "actions" && (
+                    <PageErrorBoundary>
+                      <ActionTracker
+                        initialActionId={initialActionId}
+                        showOnlyMyActions={showOnlyMyActions}
+                      />
+                    </PageErrorBoundary>
+                  )}
+                  {currentPage === "failures" && (
+                    <PageErrorBoundary>
+                      <FailureReporting initialReportId={initialReportId} />
+                    </PageErrorBoundary>
+                  )}
+                  {currentPage === "inspections" && (
+                    <PageErrorBoundary>
+                      <InspectionReports />
+                    </PageErrorBoundary>
+                  )}
+                  {currentPage === "manuals" && user.role === "ADMIN" && (
+                    <PageErrorBoundary>
+                      <EquipmentManuals />
+                    </PageErrorBoundary>
+                  )}
+                  {currentPage === "tender" && (
+                    <PageErrorBoundary>
+                      <RigConfigurator />
+                    </PageErrorBoundary>
+                  )}
+                  {currentPage === "admin" && user.role === "ADMIN" && (
+                    <PageErrorBoundary>
+                      <AdminPanel />
+                    </PageErrorBoundary>
+                  )}
+                </ErrorBoundary>
               </div>
             </main>
           </div>
