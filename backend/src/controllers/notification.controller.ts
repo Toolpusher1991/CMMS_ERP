@@ -148,6 +148,34 @@ export const createNotification = async (data: {
   }
 };
 
+// Create notification via API (POST route handler)
+export const createNotificationHandler = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { title, message, type, targetUserId, relatedId, metadata } = req.body;
+
+    if (!title || !message || !type || !targetUserId) {
+      throw new AppError('title, message, type, and targetUserId are required', 400);
+    }
+
+    const notification = await createNotification({
+      userId: targetUserId,
+      type,
+      title,
+      message,
+      metadata,
+      relatedId,
+    });
+
+    res.status(201).json(notification);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Notify all managers about a failure report
 export const notifyManagers = async (failureReport: {
   id: string;

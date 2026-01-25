@@ -6,6 +6,7 @@ import {
   markAllAsRead,
   deleteAllNotifications,
   deleteOldNotifications,
+  createNotificationHandler,
 } from '../controllers/notification.controller';
 
 const router = Router();
@@ -15,6 +16,9 @@ router.use(authenticate);
 
 // GET /api/notifications - Get all notifications for current user
 router.get('/', getNotifications);
+
+// POST /api/notifications - Create a notification for a user
+router.post('/', createNotificationHandler);
 
 // PUT /api/notifications/:id/read - Mark notification as read
 router.put('/:id/read', markAsRead);
