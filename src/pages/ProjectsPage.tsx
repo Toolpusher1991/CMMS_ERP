@@ -1114,6 +1114,55 @@ export default function ProjectsPage() {
   // Handle drag stop - grouping logic
   const handleNodeDragStop = useCallback(
     (_event: React.MouseEvent, draggedNode: Node) => {
+      // Prevent group overlapping
+      if (draggedNode.type === "group") {
+        const draggedWidth = (draggedNode.style?.width as number) || 250;
+        const draggedHeight = (draggedNode.style?.height as number) || 200;
+        
+        const overlappingGroup = nodes.find((node) => {
+          if (node.type !== "group") return false;
+          if (node.id === draggedNode.id) return false;
+          
+          const nodeWidth = (node.style?.width as number) || 250;
+          const nodeHeight = (node.style?.height as number) || 200;
+          
+          // Check for overlap
+          const overlapX = draggedNode.position.x < node.position.x + nodeWidth &&
+                          draggedNode.position.x + draggedWidth > node.position.x;
+          const overlapY = draggedNode.position.y < node.position.y + nodeHeight &&
+                          draggedNode.position.y + draggedHeight > node.position.y;
+          
+          return overlapX && overlapY;
+        });
+        
+        if (overlappingGroup) {
+          // Push the group away from the overlapping group
+          const overlapWidth = (overlappingGroup.style?.width as number) || 250;
+          
+          setNodes((nds) => nds.map((node) => {
+            if (node.id === draggedNode.id) {
+              // Move to the right of the overlapping group
+              return {
+                ...node,
+                position: {
+                  x: overlappingGroup.position.x + overlapWidth + 20,
+                  y: draggedNode.position.y,
+                },
+              };
+            }
+            return node;
+          }));
+          
+          toast({
+            title: "Überlappung vermieden",
+            description: "Gruppen können nicht übereinander platziert werden.",
+            variant: "destructive",
+          });
+          return;
+        }
+        return;
+      }
+
       if (draggedNode.type !== "task") return;
 
       // Get absolute position of dragged node
@@ -2403,7 +2452,7 @@ export default function ProjectsPage() {
 
       {/* Flow Dialog */}
       <Dialog open={showFlowDialog} onOpenChange={setShowFlowDialog}>
-        <DialogContent className="max-w-[90vw] w-[1400px] h-[85vh]">
+        <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] p-4">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Workflow className="h-5 w-5" />
@@ -2445,7 +2494,7 @@ export default function ProjectsPage() {
             </DialogDescription>
           </DialogHeader>
           <div
-            className="flex-1 h-[calc(85vh-140px)] border rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-900"
+            className="flex-1 h-[calc(95vh-100px)] border rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-900"
             ref={flowRef}
           >
             <ReactFlow
@@ -2456,6 +2505,37 @@ export default function ProjectsPage() {
                 const targetNode = nodes.find((n) => n.id === e.target);
                 if (sourceNode?.parentId || targetNode?.parentId) return false;
                 return true;
+              }).map((e) => {
+                // Color edges green if source node is completed
+                const sourceNode = nodes.find((n) => n.id === e.source);
+                const sourceData = sourceNode?.data as FlowNodeData | undefined;
+                
+                // Check if source is a group - if so, check if all children are done
+                let isSourceDone = false;
+                if (sourceNode?.type === 'start') {
+                  isSourceDone = true;
+                } else if (sourceNode?.type === 'group') {
+                  // Get all child nodes of this group
+                  const childNodes = nodes.filter((n) => n.parentId === sourceNode.id);
+                  // Group is done if all children are done
+                  isSourceDone = childNodes.length > 0 && childNodes.every((child) => {
+                    const childData = child.data as FlowNodeData | undefined;
+                    return childData?.status === 'DONE';
+                  });
+                } else if (sourceNode?.type === 'milestone') {
+                  isSourceDone = (sourceNode.data as MilestoneNodeData)?.completed === true;
+                } else if (sourceData?.status === 'DONE') {
+                  isSourceDone = true;
+                }
+                
+                return {
+                  ...e,
+                  style: {
+                    stroke: isSourceDone ? '#22c55e' : '#64748b',
+                    strokeWidth: isSourceDone ? 3 : 2,
+                  },
+                  animated: !isSourceDone, // Only animate if not completed
+                };
               })}
               onNodesChange={(changes) => {
                 onNodesChange(changes);
@@ -2473,7 +2553,7 @@ export default function ProjectsPage() {
               fitView
               className="bg-slate-50 dark:bg-slate-900"
             >
-              <Controls />
+              <Controls className="!bg-slate-800 !border-slate-700 !shadow-lg [&>button]:!bg-slate-700 [&>button]:!border-slate-600 [&>button]:!text-white [&>button:hover]:!bg-slate-600 [&>button>svg]:!fill-white" />
               <MiniMap
                 nodeColor={(node) => {
                   if (node.type === "start") return "#22c55e";

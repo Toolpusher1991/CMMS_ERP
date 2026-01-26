@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   Calendar,
   Users,
@@ -21,6 +21,7 @@ import {
   Palmtree,
   GraduationCap,
   AlertCircle,
+  Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -897,6 +898,37 @@ const ShiftPlanner: React.FC = () => {
     });
   }, [assignments, positions, availablePersonnel, currentMonth, months, toast]);
 
+  // Speichern in localStorage
+  const saveData = useCallback(() => {
+    const data = {
+      assignments,
+      positions,
+      availablePersonnel,
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem("shiftPlannerData", JSON.stringify(data));
+    toast({
+      title: "Gespeichert",
+      description: "Der Schichtplan wurde erfolgreich gespeichert.",
+    });
+  }, [assignments, positions, availablePersonnel, toast]);
+
+  // Laden aus localStorage beim Start
+  useEffect(() => {
+    const savedData = localStorage.getItem("shiftPlannerData");
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData);
+        if (data.assignments) setAssignments(data.assignments);
+        if (data.positions) setPositions(data.positions);
+        if (data.availablePersonnel) setAvailablePersonnel(data.availablePersonnel);
+        console.log("Schichtplan geladen:", data.savedAt);
+      } catch (error) {
+        console.error("Fehler beim Laden des Schichtplans:", error);
+      }
+    }
+  }, []);
+
   const importData = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -1763,6 +1795,10 @@ const ShiftPlanner: React.FC = () => {
             </div>
 
             <div className="flex gap-2">
+              <Button onClick={saveData} size="sm">
+                <Save className="w-4 h-4 mr-2" />
+                Speichern
+              </Button>
               <Button onClick={exportData} variant="outline" size="sm">
                 <Download className="w-4 h-4 mr-2" />
                 Export
