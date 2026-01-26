@@ -11,6 +11,7 @@ import {
   ClipboardCheck,
   BookOpen,
   Settings,
+  CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +31,7 @@ type AppPage =
   | "failures"
   | "inspections"
   | "manuals"
+  | "shifts"
   | "admin";
 
 interface NavItem {
@@ -44,6 +46,7 @@ const allNavItems: NavItem[] = [
   { title: "Projekte", page: "projects", icon: FolderKanban },
   { title: "Work Orders", page: "workorders", icon: FileText },
   { title: "Action Tracker", page: "actions", icon: ListTodo },
+  { title: "Schichtplan", page: "shifts", icon: CalendarDays },
   { title: "Inspektionsberichte", page: "inspections", icon: ClipboardCheck },
   {
     title: "Equipment Manuals",
@@ -77,7 +80,7 @@ export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
     <div
       className={cn(
         "flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
+        collapsed ? "w-16" : "w-64",
       )}
     >
       {/* Logo / Header */}
@@ -141,6 +144,8 @@ export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
                   return "text-orange-500";
                 case "inspections":
                   return "text-green-500";
+                case "shifts":
+                  return "text-teal-500";
                 case "manuals":
                   return "text-pink-500";
                 case "tender":
@@ -163,7 +168,7 @@ export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
                   isActive
                     ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/20"
                     : "text-sidebar-foreground hover:bg-slate-800/50 hover:shadow-md",
-                  collapsed && "justify-center"
+                  collapsed && "justify-center",
                 )}
               >
                 {/* Active Indicator */}
@@ -173,7 +178,7 @@ export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
                 <Icon
                   className={cn(
                     "h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110",
-                    isActive ? "text-white" : getIconColor()
+                    isActive ? "text-white" : getIconColor(),
                   )}
                 />
                 {!collapsed && (
