@@ -229,8 +229,8 @@ function TaskFlowNode({
   return (
     <>
       <NodeResizer
-        minWidth={140}
-        minHeight={50}
+        minWidth={180}
+        minHeight={80}
         isVisible={selected}
         lineClassName="!border-primary"
         handleClassName="!w-2.5 !h-2.5 !bg-primary !border-primary"
@@ -239,7 +239,7 @@ function TaskFlowNode({
         <PopoverTrigger asChild>
           <div
             className={cn(
-              "relative px-3 py-2 rounded-lg border-2 shadow-sm min-w-[140px] cursor-pointer transition-all hover:shadow-md h-full flex flex-col justify-center",
+              "relative px-3 py-2 rounded-lg border-2 shadow-sm min-w-[180px] max-w-[280px] cursor-pointer transition-all hover:shadow-md h-full flex flex-col justify-center",
               statusColors[data.status],
               selected && "ring-2 ring-primary",
               isOverdue && "ring-2 ring-red-400",
@@ -286,9 +286,9 @@ function TaskFlowNode({
                 )}
               </div>
 
-              {/* Beschreibung */}
+              {/* Beschreibung - vollständig mit Zeilenumbruch */}
               {data.description && (
-                <p className="text-[10px] text-muted-foreground line-clamp-2">
+                <p className="text-[10px] text-muted-foreground whitespace-pre-wrap break-words">
                   {data.description}
                 </p>
               )}
