@@ -126,6 +126,7 @@ interface FlowNodeData extends Record<string, unknown> {
   onToggleStatus?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
   onMaterialUpdate?: (taskId: string, materialData: MaterialData) => void;
+  onSaveTask?: (taskId: string, data: { title: string; description: string }) => void;
 }
 
 interface MaterialData {
@@ -165,6 +166,9 @@ function TaskFlowNode({
   selected?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(data.label || "");
+  const [editDescription, setEditDescription] = useState(data.description || "");
   const [localMaterial, setLocalMaterial] = useState({
     needsMaterial: data.needsMaterial || false,
     materialNumber: data.materialNumber || "",
@@ -343,14 +347,36 @@ function TaskFlowNode({
           sideOffset={10}
         >
           <div className="p-4 space-y-4">
-            {/* Header */}
+            {/* Header - bearbeitbar */}
             <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-sm truncate">{data.label}</h4>
-                {data.description && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {data.description}
-                  </p>
+              <div className="flex-1 min-w-0 space-y-2">
+                {isEditing ? (
+                  <>
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="w-full px-2 py-1 text-sm font-semibold rounded border bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="Aufgabentitel..."
+                      autoFocus
+                    />
+                    <textarea
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      className="w-full px-2 py-1 text-xs rounded border bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      placeholder="Beschreibung..."
+                      rows={3}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <h4 className="font-semibold text-sm">{data.label}</h4>
+                    {data.description && (
+                      <p className="text-xs text-muted-foreground">
+                        {data.description}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
               <button
@@ -569,30 +595,63 @@ function TaskFlowNode({
 
             {/* Actions */}
             <div className="flex gap-2 pt-2 border-t">
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  const taskId = data.taskId;
-                  const editFn = data.onEdit;
-                  setIsOpen(false);
-                  // Delay to allow popover to close first
-                  setTimeout(() => {
-                    if (editFn && taskId) {
-                      editFn(taskId);
-                    }
-                  }, 100);
-                }}
-              >
-                <Edit className="h-3 w-3 mr-1" />
-                Bearbeiten
-              </Button>
-              <Button size="sm" onClick={handleStatusClick} className="flex-1">
-                Status ändern
-              </Button>
+              {isEditing ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setEditTitle(data.label || "");
+                      setEditDescription(data.description || "");
+                      setIsEditing(false);
+                    }}
+                  >
+                    Abbrechen
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (data.onSaveTask && data.taskId && editTitle.trim()) {
+                        data.onSaveTask(data.taskId, {
+                          title: editTitle.trim(),
+                          description: editDescription,
+                        });
+                        setIsEditing(false);
+                      }
+                    }}
+                  >
+                    <Save className="h-3 w-3 mr-1" />
+                    Speichern
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setEditTitle(data.label || "");
+                      setEditDescription(data.description || "");
+                      setIsEditing(true);
+                    }}
+                  >
+                    <Edit className="h-3 w-3 mr-1" />
+                    Bearbeiten
+                  </Button>
+                  <Button size="sm" onClick={handleStatusClick} className="flex-1">
+                    Status ändern
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </PopoverContent>
@@ -1275,6 +1334,62 @@ export default function ProjectsPage() {
     [setNodes],
   );
 
+  // Handle Save Task Inline - saves title/description directly from popover
+  const handleSaveTaskInline = useCallback(
+    async (taskId: string, taskData: { title: string; description: string }) => {
+      const project = selectedProjectRef.current;
+      if (!project) return;
+
+      try {
+        // Update in database
+        await projectService.updateTask(project.id, taskId, {
+          title: taskData.title,
+          description: taskData.description,
+        });
+
+        // Update node
+        setNodes((nds) =>
+          nds.map((node) => {
+            if (node.data?.taskId === taskId) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  label: taskData.title,
+                  description: taskData.description,
+                },
+              };
+            }
+            return node;
+          }),
+        );
+
+        // Reload project data
+        const { projects: updatedProjects } = await projectService.getProjects();
+        setProjects(updatedProjects);
+        const updatedProject = updatedProjects.find((p) => p.id === project.id);
+        if (updatedProject) {
+          setSelectedProject(updatedProject);
+          selectedProjectRef.current = updatedProject;
+        }
+
+        setHasFlowChanges(true);
+        toast({
+          title: "Aufgabe aktualisiert",
+          description: "Die Änderungen wurden gespeichert.",
+        });
+      } catch (error) {
+        console.error("Error saving task:", error);
+        toast({
+          title: "Fehler",
+          description: "Aufgabe konnte nicht gespeichert werden.",
+          variant: "destructive",
+        });
+      }
+    },
+    [setNodes, toast],
+  );
+
   // Add Task in Flow - Open Dialog
   const openFlowTaskDialog = useCallback(() => {
     setFlowTaskForm({
@@ -1325,6 +1440,7 @@ export default function ProjectsPage() {
           onToggleStatus: handleToggleTaskFromFlow,
           onDelete: handleDeleteTaskFromFlow,
           onMaterialUpdate: handleMaterialUpdate,
+          onSaveTask: handleSaveTaskInline,
         },
       };
 
@@ -1387,6 +1503,7 @@ export default function ProjectsPage() {
     handleToggleTaskFromFlow,
     handleDeleteTaskFromFlow,
     handleMaterialUpdate,
+    handleSaveTaskInline,
     toast,
   ]);
 
@@ -1507,7 +1624,7 @@ export default function ProjectsPage() {
 
         const overlappingGroup = nodes.find((node) => {
           if (node.type !== "group") return false;
-          if (node.id === draggedNode.id) return false;
+          if (draggedNode.parentId === node.id) return false;
 
           const nodeWidth = (node.style?.width as number) || 250;
           const nodeHeight = (node.style?.height as number) || 200;
@@ -1885,6 +2002,7 @@ export default function ProjectsPage() {
               onToggleStatus: handleToggleTaskFromFlow,
               onDelete: handleDeleteTaskFromFlow,
               onMaterialUpdate: handleMaterialUpdate,
+              onSaveTask: handleSaveTaskInline,
             },
           };
         }
@@ -1909,6 +2027,7 @@ export default function ProjectsPage() {
       handleDeleteTaskFromFlow,
       handleMaterialUpdate,
       handleDeleteStartEndNode,
+      handleSaveTaskInline,
     ],
   );
 
@@ -1991,6 +2110,7 @@ export default function ProjectsPage() {
                     onToggleStatus: handleToggleTaskFromFlow,
                     onDelete: handleDeleteTaskFromFlow,
                     onMaterialUpdate: handleMaterialUpdate,
+                    onSaveTask: handleSaveTaskInline,
                   },
                 };
               }
@@ -2044,6 +2164,7 @@ export default function ProjectsPage() {
           onToggleStatus: handleToggleTaskFromFlow,
           onDelete: handleDeleteTaskFromFlow,
           onMaterialUpdate: handleMaterialUpdate,
+          onSaveTask: handleSaveTaskInline,
         },
       }));
 
@@ -2072,6 +2193,7 @@ export default function ProjectsPage() {
       handleToggleTaskFromFlow,
       handleDeleteTaskFromFlow,
       handleMaterialUpdate,
+      handleSaveTaskInline,
       setNodes,
       setEdges,
     ],
@@ -2782,6 +2904,9 @@ export default function ProjectsPage() {
                                               task.status === "DONE" &&
                                                 "opacity-60",
                                             )}
+                                            style={{
+                                              border: "2px solid #6366f1",
+                                            }}
                                           >
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                               {/* Task Number from Flow */}
@@ -2792,6 +2917,9 @@ export default function ProjectsPage() {
                                                     ? "bg-green-500/20 text-green-600"
                                                     : "bg-primary/10 text-primary",
                                                 )}
+                                                style={{
+                                                  border: "2px solid #6366f1",
+                                                }}
                                               >
                                                 {flowOrder ?? index + 1}
                                               </span>
@@ -2822,6 +2950,9 @@ export default function ProjectsPage() {
                                                     task.status === "DONE" &&
                                                       "line-through text-muted-foreground",
                                                   )}
+                                                  style={{
+                                                    border: "2px solid #6366f1",
+                                                  }}
                                                 >
                                                   {task.title}
                                                 </p>
@@ -2848,6 +2979,9 @@ export default function ProjectsPage() {
                                                     task.status,
                                                   ),
                                                 )}
+                                                style={{
+                                                  border: "2px solid #6366f1",
+                                                }}
                                               >
                                                 {getStatusLabel(task.status)}
                                               </Badge>
