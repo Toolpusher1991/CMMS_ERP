@@ -114,6 +114,8 @@ interface FlowNodeData extends Record<string, unknown> {
   isMaterialTask?: boolean;
   materialNumber?: string;
   materialQuantity?: string;
+  materialPrNumber?: string;
+  materialPoNumber?: string;
   materialDelivered?: boolean;
   parentTaskId?: string; // The task that triggered the material order
   onEdit?: (taskId: string) => void;
@@ -271,7 +273,7 @@ function TaskFlowNode({ data }: { data: FlowNodeData }) {
         </p>
       )}
       {/* Material Info für Material-Tasks */}
-      {isMaterialTask && (data.materialNumber || data.materialQuantity) && (
+      {isMaterialTask && (data.materialNumber || data.materialQuantity || data.materialPrNumber || data.materialPoNumber) && (
         <div className="mt-2 p-2 bg-orange-100/50 dark:bg-orange-900/30 rounded text-xs space-y-1">
           {data.materialNumber && (
             <div className="flex items-center gap-1">
@@ -283,6 +285,18 @@ function TaskFlowNode({ data }: { data: FlowNodeData }) {
             <div className="flex items-center gap-1">
               <span className="font-medium text-orange-700 dark:text-orange-300">Menge:</span>
               <span className="text-orange-600 dark:text-orange-400">{data.materialQuantity}</span>
+            </div>
+          )}
+          {data.materialPrNumber && (
+            <div className="flex items-center gap-1">
+              <span className="font-medium text-orange-700 dark:text-orange-300">PR:</span>
+              <span className="text-orange-600 dark:text-orange-400">{data.materialPrNumber}</span>
+            </div>
+          )}
+          {data.materialPoNumber && (
+            <div className="flex items-center gap-1">
+              <span className="font-medium text-orange-700 dark:text-orange-300">PO:</span>
+              <span className="text-orange-600 dark:text-orange-400">{data.materialPoNumber}</span>
             </div>
           )}
         </div>
@@ -767,6 +781,8 @@ export default function ProjectsPage() {
   const [materialForm, setMaterialForm] = useState({
     materialNumber: "",
     quantity: "",
+    prNumber: "",
+    poNumber: "",
     description: "",
   });
 
@@ -1005,6 +1021,8 @@ export default function ProjectsPage() {
       setMaterialForm({
         materialNumber: "",
         quantity: "",
+        prNumber: "",
+        poNumber: "",
         description: "",
       });
       setShowMaterialDialog(true);
@@ -1029,6 +1047,8 @@ export default function ProjectsPage() {
         "",
         materialForm.materialNumber ? `📋 Materialnummer: ${materialForm.materialNumber}` : "",
         materialForm.quantity ? `📦 Menge: ${materialForm.quantity}` : "",
+        materialForm.prNumber ? `📄 PR-Nummer: ${materialForm.prNumber}` : "",
+        materialForm.poNumber ? `📑 PO-Nummer: ${materialForm.poNumber}` : "",
         materialForm.description ? `📝 Beschreibung: ${materialForm.description}` : "",
         "",
         "⚠️ Bitte als 'geliefert' markieren wenn Material angekommen ist.",
@@ -1042,7 +1062,7 @@ export default function ProjectsPage() {
         priority: "HIGH",
       });
 
-      // Find position to the right of the source node
+      // Find position - place BELOW the source node (parallel layout)
       let sourceX = sourceNode.position.x;
       let sourceY = sourceNode.position.y;
       if (sourceNode.parentId) {
@@ -1053,13 +1073,21 @@ export default function ProjectsPage() {
         }
       }
 
-      // Create the new node to the right of the source task
+      // Check if there are already material tasks below - stack them
+      const existingMaterialTasks = nodes.filter((n) => 
+        n.data?.isMaterialTask && 
+        n.position.x >= sourceX + 280 && 
+        n.position.x <= sourceX + 360
+      );
+      const yOffset = existingMaterialTasks.length * 180;
+
+      // Create the new node to the RIGHT of the source task (parallel arrangement)
       const newNode: Node = {
         id: `task-${materialTask.id}`,
         type: "task",
         position: {
           x: sourceX + 320,
-          y: sourceY,
+          y: sourceY + yOffset,
         },
         data: {
           label: materialTask.title,
@@ -1071,6 +1099,8 @@ export default function ProjectsPage() {
           isMaterialTask: true,
           materialNumber: materialForm.materialNumber,
           materialQuantity: materialForm.quantity,
+          materialPrNumber: materialForm.prNumber,
+          materialPoNumber: materialForm.poNumber,
           materialDelivered: false,
           parentTaskId: taskId,
           // Callbacks
@@ -3131,25 +3161,49 @@ export default function ProjectsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Materialnummer / SAP-Nr.</Label>
-              <Input
-                value={materialForm.materialNumber}
-                onChange={(e) =>
-                  setMaterialForm({ ...materialForm, materialNumber: e.target.value })
-                }
-                placeholder="z.B. 12345678 oder SAP-Nr..."
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Materialnummer / SAP-Nr.</Label>
+                <Input
+                  value={materialForm.materialNumber}
+                  onChange={(e) =>
+                    setMaterialForm({ ...materialForm, materialNumber: e.target.value })
+                  }
+                  placeholder="z.B. 12345678..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Menge / Anzahl</Label>
+                <Input
+                  value={materialForm.quantity}
+                  onChange={(e) =>
+                    setMaterialForm({ ...materialForm, quantity: e.target.value })
+                  }
+                  placeholder="z.B. 5 Stück..."
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Menge / Anzahl</Label>
-              <Input
-                value={materialForm.quantity}
-                onChange={(e) =>
-                  setMaterialForm({ ...materialForm, quantity: e.target.value })
-                }
-                placeholder="z.B. 5 Stück, 10m, 2 Rollen..."
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>PR-Nummer (Purchase Request)</Label>
+                <Input
+                  value={materialForm.prNumber}
+                  onChange={(e) =>
+                    setMaterialForm({ ...materialForm, prNumber: e.target.value })
+                  }
+                  placeholder="z.B. PR-2026-001..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>PO-Nummer (Purchase Order)</Label>
+                <Input
+                  value={materialForm.poNumber}
+                  onChange={(e) =>
+                    setMaterialForm({ ...materialForm, poNumber: e.target.value })
+                  }
+                  placeholder="z.B. PO-2026-001..."
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Beschreibung</Label>
@@ -3159,7 +3213,7 @@ export default function ProjectsPage() {
                   setMaterialForm({ ...materialForm, description: e.target.value })
                 }
                 placeholder="Zusätzliche Informationen zum Material..."
-                rows={3}
+                rows={2}
               />
             </div>
             <div className="p-3 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 dark:border-orange-800">
