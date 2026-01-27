@@ -1304,7 +1304,6 @@ export default function ProjectsPage() {
         if (overlappingGroup) {
           // Push the group away from the overlapping group with better spacing
           const overlapWidth = (overlappingGroup.style?.width as number) || 250;
-          const overlapHeight = (overlappingGroup.style?.height as number) || 200;
           const draggedWidth = (draggedNode.style?.width as number) || 250;
           
           // Determine best direction to push (right or down)
