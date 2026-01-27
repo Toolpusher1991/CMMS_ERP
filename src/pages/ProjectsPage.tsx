@@ -65,6 +65,11 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Plus,
   Search,
   CheckCircle2,
@@ -80,7 +85,6 @@ import {
   X,
   ChevronRight,
   ChevronDown,
-  ChevronUp,
   FolderKanban,
   ListTodo,
   ArrowLeft,
@@ -153,8 +157,14 @@ interface SavedFlowData {
 }
 
 // ===== Flow Node Components =====
-function TaskFlowNode({ data, selected }: { data: FlowNodeData; selected?: boolean }) {
-  const [materialExpanded, setMaterialExpanded] = useState(data.materialExpanded || false);
+function TaskFlowNode({
+  data,
+  selected,
+}: {
+  data: FlowNodeData;
+  selected?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
   const [localMaterial, setLocalMaterial] = useState({
     needsMaterial: data.needsMaterial || false,
     materialNumber: data.materialNumber || "",
@@ -166,32 +176,26 @@ function TaskFlowNode({ data, selected }: { data: FlowNodeData; selected?: boole
   });
 
   const statusColors: Record<TaskStatus, string> = {
-    TODO: "bg-gray-100 border-gray-300 dark:bg-gray-800 dark:border-gray-600",
+    TODO: "bg-gray-50 border-gray-300 dark:bg-gray-800 dark:border-gray-600",
     IN_PROGRESS:
-      "bg-blue-100 border-blue-400 dark:bg-blue-900 dark:border-blue-500",
+      "bg-blue-50 border-blue-400 dark:bg-blue-900/50 dark:border-blue-500",
     REVIEW:
-      "bg-yellow-100 border-yellow-400 dark:bg-yellow-900 dark:border-yellow-500",
-    DONE: "bg-green-200 border-green-500 dark:bg-green-800 dark:border-green-400 ring-2 ring-green-400/50",
+      "bg-yellow-50 border-yellow-400 dark:bg-yellow-900/50 dark:border-yellow-500",
+    DONE: "bg-green-50 border-green-500 dark:bg-green-900/50 dark:border-green-400",
   };
 
-  const priorityColors: Record<string, string> = {
-    LOW: "border-l-gray-400",
-    NORMAL: "border-l-blue-400",
-    HIGH: "border-l-orange-500",
-    URGENT: "border-l-red-500",
+  const statusBadgeColors: Record<TaskStatus, string> = {
+    TODO: "bg-gray-200 text-gray-700",
+    IN_PROGRESS: "bg-blue-200 text-blue-700",
+    REVIEW: "bg-yellow-200 text-yellow-700",
+    DONE: "bg-green-200 text-green-700",
   };
 
-  const statusIcons: Record<TaskStatus, React.ReactNode> = {
-    TODO: <Circle className="h-4 w-4 text-gray-500" />,
-    IN_PROGRESS: <Clock className="h-4 w-4 text-blue-500" />,
-    REVIEW: <Eye className="h-4 w-4 text-yellow-600" />,
-    DONE: <CheckCircle2 className="h-4 w-4 text-green-600" />,
-  };
-
-  const handleDoubleClick = () => {
-    if (data.onEdit && data.taskId) {
-      data.onEdit(data.taskId);
-    }
+  const priorityIndicator: Record<string, string> = {
+    LOW: "bg-gray-400",
+    NORMAL: "bg-blue-400",
+    HIGH: "bg-orange-500",
+    URGENT: "bg-red-500",
   };
 
   const handleStatusClick = (e: React.MouseEvent) => {
@@ -208,20 +212,7 @@ function TaskFlowNode({ data, selected }: { data: FlowNodeData; selected?: boole
     }
   };
 
-  const handleMaterialToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const newNeedsMaterial = !localMaterial.needsMaterial;
-    const updatedMaterial = { ...localMaterial, needsMaterial: newNeedsMaterial };
-    setLocalMaterial(updatedMaterial);
-    if (newNeedsMaterial) {
-      setMaterialExpanded(true);
-    }
-    if (data.onMaterialUpdate && data.taskId) {
-      data.onMaterialUpdate(data.taskId, updatedMaterial);
-    }
-  };
-
-  const handleMaterialChange = (field: string, value: string) => {
+  const handleMaterialChange = (field: string, value: string | boolean) => {
     const updatedMaterial = { ...localMaterial, [field]: value };
     setLocalMaterial(updatedMaterial);
     if (data.onMaterialUpdate && data.taskId) {
@@ -229,291 +220,356 @@ function TaskFlowNode({ data, selected }: { data: FlowNodeData; selected?: boole
     }
   };
 
-  const handleDeliveredToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const updatedMaterial = { ...localMaterial, materialDelivered: !localMaterial.materialDelivered };
-    setLocalMaterial(updatedMaterial);
-    if (data.onMaterialUpdate && data.taskId) {
-      data.onMaterialUpdate(data.taskId, updatedMaterial);
-    }
-  };
-
-  // Check if overdue
   const isOverdue =
     data.dueDate &&
     new Date(data.dueDate) < new Date() &&
     data.status !== "DONE";
-
-  // Check if has material info
-  const hasMaterialInfo = localMaterial.needsMaterial && (
-    localMaterial.materialNumber || 
-    localMaterial.materialQuantity || 
-    localMaterial.materialPrNumber || 
-    localMaterial.materialPoNumber
-  );
+  const hasMaterial = localMaterial.needsMaterial;
 
   return (
     <>
       <NodeResizer
-        minWidth={220}
-        minHeight={100}
+        minWidth={140}
+        minHeight={50}
         isVisible={selected}
         lineClassName="!border-primary"
-        handleClassName="!w-3 !h-3 !bg-primary !border-primary"
+        handleClassName="!w-2.5 !h-2.5 !bg-primary !border-primary"
       />
-      <div
-        onDoubleClick={handleDoubleClick}
-        className={cn(
-          "px-4 py-3 rounded-lg border-2 shadow-md min-w-[220px] cursor-pointer transition-all hover:shadow-lg border-l-4 h-full",
-          statusColors[data.status],
-          priorityColors[data.priority || "NORMAL"],
-          data.status === "DONE" && "opacity-90",
-          isOverdue && "ring-2 ring-red-500/50",
-          localMaterial.needsMaterial && !localMaterial.materialDelivered && "ring-2 ring-orange-400/50",
-          localMaterial.materialDelivered && "ring-2 ring-green-400/50",
-        )}
-      >
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="w-3 h-3 !bg-primary"
-        />
-        
-        {/* Header */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleStatusClick}
-            className="hover:scale-125 transition-transform cursor-pointer"
-            title="Status ändern"
-          >
-            {statusIcons[data.status]}
-          </button>
-          <span
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <div
             className={cn(
-              "font-medium text-sm flex-1",
-              data.status === "DONE" && "line-through text-muted-foreground",
+              "relative px-3 py-2 rounded-lg border-2 shadow-sm min-w-[140px] cursor-pointer transition-all hover:shadow-md h-full flex flex-col justify-center",
+              statusColors[data.status],
+              selected && "ring-2 ring-primary",
+              isOverdue && "ring-2 ring-red-400",
+              hasMaterial &&
+                !localMaterial.materialDelivered &&
+                "ring-2 ring-orange-400",
             )}
           >
-            {data.label}
-          </span>
-          <div className="flex gap-1">
-            <button
-              onClick={handleDoubleClick}
-              className="opacity-50 hover:opacity-100 transition-opacity p-0.5"
-              title="Bearbeiten"
-            >
-              <Edit className="h-3 w-3" />
-            </button>
-            <button
-              onClick={handleDeleteClick}
-              className="opacity-50 hover:opacity-100 transition-opacity text-red-500 p-0.5"
-              title="Löschen"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        </div>
-
-        {/* Description */}
-        {data.description && (
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-            {data.description}
-          </p>
-        )}
-
-        {/* Meta Info (Assigned, Due Date) */}
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
-          {data.assignedTo && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <UserIcon className="h-3 w-3" />
-              <span className="truncate max-w-[80px]">{data.assignedTo}</span>
-            </div>
-          )}
-          {data.dueDate && (
+            {/* Priority indicator bar */}
             <div
               className={cn(
-                "flex items-center gap-1 text-xs",
-                isOverdue ? "text-red-500 font-medium" : "text-muted-foreground",
+                "absolute left-0 top-0 bottom-0 w-1 rounded-l-md",
+                priorityIndicator[data.priority || "NORMAL"],
               )}
-            >
-              {isOverdue && <AlertTriangle className="h-3 w-3" />}
-              <Calendar className="h-3 w-3" />
-              <span>
-                {new Date(data.dueDate).toLocaleDateString("de-DE", {
-                  day: "2-digit",
-                  month: "2-digit",
-                })}
-              </span>
-            </div>
-          )}
-        </div>
+            />
 
-        {/* Material Section */}
-        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-          {/* Material Toggle Button */}
-          <button
-            onClick={handleMaterialToggle}
-            className={cn(
-              "flex items-center gap-1.5 text-xs px-2 py-1.5 rounded transition-all w-full justify-center font-medium",
-              localMaterial.needsMaterial
-                ? localMaterial.materialDelivered
-                  ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                  : "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
-                : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600",
-            )}
-          >
-            <Package className="h-3.5 w-3.5" />
-            {localMaterial.needsMaterial ? (
-              localMaterial.materialDelivered ? (
-                <>
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Material geliefert
-                </>
-              ) : (
-                "Material benötigt"
-              )
-            ) : (
-              "Material hinzufügen"
-            )}
-            {localMaterial.needsMaterial && !localMaterial.materialDelivered && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMaterialExpanded(!materialExpanded);
-                }}
-                className="ml-auto"
-              >
-                {materialExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-              </button>
-            )}
-          </button>
+            <Handle
+              type="target"
+              position={Position.Left}
+              className="w-2.5 h-2.5 !bg-primary"
+            />
 
-          {/* Material Details Popover/Collapsible */}
-          {localMaterial.needsMaterial && materialExpanded && (
-            <div 
-              className="mt-2 p-3 bg-orange-50 dark:bg-orange-950/50 rounded-lg border border-orange-200 dark:border-orange-800 space-y-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Material Number & Quantity */}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] font-medium text-orange-700 dark:text-orange-300 block mb-0.5">
-                    Mat.-Nr.
-                  </label>
-                  <input
-                    type="text"
-                    value={localMaterial.materialNumber}
-                    onChange={(e) => handleMaterialChange("materialNumber", e.target.value)}
-                    className="w-full px-2 py-1 text-xs rounded border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-900/50 focus:outline-none focus:ring-1 focus:ring-orange-400"
-                    placeholder="z.B. 12345"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-medium text-orange-700 dark:text-orange-300 block mb-0.5">
-                    Menge
-                  </label>
-                  <input
-                    type="text"
-                    value={localMaterial.materialQuantity}
-                    onChange={(e) => handleMaterialChange("materialQuantity", e.target.value)}
-                    className="w-full px-2 py-1 text-xs rounded border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-900/50 focus:outline-none focus:ring-1 focus:ring-orange-400"
-                    placeholder="z.B. 5 Stk."
-                  />
-                </div>
-              </div>
-
-              {/* PR & PO */}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] font-medium text-orange-700 dark:text-orange-300 block mb-0.5">
-                    PR-Nr.
-                  </label>
-                  <input
-                    type="text"
-                    value={localMaterial.materialPrNumber}
-                    onChange={(e) => handleMaterialChange("materialPrNumber", e.target.value)}
-                    className="w-full px-2 py-1 text-xs rounded border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-900/50 focus:outline-none focus:ring-1 focus:ring-orange-400"
-                    placeholder="PR-Nummer"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-medium text-orange-700 dark:text-orange-300 block mb-0.5">
-                    PO-Nr.
-                  </label>
-                  <input
-                    type="text"
-                    value={localMaterial.materialPoNumber}
-                    onChange={(e) => handleMaterialChange("materialPoNumber", e.target.value)}
-                    className="w-full px-2 py-1 text-xs rounded border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-900/50 focus:outline-none focus:ring-1 focus:ring-orange-400"
-                    placeholder="PO-Nummer"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="text-[10px] font-medium text-orange-700 dark:text-orange-300 block mb-0.5">
-                  Beschreibung
-                </label>
-                <input
-                  type="text"
-                  value={localMaterial.materialDescription}
-                  onChange={(e) => handleMaterialChange("materialDescription", e.target.value)}
-                  className="w-full px-2 py-1 text-xs rounded border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-900/50 focus:outline-none focus:ring-1 focus:ring-orange-400"
-                  placeholder="Materialbeschreibung..."
-                />
-              </div>
-
-              {/* Delivered Toggle */}
-              <button
-                onClick={handleDeliveredToggle}
+            {/* Compact content */}
+            <div className="flex items-center gap-2 pl-1">
+              <span
                 className={cn(
-                  "flex items-center gap-1.5 text-xs px-2 py-1.5 rounded transition-all w-full justify-center font-medium mt-1",
-                  localMaterial.materialDelivered
-                    ? "bg-green-500 text-white hover:bg-green-600"
-                    : "bg-orange-500 text-white hover:bg-orange-600",
+                  "font-medium text-sm truncate flex-1",
+                  data.status === "DONE" && "line-through opacity-60",
                 )}
               >
-                {localMaterial.materialDelivered ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4" />
-                    Geliefert ✓
-                  </>
-                ) : (
-                  <>
-                    <Package className="h-4 w-4" />
-                    Als geliefert markieren
-                  </>
+                {data.label}
+              </span>
+              {hasMaterial && (
+                <Package
+                  className={cn(
+                    "h-3.5 w-3.5 flex-shrink-0",
+                    localMaterial.materialDelivered
+                      ? "text-green-500"
+                      : "text-orange-500",
+                  )}
+                />
+              )}
+            </div>
+
+            {/* Minimal info row */}
+            <div className="flex items-center gap-1.5 mt-1 pl-1">
+              <span
+                className={cn(
+                  "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
+                  statusBadgeColors[data.status],
                 )}
+              >
+                {data.status === "TODO"
+                  ? "Offen"
+                  : data.status === "IN_PROGRESS"
+                    ? "Arbeit"
+                    : data.status === "REVIEW"
+                      ? "Prüfen"
+                      : "Fertig"}
+              </span>
+              {data.assignedTo && (
+                <span className="text-[10px] text-muted-foreground truncate max-w-[60px]">
+                  {data.assignedTo}
+                </span>
+              )}
+              {isOverdue && <AlertTriangle className="h-3 w-3 text-red-500" />}
+            </div>
+
+            <Handle
+              type="source"
+              position={Position.Right}
+              className="w-2.5 h-2.5 !bg-primary"
+            />
+          </div>
+        </PopoverTrigger>
+
+        <PopoverContent
+          className="w-80 p-0"
+          align="start"
+          side="right"
+          sideOffset={10}
+        >
+          <div className="p-4 space-y-4">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-sm truncate">{data.label}</h4>
+                {data.description && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {data.description}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={handleDeleteClick}
+                className="p-1 hover:bg-red-100 rounded text-red-500 flex-shrink-0"
+                title="Löschen"
+              >
+                <Trash2 className="h-4 w-4" />
               </button>
             </div>
-          )}
 
-          {/* Compact Material Summary when collapsed */}
-          {localMaterial.needsMaterial && !materialExpanded && hasMaterialInfo && (
-            <div 
-              className="mt-1 text-[10px] text-orange-600 dark:text-orange-400 cursor-pointer hover:underline"
-              onClick={(e) => {
-                e.stopPropagation();
-                setMaterialExpanded(true);
-              }}
-            >
-              {[
-                localMaterial.materialNumber && `#${localMaterial.materialNumber}`,
-                localMaterial.materialQuantity && `${localMaterial.materialQuantity}`,
-                localMaterial.materialPrNumber && `PR:${localMaterial.materialPrNumber}`,
-                localMaterial.materialPoNumber && `PO:${localMaterial.materialPoNumber}`,
-              ].filter(Boolean).join(" • ")}
+            {/* Status & Info */}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-muted-foreground block mb-1">Status</span>
+                <button
+                  onClick={handleStatusClick}
+                  className={cn(
+                    "px-2 py-1 rounded-full font-medium",
+                    statusBadgeColors[data.status],
+                  )}
+                >
+                  {data.status === "TODO"
+                    ? "📋 Offen"
+                    : data.status === "IN_PROGRESS"
+                      ? "🔄 In Arbeit"
+                      : data.status === "REVIEW"
+                        ? "👁️ Prüfen"
+                        : "✅ Fertig"}
+                </button>
+              </div>
+              <div>
+                <span className="text-muted-foreground block mb-1">
+                  Priorität
+                </span>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
+                    data.priority === "URGENT"
+                      ? "bg-red-100 text-red-700"
+                      : data.priority === "HIGH"
+                        ? "bg-orange-100 text-orange-700"
+                        : data.priority === "NORMAL"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-gray-100 text-gray-700",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      priorityIndicator[data.priority || "NORMAL"],
+                    )}
+                  />
+                  {data.priority || "Normal"}
+                </span>
+              </div>
+              {data.assignedTo && (
+                <div>
+                  <span className="text-muted-foreground block mb-1">
+                    Zugewiesen
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <UserIcon className="h-3 w-3" />
+                    {data.assignedTo}
+                  </span>
+                </div>
+              )}
+              {data.dueDate && (
+                <div>
+                  <span className="text-muted-foreground block mb-1">
+                    Fällig
+                  </span>
+                  <span
+                    className={cn(
+                      "flex items-center gap-1",
+                      isOverdue && "text-red-500 font-medium",
+                    )}
+                  >
+                    <Calendar className="h-3 w-3" />
+                    {new Date(data.dueDate).toLocaleDateString("de-DE")}
+                  </span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="w-3 h-3 !bg-primary"
-        />
-      </div>
+            {/* Material Section */}
+            <div className="border-t pt-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={localMaterial.needsMaterial}
+                  onChange={(e) =>
+                    handleMaterialChange("needsMaterial", e.target.checked)
+                  }
+                  className="rounded border-gray-300"
+                />
+                <Package className="h-4 w-4 text-orange-500" />
+                <span className="text-sm font-medium">Material benötigt</span>
+              </label>
+
+              {localMaterial.needsMaterial && (
+                <div className="mt-3 p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground">
+                        Mat.-Nr.
+                      </label>
+                      <input
+                        type="text"
+                        value={localMaterial.materialNumber}
+                        onChange={(e) =>
+                          handleMaterialChange("materialNumber", e.target.value)
+                        }
+                        className="w-full px-2 py-1 text-xs rounded border bg-white dark:bg-gray-900"
+                        placeholder="12345"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground">
+                        Menge
+                      </label>
+                      <input
+                        type="text"
+                        value={localMaterial.materialQuantity}
+                        onChange={(e) =>
+                          handleMaterialChange(
+                            "materialQuantity",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full px-2 py-1 text-xs rounded border bg-white dark:bg-gray-900"
+                        placeholder="5 Stk."
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground">
+                        PR-Nr.
+                      </label>
+                      <input
+                        type="text"
+                        value={localMaterial.materialPrNumber}
+                        onChange={(e) =>
+                          handleMaterialChange(
+                            "materialPrNumber",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full px-2 py-1 text-xs rounded border bg-white dark:bg-gray-900"
+                        placeholder="PR-001"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground">
+                        PO-Nr.
+                      </label>
+                      <input
+                        type="text"
+                        value={localMaterial.materialPoNumber}
+                        onChange={(e) =>
+                          handleMaterialChange(
+                            "materialPoNumber",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full px-2 py-1 text-xs rounded border bg-white dark:bg-gray-900"
+                        placeholder="PO-001"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground">
+                      Beschreibung
+                    </label>
+                    <input
+                      type="text"
+                      value={localMaterial.materialDescription}
+                      onChange={(e) =>
+                        handleMaterialChange(
+                          "materialDescription",
+                          e.target.value,
+                        )
+                      }
+                      className="w-full px-2 py-1 text-xs rounded border bg-white dark:bg-gray-900"
+                      placeholder="Material Beschreibung..."
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={localMaterial.materialDelivered}
+                      onChange={(e) =>
+                        handleMaterialChange(
+                          "materialDelivered",
+                          e.target.checked,
+                        )
+                      }
+                      className="rounded border-gray-300"
+                    />
+                    <CheckCircle2
+                      className={cn(
+                        "h-4 w-4",
+                        localMaterial.materialDelivered
+                          ? "text-green-500"
+                          : "text-gray-400",
+                      )}
+                    />
+                    <span className="text-xs font-medium">
+                      Material geliefert
+                    </span>
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-2 border-t">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  if (data.onEdit && data.taskId) {
+                    data.onEdit(data.taskId);
+                    setIsOpen(false);
+                  }
+                }}
+              >
+                <Edit className="h-3 w-3 mr-1" />
+                Bearbeiten
+              </Button>
+              <Button size="sm" onClick={handleStatusClick} className="flex-1">
+                Status ändern
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
     </>
   );
 }
@@ -556,34 +612,64 @@ function MilestoneNode({ data }: { data: MilestoneNodeData }) {
   );
 }
 
-function StartNode() {
+function StartNode({ data }: { data: { onDelete?: () => void } }) {
   return (
-    <div className="px-4 py-2 rounded-full bg-green-500 text-white font-bold text-sm shadow-lg">
+    <div className="relative group px-4 py-2 rounded-full bg-green-500 text-white font-bold text-sm shadow-lg">
       <Handle
         type="source"
         position={Position.Right}
         className="w-3 h-3 !bg-white"
       />
       START
+      {data.onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onDelete?.();
+          }}
+          className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Löschen"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }
 
-function EndNode() {
+function EndNode({ data }: { data: { onDelete?: () => void } }) {
   return (
-    <div className="px-4 py-2 rounded-full bg-red-500 text-white font-bold text-sm shadow-lg">
+    <div className="relative group px-4 py-2 rounded-full bg-red-500 text-white font-bold text-sm shadow-lg">
       <Handle
         type="target"
         position={Position.Left}
         className="w-3 h-3 !bg-white"
       />
       ENDE
+      {data.onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onDelete?.();
+          }}
+          className="absolute -top-2 -right-2 bg-gray-700 hover:bg-gray-800 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Löschen"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }
 
 // Group Node - Sauberer Container für gruppierte Aufgaben mit Resize-Funktion
-function GroupNode({ data, selected }: { data: GroupNodeData; selected?: boolean }) {
+function GroupNode({
+  data,
+  selected,
+}: {
+  data: GroupNodeData;
+  selected?: boolean;
+}) {
   const count = data.childCount || 0;
 
   const handleDoubleClick = () => {
@@ -1155,11 +1241,11 @@ export default function ProjectsPage() {
             };
           }
           return node;
-        })
+        }),
       );
       setHasFlowChanges(true);
     },
-    [setNodes]
+    [setNodes],
   );
 
   // Add Task in Flow - Open Dialog
@@ -1414,10 +1500,11 @@ export default function ProjectsPage() {
           // Push the group away from the overlapping group with better spacing
           const overlapWidth = (overlappingGroup.style?.width as number) || 250;
           const draggedWidth = (draggedNode.style?.width as number) || 250;
-          
+
           // Determine best direction to push (right or down)
-          const pushRight = draggedNode.position.x >= overlappingGroup.position.x;
-          
+          const pushRight =
+            draggedNode.position.x >= overlappingGroup.position.x;
+
           setNodes((nds) =>
             nds.map((node) => {
               if (node.id === draggedNode.id) {
@@ -1723,6 +1810,25 @@ export default function ProjectsPage() {
     [nodes, setNodes, toast],
   );
 
+  // Delete Start/End nodes handler
+  const handleDeleteStartEndNode = useCallback(
+    (nodeId: string) => {
+      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+      setEdges((eds) =>
+        eds.filter((e) => e.source !== nodeId && e.target !== nodeId),
+      );
+      setHasFlowChanges(true);
+      toast({
+        title: "Node gelöscht",
+        description:
+          nodeId === "start"
+            ? "Start-Node wurde entfernt."
+            : "Ende-Node wurde entfernt.",
+      });
+    },
+    [setNodes, setEdges, toast],
+  );
+
   // Add callbacks to group nodes AND ensure task nodes have their callbacks
   const nodesWithGroupCallbacks = useMemo(
     () =>
@@ -1755,6 +1861,16 @@ export default function ProjectsPage() {
             },
           };
         }
+        // Add delete callback to start/end nodes
+        if (node.type === "start" || node.type === "end") {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              onDelete: () => handleDeleteStartEndNode(node.id),
+            },
+          };
+        }
         return node;
       }),
     [
@@ -1765,6 +1881,7 @@ export default function ProjectsPage() {
       handleToggleTaskFromFlow,
       handleDeleteTaskFromFlow,
       handleMaterialUpdate,
+      handleDeleteStartEndNode,
     ],
   );
 
