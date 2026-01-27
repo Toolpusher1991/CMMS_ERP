@@ -921,7 +921,8 @@ const ShiftPlanner: React.FC = () => {
         const data = JSON.parse(savedData);
         if (data.assignments) setAssignments(data.assignments);
         if (data.positions) setPositions(data.positions);
-        if (data.availablePersonnel) setAvailablePersonnel(data.availablePersonnel);
+        if (data.availablePersonnel)
+          setAvailablePersonnel(data.availablePersonnel);
         console.log("Schichtplan geladen:", data.savedAt);
       } catch (error) {
         console.error("Fehler beim Laden des Schichtplans:", error);

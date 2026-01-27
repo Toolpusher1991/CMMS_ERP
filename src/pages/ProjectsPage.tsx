@@ -12,6 +12,7 @@ import {
   Panel,
   Handle,
   Position,
+  NodeResizer,
 } from "@xyflow/react";
 import type { Connection, Edge, Node } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -86,6 +87,7 @@ import {
   Download,
   AlertTriangle,
   Diamond,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/services/api";
@@ -106,9 +108,12 @@ interface FlowNodeData extends Record<string, unknown> {
   assignedTo?: string;
   dueDate?: string;
   priority?: string;
+  needsMaterial?: boolean;
+  materialTaskCreated?: boolean;
   onEdit?: (taskId: string) => void;
   onToggleStatus?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
+  onMaterialToggle?: (taskId: string, needsMaterial: boolean) => void;
 }
 
 interface MilestoneNodeData extends Record<string, unknown> {
@@ -159,7 +164,7 @@ function TaskFlowNode({ data }: { data: FlowNodeData }) {
       "Double click - taskId:",
       data.taskId,
       "onEdit:",
-      !!data.onEdit
+      !!data.onEdit,
     );
     if (data.onEdit && data.taskId) {
       data.onEdit(data.taskId);
@@ -172,7 +177,7 @@ function TaskFlowNode({ data }: { data: FlowNodeData }) {
       "Status click - taskId:",
       data.taskId,
       "onToggleStatus:",
-      !!data.onToggleStatus
+      !!data.onToggleStatus,
     );
     if (data.onToggleStatus && data.taskId) {
       data.onToggleStatus(data.taskId);
@@ -185,10 +190,17 @@ function TaskFlowNode({ data }: { data: FlowNodeData }) {
       "Delete click - taskId:",
       data.taskId,
       "onDelete:",
-      !!data.onDelete
+      !!data.onDelete,
     );
     if (data.onDelete && data.taskId) {
       data.onDelete(data.taskId);
+    }
+  };
+
+  const handleMaterialClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (data.onMaterialToggle && data.taskId && !data.materialTaskCreated) {
+      data.onMaterialToggle(data.taskId, !data.needsMaterial);
     }
   };
 
@@ -202,11 +214,11 @@ function TaskFlowNode({ data }: { data: FlowNodeData }) {
     <div
       onDoubleClick={handleDoubleClick}
       className={cn(
-        "px-4 py-3 rounded-lg border-2 shadow-md min-w-[200px] max-w-[260px] cursor-pointer transition-all hover:shadow-lg border-l-4",
+        "px-4 py-3 rounded-lg border-2 shadow-md min-w-[200px] max-w-[280px] cursor-pointer transition-all hover:shadow-lg border-l-4",
         statusColors[data.status],
         priorityColors[data.priority || "NORMAL"],
         data.status === "DONE" && "opacity-90",
-        isOverdue && "ring-2 ring-red-500/50"
+        isOverdue && "ring-2 ring-red-500/50",
       )}
     >
       <Handle
@@ -225,7 +237,7 @@ function TaskFlowNode({ data }: { data: FlowNodeData }) {
         <span
           className={cn(
             "font-medium text-sm flex-1",
-            data.status === "DONE" && "line-through text-muted-foreground"
+            data.status === "DONE" && "line-through text-muted-foreground",
           )}
         >
           {data.label}
@@ -263,7 +275,7 @@ function TaskFlowNode({ data }: { data: FlowNodeData }) {
           <div
             className={cn(
               "flex items-center gap-1 text-xs",
-              isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"
+              isOverdue ? "text-red-500 font-medium" : "text-muted-foreground",
             )}
           >
             {isOverdue && <AlertTriangle className="h-3 w-3" />}
@@ -276,6 +288,32 @@ function TaskFlowNode({ data }: { data: FlowNodeData }) {
             </span>
           </div>
         )}
+      </div>
+      {/* Material bestellen Button */}
+      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+        <button
+          onClick={handleMaterialClick}
+          disabled={data.materialTaskCreated}
+          className={cn(
+            "flex items-center gap-1.5 text-xs px-2 py-1 rounded transition-all w-full justify-center",
+            data.materialTaskCreated
+              ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 cursor-default"
+              : data.needsMaterial
+                ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 hover:bg-orange-200"
+                : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600",
+          )}
+          title={data.materialTaskCreated ? "Material-Aufgabe wurde erstellt" : "Material bestellen - erstellt eine verknüpfte Aufgabe"}
+        >
+          <Package className="h-3 w-3" />
+          {data.materialTaskCreated ? (
+            <>
+              <CheckCircle2 className="h-3 w-3" />
+              Material-Aufgabe erstellt
+            </>
+          ) : (
+            "Material bestellen"
+          )}
+        </button>
       </div>
       <Handle
         type="source"
@@ -294,7 +332,7 @@ function MilestoneNode({ data }: { data: MilestoneNodeData }) {
         "w-16 h-16 rotate-45 flex items-center justify-center border-2 shadow-md transition-all",
         data.completed
           ? "bg-green-500 border-green-600 text-white"
-          : "bg-amber-100 border-amber-400 dark:bg-amber-900 dark:border-amber-500"
+          : "bg-amber-100 border-amber-400 dark:bg-amber-900 dark:border-amber-500",
       )}
     >
       <Handle
@@ -307,7 +345,7 @@ function MilestoneNode({ data }: { data: MilestoneNodeData }) {
         <Diamond
           className={cn(
             "h-4 w-4 mx-auto",
-            data.completed ? "text-white" : "text-amber-600"
+            data.completed ? "text-white" : "text-amber-600",
           )}
         />
         <span className="text-[10px] font-bold block mt-0.5 max-w-[50px] truncate">
@@ -350,8 +388,8 @@ function EndNode() {
   );
 }
 
-// Group Node - Sauberer Container für gruppierte Aufgaben
-function GroupNode({ data }: { data: GroupNodeData }) {
+// Group Node - Sauberer Container für gruppierte Aufgaben mit Resize-Funktion
+function GroupNode({ data, selected }: { data: GroupNodeData; selected?: boolean }) {
   const count = data.childCount || 0;
 
   const handleDoubleClick = () => {
@@ -362,47 +400,56 @@ function GroupNode({ data }: { data: GroupNodeData }) {
   };
 
   return (
-    <div
-      className="rounded-lg"
-      style={{
-        border: "2px solid #6366f1",
-        backgroundColor: "transparent",
-      }}
-    >
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="w-3 h-3 !bg-indigo-500"
-        style={{ top: "50%" }}
+    <>
+      <NodeResizer
+        minWidth={260}
+        minHeight={120}
+        isVisible={selected}
+        lineClassName="!border-indigo-500"
+        handleClassName="!w-3 !h-3 !bg-indigo-500 !border-indigo-600"
       />
-      {/* Header - Doppelklick zum Umbenennen */}
       <div
-        className="px-3 py-1 rounded-t-md text-xs font-semibold text-white flex items-center justify-between gap-2 cursor-pointer"
-        style={{ backgroundColor: "#6366f1" }}
-        onDoubleClick={handleDoubleClick}
-        title="Doppelklick zum Umbenennen"
+        className="rounded-lg h-full"
+        style={{
+          border: "2px solid #6366f1",
+          backgroundColor: "rgba(99, 102, 241, 0.05)",
+        }}
       >
-        <span>{data.label || `${count} Aufgaben`}</span>
-        {data.onDissolve && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              data.onRequestDissolve?.();
-            }}
-            className="hover:bg-white/20 rounded px-1 text-[10px]"
-            title="Gruppe auflösen"
-          >
-            ✕
-          </button>
-        )}
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="w-3 h-3 !bg-indigo-500"
+          style={{ top: "50%" }}
+        />
+        {/* Header - Doppelklick zum Umbenennen */}
+        <div
+          className="px-3 py-1 rounded-t-md text-xs font-semibold text-white flex items-center justify-between gap-2 cursor-pointer"
+          style={{ backgroundColor: "#6366f1" }}
+          onDoubleClick={handleDoubleClick}
+          title="Doppelklick zum Umbenennen"
+        >
+          <span>{data.label || `${count} Aufgaben`}</span>
+          {data.onDissolve && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onRequestDissolve?.();
+              }}
+              className="hover:bg-white/20 rounded px-1 text-[10px]"
+              title="Gruppe auflösen"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="w-3 h-3 !bg-indigo-500"
+          style={{ top: "50%" }}
+        />
       </div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="w-3 h-3 !bg-indigo-500"
-        style={{ top: "50%" }}
-      />
-    </div>
+    </>
   );
 }
 
@@ -556,7 +603,7 @@ const getFlowchartTaskOrder = (project: Project): Map<string, number> => {
 // Sort tasks by flowchart order
 const sortTasksByFlowOrder = (
   tasks: ProjectTask[],
-  orderMap: Map<string, number>
+  orderMap: Map<string, number>,
 ): ProjectTask[] => {
   if (orderMap.size === 0) {
     return tasks;
@@ -597,7 +644,7 @@ export default function ProjectsPage() {
   const [activeTab, setActiveTab] = useState<Plant>("T208");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // Dialog States
@@ -653,7 +700,7 @@ export default function ProjectsPage() {
   const [flowTaskToDelete, setFlowTaskToDelete] = useState<string | null>(null);
   const [showDissolveGroupDialog, setShowDissolveGroupDialog] = useState(false);
   const [groupToDissolve, setGroupToDissolve] = useState<(() => void) | null>(
-    null
+    null,
   );
   const [flowTaskForm, setFlowTaskForm] = useState({
     title: "",
@@ -708,7 +755,7 @@ export default function ProjectsPage() {
         (p) =>
           p.status === "IN_PROGRESS" ||
           p.status === "PLANNED" ||
-          p.status === "ON_HOLD"
+          p.status === "ON_HOLD",
       ).length;
       return {
         total: plantProjects.length,
@@ -716,11 +763,11 @@ export default function ProjectsPage() {
         completed: plantProjects.filter((p) => p.status === "COMPLETED").length,
         totalTasks: plantProjects.reduce(
           (sum, p) => sum + (p.tasks?.length || 0),
-          0
+          0,
         ),
       };
     },
-    [projects]
+    [projects],
   );
 
   const filteredProjects = useMemo(() => {
@@ -812,7 +859,7 @@ export default function ProjectsPage() {
               };
             }
             return node;
-          })
+          }),
         );
 
         // Reload project data
@@ -830,7 +877,7 @@ export default function ProjectsPage() {
         console.error("Error updating task status:", error);
       }
     },
-    [setNodes]
+    [setNodes],
   );
 
   // Delete Task from Flow
@@ -861,8 +908,9 @@ export default function ProjectsPage() {
       setEdges((eds) =>
         eds.filter(
           (edge) =>
-            edge.source !== `task-${taskId}` && edge.target !== `task-${taskId}`
-        )
+            edge.source !== `task-${taskId}` &&
+            edge.target !== `task-${taskId}`,
+        ),
       );
 
       // Reload project data
@@ -891,6 +939,118 @@ export default function ProjectsPage() {
       setShowDeleteFlowTaskDialog(false);
     }
   }, [flowTaskToDelete, setNodes, setEdges, toast]);
+
+  // Handle Material Toggle - Creates a linked "Material bestellen" task
+  const handleMaterialToggle = useCallback(
+    async (taskId: string, needsMaterial: boolean) => {
+      const project = selectedProjectRef.current;
+      if (!project || !needsMaterial) return;
+
+      try {
+        // Find the source node to get task info
+        const sourceNode = nodes.find((n) => n.data?.taskId === taskId);
+        if (!sourceNode) return;
+
+        // Create a new "Material bestellen" task in the database
+        const materialTask = await projectService.createTask(project.id, {
+          title: `📦 Material: ${sourceNode.data.label}`,
+          description: `Material bestellen für: ${sourceNode.data.label}\n\nHinweis: Diese Aufgabe wurde automatisch erstellt.`,
+          status: "TODO",
+          priority: "HIGH",
+        });
+
+        // Find position to the right of the source node
+        let sourceX = sourceNode.position.x;
+        let sourceY = sourceNode.position.y;
+        if (sourceNode.parentId) {
+          const parent = nodes.find((n) => n.id === sourceNode.parentId);
+          if (parent) {
+            sourceX += parent.position.x;
+            sourceY += parent.position.y;
+          }
+        }
+
+        // Create the new node to the right of the source task
+        const newNode: Node = {
+          id: `task-${materialTask.id}`,
+          type: "task",
+          position: {
+            x: sourceX + 300,
+            y: sourceY,
+          },
+          data: {
+            label: materialTask.title,
+            status: materialTask.status,
+            description: materialTask.description,
+            taskId: materialTask.id,
+            priority: "HIGH",
+            needsMaterial: false,
+            materialTaskCreated: false,
+            onEdit: handleEditTaskFromFlow,
+            onToggleStatus: handleToggleTaskFromFlow,
+            onDelete: handleDeleteTaskFromFlow,
+            onMaterialToggle: handleMaterialToggle,
+          },
+        };
+
+        // Create an edge from source to material task
+        const newEdge: Edge = {
+          id: `edge-material-${taskId}-${materialTask.id}`,
+          source: `task-${taskId}`,
+          target: `task-${materialTask.id}`,
+          type: "smoothstep",
+          animated: true,
+          style: { stroke: "#f97316", strokeWidth: 2 },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: "#f97316",
+          },
+        };
+
+        // Update the source node to mark material task as created
+        setNodes((nds) => [
+          ...nds.map((node) =>
+            node.data?.taskId === taskId
+              ? {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    needsMaterial: true,
+                    materialTaskCreated: true,
+                  },
+                }
+              : node
+          ),
+          newNode,
+        ]);
+
+        setEdges((eds) => [...eds, newEdge]);
+
+        // Reload project data
+        const { projects: updatedProjects } = await projectService.getProjects();
+        setProjects(updatedProjects);
+        const updatedProject = updatedProjects.find((p) => p.id === project.id);
+        if (updatedProject) {
+          setSelectedProject(updatedProject);
+          selectedProjectRef.current = updatedProject;
+        }
+
+        setHasFlowChanges(true);
+        toast({
+          title: "Material-Aufgabe erstellt",
+          description: `Eine neue Aufgabe für Materialbestellung wurde erstellt und verknüpft.`,
+        });
+      } catch (error) {
+        console.error("Error creating material task:", error);
+        toast({
+          title: "Fehler",
+          description: "Material-Aufgabe konnte nicht erstellt werden.",
+          variant: "destructive",
+        });
+      }
+    },
+    [nodes, setNodes, setEdges, toast, handleEditTaskFromFlow, handleToggleTaskFromFlow, handleDeleteTaskFromFlow]
+  );
 
   // Add Task in Flow - Open Dialog
   const openFlowTaskDialog = useCallback(() => {
@@ -937,9 +1097,12 @@ export default function ProjectsPage() {
           description: newTask.description,
           taskId: newTask.id,
           assignedTo: flowTaskForm.assignedTo,
+          needsMaterial: false,
+          materialTaskCreated: false,
           onEdit: handleEditTaskFromFlow,
           onToggleStatus: handleToggleTaskFromFlow,
           onDelete: handleDeleteTaskFromFlow,
+          onMaterialToggle: handleMaterialToggle,
         },
       };
 
@@ -949,7 +1112,7 @@ export default function ProjectsPage() {
       const { projects: updatedProjects } = await projectService.getProjects();
       setProjects(updatedProjects);
       const updatedProject = updatedProjects.find(
-        (p) => p.id === selectedProject.id
+        (p) => p.id === selectedProject.id,
       );
       if (updatedProject) {
         setSelectedProject(updatedProject);
@@ -961,7 +1124,7 @@ export default function ProjectsPage() {
           (u) =>
             `${u.firstName} ${u.lastName}` === flowTaskForm.assignedTo ||
             u.id === flowTaskForm.assignedTo ||
-            u.email === flowTaskForm.assignedTo
+            u.email === flowTaskForm.assignedTo,
         );
         if (assignedUser) {
           try {
@@ -1001,6 +1164,7 @@ export default function ProjectsPage() {
     handleEditTaskFromFlow,
     handleToggleTaskFromFlow,
     handleDeleteTaskFromFlow,
+    handleMaterialToggle,
     toast,
   ]);
 
@@ -1061,13 +1225,13 @@ export default function ProjectsPage() {
       const maxChildWidth = Math.max(
         NODE_MIN_WIDTH,
         ...childNodes.map(
-          (n) => (n.measured?.width as number) || NODE_MIN_WIDTH
-        )
+          (n) => (n.measured?.width as number) || NODE_MIN_WIDTH,
+        ),
       );
 
       // Stack children vertically
       const sortedChildren = [...childNodes].sort(
-        (a, b) => a.position.y - b.position.y
+        (a, b) => a.position.y - b.position.y,
       );
       const baseY = GROUP_HEADER + GROUP_PADDING;
 
@@ -1108,7 +1272,7 @@ export default function ProjectsPage() {
         return node;
       });
     },
-    []
+    [],
   );
 
   // Handle drag stop - grouping logic
@@ -1118,41 +1282,61 @@ export default function ProjectsPage() {
       if (draggedNode.type === "group") {
         const draggedWidth = (draggedNode.style?.width as number) || 250;
         const draggedHeight = (draggedNode.style?.height as number) || 200;
-        
+
         const overlappingGroup = nodes.find((node) => {
           if (node.type !== "group") return false;
           if (node.id === draggedNode.id) return false;
-          
+
           const nodeWidth = (node.style?.width as number) || 250;
           const nodeHeight = (node.style?.height as number) || 200;
-          
+
           // Check for overlap
-          const overlapX = draggedNode.position.x < node.position.x + nodeWidth &&
-                          draggedNode.position.x + draggedWidth > node.position.x;
-          const overlapY = draggedNode.position.y < node.position.y + nodeHeight &&
-                          draggedNode.position.y + draggedHeight > node.position.y;
-          
+          const overlapX =
+            draggedNode.position.x < node.position.x + nodeWidth &&
+            draggedNode.position.x + draggedWidth > node.position.x;
+          const overlapY =
+            draggedNode.position.y < node.position.y + nodeHeight &&
+            draggedNode.position.y + draggedHeight > node.position.y;
+
           return overlapX && overlapY;
         });
-        
+
         if (overlappingGroup) {
-          // Push the group away from the overlapping group
+          // Push the group away from the overlapping group with better spacing
           const overlapWidth = (overlappingGroup.style?.width as number) || 250;
+          const overlapHeight = (overlappingGroup.style?.height as number) || 200;
+          const draggedWidth = (draggedNode.style?.width as number) || 250;
           
-          setNodes((nds) => nds.map((node) => {
-            if (node.id === draggedNode.id) {
-              // Move to the right of the overlapping group
-              return {
-                ...node,
-                position: {
-                  x: overlappingGroup.position.x + overlapWidth + 20,
-                  y: draggedNode.position.y,
-                },
-              };
-            }
-            return node;
-          }));
+          // Determine best direction to push (right or down)
+          const pushRight = draggedNode.position.x >= overlappingGroup.position.x;
           
+          setNodes((nds) =>
+            nds.map((node) => {
+              if (node.id === draggedNode.id) {
+                if (pushRight) {
+                  // Move to the right of the overlapping group
+                  return {
+                    ...node,
+                    position: {
+                      x: overlappingGroup.position.x + overlapWidth + 40,
+                      y: draggedNode.position.y,
+                    },
+                  };
+                } else {
+                  // Move to the left of the overlapping group
+                  return {
+                    ...node,
+                    position: {
+                      x: overlappingGroup.position.x - draggedWidth - 40,
+                      y: draggedNode.position.y,
+                    },
+                  };
+                }
+              }
+              return node;
+            }),
+          );
+
           toast({
             title: "Überlappung vermieden",
             description: "Gruppen können nicht übereinander platziert werden.",
@@ -1223,8 +1407,8 @@ export default function ProjectsPage() {
 
         setEdges((eds) =>
           eds.filter(
-            (e) => e.source !== draggedNode.id && e.target !== draggedNode.id
-          )
+            (e) => e.source !== draggedNode.id && e.target !== draggedNode.id,
+          ),
         );
 
         setHasFlowChanges(true);
@@ -1266,7 +1450,7 @@ export default function ProjectsPage() {
               // Recalculate old group
               updatedNodes = recalculateGroup(
                 draggedNode.parentId!,
-                updatedNodes
+                updatedNodes,
               );
               return updatedNodes;
             });
@@ -1317,7 +1501,7 @@ export default function ProjectsPage() {
         const maxWidth = Math.max(
           draggedWidth,
           overlappingWidth,
-          NODE_MIN_WIDTH
+          NODE_MIN_WIDTH,
         );
         const groupWidth = maxWidth + GROUP_PADDING * 2;
 
@@ -1361,8 +1545,8 @@ export default function ProjectsPage() {
               e.source !== draggedNode.id &&
               e.target !== draggedNode.id &&
               e.source !== overlappingTask.id &&
-              e.target !== overlappingTask.id
-          )
+              e.target !== overlappingTask.id,
+          ),
         );
 
         setHasFlowChanges(true);
@@ -1372,7 +1556,7 @@ export default function ProjectsPage() {
         });
       }
     },
-    [nodes, setNodes, setEdges, recalculateGroup, toast]
+    [nodes, setNodes, setEdges, recalculateGroup, toast],
   );
 
   // Group rename handler
@@ -1384,11 +1568,11 @@ export default function ProjectsPage() {
             return { ...node, data: { ...node.data, label: newLabel } };
           }
           return node;
-        })
+        }),
       );
       setHasFlowChanges(true);
     },
-    [setNodes]
+    [setNodes],
   );
 
   // Group dissolve handler
@@ -1428,7 +1612,7 @@ export default function ProjectsPage() {
         description: "Die Aufgaben wurden aus der Gruppe entfernt.",
       });
     },
-    [nodes, setNodes, toast]
+    [nodes, setNodes, toast],
   );
 
   // Add callbacks to group nodes AND ensure task nodes have their callbacks
@@ -1459,6 +1643,7 @@ export default function ProjectsPage() {
               onEdit: handleEditTaskFromFlow,
               onToggleStatus: handleToggleTaskFromFlow,
               onDelete: handleDeleteTaskFromFlow,
+              onMaterialToggle: handleMaterialToggle,
             },
           };
         }
@@ -1471,7 +1656,8 @@ export default function ProjectsPage() {
       handleEditTaskFromFlow,
       handleToggleTaskFromFlow,
       handleDeleteTaskFromFlow,
-    ]
+      handleMaterialToggle,
+    ],
   );
 
   // Export Flow as PNG
@@ -1522,7 +1708,7 @@ export default function ProjectsPage() {
           const updatedNodes = savedFlow.nodes.map((node) => {
             if (node.type === "task" && node.data.taskId) {
               const task = project.tasks?.find(
-                (t) => t.id === node.data.taskId
+                (t) => t.id === node.data.taskId,
               );
               if (task) {
                 return {
@@ -1542,9 +1728,12 @@ export default function ProjectsPage() {
                     assignedTo: task.assignedTo,
                     dueDate: task.dueDate,
                     priority: task.priority,
+                    needsMaterial: node.data.needsMaterial || false,
+                    materialTaskCreated: node.data.materialTaskCreated || false,
                     onEdit: handleEditTaskFromFlow,
                     onToggleStatus: handleToggleTaskFromFlow,
                     onDelete: handleDeleteTaskFromFlow,
+                    onMaterialToggle: handleMaterialToggle,
                   },
                 };
               }
@@ -1593,9 +1782,12 @@ export default function ProjectsPage() {
           assignedTo: task.assignedTo,
           dueDate: task.dueDate,
           priority: task.priority,
+          needsMaterial: false,
+          materialTaskCreated: false,
           onEdit: handleEditTaskFromFlow,
           onToggleStatus: handleToggleTaskFromFlow,
           onDelete: handleDeleteTaskFromFlow,
+          onMaterialToggle: handleMaterialToggle,
         },
       }));
 
@@ -1623,9 +1815,10 @@ export default function ProjectsPage() {
       handleEditTaskFromFlow,
       handleToggleTaskFromFlow,
       handleDeleteTaskFromFlow,
+      handleMaterialToggle,
       setNodes,
       setEdges,
-    ]
+    ],
   );
 
   const onConnect = useCallback(
@@ -1640,7 +1833,7 @@ export default function ProjectsPage() {
       setEdges((eds) => addEdge(edge, eds));
       setHasFlowChanges(true);
     },
-    [setEdges]
+    [setEdges],
   );
 
   // Handler for deleting edges on click/tap (for iPad support)
@@ -1858,7 +2051,7 @@ export default function ProjectsPage() {
         await projectService.updateTask(
           selectedProject.id,
           taskToDelete.taskId,
-          taskForm
+          taskForm,
         );
         toast({
           title: "Aufgabe aktualisiert",
@@ -1882,7 +2075,7 @@ export default function ProjectsPage() {
                 };
               }
               return node;
-            })
+            }),
           );
         }
       } else {
@@ -1899,7 +2092,7 @@ export default function ProjectsPage() {
           (u) =>
             `${u.firstName} ${u.lastName}` === taskForm.assignedTo ||
             u.id === taskForm.assignedTo ||
-            u.email === taskForm.assignedTo
+            u.email === taskForm.assignedTo,
         );
         if (assignedUser) {
           try {
@@ -1927,7 +2120,7 @@ export default function ProjectsPage() {
 
       if (showFlowDialog && selectedProject) {
         const updatedProject = updatedProjects.find(
-          (p) => p.id === selectedProject.id
+          (p) => p.id === selectedProject.id,
         );
         if (updatedProject) {
           setSelectedProject(updatedProject);
@@ -1955,7 +2148,7 @@ export default function ProjectsPage() {
     try {
       await projectService.deleteTask(
         taskToDelete.projectId,
-        taskToDelete.taskId
+        taskToDelete.taskId,
       );
       toast({
         title: "Aufgabe gelöscht",
@@ -2125,10 +2318,10 @@ export default function ProjectsPage() {
                         const flowOrderMap = getFlowchartTaskOrder(project);
                         const tasks = sortTasksByFlowOrder(
                           project.tasks || [],
-                          flowOrderMap
+                          flowOrderMap,
                         );
                         const completedTasks = tasks.filter(
-                          (t) => t.status === "DONE"
+                          (t) => t.status === "DONE",
                         ).length;
 
                         return (
@@ -2136,7 +2329,7 @@ export default function ProjectsPage() {
                             key={project.id}
                             className={cn(
                               "transition-all hover:shadow-md",
-                              project.status === "COMPLETED" && "opacity-70"
+                              project.status === "COMPLETED" && "opacity-70",
                             )}
                           >
                             <CardHeader className="pb-3">
@@ -2163,7 +2356,7 @@ export default function ProjectsPage() {
                                     <Badge
                                       className={cn(
                                         "text-xs",
-                                        getStatusBadgeClass(project.status)
+                                        getStatusBadgeClass(project.status),
                                       )}
                                     >
                                       {project.status === "PLANNED" &&
@@ -2180,7 +2373,7 @@ export default function ProjectsPage() {
                                     <Badge
                                       className={cn(
                                         "text-xs",
-                                        getPriorityBadgeClass(project.priority)
+                                        getPriorityBadgeClass(project.priority),
                                       )}
                                     >
                                       {getPriorityLabel(project.priority)}
@@ -2210,7 +2403,7 @@ export default function ProjectsPage() {
                                       <div
                                         className={cn(
                                           "h-full transition-all",
-                                          getProgressColor(progress)
+                                          getProgressColor(progress),
                                         )}
                                         style={{ width: `${progress}%` }}
                                       />
@@ -2225,7 +2418,7 @@ export default function ProjectsPage() {
                                           <Calendar className="h-3 w-3" />
                                           Start:{" "}
                                           {new Date(
-                                            project.startDate
+                                            project.startDate,
                                           ).toLocaleDateString("de-DE")}
                                         </span>
                                       )}
@@ -2234,7 +2427,7 @@ export default function ProjectsPage() {
                                           <Target className="h-3 w-3" />
                                           Ende:{" "}
                                           {new Date(
-                                            project.endDate
+                                            project.endDate,
                                           ).toLocaleDateString("de-DE")}
                                         </span>
                                       )}
@@ -2311,7 +2504,7 @@ export default function ProjectsPage() {
                                     <div className="space-y-1">
                                       {tasks.map((task, index) => {
                                         const flowOrder = flowOrderMap.get(
-                                          task.id
+                                          task.id,
                                         );
                                         const priorityBorderColors: Record<
                                           string,
@@ -2331,7 +2524,7 @@ export default function ProjectsPage() {
                                                 task.priority || "NORMAL"
                                               ],
                                               task.status === "DONE" &&
-                                                "opacity-60"
+                                                "opacity-60",
                                             )}
                                           >
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -2341,7 +2534,7 @@ export default function ProjectsPage() {
                                                   "w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0",
                                                   task.status === "DONE"
                                                     ? "bg-green-500/20 text-green-600"
-                                                    : "bg-primary/10 text-primary"
+                                                    : "bg-primary/10 text-primary",
                                                 )}
                                               >
                                                 {flowOrder ?? index + 1}
@@ -2350,7 +2543,7 @@ export default function ProjectsPage() {
                                                 onClick={() =>
                                                   toggleTaskStatus(
                                                     project,
-                                                    task
+                                                    task,
                                                   )
                                                 }
                                                 className="hover:scale-110 transition-transform flex-shrink-0"
@@ -2371,7 +2564,7 @@ export default function ProjectsPage() {
                                                   className={cn(
                                                     "font-medium text-sm truncate",
                                                     task.status === "DONE" &&
-                                                      "line-through text-muted-foreground"
+                                                      "line-through text-muted-foreground",
                                                   )}
                                                 >
                                                   {task.title}
@@ -2396,8 +2589,8 @@ export default function ProjectsPage() {
                                                 className={cn(
                                                   "text-[10px] px-1.5 py-0 h-5",
                                                   getTaskStatusBadgeClass(
-                                                    task.status
-                                                  )
+                                                    task.status,
+                                                  ),
                                                 )}
                                               >
                                                 {getStatusLabel(task.status)}
@@ -2409,7 +2602,7 @@ export default function ProjectsPage() {
                                                 onClick={() =>
                                                   openEditTaskDialog(
                                                     project,
-                                                    task
+                                                    task,
                                                   )
                                                 }
                                               >
@@ -2475,7 +2668,7 @@ export default function ProjectsPage() {
                         width: `${
                           selectedProject.tasks?.length
                             ? (selectedProject.tasks.filter(
-                                (t) => t.status === "DONE"
+                                (t) => t.status === "DONE",
                               ).length /
                                 selectedProject.tasks.length) *
                               100
@@ -2499,44 +2692,57 @@ export default function ProjectsPage() {
           >
             <ReactFlow
               nodes={nodesWithGroupCallbacks}
-              edges={edges.filter((e) => {
-                // Hide edges from/to nodes that are in a group
-                const sourceNode = nodes.find((n) => n.id === e.source);
-                const targetNode = nodes.find((n) => n.id === e.target);
-                if (sourceNode?.parentId || targetNode?.parentId) return false;
-                return true;
-              }).map((e) => {
-                // Color edges green if source node is completed
-                const sourceNode = nodes.find((n) => n.id === e.source);
-                const sourceData = sourceNode?.data as FlowNodeData | undefined;
-                
-                // Check if source is a group - if so, check if all children are done
-                let isSourceDone = false;
-                if (sourceNode?.type === 'start') {
-                  isSourceDone = true;
-                } else if (sourceNode?.type === 'group') {
-                  // Get all child nodes of this group
-                  const childNodes = nodes.filter((n) => n.parentId === sourceNode.id);
-                  // Group is done if all children are done
-                  isSourceDone = childNodes.length > 0 && childNodes.every((child) => {
-                    const childData = child.data as FlowNodeData | undefined;
-                    return childData?.status === 'DONE';
-                  });
-                } else if (sourceNode?.type === 'milestone') {
-                  isSourceDone = (sourceNode.data as MilestoneNodeData)?.completed === true;
-                } else if (sourceData?.status === 'DONE') {
-                  isSourceDone = true;
-                }
-                
-                return {
-                  ...e,
-                  style: {
-                    stroke: isSourceDone ? '#22c55e' : '#64748b',
-                    strokeWidth: isSourceDone ? 3 : 2,
-                  },
-                  animated: !isSourceDone, // Only animate if not completed
-                };
-              })}
+              edges={edges
+                .filter((e) => {
+                  // Hide edges from/to nodes that are in a group
+                  const sourceNode = nodes.find((n) => n.id === e.source);
+                  const targetNode = nodes.find((n) => n.id === e.target);
+                  if (sourceNode?.parentId || targetNode?.parentId)
+                    return false;
+                  return true;
+                })
+                .map((e) => {
+                  // Color edges green if source node is completed
+                  const sourceNode = nodes.find((n) => n.id === e.source);
+                  const sourceData = sourceNode?.data as
+                    | FlowNodeData
+                    | undefined;
+
+                  // Check if source is a group - if so, check if all children are done
+                  let isSourceDone = false;
+                  if (sourceNode?.type === "start") {
+                    isSourceDone = true;
+                  } else if (sourceNode?.type === "group") {
+                    // Get all child nodes of this group
+                    const childNodes = nodes.filter(
+                      (n) => n.parentId === sourceNode.id,
+                    );
+                    // Group is done if all children are done
+                    isSourceDone =
+                      childNodes.length > 0 &&
+                      childNodes.every((child) => {
+                        const childData = child.data as
+                          | FlowNodeData
+                          | undefined;
+                        return childData?.status === "DONE";
+                      });
+                  } else if (sourceNode?.type === "milestone") {
+                    isSourceDone =
+                      (sourceNode.data as MilestoneNodeData)?.completed ===
+                      true;
+                  } else if (sourceData?.status === "DONE") {
+                    isSourceDone = true;
+                  }
+
+                  return {
+                    ...e,
+                    style: {
+                      stroke: isSourceDone ? "#22c55e" : "#64748b",
+                      strokeWidth: isSourceDone ? 3 : 2,
+                    },
+                    animated: !isSourceDone, // Only animate if not completed
+                  };
+                })}
               onNodesChange={(changes) => {
                 onNodesChange(changes);
                 setHasFlowChanges(true);
@@ -2868,12 +3074,12 @@ export default function ProjectsPage() {
                       className={cn(
                         "h-10",
                         projectForm.priority === priority &&
-                          getPriorityBadgeClass(priority)
+                          getPriorityBadgeClass(priority),
                       )}
                     >
                       {getPriorityLabel(priority)}
                     </Button>
-                  )
+                  ),
                 )}
               </div>
             </div>
