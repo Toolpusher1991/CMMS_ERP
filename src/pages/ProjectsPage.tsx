@@ -262,50 +262,70 @@ function TaskFlowNode({
               className="w-2.5 h-2.5 !bg-primary"
             />
 
-            {/* Compact content */}
-            <div className="flex items-center gap-2 pl-1">
-              <span
-                className={cn(
-                  "font-medium text-sm truncate flex-1",
-                  data.status === "DONE" && "line-through opacity-60",
-                )}
-              >
-                {data.label}
-              </span>
-              {hasMaterial && (
-                <Package
+            {/* Content - mehr Details sichtbar */}
+            <div className="pl-2 space-y-1">
+              {/* Titel */}
+              <div className="flex items-center gap-2">
+                <span
                   className={cn(
-                    "h-3.5 w-3.5 flex-shrink-0",
-                    localMaterial.materialDelivered
-                      ? "text-green-500"
-                      : "text-orange-500",
+                    "font-medium text-sm truncate flex-1",
+                    data.status === "DONE" && "line-through opacity-60",
                   )}
-                />
-              )}
-            </div>
-
-            {/* Minimal info row */}
-            <div className="flex items-center gap-1.5 mt-1 pl-1">
-              <span
-                className={cn(
-                  "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
-                  statusBadgeColors[data.status],
-                )}
-              >
-                {data.status === "TODO"
-                  ? "Offen"
-                  : data.status === "IN_PROGRESS"
-                    ? "Arbeit"
-                    : data.status === "REVIEW"
-                      ? "Prüfen"
-                      : "Fertig"}
-              </span>
-              {data.assignedTo && (
-                <span className="text-[10px] text-muted-foreground truncate max-w-[60px]">
-                  {data.assignedTo}
+                >
+                  {data.label}
                 </span>
+                {hasMaterial && (
+                  <Package
+                    className={cn(
+                      "h-3.5 w-3.5 flex-shrink-0",
+                      localMaterial.materialDelivered
+                        ? "text-green-500"
+                        : "text-orange-500",
+                    )}
+                  />
+                )}
+              </div>
+
+              {/* Beschreibung */}
+              {data.description && (
+                <p className="text-[10px] text-muted-foreground line-clamp-2">
+                  {data.description}
+                </p>
               )}
-              {isOverdue && <AlertTriangle className="h-3 w-3 text-red-500" />}
+
+              {/* Status & Verantwortlicher */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
+                    statusBadgeColors[data.status],
+                  )}
+                >
+                  {data.status === "TODO"
+                    ? "Offen"
+                    : data.status === "IN_PROGRESS"
+                      ? "In Arbeit"
+                      : data.status === "REVIEW"
+                        ? "Prüfen"
+                        : "Fertig"}
+                </span>
+                {data.assignedTo && (
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                    <UserIcon className="h-2.5 w-2.5" />
+                    {data.assignedTo}
+                  </span>
+                )}
+                {data.dueDate && (
+                  <span className={cn(
+                    "text-[10px] flex items-center gap-0.5",
+                    isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"
+                  )}>
+                    <Calendar className="h-2.5 w-2.5" />
+                    {new Date(data.dueDate).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}
+                  </span>
+                )}
+                {isOverdue && <AlertTriangle className="h-3 w-3 text-red-500" />}
+              </div>
             </div>
 
             <Handle
@@ -553,11 +573,18 @@ function TaskFlowNode({
                 size="sm"
                 variant="outline"
                 className="flex-1"
-                onClick={() => {
-                  if (data.onEdit && data.taskId) {
-                    data.onEdit(data.taskId);
-                    setIsOpen(false);
-                  }
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const taskId = data.taskId;
+                  const editFn = data.onEdit;
+                  setIsOpen(false);
+                  // Delay to allow popover to close first
+                  setTimeout(() => {
+                    if (editFn && taskId) {
+                      editFn(taskId);
+                    }
+                  }, 100);
                 }}
               >
                 <Edit className="h-3 w-3 mr-1" />
