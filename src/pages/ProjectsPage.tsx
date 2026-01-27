@@ -80,6 +80,7 @@ import {
   X,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   FolderKanban,
   ListTodo,
   ArrowLeft,
@@ -108,21 +109,29 @@ interface FlowNodeData extends Record<string, unknown> {
   assignedTo?: string;
   dueDate?: string;
   priority?: string;
+  // Material info - stored directly in the task
   needsMaterial?: boolean;
-  materialTaskCreated?: boolean;
-  // Material order info (for material tasks)
-  isMaterialTask?: boolean;
   materialNumber?: string;
   materialQuantity?: string;
   materialPrNumber?: string;
   materialPoNumber?: string;
+  materialDescription?: string;
   materialDelivered?: boolean;
-  parentTaskId?: string; // The task that triggered the material order
+  materialExpanded?: boolean;
   onEdit?: (taskId: string) => void;
   onToggleStatus?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
-  onMaterialToggle?: (taskId: string, needsMaterial: boolean) => void;
-  onMaterialDelivered?: (taskId: string) => void;
+  onMaterialUpdate?: (taskId: string, materialData: MaterialData) => void;
+}
+
+interface MaterialData {
+  needsMaterial: boolean;
+  materialNumber?: string;
+  materialQuantity?: string;
+  materialPrNumber?: string;
+  materialPoNumber?: string;
+  materialDescription?: string;
+  materialDelivered?: boolean;
 }
 
 interface MilestoneNodeData extends Record<string, unknown> {
@@ -144,7 +153,18 @@ interface SavedFlowData {
 }
 
 // ===== Flow Node Components =====
-function TaskFlowNode({ data }: { data: FlowNodeData }) {
+function TaskFlowNode({ data, selected }: { data: FlowNodeData; selected?: boolean }) {
+  const [materialExpanded, setMaterialExpanded] = useState(data.materialExpanded || false);
+  const [localMaterial, setLocalMaterial] = useState({
+    needsMaterial: data.needsMaterial || false,
+    materialNumber: data.materialNumber || "",
+    materialQuantity: data.materialQuantity || "",
+    materialPrNumber: data.materialPrNumber || "",
+    materialPoNumber: data.materialPoNumber || "",
+    materialDescription: data.materialDescription || "",
+    materialDelivered: data.materialDelivered || false,
+  });
+
   const statusColors: Record<TaskStatus, string> = {
     TODO: "bg-gray-100 border-gray-300 dark:bg-gray-800 dark:border-gray-600",
     IN_PROGRESS:
@@ -188,17 +208,33 @@ function TaskFlowNode({ data }: { data: FlowNodeData }) {
     }
   };
 
-  const handleMaterialClick = (e: React.MouseEvent) => {
+  const handleMaterialToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (data.onMaterialToggle && data.taskId && !data.materialTaskCreated) {
-      data.onMaterialToggle(data.taskId, true);
+    const newNeedsMaterial = !localMaterial.needsMaterial;
+    const updatedMaterial = { ...localMaterial, needsMaterial: newNeedsMaterial };
+    setLocalMaterial(updatedMaterial);
+    if (newNeedsMaterial) {
+      setMaterialExpanded(true);
+    }
+    if (data.onMaterialUpdate && data.taskId) {
+      data.onMaterialUpdate(data.taskId, updatedMaterial);
     }
   };
 
-  const handleDeliveredClick = (e: React.MouseEvent) => {
+  const handleMaterialChange = (field: string, value: string) => {
+    const updatedMaterial = { ...localMaterial, [field]: value };
+    setLocalMaterial(updatedMaterial);
+    if (data.onMaterialUpdate && data.taskId) {
+      data.onMaterialUpdate(data.taskId, updatedMaterial);
+    }
+  };
+
+  const handleDeliveredToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (data.onMaterialDelivered && data.taskId && !data.materialDelivered) {
-      data.onMaterialDelivered(data.taskId);
+    const updatedMaterial = { ...localMaterial, materialDelivered: !localMaterial.materialDelivered };
+    setLocalMaterial(updatedMaterial);
+    if (data.onMaterialUpdate && data.taskId) {
+      data.onMaterialUpdate(data.taskId, updatedMaterial);
     }
   };
 
@@ -208,182 +244,277 @@ function TaskFlowNode({ data }: { data: FlowNodeData }) {
     new Date(data.dueDate) < new Date() &&
     data.status !== "DONE";
 
-  // Special styling for material tasks
-  const isMaterialTask = data.isMaterialTask;
+  // Check if has material info
+  const hasMaterialInfo = localMaterial.needsMaterial && (
+    localMaterial.materialNumber || 
+    localMaterial.materialQuantity || 
+    localMaterial.materialPrNumber || 
+    localMaterial.materialPoNumber
+  );
 
   return (
-    <div
-      onDoubleClick={handleDoubleClick}
-      className={cn(
-        "px-4 py-3 rounded-lg border-2 shadow-md min-w-[200px] max-w-[280px] cursor-pointer transition-all hover:shadow-lg border-l-4",
-        isMaterialTask 
-          ? "bg-orange-50 border-orange-400 dark:bg-orange-950 dark:border-orange-500 border-l-orange-500"
-          : statusColors[data.status],
-        !isMaterialTask && priorityColors[data.priority || "NORMAL"],
-        data.status === "DONE" && "opacity-90",
-        isOverdue && "ring-2 ring-red-500/50",
-        data.materialDelivered && "ring-2 ring-green-400/50",
-      )}
-    >
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="w-3 h-3 !bg-primary"
+    <>
+      <NodeResizer
+        minWidth={220}
+        minHeight={100}
+        isVisible={selected}
+        lineClassName="!border-primary"
+        handleClassName="!w-3 !h-3 !bg-primary !border-primary"
       />
-      <div className="flex items-center gap-2">
-        <button
-          onClick={handleStatusClick}
-          className="hover:scale-125 transition-transform cursor-pointer"
-          title="Status ändern"
-        >
-          {isMaterialTask ? (
-            <Package className={cn("h-4 w-4", data.materialDelivered ? "text-green-600" : "text-orange-500")} />
-          ) : (
-            statusIcons[data.status]
-          )}
-        </button>
-        <span
-          className={cn(
-            "font-medium text-sm flex-1",
-            data.status === "DONE" && "line-through text-muted-foreground",
-          )}
-        >
-          {data.label}
-        </span>
-        <div className="flex gap-1">
-          <button
-            onClick={handleDoubleClick}
-            className="opacity-50 hover:opacity-100 transition-opacity p-0.5"
-            title="Bearbeiten"
-          >
-            <Edit className="h-3 w-3" />
-          </button>
-          <button
-            onClick={handleDeleteClick}
-            className="opacity-50 hover:opacity-100 transition-opacity text-red-500 p-0.5"
-            title="Löschen"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </div>
-      </div>
-      {data.description && (
-        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-          {data.description}
-        </p>
-      )}
-      {/* Material Info für Material-Tasks */}
-      {isMaterialTask && (data.materialNumber || data.materialQuantity || data.materialPrNumber || data.materialPoNumber) && (
-        <div className="mt-2 p-2 bg-orange-100/50 dark:bg-orange-900/30 rounded text-xs space-y-1">
-          {data.materialNumber && (
-            <div className="flex items-center gap-1">
-              <span className="font-medium text-orange-700 dark:text-orange-300">Mat.-Nr:</span>
-              <span className="text-orange-600 dark:text-orange-400">{data.materialNumber}</span>
-            </div>
-          )}
-          {data.materialQuantity && (
-            <div className="flex items-center gap-1">
-              <span className="font-medium text-orange-700 dark:text-orange-300">Menge:</span>
-              <span className="text-orange-600 dark:text-orange-400">{data.materialQuantity}</span>
-            </div>
-          )}
-          {data.materialPrNumber && (
-            <div className="flex items-center gap-1">
-              <span className="font-medium text-orange-700 dark:text-orange-300">PR:</span>
-              <span className="text-orange-600 dark:text-orange-400">{data.materialPrNumber}</span>
-            </div>
-          )}
-          {data.materialPoNumber && (
-            <div className="flex items-center gap-1">
-              <span className="font-medium text-orange-700 dark:text-orange-300">PO:</span>
-              <span className="text-orange-600 dark:text-orange-400">{data.materialPoNumber}</span>
-            </div>
-          )}
-        </div>
-      )}
-      <div className="flex items-center gap-2 mt-2 flex-wrap">
-        {data.assignedTo && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <UserIcon className="h-3 w-3" />
-            <span className="truncate max-w-[80px]">{data.assignedTo}</span>
-          </div>
+      <div
+        onDoubleClick={handleDoubleClick}
+        className={cn(
+          "px-4 py-3 rounded-lg border-2 shadow-md min-w-[220px] cursor-pointer transition-all hover:shadow-lg border-l-4 h-full",
+          statusColors[data.status],
+          priorityColors[data.priority || "NORMAL"],
+          data.status === "DONE" && "opacity-90",
+          isOverdue && "ring-2 ring-red-500/50",
+          localMaterial.needsMaterial && !localMaterial.materialDelivered && "ring-2 ring-orange-400/50",
+          localMaterial.materialDelivered && "ring-2 ring-green-400/50",
         )}
-        {data.dueDate && (
-          <div
+      >
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="w-3 h-3 !bg-primary"
+        />
+        
+        {/* Header */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleStatusClick}
+            className="hover:scale-125 transition-transform cursor-pointer"
+            title="Status ändern"
+          >
+            {statusIcons[data.status]}
+          </button>
+          <span
             className={cn(
-              "flex items-center gap-1 text-xs",
-              isOverdue ? "text-red-500 font-medium" : "text-muted-foreground",
+              "font-medium text-sm flex-1",
+              data.status === "DONE" && "line-through text-muted-foreground",
             )}
           >
-            {isOverdue && <AlertTriangle className="h-3 w-3" />}
-            <Calendar className="h-3 w-3" />
-            <span>
-              {new Date(data.dueDate).toLocaleDateString("de-DE", {
-                day: "2-digit",
-                month: "2-digit",
-              })}
-            </span>
+            {data.label}
+          </span>
+          <div className="flex gap-1">
+            <button
+              onClick={handleDoubleClick}
+              className="opacity-50 hover:opacity-100 transition-opacity p-0.5"
+              title="Bearbeiten"
+            >
+              <Edit className="h-3 w-3" />
+            </button>
+            <button
+              onClick={handleDeleteClick}
+              className="opacity-50 hover:opacity-100 transition-opacity text-red-500 p-0.5"
+              title="Löschen"
+            >
+              <X className="h-3 w-3" />
+            </button>
           </div>
+        </div>
+
+        {/* Description */}
+        {data.description && (
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+            {data.description}
+          </p>
         )}
-      </div>
-      {/* Material bestellen Button ODER Geliefert Button */}
-      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-        {isMaterialTask ? (
-          // Geliefert Button für Material-Tasks
+
+        {/* Meta Info (Assigned, Due Date) */}
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          {data.assignedTo && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <UserIcon className="h-3 w-3" />
+              <span className="truncate max-w-[80px]">{data.assignedTo}</span>
+            </div>
+          )}
+          {data.dueDate && (
+            <div
+              className={cn(
+                "flex items-center gap-1 text-xs",
+                isOverdue ? "text-red-500 font-medium" : "text-muted-foreground",
+              )}
+            >
+              {isOverdue && <AlertTriangle className="h-3 w-3" />}
+              <Calendar className="h-3 w-3" />
+              <span>
+                {new Date(data.dueDate).toLocaleDateString("de-DE", {
+                  day: "2-digit",
+                  month: "2-digit",
+                })}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Material Section */}
+        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+          {/* Material Toggle Button */}
           <button
-            onClick={handleDeliveredClick}
-            disabled={data.materialDelivered || data.status === "DONE"}
+            onClick={handleMaterialToggle}
             className={cn(
               "flex items-center gap-1.5 text-xs px-2 py-1.5 rounded transition-all w-full justify-center font-medium",
-              data.materialDelivered || data.status === "DONE"
-                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 cursor-default"
-                : "bg-orange-500 text-white hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700",
-            )}
-            title={data.materialDelivered ? "Material wurde geliefert" : "Material als geliefert markieren"}
-          >
-            {data.materialDelivered || data.status === "DONE" ? (
-              <>
-                <CheckCircle2 className="h-4 w-4" />
-                Material geliefert ✓
-              </>
-            ) : (
-              <>
-                <Package className="h-4 w-4" />
-                Als geliefert markieren
-              </>
-            )}
-          </button>
-        ) : (
-          // Material bestellen Button für normale Tasks
-          <button
-            onClick={handleMaterialClick}
-            disabled={data.materialTaskCreated}
-            className={cn(
-              "flex items-center gap-1.5 text-xs px-2 py-1 rounded transition-all w-full justify-center",
-              data.materialTaskCreated
-                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 cursor-default"
+              localMaterial.needsMaterial
+                ? localMaterial.materialDelivered
+                  ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                  : "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
                 : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600",
             )}
-            title={data.materialTaskCreated ? "Material-Aufgabe wurde erstellt" : "Material bestellen - erstellt eine verknüpfte Aufgabe"}
           >
-            <Package className="h-3 w-3" />
-            {data.materialTaskCreated ? (
-              <>
-                <CheckCircle2 className="h-3 w-3" />
-                Material bestellt
-              </>
+            <Package className="h-3.5 w-3.5" />
+            {localMaterial.needsMaterial ? (
+              localMaterial.materialDelivered ? (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Material geliefert
+                </>
+              ) : (
+                "Material benötigt"
+              )
             ) : (
-              "Material bestellen"
+              "Material hinzufügen"
+            )}
+            {localMaterial.needsMaterial && !localMaterial.materialDelivered && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMaterialExpanded(!materialExpanded);
+                }}
+                className="ml-auto"
+              >
+                {materialExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
             )}
           </button>
-        )}
+
+          {/* Material Details Popover/Collapsible */}
+          {localMaterial.needsMaterial && materialExpanded && (
+            <div 
+              className="mt-2 p-3 bg-orange-50 dark:bg-orange-950/50 rounded-lg border border-orange-200 dark:border-orange-800 space-y-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Material Number & Quantity */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-medium text-orange-700 dark:text-orange-300 block mb-0.5">
+                    Mat.-Nr.
+                  </label>
+                  <input
+                    type="text"
+                    value={localMaterial.materialNumber}
+                    onChange={(e) => handleMaterialChange("materialNumber", e.target.value)}
+                    className="w-full px-2 py-1 text-xs rounded border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-900/50 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                    placeholder="z.B. 12345"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-medium text-orange-700 dark:text-orange-300 block mb-0.5">
+                    Menge
+                  </label>
+                  <input
+                    type="text"
+                    value={localMaterial.materialQuantity}
+                    onChange={(e) => handleMaterialChange("materialQuantity", e.target.value)}
+                    className="w-full px-2 py-1 text-xs rounded border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-900/50 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                    placeholder="z.B. 5 Stk."
+                  />
+                </div>
+              </div>
+
+              {/* PR & PO */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-medium text-orange-700 dark:text-orange-300 block mb-0.5">
+                    PR-Nr.
+                  </label>
+                  <input
+                    type="text"
+                    value={localMaterial.materialPrNumber}
+                    onChange={(e) => handleMaterialChange("materialPrNumber", e.target.value)}
+                    className="w-full px-2 py-1 text-xs rounded border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-900/50 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                    placeholder="PR-Nummer"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-medium text-orange-700 dark:text-orange-300 block mb-0.5">
+                    PO-Nr.
+                  </label>
+                  <input
+                    type="text"
+                    value={localMaterial.materialPoNumber}
+                    onChange={(e) => handleMaterialChange("materialPoNumber", e.target.value)}
+                    className="w-full px-2 py-1 text-xs rounded border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-900/50 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                    placeholder="PO-Nummer"
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-[10px] font-medium text-orange-700 dark:text-orange-300 block mb-0.5">
+                  Beschreibung
+                </label>
+                <input
+                  type="text"
+                  value={localMaterial.materialDescription}
+                  onChange={(e) => handleMaterialChange("materialDescription", e.target.value)}
+                  className="w-full px-2 py-1 text-xs rounded border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-900/50 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="Materialbeschreibung..."
+                />
+              </div>
+
+              {/* Delivered Toggle */}
+              <button
+                onClick={handleDeliveredToggle}
+                className={cn(
+                  "flex items-center gap-1.5 text-xs px-2 py-1.5 rounded transition-all w-full justify-center font-medium mt-1",
+                  localMaterial.materialDelivered
+                    ? "bg-green-500 text-white hover:bg-green-600"
+                    : "bg-orange-500 text-white hover:bg-orange-600",
+                )}
+              >
+                {localMaterial.materialDelivered ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Geliefert ✓
+                  </>
+                ) : (
+                  <>
+                    <Package className="h-4 w-4" />
+                    Als geliefert markieren
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Compact Material Summary when collapsed */}
+          {localMaterial.needsMaterial && !materialExpanded && hasMaterialInfo && (
+            <div 
+              className="mt-1 text-[10px] text-orange-600 dark:text-orange-400 cursor-pointer hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMaterialExpanded(true);
+              }}
+            >
+              {[
+                localMaterial.materialNumber && `#${localMaterial.materialNumber}`,
+                localMaterial.materialQuantity && `${localMaterial.materialQuantity}`,
+                localMaterial.materialPrNumber && `PR:${localMaterial.materialPrNumber}`,
+                localMaterial.materialPoNumber && `PO:${localMaterial.materialPoNumber}`,
+              ].filter(Boolean).join(" • ")}
+            </div>
+          )}
+        </div>
+
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="w-3 h-3 !bg-primary"
+        />
       </div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="w-3 h-3 !bg-primary"
-      />
-    </div>
+    </>
   );
 }
 
@@ -775,17 +906,6 @@ export default function ProjectsPage() {
     label: "",
   });
 
-  // Material Order Dialog State
-  const [showMaterialDialog, setShowMaterialDialog] = useState(false);
-  const [materialOrderTaskId, setMaterialOrderTaskId] = useState<string | null>(null);
-  const [materialForm, setMaterialForm] = useState({
-    materialNumber: "",
-    quantity: "",
-    prNumber: "",
-    poNumber: "",
-    description: "",
-  });
-
   // Load Users
   const loadUsers = useCallback(async () => {
     try {
@@ -1014,237 +1134,32 @@ export default function ProjectsPage() {
     }
   }, [flowTaskToDelete, setNodes, setEdges, toast]);
 
-  // Handle Material Toggle - Opens material order dialog
-  const handleMaterialToggle = useCallback(
-    (taskId: string, _needsMaterial: boolean) => {
-      setMaterialOrderTaskId(taskId);
-      setMaterialForm({
-        materialNumber: "",
-        quantity: "",
-        prNumber: "",
-        poNumber: "",
-        description: "",
-      });
-      setShowMaterialDialog(true);
-    },
-    []
-  );
-
-  // Create Material Task after dialog submission
-  const handleCreateMaterialTask = useCallback(async () => {
-    const project = selectedProjectRef.current;
-    const taskId = materialOrderTaskId;
-    if (!project || !taskId) return;
-
-    try {
-      // Find the source node to get task info
-      const sourceNode = nodes.find((n) => n.data?.taskId === taskId);
-      if (!sourceNode) return;
-
-      // Build description with material info
-      const descriptionParts = [
-        `Material bestellen für: ${sourceNode.data.label}`,
-        "",
-        materialForm.materialNumber ? `📋 Materialnummer: ${materialForm.materialNumber}` : "",
-        materialForm.quantity ? `📦 Menge: ${materialForm.quantity}` : "",
-        materialForm.prNumber ? `📄 PR-Nummer: ${materialForm.prNumber}` : "",
-        materialForm.poNumber ? `📑 PO-Nummer: ${materialForm.poNumber}` : "",
-        materialForm.description ? `📝 Beschreibung: ${materialForm.description}` : "",
-        "",
-        "⚠️ Bitte als 'geliefert' markieren wenn Material angekommen ist.",
-      ].filter(Boolean).join("\n");
-
-      // Create a new "Material bestellen" task in the database
-      const materialTask = await projectService.createTask(project.id, {
-        title: `📦 Material: ${sourceNode.data.label}`,
-        description: descriptionParts,
-        status: "TODO",
-        priority: "HIGH",
-      });
-
-      // Find position - place BELOW the source node (parallel layout)
-      let sourceX = sourceNode.position.x;
-      let sourceY = sourceNode.position.y;
-      if (sourceNode.parentId) {
-        const parent = nodes.find((n) => n.id === sourceNode.parentId);
-        if (parent) {
-          sourceX += parent.position.x;
-          sourceY += parent.position.y;
-        }
-      }
-
-      // Check if there are already material tasks below - stack them
-      const existingMaterialTasks = nodes.filter((n) => 
-        n.data?.isMaterialTask && 
-        n.position.x >= sourceX + 280 && 
-        n.position.x <= sourceX + 360
+  // Handle Material Update - updates material info directly on the task
+  const handleMaterialUpdate = useCallback(
+    (taskId: string, materialData: MaterialData) => {
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.data?.taskId === taskId) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                needsMaterial: materialData.needsMaterial,
+                materialNumber: materialData.materialNumber,
+                materialQuantity: materialData.materialQuantity,
+                materialPrNumber: materialData.materialPrNumber,
+                materialPoNumber: materialData.materialPoNumber,
+                materialDescription: materialData.materialDescription,
+                materialDelivered: materialData.materialDelivered,
+              },
+            };
+          }
+          return node;
+        })
       );
-      const yOffset = existingMaterialTasks.length * 180;
-
-      // Create the new node to the RIGHT of the source task (parallel arrangement)
-      const newNode: Node = {
-        id: `task-${materialTask.id}`,
-        type: "task",
-        position: {
-          x: sourceX + 320,
-          y: sourceY + yOffset,
-        },
-        data: {
-          label: materialTask.title,
-          status: materialTask.status,
-          description: materialTask.description,
-          taskId: materialTask.id,
-          priority: "HIGH",
-          // Material task specific data
-          isMaterialTask: true,
-          materialNumber: materialForm.materialNumber,
-          materialQuantity: materialForm.quantity,
-          materialPrNumber: materialForm.prNumber,
-          materialPoNumber: materialForm.poNumber,
-          materialDelivered: false,
-          parentTaskId: taskId,
-          // Callbacks
-          onEdit: handleEditTaskFromFlow,
-          onToggleStatus: handleToggleTaskFromFlow,
-          onDelete: handleDeleteTaskFromFlow,
-          onMaterialToggle: handleMaterialToggle,
-          onMaterialDelivered: handleMaterialDelivered,
-        },
-      };
-
-      // Create an edge from source to material task
-      const newEdge: Edge = {
-        id: `edge-material-${taskId}-${materialTask.id}`,
-        source: `task-${taskId}`,
-        target: `task-${materialTask.id}`,
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#f97316", strokeWidth: 2 },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: "#f97316",
-        },
-      };
-
-      // Update the source node to mark material task as created
-      setNodes((nds) => [
-        ...nds.map((node) =>
-          node.data?.taskId === taskId
-            ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  needsMaterial: true,
-                  materialTaskCreated: true,
-                },
-              }
-            : node
-        ),
-        newNode,
-      ]);
-
-      setEdges((eds) => [...eds, newEdge]);
-
-      // Reload project data
-      const { projects: updatedProjects } = await projectService.getProjects();
-      setProjects(updatedProjects);
-      const updatedProject = updatedProjects.find((p) => p.id === project.id);
-      if (updatedProject) {
-        setSelectedProject(updatedProject);
-        selectedProjectRef.current = updatedProject;
-      }
-
       setHasFlowChanges(true);
-      setShowMaterialDialog(false);
-      setMaterialOrderTaskId(null);
-      
-      toast({
-        title: "Material-Aufgabe erstellt",
-        description: materialForm.materialNumber 
-          ? `Material ${materialForm.materialNumber} (${materialForm.quantity || "?"} Stk.) wurde bestellt.`
-          : `Material-Bestellung wurde erstellt.`,
-      });
-    } catch (error) {
-      console.error("Error creating material task:", error);
-      toast({
-        title: "Fehler",
-        description: "Material-Aufgabe konnte nicht erstellt werden.",
-        variant: "destructive",
-      });
-    }
-  }, [materialOrderTaskId, materialForm, nodes, setNodes, setEdges, toast, handleEditTaskFromFlow, handleToggleTaskFromFlow, handleDeleteTaskFromFlow]);
-
-  // Handle Material Delivered - marks material as delivered and updates parent task
-  const handleMaterialDelivered = useCallback(
-    async (materialTaskId: string) => {
-      const project = selectedProjectRef.current;
-      if (!project) return;
-
-      try {
-        // Update the task status to DONE
-        await projectService.updateTask(project.id, materialTaskId, {
-          status: "DONE",
-        });
-
-        // Update the node
-        setNodes((nds) =>
-          nds.map((node) => {
-            if (node.data?.taskId === materialTaskId) {
-              return {
-                ...node,
-                data: {
-                  ...node.data,
-                  status: "DONE",
-                  materialDelivered: true,
-                },
-              };
-            }
-            return node;
-          })
-        );
-
-        // Change the edge color to green
-        setEdges((eds) =>
-          eds.map((edge) => {
-            if (edge.target === `task-${materialTaskId}`) {
-              return {
-                ...edge,
-                animated: false,
-                style: { stroke: "#22c55e", strokeWidth: 2 },
-                markerEnd: {
-                  type: MarkerType.ArrowClosed,
-                  color: "#22c55e",
-                },
-              };
-            }
-            return edge;
-          })
-        );
-
-        // Reload project data
-        const { projects: updatedProjects } = await projectService.getProjects();
-        setProjects(updatedProjects);
-        const updatedProject = updatedProjects.find((p) => p.id === project.id);
-        if (updatedProject) {
-          setSelectedProject(updatedProject);
-          selectedProjectRef.current = updatedProject;
-        }
-
-        setHasFlowChanges(true);
-        toast({
-          title: "Material geliefert ✓",
-          description: "Das Material wurde als geliefert markiert. Die Hauptaufgabe kann jetzt fortgesetzt werden.",
-        });
-      } catch (error) {
-        console.error("Error marking material as delivered:", error);
-        toast({
-          title: "Fehler",
-          description: "Status konnte nicht aktualisiert werden.",
-          variant: "destructive",
-        });
-      }
     },
-    [setNodes, setEdges, toast]
+    [setNodes]
   );
 
   // Add Task in Flow - Open Dialog
@@ -1293,12 +1208,10 @@ export default function ProjectsPage() {
           taskId: newTask.id,
           assignedTo: flowTaskForm.assignedTo,
           needsMaterial: false,
-          materialTaskCreated: false,
           onEdit: handleEditTaskFromFlow,
           onToggleStatus: handleToggleTaskFromFlow,
           onDelete: handleDeleteTaskFromFlow,
-          onMaterialToggle: handleMaterialToggle,
-          onMaterialDelivered: handleMaterialDelivered,
+          onMaterialUpdate: handleMaterialUpdate,
         },
       };
 
@@ -1360,8 +1273,7 @@ export default function ProjectsPage() {
     handleEditTaskFromFlow,
     handleToggleTaskFromFlow,
     handleDeleteTaskFromFlow,
-    handleMaterialToggle,
-    handleMaterialDelivered,
+    handleMaterialUpdate,
     toast,
   ]);
 
@@ -1839,8 +1751,7 @@ export default function ProjectsPage() {
               onEdit: handleEditTaskFromFlow,
               onToggleStatus: handleToggleTaskFromFlow,
               onDelete: handleDeleteTaskFromFlow,
-              onMaterialToggle: handleMaterialToggle,
-              onMaterialDelivered: handleMaterialDelivered,
+              onMaterialUpdate: handleMaterialUpdate,
             },
           };
         }
@@ -1853,8 +1764,7 @@ export default function ProjectsPage() {
       handleEditTaskFromFlow,
       handleToggleTaskFromFlow,
       handleDeleteTaskFromFlow,
-      handleMaterialToggle,
-      handleMaterialDelivered,
+      handleMaterialUpdate,
     ],
   );
 
@@ -1927,18 +1837,16 @@ export default function ProjectsPage() {
                     dueDate: task.dueDate,
                     priority: task.priority,
                     needsMaterial: node.data.needsMaterial || false,
-                    materialTaskCreated: node.data.materialTaskCreated || false,
-                    // Material task specific fields
-                    isMaterialTask: node.data.isMaterialTask || false,
                     materialNumber: node.data.materialNumber,
                     materialQuantity: node.data.materialQuantity,
-                    materialDelivered: node.data.materialDelivered || task.status === "DONE",
-                    parentTaskId: node.data.parentTaskId,
+                    materialPrNumber: node.data.materialPrNumber,
+                    materialPoNumber: node.data.materialPoNumber,
+                    materialDescription: node.data.materialDescription,
+                    materialDelivered: node.data.materialDelivered || false,
                     onEdit: handleEditTaskFromFlow,
                     onToggleStatus: handleToggleTaskFromFlow,
                     onDelete: handleDeleteTaskFromFlow,
-                    onMaterialToggle: handleMaterialToggle,
-                    onMaterialDelivered: handleMaterialDelivered,
+                    onMaterialUpdate: handleMaterialUpdate,
                   },
                 };
               }
@@ -1988,12 +1896,10 @@ export default function ProjectsPage() {
           dueDate: task.dueDate,
           priority: task.priority,
           needsMaterial: false,
-          materialTaskCreated: false,
           onEdit: handleEditTaskFromFlow,
           onToggleStatus: handleToggleTaskFromFlow,
           onDelete: handleDeleteTaskFromFlow,
-          onMaterialToggle: handleMaterialToggle,
-          onMaterialDelivered: handleMaterialDelivered,
+          onMaterialUpdate: handleMaterialUpdate,
         },
       }));
 
@@ -2021,8 +1927,7 @@ export default function ProjectsPage() {
       handleEditTaskFromFlow,
       handleToggleTaskFromFlow,
       handleDeleteTaskFromFlow,
-      handleMaterialToggle,
-      handleMaterialDelivered,
+      handleMaterialUpdate,
       setNodes,
       setEdges,
     ],
@@ -3138,107 +3043,6 @@ export default function ProjectsPage() {
             <Button onClick={handleSaveFlowTask}>
               <Plus className="h-4 w-4 mr-2" />
               Erstellen
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Material Order Dialog */}
-      <Dialog open={showMaterialDialog} onOpenChange={(open) => {
-        if (!open) {
-          setShowMaterialDialog(false);
-          setMaterialOrderTaskId(null);
-        }
-      }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-orange-500" />
-              Material bestellen
-            </DialogTitle>
-            <DialogDescription>
-              Geben Sie die Materialdetails ein. Eine verknüpfte Aufgabe wird erstellt.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Materialnummer / SAP-Nr.</Label>
-                <Input
-                  value={materialForm.materialNumber}
-                  onChange={(e) =>
-                    setMaterialForm({ ...materialForm, materialNumber: e.target.value })
-                  }
-                  placeholder="z.B. 12345678..."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Menge / Anzahl</Label>
-                <Input
-                  value={materialForm.quantity}
-                  onChange={(e) =>
-                    setMaterialForm({ ...materialForm, quantity: e.target.value })
-                  }
-                  placeholder="z.B. 5 Stück..."
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>PR-Nummer (Purchase Request)</Label>
-                <Input
-                  value={materialForm.prNumber}
-                  onChange={(e) =>
-                    setMaterialForm({ ...materialForm, prNumber: e.target.value })
-                  }
-                  placeholder="z.B. PR-2026-001..."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>PO-Nummer (Purchase Order)</Label>
-                <Input
-                  value={materialForm.poNumber}
-                  onChange={(e) =>
-                    setMaterialForm({ ...materialForm, poNumber: e.target.value })
-                  }
-                  placeholder="z.B. PO-2026-001..."
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Beschreibung</Label>
-              <Textarea
-                value={materialForm.description}
-                onChange={(e) =>
-                  setMaterialForm({ ...materialForm, description: e.target.value })
-                }
-                placeholder="Zusätzliche Informationen zum Material..."
-                rows={2}
-              />
-            </div>
-            <div className="p-3 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 dark:border-orange-800">
-              <p className="text-xs text-orange-700 dark:text-orange-300">
-                <strong>Hinweis:</strong> Wenn das Material geliefert wird, markieren Sie die 
-                Material-Aufgabe als "geliefert". Erst dann kann die Hauptaufgabe fortgesetzt werden.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowMaterialDialog(false);
-                setMaterialOrderTaskId(null);
-              }}
-            >
-              Abbrechen
-            </Button>
-            <Button 
-              onClick={handleCreateMaterialTask}
-              className="bg-orange-500 hover:bg-orange-600"
-            >
-              <Package className="h-4 w-4 mr-2" />
-              Material bestellen
             </Button>
           </DialogFooter>
         </DialogContent>
