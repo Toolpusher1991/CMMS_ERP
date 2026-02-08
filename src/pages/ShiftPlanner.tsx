@@ -181,37 +181,41 @@ const ShiftPlanner: React.FC = () => {
 
   const [positions, setPositions] = useState<string[]>([
     "TP",
-    "Night Shift",
+    "NTP",
+    "Driller",
+    "Assistant Driller",
+    "Electrician",
+    "Mechanic",
     "RSC",
-    "ME",
-    "ME 700",
-    "EL 46",
-    "EL 700",
-    "DR 46",
-    "AD 46",
-    "DM 46",
-    "RN 46",
+    "Roughneck 1",
+    "Roughneck 2",
+    "Roughneck 3",
+    "Roughneck 4",
   ]);
   const [newPositionName, setNewPositionName] = useState("");
 
   const [availablePersonnel, setAvailablePersonnel] = useState<string[]>([
-    "Pawel Urban",
-    "Danny Sommer",
-    "Michael Klingbeil",
-    "Stephan Korth",
-    "Luka Jurina",
-    "Tom Dörge",
-    "Tony Grant",
-    "Martin Timm",
-    "Lukas Vossing",
-    "Martin Schymol",
-    "Christian Schwermann",
-    "Ron Julien Woisin",
-    "Daniel Josipovic",
-    "Marko Valjak",
-    "Maciej Szczech",
-    "Hamza Aljassem",
-    "Josip Vincetic",
+    "TP A",
+    "TP B",
+    "NTP A",
+    "NTP B",
+    "Driller A",
+    "Driller B",
+    "AD A",
+    "AD B",
+    "Elec A",
+    "Elec B",
+    "Mech A",
+    "Mech B",
+    "RSC",
+    "RN1 A",
+    "RN1 B",
+    "RN2 A",
+    "RN2 B",
+    "RN3 A",
+    "RN3 B",
+    "RN4 A",
+    "RN4 B",
   ]);
   const [newPersonnelName, setNewPersonnelName] = useState("");
 
@@ -1036,7 +1040,7 @@ const ShiftPlanner: React.FC = () => {
     });
   }, [assignments, positions, availablePersonnel, toast]);
 
-  // Laden aus localStorage beim Start
+  // Laden aus localStorage beim Start - DEAKTIVIERT für Präsentation
   useEffect(() => {
     const savedData = localStorage.getItem("shiftPlannerData");
     if (savedData) {
@@ -1044,8 +1048,9 @@ const ShiftPlanner: React.FC = () => {
         const data = JSON.parse(savedData);
         if (data.assignments) setAssignments(data.assignments);
         if (data.positions) setPositions(data.positions);
-        if (data.availablePersonnel)
-          setAvailablePersonnel(data.availablePersonnel);
+        // availablePersonnel NICHT laden - verwende Standard-Namen
+        // if (data.availablePersonnel)
+        //   setAvailablePersonnel(data.availablePersonnel);
         console.log("Schichtplan geladen:", data.savedAt);
       } catch (error) {
         console.error("Fehler beim Laden des Schichtplans:", error);
