@@ -195,27 +195,17 @@ const ShiftPlanner: React.FC = () => {
   const [newPositionName, setNewPositionName] = useState("");
 
   const [availablePersonnel, setAvailablePersonnel] = useState<string[]>([
-    "TP A",
-    "TP B",
-    "NTP A",
-    "NTP B",
-    "Driller A",
-    "Driller B",
-    "AD A",
-    "AD B",
-    "Elec A",
-    "Elec B",
-    "Mech A",
-    "Mech B",
+    "TP",
+    "NTP",
+    "Driller",
+    "Assistant Driller",
+    "Electrician",
+    "Mechanic",
     "RSC",
-    "RN1 A",
-    "RN1 B",
-    "RN2 A",
-    "RN2 B",
-    "RN3 A",
-    "RN3 B",
-    "RN4 A",
-    "RN4 B",
+    "Roughneck 1",
+    "Roughneck 2",
+    "Roughneck 3",
+    "Roughneck 4",
   ]);
   const [newPersonnelName, setNewPersonnelName] = useState("");
 
@@ -1151,6 +1141,36 @@ const ShiftPlanner: React.FC = () => {
         ABSENCE_TYPES.find((t) => t.value === absenceType) || ABSENCE_TYPES[0];
       const bgColor = typeConfig.bgClass;
 
+      // Schicht-Typ für Driller, ADs und Roughnecks - 7-1-7 Rotation mit Gradient
+      const getShiftGradient = () => {
+        const person = assignment.data.person;
+        
+        // Nur für Driller, AD und Roughnecks
+        const isDriller = person === "Driller";
+        const isAD = person === "Assistant Driller";
+        const isRoughneck = person.startsWith("Roughneck");
+        
+        if (!isDriller && !isAD && !isRoughneck) return null;
+        if (absenceType !== "work") return null;
+        
+        const totalDays = width;
+        
+        // Für 15-Tage-Rotation: 7 Tage Nacht (46.67%) + 1 Tag Wechsel (6.67%) + 7 Tage Tag (46.67%)
+        const nightPercent = (7 / totalDays) * 100;
+        const handoverStart = nightPercent;
+        const handoverEnd = ((7 + 1) / totalDays) * 100;
+        
+        return `linear-gradient(to right, 
+          #1d4ed8 0%, 
+          #1d4ed8 ${nightPercent}%, 
+          #f97316 ${nightPercent}%, 
+          #f97316 ${handoverEnd}%, 
+          #fbbf24 ${handoverEnd}%, 
+          #fbbf24 100%)`;
+      };
+
+      const customShiftGradient = getShiftGradient();
+
       // Übergabetag-Block bekommt einen dezenten rechten Rand
       const borderStyle = isHandoverBlock ? "border-r-4 border-amber-400" : "";
 
@@ -1205,17 +1225,32 @@ const ShiftPlanner: React.FC = () => {
             })
           }
           className={cn(
-            "flex items-center justify-between rounded-md px-2 py-1 cursor-move hover:opacity-90 shadow-sm transition-opacity",
-            bgColor,
+            "flex items-center justify-between rounded-md px-2 py-1 cursor-move hover:opacity-90 shadow-sm transition-opacity relative",
+            !customShiftGradient && bgColor,
             borderStyle,
           )}
           style={{
+            background: customShiftGradient || undefined,
             width: `${width * 3}rem`,
             height: "44px",
             marginTop: "2px",
           }}
         >
-          <div className="flex items-center justify-between h-full">
+          {/* Schicht-Labels für Driller, ADs und Roughnecks */}
+          {customShiftGradient && (
+            <>
+              <span className="absolute top-1 text-xs font-bold text-white pointer-events-none" style={{ left: '23%', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+                Nacht
+              </span>
+              <span className="absolute top-1 text-xs font-bold text-white pointer-events-none" style={{ left: '50%', transform: 'translateX(-50%)', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+                W
+              </span>
+              <span className="absolute top-1 text-xs font-bold text-white pointer-events-none" style={{ left: '77%', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+                Tag
+              </span>
+            </>
+          )}
+          <div className="flex items-center justify-between h-full w-full relative z-10">
             <div className="flex items-center gap-1 min-w-0 flex-1">
               <GripVertical className="w-3 h-3 text-white/70 flex-shrink-0" />
               <div className="min-w-0">
@@ -2050,8 +2085,8 @@ const ShiftPlanner: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Personnel Pool */}
-      <Card>
+      {/* Personnel Pool - Sticky */}
+      <Card className="sticky top-4 z-30">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
