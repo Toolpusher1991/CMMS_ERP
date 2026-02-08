@@ -30,7 +30,6 @@ type AppPage =
   | "tender"
   | "failures"
   | "inspections"
-  | "manuals"
   | "shifts"
   | "admin";
 
@@ -48,12 +47,6 @@ const allNavItems: NavItem[] = [
   { title: "Action Tracker", page: "actions", icon: ListTodo },
   { title: "Schichtplan", page: "shifts", icon: CalendarDays },
   { title: "Inspektionsberichte", page: "inspections", icon: ClipboardCheck },
-  {
-    title: "Equipment Manuals",
-    page: "manuals",
-    icon: BookOpen,
-    adminOnly: true,
-  },
   { title: "Bohranlagen", page: "tender", icon: Building2 },
   { title: "Störungsmeldung", page: "failures", icon: AlertTriangle },
   { title: "Admin", page: "admin", icon: Settings, adminOnly: true },

@@ -2879,7 +2879,7 @@ export default function ProjectsPage() {
                                       Noch keine Aufgaben vorhanden
                                     </p>
                                   ) : (
-                                    <div className="space-y-1">
+                                    <div className="space-y-2">
                                       {tasks.map((task, index) => {
                                         const flowOrder = flowOrderMap.get(
                                           task.id,
@@ -2893,33 +2893,41 @@ export default function ProjectsPage() {
                                           NORMAL: "border-l-blue-500",
                                           LOW: "border-l-gray-400",
                                         };
+                                        
+                                        // Status-basierte Hintergrundfarben
+                                        const statusBackgrounds: Record<string, string> = {
+                                          DONE: "bg-green-500/5 hover:bg-green-500/10",
+                                          IN_PROGRESS: "bg-blue-500/5 hover:bg-blue-500/10",
+                                          REVIEW: "bg-yellow-500/5 hover:bg-yellow-500/10",
+                                          OPEN: "bg-muted/30 hover:bg-muted/50"
+                                        };
+                                        
                                         return (
                                           <div
                                             key={task.id}
                                             className={cn(
-                                              "flex items-center justify-between p-2 px-3 bg-muted/30 rounded-md hover:bg-muted/60 transition-all border-l-4 group",
+                                              "flex items-center justify-between p-3 px-4 rounded-lg transition-all border-l-4 group shadow-sm",
                                               priorityBorderColors[
                                                 task.priority || "NORMAL"
                                               ],
+                                              statusBackgrounds[task.status] || statusBackgrounds.OPEN,
                                               task.status === "DONE" &&
-                                                "opacity-60",
+                                                "opacity-70",
                                             )}
-                                            style={{
-                                              border: "2px solid #6366f1",
-                                            }}
                                           >
-                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <div className="flex items-center gap-4 flex-1 min-w-0">
                                               {/* Task Number from Flow */}
                                               <span
                                                 className={cn(
-                                                  "w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0",
+                                                  "w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0 border-2",
                                                   task.status === "DONE"
-                                                    ? "bg-green-500/20 text-green-600"
-                                                    : "bg-primary/10 text-primary",
+                                                    ? "bg-green-500/20 text-green-600 border-green-500/40"
+                                                    : task.status === "IN_PROGRESS"
+                                                    ? "bg-blue-500/20 text-blue-600 border-blue-500/40"
+                                                    : task.status === "REVIEW"
+                                                    ? "bg-yellow-500/20 text-yellow-600 border-yellow-500/40"
+                                                    : "bg-muted text-muted-foreground border-border",
                                                 )}
-                                                style={{
-                                                  border: "2px solid #6366f1",
-                                                }}
                                               >
                                                 {flowOrder ?? index + 1}
                                               </span>
@@ -2930,17 +2938,17 @@ export default function ProjectsPage() {
                                                     task,
                                                   )
                                                 }
-                                                className="hover:scale-110 transition-transform flex-shrink-0"
+                                                className="hover:scale-125 transition-transform flex-shrink-0 p-1 rounded-md hover:bg-background/50"
                                               >
                                                 {task.status === "DONE" ? (
-                                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                                  <CheckCircle2 className="h-5 w-5 text-green-600 drop-shadow" />
                                                 ) : task.status ===
                                                   "IN_PROGRESS" ? (
-                                                  <Clock className="h-4 w-4 text-blue-500" />
+                                                  <Clock className="h-5 w-5 text-blue-600 drop-shadow" />
                                                 ) : task.status === "REVIEW" ? (
-                                                  <Eye className="h-4 w-4 text-yellow-600" />
+                                                  <Eye className="h-5 w-5 text-yellow-600 drop-shadow" />
                                                 ) : (
-                                                  <Circle className="h-4 w-4 text-gray-400" />
+                                                  <Circle className="h-5 w-5 text-gray-400" />
                                                 )}
                                               </button>
                                               <div className="min-w-0 flex-1">
@@ -2950,9 +2958,6 @@ export default function ProjectsPage() {
                                                     task.status === "DONE" &&
                                                       "line-through text-muted-foreground",
                                                   )}
-                                                  style={{
-                                                    border: "2px solid #6366f1",
-                                                  }}
                                                 >
                                                   {task.title}
                                                 </p>
@@ -2971,17 +2976,14 @@ export default function ProjectsPage() {
                                                 </div>
                                               </div>
                                             </div>
-                                            <div className="flex items-center gap-1 flex-shrink-0">
+                                            <div className="flex items-center gap-2 flex-shrink-0">
                                               <Badge
                                                 className={cn(
-                                                  "text-[10px] px-1.5 py-0 h-5",
+                                                  "text-xs px-2.5 py-0.5 h-6 font-semibold",
                                                   getTaskStatusBadgeClass(
                                                     task.status,
                                                   ),
                                                 )}
-                                                style={{
-                                                  border: "2px solid #6366f1",
-                                                }}
                                               >
                                                 {getStatusLabel(task.status)}
                                               </Badge>

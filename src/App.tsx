@@ -10,7 +10,6 @@ import ActionTracker from "@/pages/ActionTracker";
 import RigConfigurator from "@/pages/RigConfigurator";
 import FailureReporting from "@/pages/FailureReporting";
 import InspectionReports from "@/pages/InspectionReports";
-import EquipmentManuals from "@/pages/EquipmentManuals";
 import ShiftPlanner from "@/pages/ShiftPlanner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -34,7 +33,6 @@ type AppPage =
   | "tender"
   | "failures"
   | "inspections"
-  | "manuals"
   | "shifts"
   | "admin";
 
@@ -235,11 +233,6 @@ function App() {
                   {currentPage === "shifts" && (
                     <PageErrorBoundary>
                       <ShiftPlanner />
-                    </PageErrorBoundary>
-                  )}
-                  {currentPage === "manuals" && user.role === "ADMIN" && (
-                    <PageErrorBoundary>
-                      <EquipmentManuals />
                     </PageErrorBoundary>
                   )}
                   {currentPage === "tender" && (
