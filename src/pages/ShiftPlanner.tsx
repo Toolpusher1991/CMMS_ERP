@@ -509,7 +509,7 @@ const ShiftPlanner: React.FC = () => {
     } => {
       // Prüfe alle neuen Zuweisungen gegen existierende
       for (const newAssignment of Object.values(newAssignments)) {
-        for (const [key, existing] of Object.entries(assignments)) {
+        for (const [_key, existing] of Object.entries(assignments)) {
           // Überspringe wenn es die gleiche Person an der gleichen Position/Zeile ist (Move-Operation)
           if (
             existing.person === person &&
