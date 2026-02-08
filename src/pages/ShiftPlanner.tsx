@@ -1144,29 +1144,93 @@ const ShiftPlanner: React.FC = () => {
       // Schicht-Typ für Driller, ADs und Roughnecks - 7-1-7 Rotation mit Gradient
       const getShiftGradient = () => {
         const person = assignment.data.person;
-        
+
         // Nur für Driller, AD und Roughnecks
         const isDriller = person === "Driller";
         const isAD = person === "Assistant Driller";
         const isRoughneck = person.startsWith("Roughneck");
-        
+
         if (!isDriller && !isAD && !isRoughneck) return null;
         if (absenceType !== "work") return null;
-        
-        const totalDays = width;
-        
-        // Für 15-Tage-Rotation: 7 Tage Nacht (46.67%) + 1 Tag Wechsel (6.67%) + 7 Tage Tag (46.67%)
-        const nightPercent = (7 / totalDays) * 100;
-        const handoverStart = nightPercent;
-        const handoverEnd = ((7 + 1) / totalDays) * 100;
-        
-        return `linear-gradient(to right, 
-          #1d4ed8 0%, 
-          #1d4ed8 ${nightPercent}%, 
-          #f97316 ${nightPercent}%, 
-          #f97316 ${handoverEnd}%, 
-          #fbbf24 ${handoverEnd}%, 
-          #fbbf24 100%)`;
+
+        // Finde alle Arbeitsblöcke dieser Person in dieser Position/Row
+        const relatedBlocks = Object.values(assignments)
+          .filter(
+            (a) =>
+              a.person === person &&
+              a.position === assignment.data.position &&
+              a.row === assignment.data.row &&
+              a.absenceType === "work",
+          )
+          .sort((a, b) => {
+            if (a.month !== b.month) return a.month - b.month;
+            return a.startDay - b.startDay;
+          });
+
+        // Finde die Position dieses Blocks und berechne den Offset
+        let dayOffset = 0;
+        for (const block of relatedBlocks) {
+          if (
+            block.startDay === assignment.data.startDay &&
+            block.month === assignment.data.month
+          ) {
+            break;
+          }
+          dayOffset += block.endDay - block.startDay + 1;
+        }
+
+        const totalWorkDays = assignment.data.workDays || 15;
+        const blockWidth = width;
+
+        // Berechne welcher Teil des Gradienten für diesen Block angezeigt werden soll
+        // Tag 1-7: Nacht (blau), Tag 8: Wechsel (orange), Tag 9-15: Tag (gelb)
+        const blockStartInCycle = dayOffset % totalWorkDays; // Position im 15-Tage-Zyklus
+        const blockEndInCycle = blockStartInCycle + blockWidth - 1;
+
+        // Erstelle Gradient basierend auf der Position im Zyklus
+        const gradientStops: string[] = [];
+
+        for (let i = 0; i < blockWidth; i++) {
+          const dayInCycle = (blockStartInCycle + i) % totalWorkDays;
+          const percent = (i / blockWidth) * 100;
+          const nextPercent = ((i + 1) / blockWidth) * 100;
+
+          let color: string;
+          if (dayInCycle < 7) {
+            color = "#1d4ed8"; // Nacht (blau)
+          } else if (dayInCycle === 7) {
+            color = "#f97316"; // Wechsel (orange)
+          } else {
+            color = "#fbbf24"; // Tag (gelb)
+          }
+
+          if (
+            i === 0 ||
+            gradientStops[gradientStops.length - 1]?.includes(color) === false
+          ) {
+            gradientStops.push(`${color} ${percent}%`);
+          }
+          if (i === blockWidth - 1) {
+            gradientStops.push(`${color} ${nextPercent}%`);
+          } else {
+            const nextDayInCycle = (blockStartInCycle + i + 1) % totalWorkDays;
+            let nextColor: string;
+            if (nextDayInCycle < 7) {
+              nextColor = "#1d4ed8";
+            } else if (nextDayInCycle === 7) {
+              nextColor = "#f97316";
+            } else {
+              nextColor = "#fbbf24";
+            }
+
+            if (nextColor !== color) {
+              gradientStops.push(`${color} ${nextPercent}%`);
+              gradientStops.push(`${nextColor} ${nextPercent}%`);
+            }
+          }
+        }
+
+        return `linear-gradient(to right, ${gradientStops.join(", ")})`;
       };
 
       const customShiftGradient = getShiftGradient();
@@ -1237,19 +1301,101 @@ const ShiftPlanner: React.FC = () => {
           }}
         >
           {/* Schicht-Labels für Driller, ADs und Roughnecks */}
-          {customShiftGradient && (
-            <>
-              <span className="absolute top-1 text-xs font-bold text-white pointer-events-none" style={{ left: '23%', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
-                Nacht
-              </span>
-              <span className="absolute top-1 text-xs font-bold text-white pointer-events-none" style={{ left: '50%', transform: 'translateX(-50%)', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
-                W
-              </span>
-              <span className="absolute top-1 text-xs font-bold text-white pointer-events-none" style={{ left: '77%', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
-                Tag
-              </span>
-            </>
-          )}
+          {customShiftGradient &&
+            (() => {
+              const person = assignment.data.person;
+
+              // Berechne welche Schichttypen in diesem Block vorkommen
+              const relatedBlocks = Object.values(assignments)
+                .filter(
+                  (a) =>
+                    a.person === person &&
+                    a.position === assignment.data.position &&
+                    a.row === assignment.data.row &&
+                    a.absenceType === "work",
+                )
+                .sort((a, b) => {
+                  if (a.month !== b.month) return a.month - b.month;
+                  return a.startDay - b.startDay;
+                });
+
+              let dayOffset = 0;
+              for (const block of relatedBlocks) {
+                if (
+                  block.startDay === assignment.data.startDay &&
+                  block.month === assignment.data.month
+                ) {
+                  break;
+                }
+                dayOffset += block.endDay - block.startDay + 1;
+              }
+
+              const totalWorkDays = assignment.data.workDays || 15;
+              const blockWidth = width;
+              const blockStartInCycle = dayOffset % totalWorkDays;
+              const blockEndInCycle = blockStartInCycle + blockWidth - 1;
+
+              // Berechne für jeden Tag im Block, welcher Typ er ist
+              const dayTypes: ('night' | 'handover' | 'day')[] = [];
+              for (let i = 0; i < blockWidth; i++) {
+                const dayInCycle = (blockStartInCycle + i) % totalWorkDays;
+                if (dayInCycle < 7) {
+                  dayTypes.push('night');
+                } else if (dayInCycle === 7) {
+                  dayTypes.push('handover');
+                } else {
+                  dayTypes.push('day');
+                }
+              }
+              
+              // Finde die Bereiche für jeden Typ
+              const nightStart = dayTypes.indexOf('night');
+              const nightEnd = dayTypes.lastIndexOf('night');
+              const handoverIdx = dayTypes.indexOf('handover');
+              const dayStart = dayTypes.indexOf('day');
+              const dayEnd = dayTypes.lastIndexOf('day');
+
+              return (
+                <>
+                  {nightStart !== -1 && blockWidth >= 3 && (
+                    <span
+                      className="absolute top-1 text-xs font-bold text-white pointer-events-none"
+                      style={{
+                        left: `${((nightStart + nightEnd) / 2 / blockWidth) * 100}%`,
+                        transform: "translateX(-50%)",
+                        textShadow: "0 1px 3px rgba(0,0,0,0.8)",
+                      }}
+                    >
+                      Nacht
+                    </span>
+                  )}
+                  {handoverIdx !== -1 && (
+                    <span
+                      className="absolute top-1 text-xs font-bold text-white pointer-events-none"
+                      style={{
+                        left: `${((handoverIdx + 0.5) / blockWidth) * 100}%`,
+                        transform: "translateX(-50%)",
+                        textShadow: "0 1px 3px rgba(0,0,0,0.8)",
+                      }}
+                    >
+                      W
+                    </span>
+                  )}
+                  {dayStart !== -1 && blockWidth >= 3 && (
+                    <span
+                      className="absolute top-1 text-xs font-bold text-white pointer-events-none"
+                      style={{
+                        left: `${((dayStart + dayEnd) / 2 / blockWidth) * 100}%`,
+                        transform: "translateX(-50%)",
+                        textShadow: "0 1px 3px rgba(0,0,0,0.8)",
+                      }}
+                    >
+                      Tag
+                    </span>
+                  )}
+                </>
+              );
+            })()}
           <div className="flex items-center justify-between h-full w-full relative z-10">
             <div className="flex items-center gap-1 min-w-0 flex-1">
               <GripVertical className="w-3 h-3 text-white/70 flex-shrink-0" />
