@@ -1183,17 +1183,17 @@ const ShiftPlanner: React.FC = () => {
         const blockWidth = width;
 
         // Berechne welcher Teil des Gradienten für diesen Block angezeigt werden soll
-        // Tag 1-7: Nacht (blau), Tag 8: Wechsel (orange), Tag 9-15: Tag (gelb)
-        const blockStartInCycle = dayOffset % totalWorkDays; // Position im 15-Tage-Zyklus
-        const blockEndInCycle = blockStartInCycle + blockWidth - 1;
+        // Tag 0-6: Nacht (blau), Tag 7: Wechsel (orange), Tag 8-14: Tag (gelb)
+        const blockStartInCycle = dayOffset % totalWorkDays;
 
         // Erstelle Gradient basierend auf der Position im Zyklus
-        const gradientStops: string[] = [];
+        // Berechne die genauen Farbbereiche für diesen Block
+        const segments: { color: string; start: number; end: number }[] = [];
+        let currentColor = "";
+        let segmentStart = 0;
 
         for (let i = 0; i < blockWidth; i++) {
           const dayInCycle = (blockStartInCycle + i) % totalWorkDays;
-          const percent = (i / blockWidth) * 100;
-          const nextPercent = ((i + 1) / blockWidth) * 100;
 
           let color: string;
           if (dayInCycle < 7) {
@@ -1204,36 +1204,48 @@ const ShiftPlanner: React.FC = () => {
             color = "#fbbf24"; // Tag (gelb)
           }
 
-          if (
-            i === 0 ||
-            gradientStops[gradientStops.length - 1]?.includes(color) === false
-          ) {
-            gradientStops.push(`${color} ${percent}%`);
-          }
-          if (i === blockWidth - 1) {
-            gradientStops.push(`${color} ${nextPercent}%`);
-          } else {
-            const nextDayInCycle = (blockStartInCycle + i + 1) % totalWorkDays;
-            let nextColor: string;
-            if (nextDayInCycle < 7) {
-              nextColor = "#1d4ed8";
-            } else if (nextDayInCycle === 7) {
-              nextColor = "#f97316";
-            } else {
-              nextColor = "#fbbf24";
-            }
-
-            if (nextColor !== color) {
-              gradientStops.push(`${color} ${nextPercent}%`);
-              gradientStops.push(`${nextColor} ${nextPercent}%`);
-            }
+          if (currentColor === "") {
+            currentColor = color;
+            segmentStart = i;
+          } else if (color !== currentColor) {
+            // Farbe wechselt - speichere vorheriges Segment
+            segments.push({
+              color: currentColor,
+              start: segmentStart,
+              end: i - 1,
+            });
+            currentColor = color;
+            segmentStart = i;
           }
         }
+        // Letztes Segment hinzufügen
+        if (currentColor !== "") {
+          segments.push({
+            color: currentColor,
+            start: segmentStart,
+            end: blockWidth - 1,
+          });
+        }
 
-        return `linear-gradient(to right, ${gradientStops.join(", ")})`;
+        // Erstelle Gradient-Stops aus den Segmenten
+        const gradientStops: string[] = [];
+        segments.forEach((segment) => {
+          const startPercent = (segment.start / blockWidth) * 100;
+          const endPercent = ((segment.end + 1) / blockWidth) * 100;
+
+          gradientStops.push(`${segment.color} ${startPercent}%`);
+          gradientStops.push(`${segment.color} ${endPercent}%`);
+        });
+
+        return {
+          gradient: `linear-gradient(to right, ${gradientStops.join(", ")})`,
+          segments,
+          blockWidth,
+        };
       };
 
-      const customShiftGradient = getShiftGradient();
+      const shiftData = getShiftGradient();
+      const customShiftGradient = shiftData?.gradient;
 
       // Übergabetag-Block bekommt einen dezenten rechten Rand
       const borderStyle = isHandoverBlock ? "border-r-4 border-amber-400" : "";
@@ -1301,67 +1313,33 @@ const ShiftPlanner: React.FC = () => {
           }}
         >
           {/* Schicht-Labels für Driller, ADs und Roughnecks */}
-          {customShiftGradient &&
+          {shiftData &&
             (() => {
-              const person = assignment.data.person;
-
-              // Berechne welche Schichttypen in diesem Block vorkommen
-              const relatedBlocks = Object.values(assignments)
-                .filter(
-                  (a) =>
-                    a.person === person &&
-                    a.position === assignment.data.position &&
-                    a.row === assignment.data.row &&
-                    a.absenceType === "work",
-                )
-                .sort((a, b) => {
-                  if (a.month !== b.month) return a.month - b.month;
-                  return a.startDay - b.startDay;
-                });
-
-              let dayOffset = 0;
-              for (const block of relatedBlocks) {
-                if (
-                  block.startDay === assignment.data.startDay &&
-                  block.month === assignment.data.month
-                ) {
-                  break;
-                }
-                dayOffset += block.endDay - block.startDay + 1;
-              }
-
-              const totalWorkDays = assignment.data.workDays || 15;
-              const blockWidth = width;
-              const blockStartInCycle = dayOffset % totalWorkDays;
-              const blockEndInCycle = blockStartInCycle + blockWidth - 1;
-
-              // Berechne für jeden Tag im Block, welcher Typ er ist
-              const dayTypes: ('night' | 'handover' | 'day')[] = [];
-              for (let i = 0; i < blockWidth; i++) {
-                const dayInCycle = (blockStartInCycle + i) % totalWorkDays;
-                if (dayInCycle < 7) {
-                  dayTypes.push('night');
-                } else if (dayInCycle === 7) {
-                  dayTypes.push('handover');
-                } else {
-                  dayTypes.push('day');
-                }
-              }
+              const { segments, blockWidth } = shiftData;
+            
+              // Gruppiere Segmente nach Farbe für Label-Platzierung
+              const nightSegments = segments.filter(s => s.color === "#1d4ed8");
+              const handoverSegments = segments.filter(s => s.color === "#f97316");
+              const daySegments = segments.filter(s => s.color === "#fbbf24");
               
-              // Finde die Bereiche für jeden Typ
-              const nightStart = dayTypes.indexOf('night');
-              const nightEnd = dayTypes.lastIndexOf('night');
-              const handoverIdx = dayTypes.indexOf('handover');
-              const dayStart = dayTypes.indexOf('day');
-              const dayEnd = dayTypes.lastIndexOf('day');
+              const getSegmentCenter = (segs: typeof segments) => {
+                if (segs.length === 0) return null;
+                const totalStart = segs[0].start;
+                const totalEnd = segs[segs.length - 1].end;
+                return ((totalStart + totalEnd) / 2 / blockWidth) * 100;
+              };
+              
+              const nightCenter = getSegmentCenter(nightSegments);
+              const handoverCenter = getSegmentCenter(handoverSegments);
+              const dayCenter = getSegmentCenter(daySegments);
 
               return (
                 <>
-                  {nightStart !== -1 && blockWidth >= 3 && (
+                  {nightCenter !== null && blockWidth >= 3 && (
                     <span
                       className="absolute top-1 text-xs font-bold text-white pointer-events-none"
                       style={{
-                        left: `${((nightStart + nightEnd) / 2 / blockWidth) * 100}%`,
+                        left: `${nightCenter}%`,
                         transform: "translateX(-50%)",
                         textShadow: "0 1px 3px rgba(0,0,0,0.8)",
                       }}
@@ -1369,11 +1347,11 @@ const ShiftPlanner: React.FC = () => {
                       Nacht
                     </span>
                   )}
-                  {handoverIdx !== -1 && (
+                  {handoverCenter !== null && (
                     <span
                       className="absolute top-1 text-xs font-bold text-white pointer-events-none"
                       style={{
-                        left: `${((handoverIdx + 0.5) / blockWidth) * 100}%`,
+                        left: `${handoverCenter}%`,
                         transform: "translateX(-50%)",
                         textShadow: "0 1px 3px rgba(0,0,0,0.8)",
                       }}
@@ -1381,11 +1359,11 @@ const ShiftPlanner: React.FC = () => {
                       W
                     </span>
                   )}
-                  {dayStart !== -1 && blockWidth >= 3 && (
+                  {dayCenter !== null && blockWidth >= 3 && (
                     <span
                       className="absolute top-1 text-xs font-bold text-white pointer-events-none"
                       style={{
-                        left: `${((dayStart + dayEnd) / 2 / blockWidth) * 100}%`,
+                        left: `${dayCenter}%`,
                         transform: "translateX(-50%)",
                         textShadow: "0 1px 3px rgba(0,0,0,0.8)",
                       }}
