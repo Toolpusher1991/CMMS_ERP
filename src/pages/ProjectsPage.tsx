@@ -126,7 +126,10 @@ interface FlowNodeData extends Record<string, unknown> {
   onToggleStatus?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
   onMaterialUpdate?: (taskId: string, materialData: MaterialData) => void;
-  onSaveTask?: (taskId: string, data: { title: string; description: string }) => void;
+  onSaveTask?: (
+    taskId: string,
+    data: { title: string; description: string },
+  ) => void;
 }
 
 interface MaterialData {
@@ -168,7 +171,9 @@ function TaskFlowNode({
   const [isOpen, setIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(data.label || "");
-  const [editDescription, setEditDescription] = useState(data.description || "");
+  const [editDescription, setEditDescription] = useState(
+    data.description || "",
+  );
   const [localMaterial, setLocalMaterial] = useState({
     needsMaterial: data.needsMaterial || false,
     materialNumber: data.materialNumber || "",
@@ -320,15 +325,24 @@ function TaskFlowNode({
                   </span>
                 )}
                 {data.dueDate && (
-                  <span className={cn(
-                    "text-[10px] flex items-center gap-0.5",
-                    isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"
-                  )}>
+                  <span
+                    className={cn(
+                      "text-[10px] flex items-center gap-0.5",
+                      isOverdue
+                        ? "text-red-500 font-medium"
+                        : "text-muted-foreground",
+                    )}
+                  >
                     <Calendar className="h-2.5 w-2.5" />
-                    {new Date(data.dueDate).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}
+                    {new Date(data.dueDate).toLocaleDateString("de-DE", {
+                      day: "2-digit",
+                      month: "2-digit",
+                    })}
                   </span>
                 )}
-                {isOverdue && <AlertTriangle className="h-3 w-3 text-red-500" />}
+                {isOverdue && (
+                  <AlertTriangle className="h-3 w-3 text-red-500" />
+                )}
               </div>
             </div>
 
@@ -647,7 +661,11 @@ function TaskFlowNode({
                     <Edit className="h-3 w-3 mr-1" />
                     Bearbeiten
                   </Button>
-                  <Button size="sm" onClick={handleStatusClick} className="flex-1">
+                  <Button
+                    size="sm"
+                    onClick={handleStatusClick}
+                    className="flex-1"
+                  >
                     Status ändern
                   </Button>
                 </>
@@ -1336,7 +1354,10 @@ export default function ProjectsPage() {
 
   // Handle Save Task Inline - saves title/description directly from popover
   const handleSaveTaskInline = useCallback(
-    async (taskId: string, taskData: { title: string; description: string }) => {
+    async (
+      taskId: string,
+      taskData: { title: string; description: string },
+    ) => {
       const project = selectedProjectRef.current;
       if (!project) return;
 
@@ -1365,7 +1386,8 @@ export default function ProjectsPage() {
         );
 
         // Reload project data
-        const { projects: updatedProjects } = await projectService.getProjects();
+        const { projects: updatedProjects } =
+          await projectService.getProjects();
         setProjects(updatedProjects);
         const updatedProject = updatedProjects.find((p) => p.id === project.id);
         if (updatedProject) {
@@ -2893,15 +2915,20 @@ export default function ProjectsPage() {
                                           NORMAL: "border-l-blue-500",
                                           LOW: "border-l-gray-400",
                                         };
-                                        
+
                                         // Status-basierte Hintergrundfarben
-                                        const statusBackgrounds: Record<string, string> = {
+                                        const statusBackgrounds: Record<
+                                          string,
+                                          string
+                                        > = {
                                           DONE: "bg-green-500/5 hover:bg-green-500/10",
-                                          IN_PROGRESS: "bg-blue-500/5 hover:bg-blue-500/10",
-                                          REVIEW: "bg-yellow-500/5 hover:bg-yellow-500/10",
-                                          OPEN: "bg-muted/30 hover:bg-muted/50"
+                                          IN_PROGRESS:
+                                            "bg-blue-500/5 hover:bg-blue-500/10",
+                                          REVIEW:
+                                            "bg-yellow-500/5 hover:bg-yellow-500/10",
+                                          OPEN: "bg-muted/30 hover:bg-muted/50",
                                         };
-                                        
+
                                         return (
                                           <div
                                             key={task.id}
@@ -2910,7 +2937,8 @@ export default function ProjectsPage() {
                                               priorityBorderColors[
                                                 task.priority || "NORMAL"
                                               ],
-                                              statusBackgrounds[task.status] || statusBackgrounds.OPEN,
+                                              statusBackgrounds[task.status] ||
+                                                statusBackgrounds.OPEN,
                                               task.status === "DONE" &&
                                                 "opacity-70",
                                             )}
@@ -2922,11 +2950,12 @@ export default function ProjectsPage() {
                                                   "w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0 border-2",
                                                   task.status === "DONE"
                                                     ? "bg-green-500/20 text-green-600 border-green-500/40"
-                                                    : task.status === "IN_PROGRESS"
-                                                    ? "bg-blue-500/20 text-blue-600 border-blue-500/40"
-                                                    : task.status === "REVIEW"
-                                                    ? "bg-yellow-500/20 text-yellow-600 border-yellow-500/40"
-                                                    : "bg-muted text-muted-foreground border-border",
+                                                    : task.status ===
+                                                        "IN_PROGRESS"
+                                                      ? "bg-blue-500/20 text-blue-600 border-blue-500/40"
+                                                      : task.status === "REVIEW"
+                                                        ? "bg-yellow-500/20 text-yellow-600 border-yellow-500/40"
+                                                        : "bg-muted text-muted-foreground border-border",
                                                 )}
                                               >
                                                 {flowOrder ?? index + 1}

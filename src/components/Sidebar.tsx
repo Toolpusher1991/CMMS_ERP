@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
-  BookOpen,
   Settings,
   CalendarDays,
 } from "lucide-react";
@@ -139,8 +138,6 @@ export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
                   return "text-green-500";
                 case "shifts":
                   return "text-teal-500";
-                case "manuals":
-                  return "text-pink-500";
                 case "tender":
                   return "text-indigo-500";
                 case "failures":
