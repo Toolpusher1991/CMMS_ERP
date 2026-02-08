@@ -1646,53 +1646,84 @@ export default function ProjectsPage() {
 
         const overlappingGroup = nodes.find((node) => {
           if (node.type !== "group") return false;
+          if (node.id === draggedNode.id) return false;
           if (draggedNode.parentId === node.id) return false;
 
           const nodeWidth = (node.style?.width as number) || 250;
           const nodeHeight = (node.style?.height as number) || 200;
 
-          // Check for overlap
+          // Check for overlap with some tolerance
           const overlapX =
-            draggedNode.position.x < node.position.x + nodeWidth &&
-            draggedNode.position.x + draggedWidth > node.position.x;
+            draggedNode.position.x < node.position.x + nodeWidth - 10 &&
+            draggedNode.position.x + draggedWidth > node.position.x + 10;
           const overlapY =
-            draggedNode.position.y < node.position.y + nodeHeight &&
-            draggedNode.position.y + draggedHeight > node.position.y;
+            draggedNode.position.y < node.position.y + nodeHeight - 10 &&
+            draggedNode.position.y + draggedHeight > node.position.y + 10;
 
           return overlapX && overlapY;
         });
 
         if (overlappingGroup) {
-          // Push the group away from the overlapping group with better spacing
+          // Calculate best position to avoid overlap
           const overlapWidth = (overlappingGroup.style?.width as number) || 250;
-          const draggedWidth = (draggedNode.style?.width as number) || 250;
+          const overlapHeight =
+            (overlappingGroup.style?.height as number) || 200;
+          const spacing = 50; // Spacing between groups
 
-          // Determine best direction to push (right or down)
-          const pushRight =
-            draggedNode.position.x >= overlappingGroup.position.x;
+          // Calculate distances in all 4 directions
+          const distanceRight = Math.abs(
+            draggedNode.position.x -
+              (overlappingGroup.position.x + overlapWidth),
+          );
+          const distanceLeft = Math.abs(
+            draggedNode.position.x + draggedWidth - overlappingGroup.position.x,
+          );
+          const distanceDown = Math.abs(
+            draggedNode.position.y -
+              (overlappingGroup.position.y + overlapHeight),
+          );
+          const distanceUp = Math.abs(
+            draggedNode.position.y +
+              draggedHeight -
+              overlappingGroup.position.y,
+          );
+
+          // Find the shortest distance to move
+          const minDistance = Math.min(
+            distanceRight,
+            distanceLeft,
+            distanceDown,
+            distanceUp,
+          );
+
+          let newX = draggedNode.position.x;
+          let newY = draggedNode.position.y;
+
+          if (minDistance === distanceRight) {
+            // Move to the right
+            newX = overlappingGroup.position.x + overlapWidth + spacing;
+          } else if (minDistance === distanceLeft) {
+            // Move to the left
+            newX = overlappingGroup.position.x - draggedWidth - spacing;
+          } else if (minDistance === distanceDown) {
+            // Move down
+            newY = overlappingGroup.position.y + overlapHeight + spacing;
+          } else {
+            // Move up
+            newY = overlappingGroup.position.y - draggedHeight - spacing;
+          }
+
+          // Ensure position is not negative
+          newX = Math.max(0, newX);
+          newY = Math.max(0, newY);
 
           setNodes((nds) =>
             nds.map((node) => {
               if (node.id === draggedNode.id) {
-                if (pushRight) {
-                  // Move to the right of the overlapping group
-                  return {
-                    ...node,
-                    position: {
-                      x: overlappingGroup.position.x + overlapWidth + 40,
-                      y: draggedNode.position.y,
-                    },
-                  };
-                } else {
-                  // Move to the left of the overlapping group
-                  return {
-                    ...node,
-                    position: {
-                      x: overlappingGroup.position.x - draggedWidth - 40,
-                      y: draggedNode.position.y,
-                    },
-                  };
-                }
+                return {
+                  ...node,
+                  position: { x: newX, y: newY },
+                };
               }
               return node;
             }),
@@ -1700,8 +1731,7 @@ export default function ProjectsPage() {
 
           toast({
             title: "Überlappung vermieden",
-            description: "Gruppen können nicht übereinander platziert werden.",
-            variant: "destructive",
+            description: "Gruppe wurde verschoben um Überlappung zu vermeiden.",
           });
           return;
         }

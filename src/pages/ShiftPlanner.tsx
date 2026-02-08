@@ -133,7 +133,11 @@ interface EditingAssignment extends Assignment {
 
 const ShiftPlanner: React.FC = () => {
   const { toast } = useToast();
-  const [currentMonth, setCurrentMonth] = useState(0);
+  // Setze aktuellen Monat (Februar 2026 = Index 1)
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const now = new Date();
+    return now.getMonth(); // 0-11, wobei 0 = Januar
+  });
   const [draggedItem, setDraggedItem] = useState<DragItem | null>(null);
   const [assignments, setAssignments] = useState<Record<string, Assignment>>(
     {},
@@ -245,6 +249,17 @@ const ShiftPlanner: React.FC = () => {
     return dayOfWeek === 0 || dayOfWeek === 6;
   }, []);
 
+  // Prüft ob ein Tag der heutige Tag ist
+  const isToday = useCallback((monthIndex: number, day: number): boolean => {
+    const today = new Date();
+    const checkDate = new Date(2026, monthIndex, day);
+    return (
+      checkDate.getDate() === today.getDate() &&
+      checkDate.getMonth() === today.getMonth() &&
+      checkDate.getFullYear() === today.getFullYear()
+    );
+  }, []);
+
   const days = useMemo(
     () => Array.from({ length: getDaysInMonth(currentMonth) }, (_, i) => i + 1),
     [currentMonth, getDaysInMonth],
@@ -261,6 +276,7 @@ const ShiftPlanner: React.FC = () => {
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
   }, []);
 
@@ -480,6 +496,64 @@ const ShiftPlanner: React.FC = () => {
     [getDaysInMonth, generateUniqueId],
   );
 
+  // Prüft ob eine Person bereits in einem Zeitraum gebucht ist
+  const checkOverlap = useCallback(
+    (
+      person: string,
+      newAssignments: Record<string, Assignment>,
+      excludePosition?: string,
+      excludeRow?: number,
+    ): {
+      hasOverlap: boolean;
+      overlappingAssignment?: Assignment;
+    } => {
+      // Prüfe alle neuen Zuweisungen gegen existierende
+      for (const newAssignment of Object.values(newAssignments)) {
+        for (const [key, existing] of Object.entries(assignments)) {
+          // Überspringe wenn es die gleiche Person an der gleichen Position/Zeile ist (Move-Operation)
+          if (
+            existing.person === person &&
+            existing.position === excludePosition &&
+            existing.row === excludeRow
+          ) {
+            continue;
+          }
+
+          // Nur prüfen wenn es die gleiche Person ist
+          if (existing.person !== person) continue;
+
+          // Nur prüfen wenn es im gleichen Monat ist
+          if (existing.month !== newAssignment.month) continue;
+
+          // Prüfe auf Überschneidung der Tage
+          const existingStart = existing.startDay;
+          const existingEnd = existing.endDay;
+          const newStart = newAssignment.startDay;
+          const newEnd = newAssignment.endDay;
+
+          // Überschneidung liegt vor wenn:
+          // - neuer Start liegt innerhalb des existierenden Zeitraums
+          // - neues Ende liegt innerhalb des existierenden Zeitraums
+          // - neuer Zeitraum umschließt den existierenden komplett
+          const overlaps =
+            (newStart >= existingStart && newStart <= existingEnd) ||
+            (newEnd >= existingStart && newEnd <= existingEnd) ||
+            (newStart <= existingStart && newEnd >= existingEnd);
+
+          if (overlaps) {
+            return {
+              hasOverlap: true,
+              overlappingAssignment: existing,
+            };
+          }
+        }
+      }
+
+      return { hasOverlap: false };
+    },
+    [assignments],
+  );
+
   // Speichert Abwesenheits-Eintrag
   const saveAbsence = useCallback(() => {
     if (!absenceData) return;
@@ -498,6 +572,23 @@ const ShiftPlanner: React.FC = () => {
       notes,
     );
 
+    // Prüfe auf Überschneidungen mit existierenden Zuweisungen
+    const { hasOverlap, overlappingAssignment } = checkOverlap(
+      person,
+      newEntries,
+    );
+
+    if (hasOverlap && overlappingAssignment) {
+      toast({
+        title: "Überschneidung erkannt",
+        description: `${person} ist bereits von Tag ${overlappingAssignment.startDay} bis ${overlappingAssignment.endDay} bei "${overlappingAssignment.position}" eingeteilt. Bitte entfernen Sie zuerst die bestehende Zuweisung.`,
+        variant: "destructive",
+      });
+      setShowAbsenceModal(false);
+      setAbsenceData(null);
+      return;
+    }
+
     setAssignments({ ...assignments, ...newEntries });
 
     const typeLabel =
@@ -509,7 +600,14 @@ const ShiftPlanner: React.FC = () => {
 
     setShowAbsenceModal(false);
     setAbsenceData(null);
-  }, [absenceData, assignments, currentMonth, createAbsenceEntry, toast]);
+  }, [
+    absenceData,
+    assignments,
+    currentMonth,
+    createAbsenceEntry,
+    checkOverlap,
+    toast,
+  ]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent, position: string, row: number, startDay: number) => {
@@ -594,6 +692,24 @@ const ShiftPlanner: React.FC = () => {
         cycles,
       );
 
+      // Prüfe auf Überschneidungen (außer bei Move der gleichen Position)
+      const { hasOverlap, overlappingAssignment } = checkOverlap(
+        person,
+        newPeriods,
+        isMove ? position : undefined,
+        isMove ? row : undefined,
+      );
+
+      if (hasOverlap && overlappingAssignment) {
+        toast({
+          title: "Überschneidung erkannt",
+          description: `${person} ist bereits von Tag ${overlappingAssignment.startDay} bis ${overlappingAssignment.endDay} bei "${overlappingAssignment.position}" eingeteilt.`,
+          variant: "destructive",
+        });
+        setPendingDrop(null);
+        return;
+      }
+
       if (isMove && oldAssignments) {
         setAssignments({ ...oldAssignments, ...newPeriods });
       } else {
@@ -619,7 +735,14 @@ const ShiftPlanner: React.FC = () => {
 
       setPendingDrop(null);
     },
-    [pendingDrop, assignments, currentMonth, createAssignmentPeriods, toast],
+    [
+      pendingDrop,
+      assignments,
+      currentMonth,
+      createAssignmentPeriods,
+      checkOverlap,
+      toast,
+    ],
   );
 
   const cancelDrop = useCallback(() => {
@@ -1077,15 +1200,14 @@ const ShiftPlanner: React.FC = () => {
             })
           }
           className={cn(
-            "absolute rounded-md px-2 py-1 cursor-move hover:opacity-90 shadow-sm transition-opacity z-10",
+            "flex items-center justify-between rounded-md px-2 py-1 cursor-move hover:opacity-90 shadow-sm transition-opacity",
             bgColor,
             borderStyle,
           )}
           style={{
-            left: `${(day - 1) * 48}px`,
-            width: `${width * 48 - 2}px`,
-            top: "2px",
+            width: `${width * 3}rem`,
             height: "44px",
+            marginTop: "2px",
           }}
         >
           <div className="flex items-center justify-between h-full">
@@ -2054,36 +2176,48 @@ const ShiftPlanner: React.FC = () => {
               <div className="flex mb-1">
                 <div className="w-32 flex-shrink-0"></div>
                 <div className="flex">
-                  {days.map((day) => (
-                    <div
-                      key={day}
-                      className={cn(
-                        "w-12 text-center",
-                        isWeekend(currentMonth, day) && "bg-muted/50",
-                      )}
-                    >
+                  {days.map((day) => {
+                    const isTodayDate = isToday(currentMonth, day);
+                    return (
                       <div
+                        key={day}
                         className={cn(
-                          "text-xs font-medium",
-                          isWeekend(currentMonth, day)
-                            ? "text-destructive"
-                            : "text-muted-foreground",
+                          "w-12 text-center relative",
+                          isWeekend(currentMonth, day) && "bg-muted/50",
+                          isTodayDate &&
+                            "bg-cyan-500/20 border-2 border-cyan-500 rounded-md",
                         )}
                       >
-                        {getWeekday(currentMonth, day)}
-                      </div>
-                      <div
-                        className={cn(
-                          "text-sm font-bold",
-                          isWeekend(currentMonth, day)
-                            ? "text-destructive"
-                            : "",
+                        <div
+                          className={cn(
+                            "text-xs font-medium",
+                            isTodayDate
+                              ? "text-cyan-600 font-bold"
+                              : isWeekend(currentMonth, day)
+                                ? "text-destructive"
+                                : "text-muted-foreground",
+                          )}
+                        >
+                          {getWeekday(currentMonth, day)}
+                        </div>
+                        <div
+                          className={cn(
+                            "text-sm font-bold",
+                            isTodayDate
+                              ? "text-cyan-600"
+                              : isWeekend(currentMonth, day)
+                                ? "text-destructive"
+                                : "",
+                          )}
+                        >
+                          {day}
+                        </div>
+                        {isTodayDate && (
+                          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-cyan-500 rounded-full"></div>
                         )}
-                      >
-                        {day}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -2126,18 +2260,15 @@ const ShiftPlanner: React.FC = () => {
                               className={cn(
                                 "w-12 h-12 border border-dashed border-border hover:bg-primary/10 hover:border-primary cursor-pointer transition-colors relative z-20",
                                 isWeekend(currentMonth, day) && "bg-muted/30",
+                                isToday(currentMonth, day) &&
+                                  "ring-2 ring-cyan-500 ring-inset bg-cyan-500/5",
                               )}
                             />
                           );
                         }
 
-                        // Zelle ist Teil eines Assignments (nicht der Starttag)
-                        return (
-                          <div
-                            key={`${position}-1-${day}`}
-                            className="w-12 h-12"
-                          />
-                        );
+                        // Zelle ist Teil eines Assignments - nicht rendern (Block deckt ab)
+                        return null;
                       })}
                     </div>
                   </div>
@@ -2167,18 +2298,15 @@ const ShiftPlanner: React.FC = () => {
                               className={cn(
                                 "w-12 h-12 border border-dashed border-border/50 hover:bg-primary/10 hover:border-primary cursor-pointer transition-colors relative z-20",
                                 isWeekend(currentMonth, day) && "bg-muted/30",
+                                isToday(currentMonth, day) &&
+                                  "ring-2 ring-cyan-500 ring-inset bg-cyan-500/5",
                               )}
                             />
                           );
                         }
 
-                        // Zelle ist Teil eines Assignments (nicht der Starttag)
-                        return (
-                          <div
-                            key={`${position}-2-${day}`}
-                            className="w-12 h-12"
-                          />
-                        );
+                        // Zelle ist Teil eines Assignments - nicht rendern (Block deckt ab)
+                        return null;
                       })}
                     </div>
                   </div>
@@ -2211,18 +2339,15 @@ const ShiftPlanner: React.FC = () => {
                               className={cn(
                                 "w-12 h-12 border border-dashed border-red-900/30 hover:bg-red-500/10 hover:border-red-500 cursor-pointer transition-colors relative z-20",
                                 isWeekend(currentMonth, day) && "bg-muted/30",
+                                isToday(currentMonth, day) &&
+                                  "ring-2 ring-cyan-500 ring-inset bg-cyan-500/5",
                               )}
                             />
                           );
                         }
 
-                        // Zelle ist Teil eines Assignments (nicht der Starttag)
-                        return (
-                          <div
-                            key={`${position}-3-${day}`}
-                            className="w-12 h-12"
-                          />
-                        );
+                        // Zelle ist Teil eines Assignments - nicht rendern (Block deckt ab)
+                        return null;
                       })}
                     </div>
                   </div>
