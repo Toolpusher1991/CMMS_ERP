@@ -1,0 +1,192 @@
+/* iPad & Tablet Optimierungen für Asset Integrity Management */
+
+/* Touch-freundliche Button-Größen */
+@media (pointer: coarse) {
+  button, 
+  [role="button"],
+  .touch-manipulation {
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
+
+/* Scrolling auf iOS/iPad verbessern */
+@media (max-width: 1024px) {
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Dialog Scrolling */
+  [role="dialog"] {
+    overscroll-behavior: contain;
+  }
+}
+
+/* Tablet-spezifische Anpassungen (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Container Padding für Tablets */
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  
+  /* Tab-Listen optimieren */
+  [role="tablist"] button {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  /* Dialog Content auf Tablets */
+  [role="dialog"] {
+    max-width: 90vw !important;
+  }
+  
+  /* Input Felder größer auf Touch-Geräten */
+  input, 
+  textarea, 
+  select {
+    font-size: 16px !important; /* Verhindert Zoom auf iOS */
+    min-height: 44px;
+  }
+}
+
+/* iPad Mini & iPad Air (Portrait) */
+@media (min-width: 768px) and (max-width: 834px) and (orientation: portrait) {
+  /* Kompaktere Headers */
+  h1 {
+    font-size: 1.5rem !important;
+  }
+  
+  h2 {
+    font-size: 1.25rem !important;
+  }
+  
+  /* Grid-Layouts anpassen */
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* iPad Pro (Landscape) */
+@media (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
+  /* Nutze mehr horizontalen Platz */
+  .container {
+    max-width: 95vw;
+  }
+  
+  /* Größere Cards */
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+/* iOS Safari spezifische Fixes */
+@supports (-webkit-touch-callout: none) {
+  /* Safe Area für Notch-Geräte */
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+  }
+  
+  /* Sticky Headers */
+  .sticky {
+    position: -webkit-sticky;
+  }
+  
+  /* Verhindere Text-Selection bei Buttons */
+  button {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* Dark Mode Optimierungen für OLED iPads */
+@media (prefers-color-scheme: dark) {
+  .bg-slate-900 {
+    background-color: #000000;
+  }
+  
+  .bg-slate-800 {
+    background-color: #0a0a0a;
+  }
+}
+
+/* Landscape Modus Optimierungen */
+@media (orientation: landscape) and (max-height: 600px) {
+  /* Kompaktere Dialoge im Landscape */
+  [role="dialog"] {
+    max-height: 85vh !important;
+  }
+  
+  .py-6 {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+}
+
+/* Touch-Feedback für interaktive Elemente */
+@media (hover: none) and (pointer: coarse) {
+  button:active,
+  [role="button"]:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+  
+  /* Größere Touch-Targets für kleine Icons */
+  .h-4.w-4,
+  .h-3.w-3 {
+    padding: 0.5rem;
+    margin: -0.5rem;
+  }
+}
+
+/* Accessibility - größere Text-Sizes für bessere Lesbarkeit */
+@media (min-width: 768px) {
+  .text-xs {
+    font-size: 0.813rem !important;
+  }
+  
+  .text-sm {
+    font-size: 0.938rem !important;
+  }
+}
+
+/* Meeting-Übersicht Pre-TagScrollBar */
+pre {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #1e293b;
+}
+
+pre::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+pre::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Card Hover-Effekte für Touch-Geräte deaktivieren */
+@media (hover: none) {
+  .hover\:bg-slate-800\/50:hover {
+    background-color: transparent;
+  }
+}
+
+/* Focus-Styles für Keyboard-Navigation */
+@media (min-width: 768px) {
+  *:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+}

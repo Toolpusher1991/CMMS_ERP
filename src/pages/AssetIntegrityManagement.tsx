@@ -1,0 +1,2538 @@
+import { useState } from "react";
+import {
+  Shield,
+  Building2,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  MapPin,
+  Calendar,
+  FileText,
+  TrendingUp,
+  ShieldAlert,
+  DollarSign,
+  User,
+  Flag,
+  Award,
+  Plus,
+  Trash2,
+  Edit,
+  Presentation,
+  Save,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+
+// Enhanced Interfaces
+interface Inspection {
+  id: string;
+  type: "statutory" | "internal" | "client" | "certification";
+  description: string;
+  dueDate: string;
+  completedDate?: string;
+  status: "upcoming" | "due" | "overdue" | "completed";
+  responsible: string;
+}
+
+interface Issue {
+  id: string;
+  category: "safety" | "technical" | "compliance" | "commercial";
+  severity: "low" | "medium" | "high" | "critical";
+  description: string;
+  dueDate?: string;
+  status: "open" | "in-progress" | "closed";
+  createdDate: string;
+}
+
+interface Improvement {
+  id: string;
+  description: string;
+  category: "equipment" | "certification" | "compliance" | "efficiency";
+  priority: "low" | "medium" | "high";
+  estimatedCost: number;
+  potentialRevenue: string;
+  status: "planned" | "in-progress" | "completed";
+}
+
+interface GeneralInfo {
+  id: string;
+  description: string;
+  deadline?: string;
+  createdDate: string;
+}
+
+interface Rig {
+  id: string;
+  name: string;
+  region: "Oman" | "Pakistan";
+  // Contract Info
+  contractStatus: "active" | "idle" | "standby" | "maintenance";
+  contractEndDate?: string;
+  operator?: string;
+  location: string;
+  dayRate?: number;
+  // Certifications
+  certifications: string[];
+  // General Information
+  generalInfo?: GeneralInfo[];
+  // Data
+  inspections: Inspection[];
+  issues: Issue[];
+  improvements: Improvement[];
+}
+
+// Mock Data mit realistischen Beispielen
+const initialRigs: Rig[] = [
+  {
+    id: "1",
+    name: "T700",
+    region: "Oman",
+    contractStatus: "active",
+    contractEndDate: "2026-08-15",
+    operator: "PDO (Petroleum Development Oman)",
+    location: "Fahud Field",
+    dayRate: 28000,
+    certifications: ["API Spec 7K", "ISO 9001:2015", "Well Control"],
+    generalInfo: [
+      {
+        id: "g1",
+        description: "Anlage steht noch bis Ende Q3 auf Vertrag",
+        deadline: "2026-08-15",
+        createdDate: "2026-02-10",
+      },
+      {
+        id: "g2",
+        description: "Rig Move nach Lekhwair geplant",
+        deadline: "2026-08-20",
+        createdDate: "2026-02-11",
+      },
+      {
+        id: "g3",
+        description: "Supervisor Mohammed Al-Balushi vor Ort",
+        createdDate: "2026-02-14",
+      },
+      {
+        id: "g4",
+        description: "API Spec 7K Re-Audit steht an",
+        deadline: "2026-03-15",
+        createdDate: "2026-02-01",
+      },
+    ],
+    inspections: [
+      {
+        id: "i1",
+        type: "statutory",
+        description: "Annual BOP Stack Inspection",
+        dueDate: "2026-03-01",
+        status: "upcoming",
+        responsible: "Third Party Inspector",
+      },
+      {
+        id: "i2",
+        type: "internal",
+        description: "Drawworks Preventive Maintenance",
+        dueDate: "2026-02-20",
+        status: "due",
+        responsible: "Rig Mechanic",
+      },
+    ],
+    issues: [
+      {
+        id: "is1",
+        category: "technical",
+        severity: "medium",
+        description: "Mud pump #2 showing vibration - requires monitoring",
+        status: "in-progress",
+        createdDate: "2026-02-10",
+      },
+    ],
+    improvements: [
+      {
+        id: "im1",
+        description: "Install advanced drilling automation system",
+        category: "equipment",
+        priority: "high",
+        estimatedCost: 450000,
+        potentialRevenue: "Enables premium contracts (+$5k day rate)",
+        status: "planned",
+      },
+    ],
+  },
+  {
+    id: "2",
+    name: "T46",
+    region: "Oman",
+    contractStatus: "idle",
+    location: "Muscat Yard",
+    certifications: ["API Spec 4F", "ISO 9001:2015"],
+    inspections: [
+      {
+        id: "i3",
+        type: "certification",
+        description: "Well Control Equipment Certification Renewal",
+        dueDate: "2026-01-30", // OVERDUE!
+        status: "overdue",
+        responsible: "Certification Body",
+      },
+      {
+        id: "i4",
+        type: "statutory",
+        description: "5-Year Crown Block Inspection",
+        dueDate: "2026-02-25",
+        status: "due",
+        responsible: "Structural Engineer",
+      },
+    ],
+    issues: [
+      {
+        id: "is2",
+        category: "compliance",
+        severity: "critical",
+        description: "Well Control Certificate expired - rig cannot operate",
+        dueDate: "2026-02-18",
+        status: "open",
+        createdDate: "2026-01-31",
+      },
+      {
+        id: "is3",
+        category: "commercial",
+        severity: "high",
+        description:
+          "Marketing materials outdated - need updated capability matrix",
+        status: "open",
+        createdDate: "2026-02-01",
+      },
+    ],
+    improvements: [
+      {
+        id: "im2",
+        description: "Upgrade to 7500 PSI BOP stack (currently 5000 PSI)",
+        category: "equipment",
+        priority: "high",
+        estimatedCost: 850000,
+        potentialRevenue: "Access to HPHT wells market",
+        status: "planned",
+      },
+      {
+        id: "im3",
+        description: "Obtain ISO 14001 Environmental Certification",
+        category: "certification",
+        priority: "medium",
+        estimatedCost: 35000,
+        potentialRevenue: "Required for major IOC tenders",
+        status: "planned",
+      },
+    ],
+  },
+  {
+    id: "3",
+    name: "T350",
+    region: "Pakistan",
+    contractStatus: "standby",
+    contractEndDate: "2026-03-30",
+    operator: "OGDCL",
+    location: "Dhodak Field",
+    dayRate: 18000,
+    certifications: ["API Spec 8C", "IADC"],
+    inspections: [
+      {
+        id: "i5",
+        type: "client",
+        description: "Client Pre-Spud Inspection",
+        dueDate: "2026-02-22",
+        status: "upcoming",
+        responsible: "Client QHSE Team",
+      },
+    ],
+    issues: [],
+    improvements: [
+      {
+        id: "im4",
+        description: "Install Real-Time Data Monitoring System",
+        category: "efficiency",
+        priority: "medium",
+        estimatedCost: 180000,
+        potentialRevenue:
+          "Competitive advantage for performance-based contracts",
+        status: "in-progress",
+      },
+    ],
+  },
+];
+
+export default function AssetIntegrityManagement() {
+  const [rigs, setRigs] = useState<Rig[]>(initialRigs);
+  const [selectedRegion, setSelectedRegion] = useState<
+    "Oman" | "Pakistan" | "all"
+  >("all");
+  const [selectedRig, setSelectedRig] = useState<Rig | null>(null);
+
+  // Add Dialog States
+  const [isAddInspectionOpen, setIsAddInspectionOpen] = useState(false);
+  const [isAddIssueOpen, setIsAddIssueOpen] = useState(false);
+  const [isAddImprovementOpen, setIsAddImprovementOpen] = useState(false);
+  const [isAddRigOpen, setIsAddRigOpen] = useState(false);
+
+  // Edit Mode State
+  const [isEditingGeneral, setIsEditingGeneral] = useState(false);
+  const [editedRig, setEditedRig] = useState<Partial<Rig>>({});
+
+  // Form States for New Items
+  const [newInspection, setNewInspection] = useState({
+    type: "internal" as "statutory" | "internal" | "client" | "certification",
+    description: "",
+    dueDate: "",
+    responsible: "",
+  });
+
+  const [newIssue, setNewIssue] = useState({
+    category: "technical" as
+      | "safety"
+      | "technical"
+      | "compliance"
+      | "commercial",
+    severity: "medium" as "low" | "medium" | "high" | "critical",
+    description: "",
+    dueDate: "",
+  });
+
+  const [newImprovement, setNewImprovement] = useState({
+    description: "",
+    category: "equipment" as
+      | "equipment"
+      | "certification"
+      | "compliance"
+      | "efficiency",
+    priority: "medium" as "low" | "medium" | "high",
+    estimatedCost: 0,
+    potentialRevenue: "",
+  });
+
+  const [newGeneralInfo, setNewGeneralInfo] = useState({
+    description: "",
+    deadline: "",
+  });
+
+  const [editingInfoId, setEditingInfoId] = useState<string | null>(null);
+  const [editedInfo, setEditedInfo] = useState<Partial<GeneralInfo>>({});
+  const [showMeetingOverview, setShowMeetingOverview] = useState(false);
+  const [overviewForAll, setOverviewForAll] = useState(false);
+
+  const [newRig, setNewRig] = useState({
+    name: "",
+    region: "Oman" as "Oman" | "Pakistan",
+    contractStatus: "idle" as "active" | "idle" | "standby" | "maintenance",
+    operator: "",
+    location: "",
+    dayRate: 0,
+    contractEndDate: "",
+  });
+
+  // Helper: Calculate days until date
+  const getDaysUntil = (dateStr: string): number => {
+    const today = new Date("2026-02-15"); // Current date from context
+    const target = new Date(dateStr);
+    const diffTime = target.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Helper: Calculate rig priority status based on overdue items
+  const getRigPriorityStatus = (
+    rig: Rig,
+  ): "ok" | "upcoming" | "due-soon" | "overdue" => {
+    let minDays = Infinity;
+    let hasOverdue = false;
+
+    // Check inspections
+    rig.inspections.forEach((inspection) => {
+      if (inspection.status === "overdue") {
+        hasOverdue = true;
+      } else if (inspection.status !== "completed") {
+        const days = getDaysUntil(inspection.dueDate);
+        if (days < minDays) minDays = days;
+      }
+    });
+
+    // Check issues with due dates
+    rig.issues.forEach((issue) => {
+      if (issue.dueDate && issue.status !== "closed") {
+        const days = getDaysUntil(issue.dueDate);
+        if (days < 0) hasOverdue = true;
+        else if (days < minDays) minDays = days;
+      }
+    });
+
+    if (hasOverdue) return "overdue";
+    if (minDays <= 7) return "due-soon";
+    if (minDays <= 30) return "upcoming";
+    return "ok";
+  };
+
+  // Helper: Get color for priority status
+  const getPriorityColor = (
+    status: "ok" | "upcoming" | "due-soon" | "overdue",
+  ) => {
+    switch (status) {
+      case "ok":
+        return "border-green-500/50 bg-green-500/10";
+      case "upcoming":
+        return "border-yellow-500/50 bg-yellow-500/10";
+      case "due-soon":
+        return "border-orange-500/50 bg-orange-500/10";
+      case "overdue":
+        return "border-red-500/50 bg-red-500/20";
+      default:
+        return "border-slate-700";
+    }
+  };
+
+  // Filter rigs by region
+  const filteredRigs =
+    selectedRegion === "all"
+      ? rigs
+      : rigs.filter((rig) => rig.region === selectedRegion);
+
+  // Calculate statistics
+  const totalRigs = filteredRigs.length;
+  const activeRigs = filteredRigs.filter(
+    (rig) => rig.contractStatus === "active",
+  ).length;
+  const overdueInspections = filteredRigs.reduce(
+    (sum, rig) =>
+      sum + rig.inspections.filter((i) => i.status === "overdue").length,
+    0,
+  );
+  const criticalIssues = filteredRigs.reduce(
+    (sum, rig) =>
+      sum +
+      rig.issues.filter(
+        (i) => i.severity === "critical" && i.status !== "closed",
+      ).length,
+    0,
+  );
+
+  // Get contract status badge color
+  const getContractStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-green-500/20 text-green-400 border-green-500/50";
+      case "idle":
+        return "bg-gray-500/20 text-gray-400 border-gray-500/50";
+      case "standby":
+        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
+      case "maintenance":
+        return "bg-orange-500/20 text-orange-400 border-orange-500/50";
+      default:
+        return "bg-slate-500/20 text-slate-400 border-slate-500/50";
+    }
+  };
+
+  const getInspectionStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-500/20 text-green-400 border-green-500/50";
+      case "upcoming":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/50";
+      case "due":
+        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
+      case "overdue":
+        return "bg-red-500/20 text-red-400 border-red-500/50";
+      default:
+        return "bg-slate-500/20 text-slate-400 border-slate-500/50";
+    }
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "low":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/50";
+      case "medium":
+        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
+      case "high":
+        return "bg-orange-500/20 text-orange-400 border-orange-500/50";
+      case "critical":
+        return "bg-red-500/20 text-red-400 border-red-500/50";
+      default:
+        return "bg-slate-500/20 text-slate-400 border-slate-500/50";
+    }
+  };
+
+  // CRUD Operations
+  const handleAddInspection = () => {
+    if (!selectedRig || !newInspection.description || !newInspection.dueDate)
+      return;
+
+    const inspection: Inspection = {
+      id: Date.now().toString(),
+      ...newInspection,
+      status: "upcoming",
+    };
+
+    const updatedRigs = rigs.map((rig) =>
+      rig.id === selectedRig.id
+        ? { ...rig, inspections: [...rig.inspections, inspection] }
+        : rig,
+    );
+
+    setRigs(updatedRigs);
+    setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+    setNewInspection({
+      type: "internal",
+      description: "",
+      dueDate: "",
+      responsible: "",
+    });
+    setIsAddInspectionOpen(false);
+  };
+
+  const handleDeleteInspection = (inspectionId: string) => {
+    if (!selectedRig) return;
+
+    const updatedRigs = rigs.map((rig) =>
+      rig.id === selectedRig.id
+        ? {
+            ...rig,
+            inspections: rig.inspections.filter((i) => i.id !== inspectionId),
+          }
+        : rig,
+    );
+
+    setRigs(updatedRigs);
+    setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+  };
+
+  const handleAddIssue = () => {
+    if (!selectedRig || !newIssue.description) return;
+
+    const issue: Issue = {
+      id: Date.now().toString(),
+      ...newIssue,
+      status: "open",
+      createdDate: new Date().toISOString().split("T")[0],
+    };
+
+    const updatedRigs = rigs.map((rig) =>
+      rig.id === selectedRig.id
+        ? { ...rig, issues: [...rig.issues, issue] }
+        : rig,
+    );
+
+    setRigs(updatedRigs);
+    setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+    setNewIssue({
+      category: "technical",
+      severity: "medium",
+      description: "",
+      dueDate: "",
+    });
+    setIsAddIssueOpen(false);
+  };
+
+  const handleDeleteIssue = (issueId: string) => {
+    if (!selectedRig) return;
+
+    const updatedRigs = rigs.map((rig) =>
+      rig.id === selectedRig.id
+        ? { ...rig, issues: rig.issues.filter((i) => i.id !== issueId) }
+        : rig,
+    );
+
+    setRigs(updatedRigs);
+    setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+  };
+
+  const handleSaveGeneralInfo = () => {
+    if (!selectedRig || !editedRig) return;
+
+    const updatedRigs = rigs.map((rig) =>
+      rig.id === selectedRig.id ? { ...rig, ...editedRig } : rig,
+    );
+
+    setRigs(updatedRigs);
+    setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+    setIsEditingGeneral(false);
+    setEditedRig({});
+  };
+
+  const handleAddGeneralInfo = () => {
+    if (!selectedRig || !newGeneralInfo.description) return;
+
+    const generalInfo: GeneralInfo = {
+      id: Date.now().toString(),
+      description: newGeneralInfo.description,
+      deadline: newGeneralInfo.deadline || undefined,
+      createdDate: new Date().toISOString().split("T")[0],
+    };
+
+    const updatedRigs = rigs.map((rig) =>
+      rig.id === selectedRig.id
+        ? {
+            ...rig,
+            generalInfo: [...(rig.generalInfo || []), generalInfo],
+          }
+        : rig,
+    );
+
+    setRigs(updatedRigs);
+    setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+    setNewGeneralInfo({ description: "", deadline: "" });
+  };
+
+  const handleDeleteGeneralInfo = (infoId: string) => {
+    if (!selectedRig) return;
+
+    const updatedRigs = rigs.map((rig) =>
+      rig.id === selectedRig.id
+        ? {
+            ...rig,
+            generalInfo: (rig.generalInfo || []).filter((i) => i.id !== infoId),
+          }
+        : rig,
+    );
+
+    setRigs(updatedRigs);
+    setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+  };
+
+  const handleEditGeneralInfo = (info: GeneralInfo) => {
+    setEditingInfoId(info.id);
+    setEditedInfo({
+      description: info.description,
+      deadline: info.deadline,
+    });
+  };
+
+  const handleSaveEditedInfo = () => {
+    if (!selectedRig || !editingInfoId) return;
+
+    const updatedRigs = rigs.map((rig) =>
+      rig.id === selectedRig.id
+        ? {
+            ...rig,
+            generalInfo: (rig.generalInfo || []).map((info) =>
+              info.id === editingInfoId
+                ? {
+                    ...info,
+                    description: editedInfo.description || info.description,
+                    deadline:
+                      editedInfo.deadline !== undefined
+                        ? editedInfo.deadline || undefined
+                        : info.deadline,
+                  }
+                : info,
+            ),
+          }
+        : rig,
+    );
+
+    setRigs(updatedRigs);
+    setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+    setEditingInfoId(null);
+    setEditedInfo({});
+  };
+
+  // Generate Meeting Overview Text
+  const generateMeetingOverview = (rigsToInclude: Rig[]) => {
+    let overview = "=== MEETING-ÜBERSICHT ===\n";
+    overview += `Datum: ${new Date("2026-02-15").toLocaleDateString("de-DE")}\n\n`;
+
+    rigsToInclude.forEach((rig) => {
+      overview += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      overview += `🏗️  ${rig.name} - ${rig.location}\n`;
+      overview += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+      // Contract Status
+      overview += `📋 VERTRAGSSTATUS\n`;
+      overview += `   Status: ${rig.contractStatus}\n`;
+      if (rig.operator) overview += `   Operator: ${rig.operator}\n`;
+      if (rig.contractEndDate) {
+        const daysToEnd = Math.ceil(
+          (new Date(rig.contractEndDate).getTime() -
+            new Date("2026-02-15").getTime()) /
+            (1000 * 60 * 60 * 24),
+        );
+        overview += `   Vertragsende: ${new Date(rig.contractEndDate).toLocaleDateString("de-DE")} (noch ${daysToEnd} Tage)\n`;
+      }
+      if (rig.dayRate)
+        overview += `   Day Rate: $${rig.dayRate.toLocaleString()}/Tag\n`;
+      overview += `\n`;
+
+      // Important Notes with Deadlines
+      const notesWithDeadline = (rig.generalInfo || []).filter(
+        (info) => info.deadline,
+      );
+      const notesWithoutDeadline = (rig.generalInfo || []).filter(
+        (info) => !info.deadline,
+      );
+
+      if (notesWithDeadline.length > 0 || notesWithoutDeadline.length > 0) {
+        overview += `📌 WICHTIGE INFORMATIONEN\n`;
+
+        // Notes with deadline first
+        notesWithDeadline
+          .sort(
+            (a, b) =>
+              new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime(),
+          )
+          .forEach((info) => {
+            const daysUntil = Math.ceil(
+              (new Date(info.deadline!).getTime() -
+                new Date("2026-02-15").getTime()) /
+                (1000 * 60 * 60 * 24),
+            );
+            const urgency =
+              daysUntil < 0
+                ? "❗ ÜBERFÄLLIG"
+                : daysUntil <= 7
+                  ? "⚠️  DRINGEND"
+                  : "📅";
+            overview += `   ${urgency} ${info.description}\n`;
+            overview += `      → Deadline: ${new Date(info.deadline!).toLocaleDateString("de-DE")}`;
+            overview +=
+              daysUntil < 0
+                ? ` (${Math.abs(daysUntil)} Tage überfällig!)\n`
+                : ` (noch ${daysUntil} Tage)\n`;
+          });
+
+        // Notes without deadline
+        notesWithoutDeadline.forEach((info) => {
+          overview += `   ℹ️  ${info.description}\n`;
+        });
+        overview += `\n`;
+      }
+
+      // Upcoming Inspections
+      const upcomingInspections = rig.inspections.filter(
+        (i) => i.status !== "completed",
+      );
+      if (upcomingInspections.length > 0) {
+        overview += `🔍 ANSTEHENDE INSPEKTIONEN (${upcomingInspections.length})\n`;
+        upcomingInspections
+          .sort(
+            (a, b) =>
+              new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+          )
+          .forEach((inspection) => {
+            const daysUntil = Math.ceil(
+              (new Date(inspection.dueDate).getTime() -
+                new Date("2026-02-15").getTime()) /
+                (1000 * 60 * 60 * 24),
+            );
+            const status =
+              inspection.status === "overdue"
+                ? "❗ ÜBERFÄLLIG"
+                : daysUntil <= 7
+                  ? "⚠️  "
+                  : "   ";
+            overview += `   ${status} ${inspection.description}\n`;
+            overview += `      → ${new Date(inspection.dueDate).toLocaleDateString("de-DE")}`;
+            overview +=
+              inspection.status === "overdue"
+                ? ` (${Math.abs(daysUntil)} Tage überfällig!)\n`
+                : ` (noch ${daysUntil} Tage)\n`;
+          });
+        overview += `\n`;
+      }
+
+      // Open Issues
+      const openIssues = rig.issues.filter((i) => i.status !== "closed");
+      if (openIssues.length > 0) {
+        overview += `⚠️  OFFENE RISIKEN (${openIssues.length})\n`;
+        openIssues.forEach((issue) => {
+          const severity =
+            issue.severity === "critical"
+              ? "🔴 KRITISCH"
+              : issue.severity === "high"
+                ? "🟠 HOCH"
+                : "🟡";
+          overview += `   ${severity} ${issue.description}\n`;
+          if (issue.dueDate) {
+            const daysUntil = Math.ceil(
+              (new Date(issue.dueDate).getTime() -
+                new Date("2026-02-15").getTime()) /
+                (1000 * 60 * 60 * 24),
+            );
+            overview += `      → Fällig: ${new Date(issue.dueDate).toLocaleDateString("de-DE")} (noch ${daysUntil} Tage)\n`;
+          }
+        });
+        overview += `\n`;
+      }
+
+      // Certifications
+      if (rig.certifications.length > 0) {
+        overview += `🏆 ZERTIFIZIERUNGEN\n`;
+        overview += `   ${rig.certifications.join(", ")}\n\n`;
+      }
+    });
+
+    overview += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    overview += `Ende der Übersicht\n`;
+
+    return overview;
+  };
+
+  const handleAddRig = () => {
+    if (!newRig.name || !newRig.location) return;
+
+    const rig: Rig = {
+      id: Date.now().toString(),
+      name: newRig.name,
+      region: newRig.region,
+      contractStatus: newRig.contractStatus,
+      operator: newRig.operator || undefined,
+      location: newRig.location,
+      dayRate: newRig.dayRate > 0 ? newRig.dayRate : undefined,
+      contractEndDate: newRig.contractEndDate || undefined,
+      certifications: [],
+      generalInfo: [],
+      inspections: [],
+      issues: [],
+      improvements: [],
+    };
+
+    setRigs([...rigs, rig]);
+    setNewRig({
+      name: "",
+      region: "Oman",
+      contractStatus: "idle",
+      operator: "",
+      location: "",
+      dayRate: 0,
+      contractEndDate: "",
+    });
+    setIsAddRigOpen(false);
+  };
+
+  const handleAddImprovement = () => {
+    if (!selectedRig || !newImprovement.description) return;
+
+    const improvement: Improvement = {
+      id: Date.now().toString(),
+      ...newImprovement,
+      status: "planned",
+    };
+
+    const updatedRigs = rigs.map((rig) =>
+      rig.id === selectedRig.id
+        ? { ...rig, improvements: [...rig.improvements, improvement] }
+        : rig,
+    );
+
+    setRigs(updatedRigs);
+    setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+    setNewImprovement({
+      description: "",
+      category: "equipment",
+      priority: "medium",
+      estimatedCost: 0,
+      potentialRevenue: "",
+    });
+    setIsAddImprovementOpen(false);
+  };
+
+  const handleDeleteImprovement = (improvementId: string) => {
+    if (!selectedRig) return;
+
+    const updatedRigs = rigs.map((rig) =>
+      rig.id === selectedRig.id
+        ? {
+            ...rig,
+            improvements: rig.improvements.filter(
+              (i) => i.id !== improvementId,
+            ),
+          }
+        : rig,
+    );
+
+    setRigs(updatedRigs);
+    setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900">
+      {/* Header */}
+      <div className="bg-slate-800 border-b border-slate-700 shadow-lg">
+        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg shadow-lg">
+                <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+                  Asset Integrity Management
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  Vertrags-, Inspektions- & Risikomanagement für Ihre
+                  Bohranlagen
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <Button
+                onClick={() => setIsAddRigOpen(true)}
+                className="flex-1 sm:flex-none bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 touch-manipulation"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Anlage hinzufügen</span>
+                <span className="sm:hidden">Neue Anlage</span>
+              </Button>
+              <Button
+                onClick={() => {
+                  setOverviewForAll(true);
+                  setShowMeetingOverview(true);
+                }}
+                className="flex-1 sm:flex-none bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 touch-manipulation"
+              >
+                <Presentation className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Meeting-Übersicht (Alle)</span>
+                <span className="sm:hidden">Übersicht</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">\n          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-slate-300">
+                Gesamt Anlagen
+              </CardTitle>
+              <Building2 className="h-4 w-4 text-blue-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">{totalRigs}</div>
+              <p className="text-xs text-slate-400">
+                {activeRigs} unter Vertrag
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-slate-300">
+                Im Vertrag
+              </CardTitle>
+              <CheckCircle className="h-4 w-4 text-green-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">{activeRigs}</div>
+              <p className="text-xs text-slate-400">Aktive Contracts</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-slate-300">
+                Overdue Inspektionen
+              </CardTitle>
+              <Clock className="h-4 w-4 text-red-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">
+                {overdueInspections}
+              </div>
+              <p className="text-xs text-slate-400">Sofortige Maßnahmen</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-slate-300">
+                Kritische Issues
+              </CardTitle>
+              <AlertCircle className="h-4 w-4 text-red-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">
+                {criticalIssues}
+              </div>
+              <p className="text-xs text-slate-400">Hohe Priorität</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Region Filter */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <MapPin className="h-5 w-5" />
+              Region auswählen
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs
+              value={selectedRegion}
+              onValueChange={(v) =>
+                setSelectedRegion(v as "Oman" | "Pakistan" | "all")
+              }
+            >
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="all">Alle Regionen</TabsTrigger>
+                <TabsTrigger value="Oman">Oman</TabsTrigger>
+                <TabsTrigger value="Pakistan">Pakistan</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Rigs Grid with Priority Coloring */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredRigs.map((rig) => {
+            const priorityStatus = getRigPriorityStatus(rig);
+            const priorityColor = getPriorityColor(priorityStatus);
+
+            return (
+              <Card
+                key={rig.id}
+                className={`border-2 bg-slate-800 hover:bg-slate-700 transition-all cursor-pointer ${priorityColor}`}
+                onClick={() => setSelectedRig(rig)}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-600 rounded-lg">
+                        <Building2 className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg text-white">
+                          {rig.name}
+                        </CardTitle>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge
+                            variant="outline"
+                            className="text-xs border-slate-600 text-slate-300"
+                          >
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {rig.region}
+                          </Badge>
+                          <Badge
+                            className={`text-xs ${getContractStatusColor(rig.contractStatus)}`}
+                          >
+                            {rig.contractStatus === "active"
+                              ? "Im Vertrag"
+                              : rig.contractStatus === "idle"
+                                ? "Idle"
+                                : rig.contractStatus === "standby"
+                                  ? "Standby"
+                                  : "Wartung"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {/* Location & Operator */}
+                  <div>
+                    <p className="text-xs text-slate-400">Standort</p>
+                    <p className="text-sm text-white font-medium">
+                      {rig.location}
+                    </p>
+                    {rig.operator && (
+                      <>
+                        <p className="text-xs text-slate-400 mt-2">Operator</p>
+                        <p className="text-sm text-white font-medium">
+                          {rig.operator}
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Quick Stats */}
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-700">
+                    <div className="text-center">
+                      <p className="text-xs text-slate-400">Inspektionen</p>
+                      <p className="text-lg font-bold text-white">
+                        {rig.inspections.length}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-slate-400">Issues</p>
+                      <p className="text-lg font-bold text-white">
+                        {rig.issues.filter((i) => i.status !== "closed").length}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-slate-400">Upgrades</p>
+                      <p className="text-lg font-bold text-white">
+                        {rig.improvements.length}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Priority Alert */}
+                  {priorityStatus === "overdue" && (
+                    <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-2">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-red-400" />
+                        <span className="text-xs text-red-400 font-medium">
+                          OVERDUE ITEMS - Sofortige Maßnahmen erforderlich!
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {priorityStatus === "due-soon" && (
+                    <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-orange-400" />
+                        <span className="text-xs text-orange-400 font-medium">
+                          Items fällig innerhalb 7 Tagen
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Legende */}
+        <Card className="border-blue-500/50 bg-slate-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-400">
+              <Flag className="h-5 w-5" />
+              Prioritäts-Legende
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border-2 border-green-500/50 bg-green-500/10" />
+                <span className="text-sm text-slate-300">OK - Alles gut</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border-2 border-yellow-500/50 bg-yellow-500/10" />
+                <span className="text-sm text-slate-300">
+                  Upcoming (30 Tage)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border-2 border-orange-500/50 bg-orange-500/10" />
+                <span className="text-sm text-slate-300">Fällig (7 Tage)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border-2 border-red-500/50 bg-red-500/20" />
+                <span className="text-sm text-slate-300">OVERDUE!</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Detail Dialog */}
+      {selectedRig && (
+        <Dialog open={!!selectedRig} onOpenChange={() => setSelectedRig(null)}>
+          <DialogContent
+            className="w-[95vw] sm:w-[90vw] md:max-w-3xl lg:max-w-4xl max-h-[90vh] overflow-y-auto !bg-slate-800 border-slate-700"
+            style={{ backgroundColor: "#1e293b" }}
+          >
+            <DialogHeader>
+              <div className="flex items-center gap-3">
+                <Building2 className="h-8 w-8 text-blue-400" />
+                <div>
+                  <DialogTitle className="text-2xl text-white">
+                    {selectedRig.name}
+                  </DialogTitle>
+                  <DialogDescription className="text-slate-400">
+                    {selectedRig.location} • {selectedRig.region}
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <Tabs defaultValue="info" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+                <TabsTrigger value="info" className="text-xs sm:text-sm">
+                  <FileText className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Allgemein</span>
+                </TabsTrigger>
+                <TabsTrigger value="inspections" className="text-xs sm:text-sm">
+                  <Calendar className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Inspektionen</span>
+                </TabsTrigger>
+                <TabsTrigger value="issues" className="text-xs sm:text-sm">
+                  <ShieldAlert className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Risiken</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="improvements"
+                  className="text-xs sm:text-sm"
+                >
+                  <TrendingUp className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Upgrades</span>
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Tab: Allgemeine Infos */}
+              <TabsContent value="info" className="space-y-4 mt-4">
+                <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 mb-3">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setOverviewForAll(false);
+                      setShowMeetingOverview(true);
+                    }}
+                    variant="outline"
+                    className="border-purple-500 text-purple-400 hover:bg-purple-500/10 touch-manipulation"
+                  >
+                    <Presentation className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Meeting-Übersicht</span>
+                    <span className="sm:hidden">Übersicht</span>
+                  </Button>
+                  {!isEditingGeneral ? (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setIsEditingGeneral(true);
+                        setEditedRig({
+                          operator: selectedRig.operator,
+                          dayRate: selectedRig.dayRate,
+                          contractEndDate: selectedRig.contractEndDate,
+                          location: selectedRig.location,
+                        });
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Daten bearbeiten
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditingGeneral(false);
+                          setEditedRig({});
+                        }}
+                        className="border-slate-700"
+                      >
+                        Abbrechen
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSaveGeneralInfo}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        Speichern
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <Card className="bg-slate-900 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-white flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Vertragsinformationen
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-slate-400">Status</p>
+                        <Badge
+                          className={`mt-1 ${getContractStatusColor(selectedRig.contractStatus)}`}
+                        >
+                          {selectedRig.contractStatus}
+                        </Badge>
+                      </div>
+                      {(selectedRig.contractEndDate || isEditingGeneral) && (
+                        <div>
+                          <Label className="text-xs text-slate-400">
+                            Vertragsende
+                          </Label>
+                          {isEditingGeneral ? (
+                            <Input
+                              type="date"
+                              value={editedRig.contractEndDate || ""}
+                              onChange={(e) =>
+                                setEditedRig({
+                                  ...editedRig,
+                                  contractEndDate: e.target.value,
+                                })
+                              }
+                              className="mt-1 !bg-slate-900 !border-slate-700 !text-white"
+                              style={{
+                                backgroundColor: "#0f172a",
+                                borderColor: "#334155",
+                                color: "#ffffff",
+                              }}
+                            />
+                          ) : (
+                            <p className="text-sm text-white font-medium mt-1">
+                              {selectedRig.contractEndDate &&
+                                new Date(
+                                  selectedRig.contractEndDate,
+                                ).toLocaleDateString("de-DE")}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      <div>
+                        <Label className="text-xs text-slate-400">
+                          Operator
+                        </Label>
+                        {isEditingGeneral ? (
+                          <Input
+                            value={editedRig.operator || ""}
+                            onChange={(e) =>
+                              setEditedRig({
+                                ...editedRig,
+                                operator: e.target.value,
+                              })
+                            }
+                            className="mt-1 !bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400 [&:autofill]:!bg-slate-900"
+                            placeholder="z.B. PDO"
+                            style={{
+                              backgroundColor: "#0f172a",
+                              borderColor: "#334155",
+                              color: "#ffffff",
+                            }}
+                          />
+                        ) : (
+                          <p className="text-sm text-white font-medium mt-1">
+                            {selectedRig.operator || "N/A"}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <Label className="text-xs text-slate-400">
+                          Day Rate
+                        </Label>
+                        {isEditingGeneral ? (
+                          <Input
+                            type="number"
+                            value={editedRig.dayRate || 0}
+                            onChange={(e) =>
+                              setEditedRig({
+                                ...editedRig,
+                                dayRate: Number(e.target.value),
+                              })
+                            }
+                            className="mt-1 !bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                            placeholder="28000"
+                            style={{
+                              backgroundColor: "#0f172a",
+                              borderColor: "#334155",
+                              color: "#ffffff",
+                            }}
+                          />
+                        ) : (
+                          selectedRig.dayRate && (
+                            <p className="text-sm text-white font-medium mt-1 flex items-center gap-1">
+                              <DollarSign className="h-3 w-3" />$
+                              {selectedRig.dayRate.toLocaleString()}/Tag
+                            </p>
+                          )
+                        )}
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs text-slate-400">
+                          Standort
+                        </Label>
+                        {isEditingGeneral ? (
+                          <Input
+                            value={editedRig.location || ""}
+                            onChange={(e) =>
+                              setEditedRig({
+                                ...editedRig,
+                                location: e.target.value,
+                              })
+                            }
+                            className="mt-1 !bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                            placeholder="z.B. Fahud Field"
+                            style={{
+                              backgroundColor: "#0f172a",
+                              borderColor: "#334155",
+                              color: "#ffffff",
+                            }}
+                          />
+                        ) : (
+                          <p className="text-sm text-white font-medium mt-1">
+                            {selectedRig.location}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-slate-900 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-white flex items-center gap-2">
+                      <Award className="h-5 w-5" />
+                      Zertifizierungen
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedRig.certifications.map((cert, idx) => (
+                        <Badge
+                          key={idx}
+                          variant="outline"
+                          className="border-blue-500 text-blue-400"
+                        >
+                          <Award className="h-3 w-3 mr-1" />
+                          {cert}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Allgemeine Informationen */}
+                <Card className="bg-slate-900 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-white flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Notizen & wichtige Informationen
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Eingabeformular */}
+                    <div className="space-y-3 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                      <div>
+                        <Label className="text-xs text-slate-400 mb-2">
+                          Information / Notiz
+                        </Label>
+                        <Textarea
+                          placeholder="z.B. Rig Move nach Lekhwair geplant, Supervisor vor Ort, Audit steht an..."
+                          value={newGeneralInfo.description}
+                          onChange={(e) =>
+                            setNewGeneralInfo({
+                              ...newGeneralInfo,
+                              description: e.target.value,
+                            })
+                          }
+                          className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400 resize-none"
+                          style={{
+                            backgroundColor: "#0f172a",
+                            borderColor: "#334155",
+                            color: "#ffffff",
+                          }}
+                          rows={2}
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <Label className="text-xs text-slate-400 mb-2">
+                            Deadline (optional)
+                          </Label>
+                          <Input
+                            type="date"
+                            value={newGeneralInfo.deadline}
+                            onChange={(e) =>
+                              setNewGeneralInfo({
+                                ...newGeneralInfo,
+                                deadline: e.target.value,
+                              })
+                            }
+                            className="!bg-slate-900 !border-slate-700 !text-white"
+                            style={{
+                              backgroundColor: "#0f172a",
+                              borderColor: "#334155",
+                              color: "#ffffff",
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <Button
+                            onClick={handleAddGeneralInfo}
+                            disabled={!newGeneralInfo.description}
+                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Hinzufügen
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Liste der Informationen */}
+                    {selectedRig.generalInfo &&
+                    selectedRig.generalInfo.length > 0 ? (
+                      <div className="space-y-2">
+                        {selectedRig.generalInfo
+                          .sort((a, b) => {
+                            // Sortieren: Mit Deadline zuerst, dann nach Datum
+                            if (a.deadline && !b.deadline) return -1;
+                            if (!a.deadline && b.deadline) return 1;
+                            if (a.deadline && b.deadline) {
+                              return (
+                                new Date(a.deadline).getTime() -
+                                new Date(b.deadline).getTime()
+                              );
+                            }
+                            return (
+                              new Date(b.createdDate).getTime() -
+                              new Date(a.createdDate).getTime()
+                            );
+                          })
+                          .map((info) => {
+                            const hasDeadline = !!info.deadline;
+                            const daysUntil = hasDeadline
+                              ? Math.ceil(
+                                  (new Date(info.deadline!).getTime() -
+                                    new Date("2026-02-15").getTime()) /
+                                    (1000 * 60 * 60 * 24),
+                                )
+                              : null;
+                            const isOverdue =
+                              daysUntil !== null && daysUntil < 0;
+                            const isDueSoon =
+                              daysUntil !== null &&
+                              daysUntil >= 0 &&
+                              daysUntil <= 7;
+                            const isEditing = editingInfoId === info.id;
+
+                            return (
+                              <Card
+                                key={info.id}
+                                className={`bg-slate-800/50 border ${
+                                  isOverdue
+                                    ? "border-red-500/50 bg-red-500/5"
+                                    : isDueSoon
+                                      ? "border-yellow-500/50 bg-yellow-500/5"
+                                      : "border-slate-700"
+                                }`}
+                              >
+                                <CardContent className="pt-4 pb-3">
+                                  {isEditing ? (
+                                    // Edit Mode
+                                    <div className="space-y-3">
+                                      <div>
+                                        <Label className="text-xs text-slate-400 mb-2">
+                                          Information / Notiz
+                                        </Label>
+                                        <Textarea
+                                          value={editedInfo.description || ""}
+                                          onChange={(e) =>
+                                            setEditedInfo({
+                                              ...editedInfo,
+                                              description: e.target.value,
+                                            })
+                                          }
+                                          className="!bg-slate-900 !border-slate-700 !text-white resize-none"
+                                          style={{
+                                            backgroundColor: "#0f172a",
+                                            borderColor: "#334155",
+                                            color: "#ffffff",
+                                          }}
+                                          rows={2}
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs text-slate-400 mb-2">
+                                          Deadline (optional)
+                                        </Label>
+                                        <Input
+                                          type="date"
+                                          value={editedInfo.deadline || ""}
+                                          onChange={(e) =>
+                                            setEditedInfo({
+                                              ...editedInfo,
+                                              deadline: e.target.value,
+                                            })
+                                          }
+                                          className="!bg-slate-900 !border-slate-700 !text-white"
+                                          style={{
+                                            backgroundColor: "#0f172a",
+                                            borderColor: "#334155",
+                                            color: "#ffffff",
+                                          }}
+                                        />
+                                      </div>
+                                      <div className="flex gap-2 justify-end">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => {
+                                            setEditingInfoId(null);
+                                            setEditedInfo({});
+                                          }}
+                                          className="border-slate-700"
+                                        >
+                                          Abbrechen
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          onClick={handleSaveEditedInfo}
+                                          className="bg-green-600 hover:bg-green-700"
+                                        >
+                                          <Save className="h-4 w-4 mr-2" />
+                                          Speichern
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    // View Mode
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="flex-1 space-y-2">
+                                        <p className="text-white text-sm leading-relaxed">
+                                          {info.description}
+                                        </p>
+                                        <div className="flex items-center gap-4 text-xs text-slate-400">
+                                          <span className="flex items-center gap-1">
+                                            <Clock className="h-3 w-3" />
+                                            Erstellt:{" "}
+                                            {new Date(
+                                              info.createdDate,
+                                            ).toLocaleDateString("de-DE")}
+                                          </span>
+                                          {hasDeadline && (
+                                            <span
+                                              className={`flex items-center gap-1 font-medium ${
+                                                isOverdue
+                                                  ? "text-red-400"
+                                                  : isDueSoon
+                                                    ? "text-yellow-400"
+                                                    : "text-blue-400"
+                                              }`}
+                                            >
+                                              <Calendar className="h-3 w-3" />
+                                              Deadline:{" "}
+                                              {new Date(
+                                                info.deadline!,
+                                              ).toLocaleDateString("de-DE")}
+                                              {daysUntil !== null && (
+                                                <span className="ml-1">
+                                                  (
+                                                  {isOverdue
+                                                    ? `${Math.abs(daysUntil)} Tage überfällig!`
+                                                    : `noch ${daysUntil} Tage`}
+                                                  )
+                                                </span>
+                                              )}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-1 flex-shrink-0">
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() =>
+                                            handleEditGeneralInfo(info)
+                                          }
+                                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 w-8 p-0"
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() =>
+                                            handleDeleteGeneralInfo(info.id)
+                                          }
+                                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 p-0"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                      </div>
+                    ) : (
+                      <p className="text-center text-slate-400 text-sm py-8">
+                        Keine Informationen vorhanden
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Tab: Inspektionen */}
+              <TabsContent value="inspections" className="space-y-3 mt-4">
+                <div className="flex justify-end mb-3">
+                  <Button
+                    size="sm"
+                    onClick={() => setIsAddInspectionOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Inspektion hinzufügen
+                  </Button>
+                </div>
+                {selectedRig.inspections.length === 0 ? (
+                  <p className="text-center text-slate-400 py-8">
+                    Keine Inspektionen geplant
+                  </p>
+                ) : (
+                  selectedRig.inspections.map((inspection) => {
+                    const daysUntil = getDaysUntil(inspection.dueDate);
+                    return (
+                      <Card
+                        key={inspection.id}
+                        className={`bg-slate-900 border-2 ${
+                          inspection.status === "overdue"
+                            ? "border-red-500/50"
+                            : "border-slate-700"
+                        }`}
+                      >
+                        <CardContent className="pt-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h3 className="text-white font-medium">
+                                {inspection.description}
+                              </h3>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                className={getInspectionStatusColor(
+                                  inspection.status,
+                                )}
+                              >
+                                {inspection.status}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  handleDeleteInspection(inspection.id)
+                                }
+                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="text-sm text-slate-400 space-y-1">
+                            <p>Typ: {inspection.type}</p>
+                            <p>
+                              Fällig:{" "}
+                              {new Date(inspection.dueDate).toLocaleDateString(
+                                "de-DE",
+                              )}
+                            </p>
+                            <p>Verantwortlich: {inspection.responsible}</p>
+                            {daysUntil !== null &&
+                              inspection.status !== "completed" && (
+                                <p className="text-xs text-yellow-400 font-medium mt-1">
+                                  {daysUntil < 0
+                                    ? `${Math.abs(daysUntil)} Tage überfällig`
+                                    : `Noch ${daysUntil} Tage`}
+                                </p>
+                              )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                )}
+              </TabsContent>
+
+              {/* Tab: Issues */}
+              <TabsContent value="issues" className="space-y-3 mt-4">
+                <div className="flex justify-end mb-3">
+                  <Button
+                    size="sm"
+                    onClick={() => setIsAddIssueOpen(true)}
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Issue hinzufügen
+                  </Button>
+                </div>
+                {selectedRig.issues.filter((i) => i.status !== "closed")
+                  .length === 0 ? (
+                  <p className="text-center text-slate-400 py-8">
+                    Keine offenen Issues
+                  </p>
+                ) : (
+                  selectedRig.issues
+                    .filter((i) => i.status !== "closed")
+                    .map((issue) => (
+                      <Card
+                        key={issue.id}
+                        className={`bg-slate-900 border-2 ${
+                          issue.severity === "critical"
+                            ? "border-red-500/50"
+                            : "border-slate-700"
+                        }`}
+                      >
+                        <CardContent className="pt-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <p className="text-white font-medium">
+                                {issue.description}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                className={getSeverityColor(issue.severity)}
+                              >
+                                {issue.severity}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteIssue(issue.id)}
+                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="text-sm text-slate-400 space-y-1">
+                            <p>Kategorie: {issue.category}</p>
+                            <p>Severity: {issue.severity}</p>
+                            <p>Status: {issue.status}</p>
+                            {issue.dueDate && (
+                              <p>
+                                Fällig:{" "}
+                                {new Date(issue.dueDate).toLocaleDateString(
+                                  "de-DE",
+                                )}
+                              </p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                )}
+              </TabsContent>
+
+              {/* Tab: Verbesserungen */}
+              <TabsContent value="improvements" className="space-y-3 mt-4">
+                <div className="flex justify-end mb-3">
+                  <Button
+                    size="sm"
+                    onClick={() => setIsAddImprovementOpen(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Upgrade hinzufügen
+                  </Button>
+                </div>
+                {selectedRig.improvements.length === 0 ? (
+                  <p className="text-center text-slate-400 py-8">
+                    Keine Verbesserungen geplant
+                  </p>
+                ) : (
+                  selectedRig.improvements.map((improvement) => (
+                    <Card
+                      key={improvement.id}
+                      className="bg-slate-900 border-slate-700"
+                    >
+                      <CardContent className="pt-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h3 className="text-white font-medium">
+                              {improvement.description}
+                            </h3>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              className={
+                                improvement.priority === "high"
+                                  ? "bg-red-500/20 text-red-400"
+                                  : "bg-yellow-500/20 text-yellow-400"
+                              }
+                            >
+                              {improvement.priority}
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                handleDeleteImprovement(improvement.id)
+                              }
+                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm mt-3">
+                          <div>
+                            <p className="text-slate-400">Kategorie</p>
+                            <p className="text-white">{improvement.category}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-400">Status</p>
+                            <p className="text-white">{improvement.status}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-400">Kosten</p>
+                            <p className="text-white">
+                              ${improvement.estimatedCost.toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-400">Revenue Impact</p>
+                            <p className="text-green-400 text-xs">
+                              {improvement.potentialRevenue}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+            </Tabs>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Add Inspection Dialog */}
+      <Dialog open={isAddInspectionOpen} onOpenChange={setIsAddInspectionOpen}>
+        <DialogContent
+          className="!bg-slate-800 border-slate-700"
+          style={{ backgroundColor: "#1e293b" }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              Neue Inspektion hinzufügen
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Fügen Sie eine neue Inspektion für {selectedRig?.name} hinzu
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="insp-type" className="text-white">
+                Typ
+              </Label>
+              <Select
+                value={newInspection.type}
+                onValueChange={(v) =>
+                  setNewInspection({
+                    ...newInspection,
+                    type: v as
+                      | "statutory"
+                      | "internal"
+                      | "client"
+                      | "certification",
+                  })
+                }
+              >
+                <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                  <SelectValue placeholder="Typ auswählen" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-slate-700">
+                  <SelectItem value="statutory">Statutory</SelectItem>
+                  <SelectItem value="internal">Internal</SelectItem>
+                  <SelectItem value="client">Client</SelectItem>
+                  <SelectItem value="certification">Certification</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="insp-desc" className="text-white">
+                Beschreibung
+              </Label>
+              <Textarea
+                id="insp-desc"
+                value={newInspection.description}
+                onChange={(e) =>
+                  setNewInspection({
+                    ...newInspection,
+                    description: e.target.value,
+                  })
+                }
+                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                placeholder="z.B. BOP Stack 5-Year Inspection"
+                style={{
+                  backgroundColor: "#0f172a",
+                  borderColor: "#334155",
+                  color: "#ffffff",
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="insp-date" className="text-white">
+                Due Date
+              </Label>
+              <Input
+                id="insp-date"
+                type="date"
+                value={newInspection.dueDate}
+                onChange={(e) =>
+                  setNewInspection({
+                    ...newInspection,
+                    dueDate: e.target.value,
+                  })
+                }
+                className="!bg-slate-900 !border-slate-700 !text-white"
+                style={{
+                  backgroundColor: "#0f172a",
+                  borderColor: "#334155",
+                  color: "#ffffff",
+                  colorScheme: "dark",
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="insp-resp" className="text-white">
+                Verantwortlich
+              </Label>
+              <Input
+                id="insp-resp"
+                value={newInspection.responsible}
+                onChange={(e) =>
+                  setNewInspection({
+                    ...newInspection,
+                    responsible: e.target.value,
+                  })
+                }
+                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                placeholder="z.B. Rig Mechanic"
+                style={{
+                  backgroundColor: "#0f172a",
+                  borderColor: "#334155",
+                  color: "#ffffff",
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddInspectionOpen(false)}
+              className="border-slate-700"
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={handleAddInspection}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Hinzufügen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Issue Dialog */}
+      <Dialog open={isAddIssueOpen} onOpenChange={setIsAddIssueOpen}>
+        <DialogContent
+          className="!bg-slate-800 border-slate-700"
+          style={{ backgroundColor: "#1e293b" }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              Neues Issue hinzufügen
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Fügen Sie ein neues Risiko/Issue für {selectedRig?.name} hinzu
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="issue-cat" className="text-white">
+                  Kategorie
+                </Label>
+                <Select
+                  value={newIssue.category}
+                  onValueChange={(v) =>
+                    setNewIssue({
+                      ...newIssue,
+                      category: v as
+                        | "safety"
+                        | "technical"
+                        | "compliance"
+                        | "commercial",
+                    })
+                  }
+                >
+                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                    <SelectValue placeholder="Kategorie auswählen" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-700">
+                    <SelectItem value="safety">Safety</SelectItem>
+                    <SelectItem value="technical">Technical</SelectItem>
+                    <SelectItem value="compliance">Compliance</SelectItem>
+                    <SelectItem value="commercial">Commercial</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="issue-sev" className="text-white">
+                  Severity
+                </Label>
+                <Select
+                  value={newIssue.severity}
+                  onValueChange={(v) =>
+                    setNewIssue({
+                      ...newIssue,
+                      severity: v as "low" | "medium" | "high" | "critical",
+                    })
+                  }
+                >
+                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                    <SelectValue placeholder="Severity auswählen" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-700">
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="issue-desc" className="text-white">
+                Beschreibung
+              </Label>
+              <Textarea
+                id="issue-desc"
+                value={newIssue.description}
+                onChange={(e) =>
+                  setNewIssue({ ...newIssue, description: e.target.value })
+                }
+                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                placeholder="Beschreiben Sie das Issue..."
+                style={{
+                  backgroundColor: "#0f172a",
+                  borderColor: "#334155",
+                  color: "#ffffff",
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="issue-date" className="text-white">
+                Due Date (optional)
+              </Label>
+              <Input
+                id="issue-date"
+                type="date"
+                value={newIssue.dueDate}
+                onChange={(e) =>
+                  setNewIssue({ ...newIssue, dueDate: e.target.value })
+                }
+                className="!bg-slate-900 !border-slate-700 !text-white"
+                style={{
+                  backgroundColor: "#0f172a",
+                  borderColor: "#334155",
+                  color: "#ffffff",
+                  colorScheme: "dark",
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddIssueOpen(false)}
+              className="border-slate-700"
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={handleAddIssue}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              Hinzufügen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Improvement Dialog */}
+      <Dialog
+        open={isAddImprovementOpen}
+        onOpenChange={setIsAddImprovementOpen}
+      >
+        <DialogContent
+          className="!bg-slate-800 border-slate-700"
+          style={{ backgroundColor: "#1e293b" }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              Neues Upgrade hinzufügen
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Fügen Sie eine neue Verbesserung für {selectedRig?.name} hinzu
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="imp-desc" className="text-white">
+                Beschreibung
+              </Label>
+              <Textarea
+                id="imp-desc"
+                value={newImprovement.description}
+                onChange={(e) =>
+                  setNewImprovement({
+                    ...newImprovement,
+                    description: e.target.value,
+                  })
+                }
+                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                placeholder="z.B. Install BOP Stack Upgrade"
+                style={{
+                  backgroundColor: "#0f172a",
+                  borderColor: "#334155",
+                  color: "#ffffff",
+                }}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="imp-cat" className="text-white">
+                  Kategorie
+                </Label>
+                <Select
+                  value={newImprovement.category}
+                  onValueChange={(v) =>
+                    setNewImprovement({
+                      ...newImprovement,
+                      category: v as
+                        | "equipment"
+                        | "certification"
+                        | "compliance"
+                        | "efficiency",
+                    })
+                  }
+                >
+                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                    <SelectValue placeholder="Kategorie auswählen" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-700">
+                    <SelectItem value="equipment">Equipment</SelectItem>
+                    <SelectItem value="certification">Certification</SelectItem>
+                    <SelectItem value="compliance">Compliance</SelectItem>
+                    <SelectItem value="efficiency">Efficiency</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="imp-prio" className="text-white">
+                  Priorität
+                </Label>
+                <Select
+                  value={newImprovement.priority}
+                  onValueChange={(v) =>
+                    setNewImprovement({
+                      ...newImprovement,
+                      priority: v as "low" | "medium" | "high",
+                    })
+                  }
+                >
+                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                    <SelectValue placeholder="Priorität auswählen" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-700">
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="imp-cost" className="text-white">
+                Geschätzte Kosten ($)
+              </Label>
+              <Input
+                id="imp-cost"
+                type="number"
+                value={newImprovement.estimatedCost}
+                onChange={(e) =>
+                  setNewImprovement({
+                    ...newImprovement,
+                    estimatedCost: Number(e.target.value),
+                  })
+                }
+                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                placeholder="500000"
+                style={{
+                  backgroundColor: "#0f172a",
+                  borderColor: "#334155",
+                  color: "#ffffff",
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="imp-rev" className="text-white">
+                Revenue Impact
+              </Label>
+              <Input
+                id="imp-rev"
+                value={newImprovement.potentialRevenue}
+                onChange={(e) =>
+                  setNewImprovement({
+                    ...newImprovement,
+                    potentialRevenue: e.target.value,
+                  })
+                }
+                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                placeholder="z.B. +$5k day rate"
+                style={{
+                  backgroundColor: "#0f172a",
+                  borderColor: "#334155",
+                  color: "#ffffff",
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddImprovementOpen(false)}
+              className="border-slate-700"
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={handleAddImprovement}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Hinzufügen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Meeting-Übersicht Dialog */}
+      <Dialog open={showMeetingOverview} onOpenChange={setShowMeetingOverview}>
+        <DialogContent className="w-[95vw] sm:w-[90vw] md:max-w-3xl lg:max-w-4xl max-h-[90vh] !bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-white flex items-center gap-2">
+              <Presentation className="h-6 w-6 text-purple-400" />
+              Meeting-Übersicht
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {overviewForAll
+                ? `Übersicht aller ${filteredRigs.length} Anlagen`
+                : `Übersicht für ${selectedRig?.name}`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[60vh] overflow-y-auto">
+            <div className="bg-slate-900 rounded-lg p-6 border border-slate-700">
+              <pre className="text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
+                {overviewForAll
+                  ? generateMeetingOverview(filteredRigs)
+                  : selectedRig
+                    ? generateMeetingOverview([selectedRig])
+                    : "Keine Anlage ausgewählt"}
+              </pre>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const text = overviewForAll
+                  ? generateMeetingOverview(filteredRigs)
+                  : selectedRig
+                    ? generateMeetingOverview([selectedRig])
+                    : "";
+                navigator.clipboard.writeText(text);
+              }}
+              className="border-slate-700"
+            >
+              📋 In Zwischenablage kopieren
+            </Button>
+            <Button
+              onClick={() => setShowMeetingOverview(false)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Schließen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Anlage hinzufügen Dialog */}
+      <Dialog open={isAddRigOpen} onOpenChange={setIsAddRigOpen}>
+        <DialogContent className="w-[95vw] sm:w-[90vw] md:max-w-2xl max-h-[90vh] overflow-y-auto !bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-white flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-green-400" />
+              Neue Anlage hinzufügen
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Fügen Sie eine neue Bohranlage zum System hinzu
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-white">Anlagenname *</Label>
+                <Input
+                  value={newRig.name}
+                  onChange={(e) =>
+                    setNewRig({ ...newRig, name: e.target.value })
+                  }
+                  className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                  placeholder="z.B. T700"
+                  style={{
+                    backgroundColor: "#0f172a",
+                    borderColor: "#334155",
+                    color: "#ffffff",
+                  }}
+                />
+              </div>
+
+              <div>
+                <Label className="text-white">Region *</Label>
+                <Select
+                  value={newRig.region}
+                  onValueChange={(value: "Oman" | "Pakistan") =>
+                    setNewRig({ ...newRig, region: value })
+                  }
+                >
+                  <SelectTrigger className="!bg-slate-900 !border-slate-700 !text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Oman">Oman</SelectItem>
+                    <SelectItem value="Pakistan">Pakistan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-white">Standort *</Label>
+              <Input
+                value={newRig.location}
+                onChange={(e) =>
+                  setNewRig({ ...newRig, location: e.target.value })
+                }
+                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                placeholder="z.B. Fahud Field"
+                style={{
+                  backgroundColor: "#0f172a",
+                  borderColor: "#334155",
+                  color: "#ffffff",
+                }}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-white">Vertragsstatus</Label>
+                <Select
+                  value={newRig.contractStatus}
+                  onValueChange={(
+                    value: "active" | "idle" | "standby" | "maintenance",
+                  ) => setNewRig({ ...newRig, contractStatus: value })}
+                >
+                  <SelectTrigger className="!bg-slate-900 !border-slate-700 !text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="idle">Idle</SelectItem>
+                    <SelectItem value="standby">Standby</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-white">Operator</Label>
+                <Input
+                  value={newRig.operator}
+                  onChange={(e) =>
+                    setNewRig({ ...newRig, operator: e.target.value })
+                  }
+                  className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                  placeholder="z.B. PDO"
+                  style={{
+                    backgroundColor: "#0f172a",
+                    borderColor: "#334155",
+                    color: "#ffffff",
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-white">Day Rate ($)</Label>
+                <Input
+                  type="number"
+                  value={newRig.dayRate || ""}
+                  onChange={(e) =>
+                    setNewRig({ ...newRig, dayRate: Number(e.target.value) })
+                  }
+                  className="!bg-slate-900 !border-slate-700 !text-white"
+                  placeholder="28000"
+                  style={{
+                    backgroundColor: "#0f172a",
+                    borderColor: "#334155",
+                    color: "#ffffff",
+                  }}
+                />
+              </div>
+
+              <div>
+                <Label className="text-white">Vertragsende</Label>
+                <Input
+                  type="date"
+                  value={newRig.contractEndDate}
+                  onChange={(e) =>
+                    setNewRig({ ...newRig, contractEndDate: e.target.value })
+                  }
+                  className="!bg-slate-900 !border-slate-700 !text-white"
+                  style={{
+                    backgroundColor: "#0f172a",
+                    borderColor: "#334155",
+                    color: "#ffffff",
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddRigOpen(false)}
+              className="border-slate-700"
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={handleAddRig}
+              disabled={!newRig.name || !newRig.location}
+              className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Anlage hinzufügen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

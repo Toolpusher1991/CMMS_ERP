@@ -23,7 +23,65 @@ A modern, full-stack CMMS (Computerized Maintenance Management System) / ERP app
 - ⚡ Active/Inactive status
 - 📊 Dashboard statistics
 
-## 🚀 Tech Stack
+### 🛢️ Asset Integrity Management (NEW!)
+
+- 🏗️ **Rig/Asset Management**
+  - Multi-regional support (Oman, Pakistan)
+  - Contract status tracking
+  - Day rate & operator management
+  - Certification tracking
+
+- 📝 **Notes & Information System**
+  - Smart notes with optional deadlines
+  - Automatic priority sorting
+  - Visual deadline indicators (overdue, urgent, normal)
+  - Full CRUD operations
+
+- 🔍 **Inspection Tracking**
+  - Multiple inspection types (statutory, internal, client, certification)
+  - Status monitoring (upcoming, due, overdue, completed)
+  - Responsibility assignment
+
+- ⚠️ **Risk & Issue Management**
+  - Severity levels (low, medium, high, critical)
+  - Category-based organization
+  - Status tracking
+
+- 📈 **Improvements & Upgrades**
+  - Investment planning
+  - Cost-benefit tracking
+  - Priority management
+
+- 📊 **Meeting Overview Generator**
+  - One-click report generation
+  - Per-asset or fleet-wide
+  - Copy-to-clipboard functionality
+  - Perfect for status meetings
+
+See [ASSET_INTEGRITY_QUICKSTART.md](ASSET_INTEGRITY_QUICKSTART.md) for details.
+
+## � Platform Compatibility
+
+### ✅ Fully iPad & Tablet Optimized!
+
+This application is fully responsive and optimized for:
+- 📱 **iPad** (Mini, Air, Pro - all sizes)
+- 💻 **Desktop** (Windows, macOS, Linux)
+- 📲 **Tablets** (Android, Surface)
+- 🖥️ **Large Displays** (up to 4K)
+
+**iPad-specific optimizations:**
+- Touch-friendly buttons (44px min)
+- Responsive dialogs and layouts
+- iOS Safari compatibility
+- Portrait & Landscape support
+- No auto-zoom on input focus
+- Smooth scrolling
+- Dark mode for OLED displays
+
+See [IPAD_COMPATIBILITY.md](IPAD_COMPATIBILITY.md) for detailed information.
+
+## �🚀 Tech Stack
 
 ### Frontend
 

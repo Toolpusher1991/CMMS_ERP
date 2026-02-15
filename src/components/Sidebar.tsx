@@ -11,6 +11,7 @@ import {
   ClipboardCheck,
   Settings,
   CalendarDays,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +31,7 @@ type AppPage =
   | "failures"
   | "inspections"
   | "shifts"
+  | "integrity"
   | "admin";
 
 interface NavItem {
@@ -45,6 +47,7 @@ const allNavItems: NavItem[] = [
   { title: "Work Orders", page: "workorders", icon: FileText },
   { title: "Action Tracker", page: "actions", icon: ListTodo },
   { title: "Schichtplan", page: "shifts", icon: CalendarDays },
+  { title: "Asset Integrity", page: "integrity", icon: Shield },
   { title: "Inspektionsberichte", page: "inspections", icon: ClipboardCheck },
   { title: "Bohranlagen", page: "tender", icon: Building2 },
   { title: "Störungsmeldung", page: "failures", icon: AlertTriangle },
@@ -138,6 +141,8 @@ export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
                   return "text-green-500";
                 case "shifts":
                   return "text-teal-500";
+                case "integrity":
+                  return "text-emerald-500";
                 case "tender":
                   return "text-indigo-500";
                 case "failures":

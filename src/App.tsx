@@ -11,6 +11,7 @@ import RigConfigurator from "@/pages/RigConfigurator";
 import FailureReporting from "@/pages/FailureReporting";
 import InspectionReports from "@/pages/InspectionReports";
 import ShiftPlanner from "@/pages/ShiftPlanner";
+import AssetIntegrityManagement from "@/pages/AssetIntegrityManagement";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -34,6 +35,7 @@ type AppPage =
   | "failures"
   | "inspections"
   | "shifts"
+  | "integrity"
   | "admin";
 
 function App() {
@@ -238,6 +240,11 @@ function App() {
                   {currentPage === "tender" && (
                     <PageErrorBoundary>
                       <RigConfigurator />
+                    </PageErrorBoundary>
+                  )}
+                  {currentPage === "integrity" && (
+                    <PageErrorBoundary>
+                      <AssetIntegrityManagement />
                     </PageErrorBoundary>
                   )}
                   {currentPage === "admin" && user.role === "ADMIN" && (
