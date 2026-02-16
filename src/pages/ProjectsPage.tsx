@@ -916,16 +916,6 @@ const getPriorityBadgeClass = (priority: string): string => {
   return classes[priority] || "bg-gray-500 text-white";
 };
 
-const getTaskStatusBadgeClass = (status: TaskStatus): string => {
-  const classes: Record<TaskStatus, string> = {
-    TODO: "bg-gray-400 text-white",
-    IN_PROGRESS: "bg-blue-500 text-white",
-    REVIEW: "bg-yellow-500 text-black",
-    DONE: "bg-green-500 text-white",
-  };
-  return classes[status];
-};
-
 // Helper function to get task order from flowchart
 const getFlowchartTaskOrder = (project: Project): Map<string, number> => {
   const orderMap = new Map<string, number>();
