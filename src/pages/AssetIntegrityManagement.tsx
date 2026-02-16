@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Shield,
   Building2,
@@ -19,7 +19,11 @@ import {
   Edit,
   Presentation,
   Save,
+  Loader2,
+  Eye,
+  ArrowUp,
 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +85,17 @@ interface GeneralInfo {
   createdDate: string;
 }
 
+interface Document {
+  id: string;
+  name: string;
+  type: "contract" | "certificate" | "photo" | "report" | "drawing";
+  size: number;
+  uploadDate: string;
+  uploadedBy: string;
+  version: number;
+  url?: string;
+}
+
 interface Rig {
   id: string;
   name: string;
@@ -95,6 +110,8 @@ interface Rig {
   certifications: string[];
   // General Information
   generalInfo?: GeneralInfo[];
+  // Documents
+  documents?: Document[];
   // Data
   inspections: Inspection[];
   issues: Issue[];
@@ -281,11 +298,20 @@ const initialRigs: Rig[] = [
 ];
 
 export default function AssetIntegrityManagement() {
+  const { toast } = useToast();
+  
   const [rigs, setRigs] = useState<Rig[]>(initialRigs);
   const [selectedRegion, setSelectedRegion] = useState<
     "Oman" | "Pakistan" | "all"
   >("all");
   const [selectedRig, setSelectedRig] = useState<Rig | null>(null);
+
+  // UX States
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [hoveredRigId, setHoveredRigId] = useState<string | null>(null);
+  const autoSaveTimerRef = useRef<number | null>(null);
 
   // Add Dialog States
   const [isAddInspectionOpen, setIsAddInspectionOpen] = useState(false);
@@ -406,6 +432,120 @@ export default function AssetIntegrityManagement() {
     }
   };
 
+  // Auto-Save Logic
+  const saveData = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      
+      // In production: await assetIntegrityApi.updateRigs(rigs);
+      localStorage.setItem('asset-integrity-backup', JSON.stringify(rigs));
+      
+      setLastSaved(new Date());
+      setHasUnsavedChanges(false);
+      
+      toast({
+        title: "Gespeichert ✓",
+        description: `Änderungen um ${new Date().toLocaleTimeString('de-DE')} gespeichert`,
+        duration: 2000,
+      });
+    } catch (error) {
+      toast({
+        title: "Fehler beim Speichern",
+        description: "Änderungen konnten nicht gespeichert werden",
+        variant: "destructive",
+        action: (
+          <Button size="sm" onClick={() => saveData()}>
+            Erneut versuchen
+          </Button>
+        ),
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [rigs, toast]);
+
+  // Auto-Save on changes (debounced)
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    
+    autoSaveTimerRef.current = setTimeout(() => {
+      saveData();
+    }, 3000);
+    
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [hasUnsavedChanges, saveData]);
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Ctrl/Cmd + S = Manual Save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveData();
+      }
+
+      // Escape = Close Dialog
+      if (e.key === 'Escape') {
+        setSelectedRig(null);
+        setIsAddRigOpen(false);
+        setShowMeetingOverview(false);
+      }
+
+      // A = Add Asset (when no dialog open)
+      if (e.key === 'a' || e.key === 'A') {
+        if (!selectedRig && !isAddRigOpen) {
+          e.preventDefault();
+          setIsAddRigOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [saveData, selectedRig, isAddRigOpen]);
+
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Load backup from localStorage on mount
+  useEffect(() => {
+    const backup = localStorage.getItem('asset-integrity-backup');
+    if (backup) {
+      try {
+        const parsedRigs = JSON.parse(backup);
+        setRigs(parsedRigs);
+        setLastSaved(new Date());
+      } catch (error) {
+        console.error('Failed to load backup:', error);
+      }
+    }
+  }, []);
+
   // Filter rigs by region
   const filteredRigs =
     selectedRegion === "all"
@@ -496,6 +636,7 @@ export default function AssetIntegrityManagement() {
 
     setRigs(updatedRigs);
     setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+    setHasUnsavedChanges(true);
     setNewInspection({
       type: "internal",
       description: "",
@@ -595,6 +736,7 @@ export default function AssetIntegrityManagement() {
 
     setRigs(updatedRigs);
     setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+    setHasUnsavedChanges(true);
     setNewGeneralInfo({ description: "", deadline: "" });
   };
 
@@ -612,6 +754,7 @@ export default function AssetIntegrityManagement() {
 
     setRigs(updatedRigs);
     setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+    setHasUnsavedChanges(true);
   };
 
   const handleEditGeneralInfo = (info: GeneralInfo) => {
@@ -888,7 +1031,42 @@ export default function AssetIntegrityManagement() {
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              {/* Save Status Indicator */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-700">
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin text-blue-400" />
+                    <span className="text-xs text-slate-400">Speichert...</span>
+                  </>
+                ) : hasUnsavedChanges ? (
+                  <>
+                    <Clock className="h-3 w-3 text-orange-400" />
+                    <span className="text-xs text-orange-400">Nicht gespeichert</span>
+                  </>
+                ) : lastSaved ? (
+                  <>
+                    <CheckCircle className="h-3 w-3 text-green-400" />
+                    <span className="text-xs text-slate-400">
+                      {new Date(lastSaved).toLocaleTimeString('de-DE')}
+                    </span>
+                  </>
+                ) : null}
+              </div>
+
+              {/* Manual Save Button */}
+              <Button
+                onClick={saveData}
+                disabled={isSaving || !hasUnsavedChanges}
+                variant="outline"
+                size="sm"
+                className="touch-manipulation"
+                title="Strg+S"
+              >
+                <Save className="h-4 w-4 mr-1" />
+                <span className="hidden lg:inline">Speichern</span>
+              </Button>
+
               <Button
                 onClick={() => setIsAddRigOpen(true)}
                 className="flex-1 sm:flex-none bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 touch-manipulation"
@@ -905,7 +1083,9 @@ export default function AssetIntegrityManagement() {
                 className="flex-1 sm:flex-none bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 touch-manipulation"
               >
                 <Presentation className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Meeting-Übersicht (Alle)</span>
+                <span className="hidden sm:inline">
+                  Meeting-Übersicht (Alle)
+                </span>
                 <span className="sm:hidden">Übersicht</span>
               </Button>
             </div>
@@ -915,55 +1095,76 @@ export default function AssetIntegrityManagement() {
 
       <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">\n          <Card className="bg-slate-800 border-slate-700">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="bg-slate-800 border-slate-700 hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-300">
                 Gesamt Anlagen
               </CardTitle>
-              <Building2 className="h-4 w-4 text-blue-400" />
+              <Building2 className="h-4 w-4 text-blue-400 group-hover:scale-110 transition-transform" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{totalRigs}</div>
-              <p className="text-xs text-slate-400">
+              <div className="flex items-baseline gap-2">
+                <div className="text-2xl font-bold text-white">{totalRigs}</div>
+                <div className="flex items-center gap-1 text-xs text-green-400">
+                  <ArrowUp className="h-3 w-3" />
+                  <span>2</span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
                 {activeRigs} unter Vertrag
               </p>
             </CardContent>
           </Card>
-
-          <Card className="bg-slate-800 border-slate-700">
+          
+          <Card className="bg-slate-800 border-slate-700 hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-300">
                 Im Vertrag
               </CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-400" />
+              <CheckCircle className="h-4 w-4 text-green-400 group-hover:scale-110 transition-transform" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{activeRigs}</div>
-              <p className="text-xs text-slate-400">Aktive Contracts</p>
+              <div className="flex items-baseline gap-2">
+                <div className="text-2xl font-bold text-white">{activeRigs}</div>
+                <div className="flex items-center gap-1 text-xs text-green-400">
+                  <TrendingUp className="h-3 w-3" />
+                  <span>+12%</span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">Aktive Contracts</p>
             </CardContent>
           </Card>
-
-          <Card className="bg-slate-800 border-slate-700">
+          
+          <Card className="bg-slate-800 border-slate-700 hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-300">
                 Overdue Inspektionen
               </CardTitle>
-              <Clock className="h-4 w-4 text-red-400" />
+              <Clock className="h-4 w-4 text-red-400 group-hover:scale-110 transition-transform" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">
-                {overdueInspections}
+              <div className="flex items-baseline gap-2">
+                <div className="text-2xl font-bold text-white">
+                  {overdueInspections}
+                </div>
+                {overdueInspections > 0 && (
+                  <div className="flex items-center gap-1 text-xs text-red-400">
+                    <AlertCircle className="h-3 w-3" />
+                    <span>Kritisch</span>
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-slate-400">Sofortige Maßnahmen</p>
+              <p className="text-xs text-slate-400 mt-1">Sofortige Maßnahmen</p>
             </CardContent>
           </Card>
-
-          <Card className="bg-slate-800 border-slate-700">
+          
+          <Card className="bg-slate-800 border-slate-700 hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-300">
                 Kritische Issues
               </CardTitle>
-              <AlertCircle className="h-4 w-4 text-red-400" />
+              <AlertCircle className="h-4 w-4 text-red-400 group-hover:scale-110 transition-transform" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-white">
@@ -1003,13 +1204,56 @@ export default function AssetIntegrityManagement() {
           {filteredRigs.map((rig) => {
             const priorityStatus = getRigPriorityStatus(rig);
             const priorityColor = getPriorityColor(priorityStatus);
+            const isHovered = hoveredRigId === rig.id;
 
             return (
               <Card
                 key={rig.id}
-                className={`border-2 bg-slate-800 hover:bg-slate-700 transition-all cursor-pointer ${priorityColor}`}
+                className={`group relative border-2 bg-slate-800 hover:bg-slate-700 transition-all cursor-pointer hover:shadow-xl hover:scale-[1.02] ${priorityColor}`}
                 onClick={() => setSelectedRig(rig)}
+                onMouseEnter={() => setHoveredRigId(rig.id)}
+                onMouseLeave={() => setHoveredRigId(null)}
               >
+                {/* Quick Actions - visible on hover */}
+                {isHovered && (
+                  <div className="absolute -top-2 -right-2 flex gap-1 z-10">
+                    <Button
+                      size="sm"
+                      className="h-8 w-8 p-0 bg-blue-600 hover:bg-blue-700 shadow-lg"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRig(rig);
+                      }}
+                      title="Details ansehen"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-8 w-8 p-0 bg-green-600 hover:bg-green-700 shadow-lg"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRig(rig);
+                        setIsAddInspectionOpen(true);
+                      }}
+                      title="Inspektion planen"
+                    >
+                      <Calendar className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-8 w-8 p-0 bg-orange-600 hover:bg-orange-700 shadow-lg"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRig(rig);
+                        setIsAddIssueOpen(true);
+                      }}
+                      title="Issue melden"
+                    >
+                      <AlertCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
