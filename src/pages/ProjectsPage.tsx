@@ -93,6 +93,13 @@ import {
   AlertTriangle,
   Diamond,
   Package,
+  ClipboardList,
+  PlayCircle,
+  EyeIcon,
+  Copy,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/services/api";
@@ -234,6 +241,7 @@ function TaskFlowNode({
     new Date(data.dueDate) < new Date() &&
     data.status !== "DONE";
   const hasMaterial = localMaterial.needsMaterial;
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <>
@@ -248,7 +256,7 @@ function TaskFlowNode({
         <PopoverTrigger asChild>
           <div
             className={cn(
-              "relative px-3 py-2 rounded-lg border-2 shadow-sm min-w-[180px] max-w-[280px] cursor-pointer transition-all hover:shadow-md h-full flex flex-col justify-center",
+              "group relative px-3 py-2 rounded-lg border-2 shadow-sm min-w-[180px] max-w-[280px] cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] h-full flex flex-col justify-center",
               statusColors[data.status],
               selected && "ring-2 ring-primary",
               isOverdue && "ring-2 ring-red-400",
@@ -256,7 +264,43 @@ function TaskFlowNode({
                 !localMaterial.materialDelivered &&
                 "ring-2 ring-orange-400",
             )}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
           >
+            {/* Quick Actions - sichtbar beim Hover */}
+            {isHovered && !isOpen && (
+              <div className="absolute -top-2 -right-2 flex gap-1 z-10">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(true);
+                  }}
+                  className="p-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transition-all"
+                  title="Bearbeiten"
+                >
+                  <Edit className="h-3 w-3" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (data.onDelete && data.taskId) {
+                      data.onDelete(data.taskId);
+                    }
+                  }}
+                  className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-all"
+                  title="Löschen"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+                <button
+                  onClick={handleStatusClick}
+                  className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-lg transition-all"
+                  title="Status wechseln"
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                </button>
+              </div>
+            )}
             {/* Priority indicator bar */}
             <div
               className={cn(
@@ -409,17 +453,27 @@ function TaskFlowNode({
                 <button
                   onClick={handleStatusClick}
                   className={cn(
-                    "px-2 py-1 rounded-full font-medium",
+                    "px-2 py-1 rounded-full font-medium flex items-center gap-1",
                     statusBadgeColors[data.status],
                   )}
                 >
-                  {data.status === "TODO"
-                    ? "📋 Offen"
-                    : data.status === "IN_PROGRESS"
-                      ? "🔄 In Arbeit"
-                      : data.status === "REVIEW"
-                        ? "👁️ Prüfen"
-                        : "✅ Fertig"}
+                  {data.status === "TODO" ? (
+                    <>
+                      <ClipboardList className="h-3 w-3" /> Offen
+                    </>
+                  ) : data.status === "IN_PROGRESS" ? (
+                    <>
+                      <PlayCircle className="h-3 w-3" /> In Arbeit
+                    </>
+                  ) : data.status === "REVIEW" ? (
+                    <>
+                      <EyeIcon className="h-3 w-3" /> Prüfen
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-3 w-3" /> Fertig
+                    </>
+                  )}
                 </button>
               </div>
               <div>
@@ -1130,6 +1184,51 @@ export default function ProjectsPage() {
     loadProjects();
     loadUsers();
   }, [loadProjects, loadUsers]);
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore wenn in Input-Feldern
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // N = Neue Aufgabe (nur im Flowchart-Modus)
+      if (e.key === 'n' || e.key === 'N') {
+        if (showFlowDialog && selectedProject) {
+          e.preventDefault();
+          setShowFlowTaskDialog(true);
+        }
+      }
+
+      // M = Neuer Meilenstein (nur im Flowchart-Modus)
+      if (e.key === 'm' || e.key === 'M') {
+        if (showFlowDialog && selectedProject) {
+          e.preventDefault();
+          setShowMilestoneDialog(true);
+        }
+      }
+
+      // S = Flowchart speichern (nur im Flowchart-Modus)
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        if (showFlowDialog && selectedProject && hasFlowChanges) {
+          e.preventDefault();
+          handleSaveFlowData();
+        }
+      }
+
+      // Escape = Dialog schließen
+      if (e.key === 'Escape') {
+        if (showFlowDialog) {
+          e.preventDefault();
+          setShowFlowDialog(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showFlowDialog, selectedProject, hasFlowChanges]);
 
   // Computed Values
   const getProjectStats = useCallback(
@@ -3187,6 +3286,7 @@ export default function ProjectsPage() {
 
                   return {
                     ...e,
+                    type: 'smoothstep', // Bezier-Kurven für smoother Linien
                     style: {
                       stroke: isSourceDone ? "#22c55e" : "#64748b",
                       strokeWidth: isSourceDone ? 3 : 2,
@@ -3210,8 +3310,14 @@ export default function ProjectsPage() {
               fitView
               className="bg-slate-50 dark:bg-slate-900"
             >
-              <Controls className="!bg-slate-800 !border-slate-700 !shadow-lg [&>button]:!bg-slate-700 [&>button]:!border-slate-600 [&>button]:!text-white [&>button:hover]:!bg-slate-600 [&>button>svg]:!fill-white" />
+              <Controls 
+                className="!bg-slate-800 !border-slate-700 !shadow-lg [&>button]:!bg-slate-700 [&>button]:!border-slate-600 [&>button]:!text-white [&>button:hover]:!bg-slate-600 [&>button>svg]:!fill-white [&>button]:!w-10 [&>button]:!h-10"
+                showZoom={true}
+                showFitView={true}
+                showInteractive={true}
+              />
               <MiniMap
+                className="!bg-slate-800 !border-2 !border-slate-700 !shadow-xl !rounded-lg"
                 nodeColor={(node) => {
                   if (node.type === "start") return "#22c55e";
                   if (node.type === "end") return "#ef4444";
@@ -3228,6 +3334,10 @@ export default function ProjectsPage() {
                     DONE: "#22c55e",
                   };
                   return colors[data?.status] || "#9ca3af";
+                }}
+                maskColor="rgba(0, 0, 0, 0.6)"
+                style={{
+                  backgroundColor: 'rgba(30, 41, 59, 0.95)',
                 }}
               />
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
@@ -3276,6 +3386,35 @@ export default function ProjectsPage() {
                   <X className="h-4 w-4 mr-2" />
                   Schließen
                 </Button>
+              </Panel>
+              {/* Bottom-Left Panel: Keyboard Shortcuts Guide */}
+              <Panel position="bottom-left" className="bg-slate-800/95 border border-slate-700 rounded-lg p-3 shadow-lg">
+                <div className="text-white text-xs space-y-1">
+                  <div className="font-semibold mb-2 flex items-center gap-2">
+                    <kbd className="px-1 bg-slate-700 rounded">⌨️</kbd>
+                    Tastenkürzel
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">N</kbd>
+                    <span className="text-slate-300">Neue Aufgabe</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">M</kbd>
+                    <span className="text-slate-300">Neuer Meilenstein</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">Strg+S</kbd>
+                    <span className="text-slate-300">Speichern</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">Del</kbd>
+                    <span className="text-slate-300">Löschen</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">Esc</kbd>
+                    <span className="text-slate-300">Dialog schließen</span>
+                  </div>
+                </div>
               </Panel>
             </ReactFlow>
           </div>
