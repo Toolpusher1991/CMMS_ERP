@@ -65,12 +65,14 @@ See [ASSET_INTEGRITY_QUICKSTART.md](ASSET_INTEGRITY_QUICKSTART.md) for details.
 ### ✅ Fully iPad & Tablet Optimized!
 
 This application is fully responsive and optimized for:
+
 - 📱 **iPad** (Mini, Air, Pro - all sizes)
 - 💻 **Desktop** (Windows, macOS, Linux)
 - 📲 **Tablets** (Android, Surface)
 - 🖥️ **Large Displays** (up to 4K)
 
 **iPad-specific optimizations:**
+
 - Touch-friendly buttons (44px min)
 - Responsive dialogs and layouts
 - iOS Safari compatibility

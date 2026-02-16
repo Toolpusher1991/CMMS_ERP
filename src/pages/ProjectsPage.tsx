@@ -1085,6 +1085,11 @@ export default function ProjectsPage() {
     new Set(),
   );
 
+  // Filter & Sort State
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [sortBy, setSortBy] = useState<string>("name");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+
   // Dialog States
   const [showFlowDialog, setShowFlowDialog] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -1189,12 +1194,15 @@ export default function ProjectsPage() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore wenn in Input-Feldern
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
         return;
       }
 
       // N = Neue Aufgabe (nur im Flowchart-Modus)
-      if (e.key === 'n' || e.key === 'N') {
+      if (e.key === "n" || e.key === "N") {
         if (showFlowDialog && selectedProject) {
           e.preventDefault();
           setShowFlowTaskDialog(true);
@@ -1202,7 +1210,7 @@ export default function ProjectsPage() {
       }
 
       // M = Neuer Meilenstein (nur im Flowchart-Modus)
-      if (e.key === 'm' || e.key === 'M') {
+      if (e.key === "m" || e.key === "M") {
         if (showFlowDialog && selectedProject) {
           e.preventDefault();
           setShowMilestoneDialog(true);
@@ -1210,7 +1218,7 @@ export default function ProjectsPage() {
       }
 
       // S = Flowchart speichern (nur im Flowchart-Modus)
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         if (showFlowDialog && selectedProject && hasFlowChanges) {
           e.preventDefault();
           handleSaveFlowData();
@@ -1218,7 +1226,7 @@ export default function ProjectsPage() {
       }
 
       // Escape = Dialog schließen
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         if (showFlowDialog) {
           e.preventDefault();
           setShowFlowDialog(false);
@@ -1226,8 +1234,8 @@ export default function ProjectsPage() {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showFlowDialog, selectedProject, hasFlowChanges]);
 
   // Computed Values
@@ -1254,7 +1262,7 @@ export default function ProjectsPage() {
   );
 
   const filteredProjects = useMemo(() => {
-    return projects
+    let filtered = projects
       .filter((p) => p.plant === activeTab)
       .filter((p) => {
         if (!searchQuery.trim()) return true;
@@ -1263,18 +1271,45 @@ export default function ProjectsPage() {
           p.name.toLowerCase().includes(query) ||
           p.description?.toLowerCase().includes(query)
         );
-      })
-      .sort((a, b) => {
-        // Active first, then by priority
-        if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1;
-        if (a.status !== "COMPLETED" && b.status === "COMPLETED") return -1;
-        const priorityOrder = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
-        return (
-          (priorityOrder[a.priority as keyof typeof priorityOrder] || 2) -
-          (priorityOrder[b.priority as keyof typeof priorityOrder] || 2)
-        );
       });
-  }, [projects, activeTab, searchQuery]);
+
+    // Status filter
+    if (statusFilter !== "ALL") {
+      filtered = filtered.filter((p) => p.status === statusFilter);
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "progress":
+          const progressA = getProjectProgress(a);
+          const progressB = getProjectProgress(b);
+          return progressB - progressA;
+        case "dueDate":
+          if (!a.endDate) return 1;
+          if (!b.endDate) return -1;
+          return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+        case "priority":
+          const priorityOrder = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
+          return (
+            (priorityOrder[a.priority as keyof typeof priorityOrder] || 2) -
+            (priorityOrder[b.priority as keyof typeof priorityOrder] || 2)
+          );
+        default:
+          // Active first, then by priority
+          if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1;
+          if (a.status !== "COMPLETED" && b.status === "COMPLETED") return -1;
+          return (
+            (priorityOrder[a.priority as keyof typeof priorityOrder] || 2) -
+            (priorityOrder[b.priority as keyof typeof priorityOrder] || 2)
+          );
+      }
+    });
+
+    return filtered;
+  }, [projects, activeTab, searchQuery, statusFilter, sortBy]);
 
   // Toggle Project Expansion
   const toggleProjectExpanded = (projectId: string) => {
@@ -2751,7 +2786,7 @@ export default function ProjectsPage() {
                 Projektverwaltung für alle Anlagen
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -2761,7 +2796,38 @@ export default function ProjectsPage() {
                   className="pl-10 w-64"
                 />
               </div>
-              <Button onClick={openNewProjectDialog}>
+
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px] h-10">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Alle Status</SelectItem>
+                  <SelectItem value="PLANNED">Geplant</SelectItem>
+                  <SelectItem value="IN_PROGRESS">In Arbeit</SelectItem>
+                  <SelectItem value="ON_HOLD">Pausiert</SelectItem>
+                  <SelectItem value="COMPLETED">Abgeschlossen</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Sort */}
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[140px] h-10">
+                  <SelectValue placeholder="Sortieren" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="progress">Fortschritt</SelectItem>
+                  <SelectItem value="dueDate">Fälligkeit</SelectItem>
+                  <SelectItem value="priority">Priorität</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                onClick={openNewProjectDialog}
+                className="h-10 min-w-[44px] min-h-[44px] touch-manipulation"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Neues Projekt
               </Button>
@@ -2857,10 +2923,63 @@ export default function ProjectsPage() {
                           <Card
                             key={project.id}
                             className={cn(
-                              "transition-all hover:shadow-md",
+                              "transition-all hover:shadow-lg group relative",
                               project.status === "COMPLETED" && "opacity-70",
                             )}
                           >
+                            {/* Quick Actions Hover Overlay */}
+                            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation shadow-lg"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleProjectExpanded(project.id);
+                                }}
+                                title="Ansehen"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation shadow-lg"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openFlowDialog(project);
+                                }}
+                                title="Flowchart"
+                              >
+                                <Workflow className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation shadow-lg"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditProjectDialog(project);
+                                }}
+                                title="Bearbeiten"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation shadow-lg text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedProject(project);
+                                  setShowDeleteProjectDialog(true);
+                                }}
+                                title="Löschen"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+
                             <CardHeader className="pb-3">
                               <div className="flex items-start justify-between gap-4">
                                 {/* Left Side - Project Info */}
@@ -2884,28 +3003,52 @@ export default function ProjectsPage() {
                                     </Badge>
                                     <Badge
                                       className={cn(
-                                        "text-xs",
-                                        getStatusBadgeClass(project.status),
+                                        "text-xs font-semibold px-2.5 py-1",
+                                        project.status === "IN_PROGRESS" &&
+                                          "bg-cyan-500/20 text-cyan-600 border-cyan-500/30",
+                                        project.status === "PLANNED" &&
+                                          "bg-slate-500/20 text-slate-600 border-slate-500/30",
+                                        project.status === "ON_HOLD" &&
+                                          "bg-slate-400/20 text-slate-500 border-slate-400/30",
+                                        project.status === "COMPLETED" &&
+                                          "bg-green-500/20 text-green-600 border-green-500/30",
+                                        project.status === "CANCELLED" &&
+                                          "bg-red-500/20 text-red-600 border-red-500/30",
                                       )}
+                                      variant="outline"
                                     >
                                       {project.status === "PLANNED" &&
-                                        "Geplant"}
+                                        "🟢 Geplant"}
                                       {project.status === "IN_PROGRESS" &&
-                                        "In Arbeit"}
+                                        "🔵 In Arbeit"}
                                       {project.status === "ON_HOLD" &&
-                                        "Pausiert"}
+                                        "⏸️ Pausiert"}
                                       {project.status === "COMPLETED" &&
-                                        "Abgeschlossen"}
+                                        "✅ Abgeschlossen"}
                                       {project.status === "CANCELLED" &&
-                                        "Abgebrochen"}
+                                        "❌ Abgebrochen"}
                                     </Badge>
                                     <Badge
                                       className={cn(
-                                        "text-xs",
-                                        getPriorityBadgeClass(project.priority),
+                                        "text-xs font-semibold px-2.5 py-1",
+                                        project.priority === "URGENT" &&
+                                          "bg-red-500/20 text-red-600 border-red-500/30",
+                                        project.priority === "HIGH" &&
+                                          "bg-orange-500/20 text-orange-600 border-orange-500/30",
+                                        project.priority === "NORMAL" &&
+                                          "bg-blue-500/20 text-blue-600 border-blue-500/30",
+                                        project.priority === "LOW" &&
+                                          "bg-slate-500/20 text-slate-600 border-slate-500/30",
                                       )}
+                                      variant="outline"
                                     >
-                                      {getPriorityLabel(project.priority)}
+                                      {project.priority === "URGENT" &&
+                                        "🔴 Urgent"}
+                                      {project.priority === "HIGH" && "🟡 Hoch"}
+                                      {project.priority === "NORMAL" &&
+                                        "🟢 Normal"}
+                                      {project.priority === "LOW" &&
+                                        "⚪ Niedrig"}
                                     </Badge>
                                   </div>
                                   <CardTitle className="text-lg">
@@ -2964,8 +3107,21 @@ export default function ProjectsPage() {
                                   )}
                                 </div>
 
-                                {/* Right Side - Action Buttons */}
-                                <div className="flex flex-col gap-2">
+                                {/* Right Side - Manager & Mobile Flowchart Button */}
+                                <div className="flex flex-col gap-2 items-end">
+                                  {project.manager && (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
+                                        {project.manager.firstName[0]}
+                                        {project.manager.lastName[0]}
+                                      </div>
+                                      <span className="hidden lg:inline">
+                                        {project.manager.firstName}{" "}
+                                        {project.manager.lastName}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {/* Mobile Flowchart Button (visible on mobile, hidden on hover devices) */}
                                   <Button
                                     variant="default"
                                     size="sm"
@@ -2973,35 +3129,11 @@ export default function ProjectsPage() {
                                       e.stopPropagation();
                                       openFlowDialog(project);
                                     }}
-                                    className="gap-2"
+                                    className="gap-2 min-h-[44px] touch-manipulation lg:hidden"
                                   >
                                     <Workflow className="h-4 w-4" />
                                     Flowchart
                                   </Button>
-                                  <div className="flex gap-1">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openEditProjectDialog(project);
-                                      }}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedProject(project);
-                                        setShowDeleteProjectDialog(true);
-                                      }}
-                                      className="text-red-500 hover:text-red-600"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
                                 </div>
                               </div>
                             </CardHeader>
@@ -3035,17 +3167,36 @@ export default function ProjectsPage() {
                                         const flowOrder = flowOrderMap.get(
                                           task.id,
                                         );
-                                        const priorityBorderColors: Record<
+
+                                        // Konsistente Prioritäts-Farben
+                                        const priorityConfig: Record<
                                           string,
-                                          string
+                                          { border: string; flag: string }
                                         > = {
-                                          URGENT: "border-l-red-500",
-                                          HIGH: "border-l-orange-500",
-                                          NORMAL: "border-l-blue-500",
-                                          LOW: "border-l-gray-400",
+                                          URGENT: {
+                                            border: "border-l-red-500",
+                                            flag: "🔴",
+                                          },
+                                          HIGH: {
+                                            border: "border-l-orange-500",
+                                            flag: "🟡",
+                                          },
+                                          NORMAL: {
+                                            border: "border-l-blue-500",
+                                            flag: "🟢",
+                                          },
+                                          LOW: {
+                                            border: "border-l-slate-400",
+                                            flag: "⚪",
+                                          },
                                         };
 
-                                        // Status-basierte Hintergrundfarben
+                                        const priority =
+                                          priorityConfig[
+                                            task.priority || "NORMAL"
+                                          ];
+
+                                        // Konsistente Status-Farben
                                         const statusBackgrounds: Record<
                                           string,
                                           string
@@ -3055,39 +3206,25 @@ export default function ProjectsPage() {
                                             "bg-blue-500/5 hover:bg-blue-500/10",
                                           REVIEW:
                                             "bg-yellow-500/5 hover:bg-yellow-500/10",
-                                          OPEN: "bg-muted/30 hover:bg-muted/50",
+                                          TODO: "bg-slate-500/5 hover:bg-slate-500/10",
                                         };
 
                                         return (
                                           <div
                                             key={task.id}
                                             className={cn(
-                                              "flex items-center justify-between p-3 px-4 rounded-lg transition-all border-l-4 group shadow-sm",
-                                              priorityBorderColors[
-                                                task.priority || "NORMAL"
-                                              ],
+                                              "flex items-center justify-between p-3 px-4 rounded-lg transition-all border-l-4 group shadow-sm min-h-[60px]",
+                                              priority.border,
                                               statusBackgrounds[task.status] ||
-                                                statusBackgrounds.OPEN,
+                                                statusBackgrounds.TODO,
                                               task.status === "DONE" &&
                                                 "opacity-70",
                                             )}
                                           >
-                                            <div className="flex items-center gap-4 flex-1 min-w-0">
-                                              {/* Task Number from Flow */}
-                                              <span
-                                                className={cn(
-                                                  "w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0 border-2",
-                                                  task.status === "DONE"
-                                                    ? "bg-green-500/20 text-green-600 border-green-500/40"
-                                                    : task.status ===
-                                                        "IN_PROGRESS"
-                                                      ? "bg-blue-500/20 text-blue-600 border-blue-500/40"
-                                                      : task.status === "REVIEW"
-                                                        ? "bg-yellow-500/20 text-yellow-600 border-yellow-500/40"
-                                                        : "bg-muted text-muted-foreground border-border",
-                                                )}
-                                              >
-                                                {flowOrder ?? index + 1}
+                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                              {/* Priority Flag */}
+                                              <span className="text-lg flex-shrink-0">
+                                                {priority.flag}
                                               </span>
                                               <button
                                                 onClick={() =>
@@ -3120,15 +3257,22 @@ export default function ProjectsPage() {
                                                   {task.title}
                                                 </p>
                                                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                                                  {task.description && (
-                                                    <span className="truncate max-w-[200px]">
-                                                      {task.description}
+                                                  {task.assignedTo && (
+                                                    <span className="flex items-center gap-1.5 flex-shrink-0">
+                                                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-[9px]">
+                                                        {task.assignedTo
+                                                          .split(" ")
+                                                          .map((n) => n[0])
+                                                          .join("")}
+                                                      </div>
+                                                      <span className="hidden sm:inline">
+                                                        {task.assignedTo}
+                                                      </span>
                                                     </span>
                                                   )}
-                                                  {task.assignedTo && (
-                                                    <span className="flex items-center gap-1 flex-shrink-0">
-                                                      <UserIcon className="h-3 w-3" />
-                                                      {task.assignedTo}
+                                                  {task.description && (
+                                                    <span className="truncate max-w-[200px] hidden md:inline">
+                                                      {task.description}
                                                     </span>
                                                   )}
                                                 </div>
@@ -3137,18 +3281,33 @@ export default function ProjectsPage() {
                                             <div className="flex items-center gap-2 flex-shrink-0">
                                               <Badge
                                                 className={cn(
-                                                  "text-xs px-2.5 py-0.5 h-6 font-semibold",
-                                                  getTaskStatusBadgeClass(
-                                                    task.status,
-                                                  ),
+                                                  "text-xs px-2.5 py-1 h-7 font-semibold",
+                                                  task.status === "DONE" &&
+                                                    "bg-green-500/20 text-green-600 border-green-500/30",
+                                                  task.status ===
+                                                    "IN_PROGRESS" &&
+                                                    "bg-blue-500/20 text-blue-600 border-blue-500/30",
+                                                  task.status === "REVIEW" &&
+                                                    "bg-yellow-500/20 text-yellow-600 border-yellow-500/30",
+                                                  task.status === "TODO" &&
+                                                    "bg-slate-500/20 text-slate-600 border-slate-500/30",
                                                 )}
+                                                variant="outline"
                                               >
-                                                {getStatusLabel(task.status)}
+                                                {task.status === "DONE" &&
+                                                  "✅ Erledigt"}
+                                                {task.status ===
+                                                  "IN_PROGRESS" &&
+                                                  "🔄 In Arbeit"}
+                                                {task.status === "REVIEW" &&
+                                                  "👁️ Review"}
+                                                {task.status === "TODO" &&
+                                                  "⚪ Offen"}
                                               </Badge>
                                               <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation opacity-0 group-hover:opacity-100 transition-opacity"
                                                 onClick={() =>
                                                   openEditTaskDialog(
                                                     project,
@@ -3156,12 +3315,12 @@ export default function ProjectsPage() {
                                                   )
                                                 }
                                               >
-                                                <Edit className="h-3 w-3" />
+                                                <Edit className="h-4 w-4" />
                                               </Button>
                                               <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                                className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-500/10"
                                                 onClick={() => {
                                                   setTaskToDelete({
                                                     projectId: project.id,
@@ -3170,7 +3329,7 @@ export default function ProjectsPage() {
                                                   setShowDeleteTaskDialog(true);
                                                 }}
                                               >
-                                                <Trash2 className="h-3 w-3" />
+                                                <Trash2 className="h-4 w-4" />
                                               </Button>
                                             </div>
                                           </div>
@@ -3286,7 +3445,7 @@ export default function ProjectsPage() {
 
                   return {
                     ...e,
-                    type: 'smoothstep', // Bezier-Kurven für smoother Linien
+                    type: "smoothstep", // Bezier-Kurven für smoother Linien
                     style: {
                       stroke: isSourceDone ? "#22c55e" : "#64748b",
                       strokeWidth: isSourceDone ? 3 : 2,
@@ -3310,7 +3469,7 @@ export default function ProjectsPage() {
               fitView
               className="bg-slate-50 dark:bg-slate-900"
             >
-              <Controls 
+              <Controls
                 className="!bg-slate-800 !border-slate-700 !shadow-lg [&>button]:!bg-slate-700 [&>button]:!border-slate-600 [&>button]:!text-white [&>button:hover]:!bg-slate-600 [&>button>svg]:!fill-white [&>button]:!w-10 [&>button]:!h-10"
                 showZoom={true}
                 showFitView={true}
@@ -3337,7 +3496,7 @@ export default function ProjectsPage() {
                 }}
                 maskColor="rgba(0, 0, 0, 0.6)"
                 style={{
-                  backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                  backgroundColor: "rgba(30, 41, 59, 0.95)",
                 }}
               />
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
@@ -3388,30 +3547,43 @@ export default function ProjectsPage() {
                 </Button>
               </Panel>
               {/* Bottom-Left Panel: Keyboard Shortcuts Guide */}
-              <Panel position="bottom-left" className="bg-slate-800/95 border border-slate-700 rounded-lg p-3 shadow-lg">
+              <Panel
+                position="bottom-left"
+                className="bg-slate-800/95 border border-slate-700 rounded-lg p-3 shadow-lg"
+              >
                 <div className="text-white text-xs space-y-1">
                   <div className="font-semibold mb-2 flex items-center gap-2">
                     <kbd className="px-1 bg-slate-700 rounded">⌨️</kbd>
                     Tastenkürzel
                   </div>
                   <div className="flex items-center gap-2">
-                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">N</kbd>
+                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">
+                      N
+                    </kbd>
                     <span className="text-slate-300">Neue Aufgabe</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">M</kbd>
+                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">
+                      M
+                    </kbd>
                     <span className="text-slate-300">Neuer Meilenstein</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">Strg+S</kbd>
+                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">
+                      Strg+S
+                    </kbd>
                     <span className="text-slate-300">Speichern</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">Del</kbd>
+                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">
+                      Del
+                    </kbd>
                     <span className="text-slate-300">Löschen</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">Esc</kbd>
+                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">
+                      Esc
+                    </kbd>
                     <span className="text-slate-300">Dialog schließen</span>
                   </div>
                 </div>
