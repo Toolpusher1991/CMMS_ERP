@@ -96,10 +96,6 @@ import {
   ClipboardList,
   PlayCircle,
   EyeIcon,
-  Copy,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/services/api";
@@ -900,16 +896,6 @@ const nodeTypes = {
 };
 
 // ===== Helper Functions =====
-const getStatusLabel = (status: TaskStatus): string => {
-  const labels: Record<TaskStatus, string> = {
-    TODO: "Offen",
-    IN_PROGRESS: "In Arbeit",
-    REVIEW: "Review",
-    DONE: "Erledigt",
-  };
-  return labels[status];
-};
-
 const getPriorityLabel = (priority: string): string => {
   const labels: Record<string, string> = {
     LOW: "Niedrig",
@@ -918,17 +904,6 @@ const getPriorityLabel = (priority: string): string => {
     URGENT: "Dringend",
   };
   return labels[priority] || priority;
-};
-
-const getStatusBadgeClass = (status: string): string => {
-  const classes: Record<string, string> = {
-    PLANNED: "bg-gray-500 text-white",
-    IN_PROGRESS: "bg-blue-500 text-white",
-    ON_HOLD: "bg-yellow-500 text-black",
-    COMPLETED: "bg-green-500 text-white",
-    CANCELLED: "bg-red-500 text-white",
-  };
-  return classes[status] || "bg-gray-500 text-white";
 };
 
 const getPriorityBadgeClass = (priority: string): string => {
@@ -1088,7 +1063,6 @@ export default function ProjectsPage() {
   // Filter & Sort State
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [sortBy, setSortBy] = useState<string>("name");
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
   // Dialog States
   const [showFlowDialog, setShowFlowDialog] = useState(false);
@@ -1221,7 +1195,7 @@ export default function ProjectsPage() {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         if (showFlowDialog && selectedProject && hasFlowChanges) {
           e.preventDefault();
-          handleSaveFlowData();
+          handleSaveFlowTask();
         }
       }
 
@@ -1279,6 +1253,7 @@ export default function ProjectsPage() {
     }
 
     // Sort
+    const priorityOrder = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "name":
@@ -1292,7 +1267,6 @@ export default function ProjectsPage() {
           if (!b.endDate) return -1;
           return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
         case "priority":
-          const priorityOrder = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
           return (
             (priorityOrder[a.priority as keyof typeof priorityOrder] || 2) -
             (priorityOrder[b.priority as keyof typeof priorityOrder] || 2)
@@ -3163,11 +3137,7 @@ export default function ProjectsPage() {
                                     </p>
                                   ) : (
                                     <div className="space-y-2">
-                                      {tasks.map((task, index) => {
-                                        const flowOrder = flowOrderMap.get(
-                                          task.id,
-                                        );
-
+                                      {tasks.map((task) => {
                                         // Konsistente Prioritäts-Farben
                                         const priorityConfig: Record<
                                           string,
