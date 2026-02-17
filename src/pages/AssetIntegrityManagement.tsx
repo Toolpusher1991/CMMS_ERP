@@ -46,6 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import * as assetIntegrityApi from "@/services/assetIntegrityApi";
 
 // Enhanced Interfaces
 interface Inspection {
@@ -768,33 +769,63 @@ export default function AssetIntegrityManagement() {
     });
   };
 
-  const handleSaveEditedInfo = () => {
+  const handleSaveEditedInfo = async () => {
     if (!selectedRig || !editingInfoId) return;
 
-    const updatedRigs = rigs.map((rig) =>
-      rig.id === selectedRig.id
-        ? {
-            ...rig,
-            generalInfo: (rig.generalInfo || []).map((info) =>
-              info.id === editingInfoId
-                ? {
-                    ...info,
-                    description: editedInfo.description || info.description,
-                    deadline:
-                      editedInfo.deadline !== undefined
-                        ? editedInfo.deadline || undefined
-                        : info.deadline,
-                  }
-                : info,
-            ),
-          }
-        : rig,
-    );
+    try {
+      setIsSaving(true);
 
-    setRigs(updatedRigs);
-    setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
-    setEditingInfoId(null);
-    setEditedInfo({});
+      // Update local state first for immediate UI feedback
+      const updatedRigs = rigs.map((rig) =>
+        rig.id === selectedRig.id
+          ? {
+              ...rig,
+              generalInfo: (rig.generalInfo || []).map((info) =>
+                info.id === editingInfoId
+                  ? {
+                      ...info,
+                      description: editedInfo.description || info.description,
+                      deadline:
+                        editedInfo.deadline !== undefined
+                          ? editedInfo.deadline || undefined
+                          : info.deadline,
+                    }
+                  : info,
+              ),
+            }
+          : rig,
+      );
+
+      const updatedRig = updatedRigs.find((r) => r.id === selectedRig.id);
+      if (!updatedRig) return;
+
+      // Persist to backend
+      await assetIntegrityApi.updateRig(selectedRig.id, {
+        generalInfo: updatedRig.generalInfo,
+      });
+
+      // Update state after successful save
+      setRigs(updatedRigs);
+      setSelectedRig(updatedRig);
+      setEditingInfoId(null);
+      setEditedInfo({});
+      setLastSaved(new Date());
+
+      toast({
+        title: "Erfolgreich gespeichert",
+        description: "Die Notiz wurde erfolgreich aktualisiert.",
+      });
+    } catch (error) {
+      console.error("Error saving info:", error);
+      toast({
+        title: "Fehler beim Speichern",
+        description:
+          "Die Notiz konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Generate Meeting Overview Text
@@ -1238,9 +1269,13 @@ export default function AssetIntegrityManagement() {
 
                 {/* Quick Actions - visible on hover */}
                 {/* Quick Action Buttons - Immer sichtbar auf Touch-Geräten, nur Hover auf Desktop */}
-                <div className={`absolute -top-3 -right-3 flex gap-1.5 z-20 transition-opacity ${
-                  isHovered ? 'opacity-100' : 'opacity-0 md:opacity-0 touch:opacity-100'
-                }`}>
+                <div
+                  className={`absolute -top-3 -right-3 flex gap-1.5 z-20 transition-opacity ${
+                    isHovered
+                      ? "opacity-100"
+                      : "opacity-0 md:opacity-0 touch:opacity-100"
+                  }`}
+                >
                   <Button
                     size="sm"
                     className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 bg-blue-600 hover:bg-blue-700 shadow-lg rounded-full touch-manipulation"
@@ -1897,6 +1932,7 @@ export default function AssetIntegrityManagement() {
                                             setEditingInfoId(null);
                                             setEditedInfo({});
                                           }}
+                                          disabled={isSaving}
                                           className="border-slate-700 min-h-[44px] touch-manipulation"
                                         >
                                           Abbrechen
@@ -1904,10 +1940,26 @@ export default function AssetIntegrityManagement() {
                                         <Button
                                           size="sm"
                                           onClick={handleSaveEditedInfo}
+                                          disabled={isSaving}
                                           className="bg-green-600 hover:bg-green-700 min-h-[44px] touch-manipulation"
                                         >
-                                          <Save className="h-5 w-5 mr-2" strokeWidth={2} />
-                                          Speichern
+                                          {isSaving ? (
+                                            <>
+                                              <Loader2
+                                                className="h-5 w-5 mr-2 animate-spin"
+                                                strokeWidth={2}
+                                              />
+                                              Speichere...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Save
+                                                className="h-5 w-5 mr-2"
+                                                strokeWidth={2}
+                                              />
+                                              Speichern
+                                            </>
+                                          )}
                                         </Button>
                                       </div>
                                     </div>
@@ -1957,7 +2009,10 @@ export default function AssetIntegrityManagement() {
                                           className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-11 w-11 min-h-[44px] min-w-[44px] p-0 touch-manipulation"
                                           aria-label="Notiz bearbeiten"
                                         >
-                                          <Edit className="h-6 w-6" strokeWidth={2} />
+                                          <Edit
+                                            className="h-6 w-6"
+                                            strokeWidth={2}
+                                          />
                                         </Button>
                                         <Button
                                           size="sm"
@@ -1968,7 +2023,10 @@ export default function AssetIntegrityManagement() {
                                           className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-11 w-11 min-h-[44px] min-w-[44px] p-0 touch-manipulation"
                                           aria-label="Notiz löschen"
                                         >
-                                          <Trash2 className="h-6 w-6" strokeWidth={2} />
+                                          <Trash2
+                                            className="h-6 w-6"
+                                            strokeWidth={2}
+                                          />
                                         </Button>
                                       </div>
                                     </div>

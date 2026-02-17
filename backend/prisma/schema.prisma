@@ -244,6 +244,16 @@ model Rig {
   applications      String   // JSON array as string
   technicalSpecs    String
   
+  // Asset Integrity Management (JSON fields)
+  region            String?  // Einsatzregion
+  contractStatus    String   @default("idle") // active, idle, maintenance
+  location          String?  // Aktueller Standort
+  certifications    String   @default("[]") // JSON array: ["API Spec 7K", "ISO 9001"]
+  generalInfo       String   @default("[]") // JSON array: [{id, description, deadline, createdDate}]
+  inspections       String   @default("[]") // JSON array: [{id, type, description, dueDate, status, responsible}]
+  issues            String   @default("[]") // JSON array: [{id, category, severity, description, status, createdDate, dueDate}]
+  improvements      String   @default("[]") // JSON array: [{id, description, category, priority, estimatedCost, potentialRevenue, status}]
+  
   // Audit
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
