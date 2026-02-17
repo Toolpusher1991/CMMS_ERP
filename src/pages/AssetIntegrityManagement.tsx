@@ -1237,45 +1237,49 @@ export default function AssetIntegrityManagement() {
                 </div>
 
                 {/* Quick Actions - visible on hover */}
-                {isHovered && (
-                  <div className="absolute -top-3 -right-3 flex gap-1.5 z-20">
-                    <Button
-                      size="sm"
-                      className="h-9 w-9 p-0 bg-blue-600 hover:bg-blue-700 shadow-lg rounded-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedRig(rig);
-                      }}
-                      title="Details ansehen"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-9 w-9 p-0 bg-green-600 hover:bg-green-700 shadow-lg rounded-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedRig(rig);
-                        setIsAddInspectionOpen(true);
-                      }}
-                      title="Inspektion planen"
-                    >
-                      <Calendar className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-9 w-9 p-0 bg-orange-600 hover:bg-orange-700 shadow-lg rounded-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedRig(rig);
-                        setIsAddIssueOpen(true);
-                      }}
-                      title="Issue melden"
-                    >
-                      <AlertCircle className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
+                {/* Quick Action Buttons - Immer sichtbar auf Touch-Geräten, nur Hover auf Desktop */}
+                <div className={`absolute -top-3 -right-3 flex gap-1.5 z-20 transition-opacity ${
+                  isHovered ? 'opacity-100' : 'opacity-0 md:opacity-0 touch:opacity-100'
+                }`}>
+                  <Button
+                    size="sm"
+                    className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 bg-blue-600 hover:bg-blue-700 shadow-lg rounded-full touch-manipulation"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedRig(rig);
+                    }}
+                    title="Details ansehen"
+                    aria-label="Details ansehen"
+                  >
+                    <Eye className="h-6 w-6" strokeWidth={2} />
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 bg-green-600 hover:bg-green-700 shadow-lg rounded-full touch-manipulation"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedRig(rig);
+                      setIsAddInspectionOpen(true);
+                    }}
+                    title="Inspektion planen"
+                    aria-label="Inspektion planen"
+                  >
+                    <Calendar className="h-6 w-6" strokeWidth={2} />
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 bg-orange-600 hover:bg-orange-700 shadow-lg rounded-full touch-manipulation"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedRig(rig);
+                      setIsAddIssueOpen(true);
+                    }}
+                    title="Issue melden"
+                    aria-label="Issue melden"
+                  >
+                    <AlertCircle className="h-6 w-6" strokeWidth={2} />
+                  </Button>
+                </div>
 
                 <CardHeader className="pb-3">
                   <div className="flex items-start gap-3 pr-20">
@@ -1521,9 +1525,9 @@ export default function AssetIntegrityManagement() {
                           location: selectedRig.location,
                         });
                       }}
-                      className="bg-blue-600 hover:bg-blue-700 touch-manipulation"
+                      className="bg-blue-600 hover:bg-blue-700 touch-manipulation min-h-[44px]"
                     >
-                      <Edit className="h-4 w-4 mr-2" />
+                      <Edit className="h-5 w-5 mr-2" strokeWidth={2} />
                       <span className="hidden sm:inline">Daten bearbeiten</span>
                       <span className="sm:hidden">Bearbeiten</span>
                     </Button>
@@ -1793,9 +1797,9 @@ export default function AssetIntegrityManagement() {
                         <Button
                           onClick={handleAddGeneralInfo}
                           disabled={!newGeneralInfo.description}
-                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 h-10 px-4"
+                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 min-h-[44px] px-4 touch-manipulation"
                         >
-                          <Plus className="h-4 w-4 mr-2" />
+                          <Plus className="h-5 w-5 mr-2" strokeWidth={2} />
                           Hinzufügen
                         </Button>
                       </div>
@@ -1893,16 +1897,16 @@ export default function AssetIntegrityManagement() {
                                             setEditingInfoId(null);
                                             setEditedInfo({});
                                           }}
-                                          className="border-slate-700"
+                                          className="border-slate-700 min-h-[44px] touch-manipulation"
                                         >
                                           Abbrechen
                                         </Button>
                                         <Button
                                           size="sm"
                                           onClick={handleSaveEditedInfo}
-                                          className="bg-green-600 hover:bg-green-700"
+                                          className="bg-green-600 hover:bg-green-700 min-h-[44px] touch-manipulation"
                                         >
-                                          <Save className="h-4 w-4 mr-2" />
+                                          <Save className="h-5 w-5 mr-2" strokeWidth={2} />
                                           Speichern
                                         </Button>
                                       </div>
@@ -1950,9 +1954,10 @@ export default function AssetIntegrityManagement() {
                                           onClick={() =>
                                             handleEditGeneralInfo(info)
                                           }
-                                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-9 w-9 p-0"
+                                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-11 w-11 min-h-[44px] min-w-[44px] p-0 touch-manipulation"
+                                          aria-label="Notiz bearbeiten"
                                         >
-                                          <Edit className="h-5 w-5" />
+                                          <Edit className="h-6 w-6" strokeWidth={2} />
                                         </Button>
                                         <Button
                                           size="sm"
@@ -1960,9 +1965,10 @@ export default function AssetIntegrityManagement() {
                                           onClick={() =>
                                             handleDeleteGeneralInfo(info.id)
                                           }
-                                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-9 w-9 p-0"
+                                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-11 w-11 min-h-[44px] min-w-[44px] p-0 touch-manipulation"
+                                          aria-label="Notiz löschen"
                                         >
-                                          <Trash2 className="h-5 w-5" />
+                                          <Trash2 className="h-6 w-6" strokeWidth={2} />
                                         </Button>
                                       </div>
                                     </div>
