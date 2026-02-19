@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
+import { rigService } from "@/services/rig.service";
 import { useToast } from "@/components/ui/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -124,9 +125,12 @@ const InspectionReports = () => {
   const { toast } = useToast();
   const [reports, setReports] = useState<InspectionReport[]>([]);
   const [filteredReports, setFilteredReports] = useState<InspectionReport[]>(
-    []
+    [],
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [availableRigs, setAvailableRigs] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isPDFUploadDialogOpen, setIsPDFUploadDialogOpen] = useState(false);
@@ -145,7 +149,7 @@ const InspectionReports = () => {
     "LOW" | "MEDIUM" | "HIGH" | "URGENT"
   >("HIGH");
   const [selectedReport, setSelectedReport] = useState<InspectionReport | null>(
-    null
+    null,
   );
   const [pdfFile, setPDFFile] = useState<File | null>(null);
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
@@ -170,6 +174,7 @@ const InspectionReports = () => {
 
   useEffect(() => {
     loadReports();
+    loadRigs();
   }, []);
 
   useEffect(() => {
@@ -199,6 +204,21 @@ const InspectionReports = () => {
     }
   };
 
+  const loadRigs = async () => {
+    try {
+      const response = await rigService.getAllRigs();
+      if (response.success && response.data) {
+        const rigs = response.data.map((rig) => ({
+          id: rig.id,
+          name: rig.name,
+        }));
+        setAvailableRigs(rigs);
+      }
+    } catch (error) {
+      console.error("Fehler beim Laden der Rigs:", error);
+    }
+  };
+
   const applyFilters = () => {
     let filtered = [...reports];
 
@@ -219,7 +239,7 @@ const InspectionReports = () => {
         (r) =>
           r.reportNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
           r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          r.equipment.toLowerCase().includes(searchTerm.toLowerCase())
+          r.equipment.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
@@ -286,7 +306,7 @@ const InspectionReports = () => {
 
   const handleUpdateItem = async (
     itemId: string,
-    updates: Partial<InspectionItem>
+    updates: Partial<InspectionItem>,
   ) => {
     try {
       // Check if result changed to NOT_OK - show confirmation dialog
@@ -330,7 +350,7 @@ const InspectionReports = () => {
   const performItemUpdate = async (
     itemId: string,
     updates: Partial<InspectionItem>,
-    createAction: boolean
+    createAction: boolean,
   ) => {
     try {
       const response = await apiClient.put<{
@@ -357,7 +377,7 @@ const InspectionReports = () => {
                 plant: selectedReport.plant,
                 equipment: selectedReport.equipment,
                 dueDate: new Date(
-                  Date.now() + 7 * 24 * 60 * 60 * 1000
+                  Date.now() + 7 * 24 * 60 * 60 * 1000,
                 ).toISOString(),
               });
 
@@ -372,7 +392,7 @@ const InspectionReports = () => {
                   // Don't set Content-Type header - browser will set it with boundary
                   await apiClient.post(
                     `/actions/${actionResponse.id}/files`,
-                    formData
+                    formData,
                   );
 
                   toast({
@@ -382,7 +402,7 @@ const InspectionReports = () => {
                 } catch (photoError) {
                   console.error(
                     "Error uploading photos to action:",
-                    photoError
+                    photoError,
                   );
                   toast({
                     title: "Warnung",
@@ -401,7 +421,7 @@ const InspectionReports = () => {
               // Add note to item that action was created
               await apiClient.put(`/inspection-reports/items/${itemId}`, {
                 notes: `Action erstellt (${new Date().toLocaleDateString(
-                  "de-DE"
+                  "de-DE",
                 )})`,
               });
             } catch (actionError) {
@@ -426,7 +446,7 @@ const InspectionReports = () => {
               // Don't set Content-Type header - browser will set it with boundary
               await apiClient.post(
                 `/inspection-reports/${selectedReport.id}/attachments`,
-                formData
+                formData,
               );
 
               toast({
@@ -453,7 +473,7 @@ const InspectionReports = () => {
           sections: (selectedReport.sections || []).map((section) => ({
             ...section,
             items: section.items.map((item) =>
-              item.id === itemId ? { ...item, ...updates } : item
+              item.id === itemId ? { ...item, ...updates } : item,
             ),
           })),
         };
@@ -461,7 +481,7 @@ const InspectionReports = () => {
 
         // Update reports list
         setReports(
-          reports.map((r) => (r.id === updatedReport.id ? updatedReport : r))
+          reports.map((r) => (r.id === updatedReport.id ? updatedReport : r)),
         );
       }
     } catch (error) {
@@ -494,7 +514,7 @@ const InspectionReports = () => {
 
         setSelectedReport(updatedReport);
         setReports(
-          reports.map((r) => (r.id === updatedReport.id ? updatedReport : r))
+          reports.map((r) => (r.id === updatedReport.id ? updatedReport : r)),
         );
 
         toast({
@@ -614,10 +634,10 @@ const InspectionReports = () => {
     yPos += 7;
     doc.text(
       `Inspektionsdatum: ${new Date(report.inspectionDate).toLocaleDateString(
-        "de-DE"
+        "de-DE",
       )}`,
       20,
-      yPos
+      yPos,
     );
     yPos += 7;
     doc.text(`Inspektor: ${report.inspector}`, 20, yPos);
@@ -653,8 +673,8 @@ const InspectionReports = () => {
             item.result === "OK"
               ? "OK"
               : item.result === "NOT_OK"
-              ? "NOT_OK"
-              : "-";
+                ? "NOT_OK"
+                : "-";
 
           // Add action comment if result is NOT_OK
           const description =
@@ -731,7 +751,7 @@ const InspectionReports = () => {
 
   // File Upload Function
   const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     if (!selectedReport || !event.target.files) return;
 
@@ -758,7 +778,7 @@ const InspectionReports = () => {
         };
         setSelectedReport(updatedReport);
         setReports(
-          reports.map((r) => (r.id === updatedReport.id ? updatedReport : r))
+          reports.map((r) => (r.id === updatedReport.id ? updatedReport : r)),
         );
 
         toast({
@@ -785,18 +805,18 @@ const InspectionReports = () => {
 
     try {
       await apiClient.delete(
-        `/inspection-reports/${selectedReport.id}/attachments/${attachmentId}`
+        `/inspection-reports/${selectedReport.id}/attachments/${attachmentId}`,
       );
 
       const updatedReport = {
         ...selectedReport,
         attachments: (selectedReport.attachments || []).filter(
-          (a) => a.id !== attachmentId
+          (a) => a.id !== attachmentId,
         ),
       };
       setSelectedReport(updatedReport);
       setReports(
-        reports.map((r) => (r.id === updatedReport.id ? updatedReport : r))
+        reports.map((r) => (r.id === updatedReport.id ? updatedReport : r)),
       );
 
       toast({
@@ -842,7 +862,7 @@ const InspectionReports = () => {
       formData.append("equipment", newReport.equipment);
       formData.append(
         "inspector",
-        newReport.inspector || user?.firstName + " " + user?.lastName || ""
+        newReport.inspector || user?.firstName + " " + user?.lastName || "",
       );
       formData.append("inspectionDate", newReport.inspectionDate);
 
@@ -1045,10 +1065,11 @@ const InspectionReports = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Alle</SelectItem>
-                  <SelectItem value="T208">T208</SelectItem>
-                  <SelectItem value="T207">T207</SelectItem>
-                  <SelectItem value="T700">T700</SelectItem>
-                  <SelectItem value="T46">T46</SelectItem>
+                  {availableRigs.map((rig) => (
+                    <SelectItem key={rig.id} value={rig.name}>
+                      {rig.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -1131,7 +1152,7 @@ const InspectionReports = () => {
                     <TableCell>{report.equipment}</TableCell>
                     <TableCell>
                       {new Date(report.inspectionDate).toLocaleDateString(
-                        "de-DE"
+                        "de-DE",
                       )}
                     </TableCell>
                     <TableCell>{getStatusBadge(report.status)}</TableCell>
@@ -1221,10 +1242,11 @@ const InspectionReports = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="T208">T208</SelectItem>
-                    <SelectItem value="T207">T207</SelectItem>
-                    <SelectItem value="T700">T700</SelectItem>
-                    <SelectItem value="T46">T46</SelectItem>
+                    {availableRigs.map((rig) => (
+                      <SelectItem key={rig.id} value={rig.name}>
+                        {rig.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1347,9 +1369,11 @@ const InspectionReports = () => {
                     <SelectValue placeholder="Anlage wählen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="T208">T208</SelectItem>
-                    <SelectItem value="T209">T209</SelectItem>
-                    <SelectItem value="T210">T210</SelectItem>
+                    {availableRigs.map((rig) => (
+                      <SelectItem key={rig.id} value={rig.name}>
+                        {rig.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1457,7 +1481,7 @@ const InspectionReports = () => {
                       <Label className="text-muted-foreground">Datum</Label>
                       <p>
                         {new Date(
-                          selectedReport.inspectionDate
+                          selectedReport.inspectionDate,
                         ).toLocaleDateString("de-DE")}
                       </p>
                     </div>
@@ -1701,7 +1725,7 @@ const InspectionReports = () => {
                                 <p className="text-sm text-muted-foreground">
                                   {(attachment.fileSize / 1024).toFixed(1)} KB •{" "}
                                   {new Date(
-                                    attachment.uploadedAt
+                                    attachment.uploadedAt,
                                   ).toLocaleDateString("de-DE")}
                                 </p>
                               </div>
@@ -1806,7 +1830,7 @@ const InspectionReports = () => {
                           size="icon"
                           onClick={() => {
                             const input = document.getElementById(
-                              "notok-photos"
+                              "notok-photos",
                             ) as HTMLInputElement;
                             input?.click();
                           }}
@@ -1833,7 +1857,7 @@ const InspectionReports = () => {
                                   className="h-4 w-4 p-0"
                                   onClick={() => {
                                     setNotOkPhotos((prev) =>
-                                      prev.filter((_, i) => i !== index)
+                                      prev.filter((_, i) => i !== index),
                                     );
                                   }}
                                 >
@@ -1860,7 +1884,7 @@ const InspectionReports = () => {
                             value={actionDiscipline}
                             onValueChange={(value) =>
                               setActionDiscipline(
-                                value as "MECHANIK" | "ELEKTRIK" | "ANLAGE"
+                                value as "MECHANIK" | "ELEKTRIK" | "ANLAGE",
                               )
                             }
                           >
@@ -1888,7 +1912,7 @@ const InspectionReports = () => {
                             value={actionPriority}
                             onValueChange={(value) =>
                               setActionPriority(
-                                value as "LOW" | "MEDIUM" | "HIGH" | "URGENT"
+                                value as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
                               )
                             }
                           >
@@ -1925,7 +1949,7 @@ const InspectionReports = () => {
                   performItemUpdate(
                     pendingNotOkUpdate.itemId,
                     pendingNotOkUpdate.updates,
-                    false
+                    false,
                   );
                 }
                 setPendingNotOkUpdate(null);
@@ -1943,7 +1967,7 @@ const InspectionReports = () => {
                   performItemUpdate(
                     pendingNotOkUpdate.itemId,
                     pendingNotOkUpdate.updates,
-                    true
+                    true,
                   );
                 }
                 setPendingNotOkUpdate(null);

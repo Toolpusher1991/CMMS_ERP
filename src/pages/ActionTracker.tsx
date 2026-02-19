@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
+import { rigService } from "@/services/rig.service";
 import { isMobileDevice } from "@/lib/device-detection";
 import { getActiveLocations } from "@/config/locations";
 import {
@@ -128,7 +129,7 @@ interface ActionTask {
 
 interface Action {
   id: string;
-  plant: "T208" | "T207" | "T700" | "T46";
+  plant: string;
   category?: "ALLGEMEIN" | "RIGMOVE";
   discipline?: "MECHANIK" | "ELEKTRIK" | "ANLAGE";
   location?: string; // Standort: TD, DW, MP1-3, PCR, etc.
@@ -218,10 +219,10 @@ const ActionTracker = ({
   onNavigateBack,
 }: ActionTrackerProps) => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<string>("T208");
+  const [activeTab, setActiveTab] = useState<string>("");
   const [activeCategoryTab, setActiveCategoryTab] = useState<
     Record<string, string>
-  >({ T208: "alle", T207: "alle", T700: "alle", T46: "alle" });
+  >({});
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -240,7 +241,7 @@ const ActionTracker = ({
   // Task Management State
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [currentTaskActionId, setCurrentTaskActionId] = useState<string | null>(
-    null
+    null,
   );
   const [currentTask, setCurrentTask] = useState<Partial<ActionTask>>({
     title: "",
@@ -262,7 +263,7 @@ const ActionTracker = ({
   >([]);
 
   const [currentAction, setCurrentAction] = useState<Partial<Action>>({
-    plant: "T208",
+    plant: "",
     category: "ALLGEMEIN",
     location: "",
     title: "",
@@ -283,9 +284,11 @@ const ActionTracker = ({
   const [actions, setActions] = useState<Action[]>([]);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
-  const [availableLocations, setAvailableLocations] = useState(
-    getActiveLocations()
-  );
+  const [availableLocations, setAvailableLocations] =
+    useState(getActiveLocations());
+  const [availableRigs, setAvailableRigs] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -320,7 +323,7 @@ const ActionTracker = ({
 
   // Parse materials from description
   const parseMaterialsFromDescription = (
-    description: string
+    description: string,
   ): MaterialItem[] => {
     const materialsSection = description.split("--- Materialien ---")[1];
     if (!materialsSection) return [];
@@ -363,6 +366,7 @@ const ActionTracker = ({
     setIsMounted(true);
     loadActions();
     loadUsers();
+    loadRigs();
 
     // Set user filter to current user if showOnlyMyActions is true
     if (showOnlyMyActions) {
@@ -491,7 +495,7 @@ const ActionTracker = ({
           ? allUsers.filter(
               (user) =>
                 !user.plant || // Users without plant assignment (admins/managers)
-                user.plant === currentUser.assignedPlant // Same plant users
+                user.plant === currentUser.assignedPlant, // Same plant users
             )
           : allUsers; // Show all users for admins/managers
 
@@ -502,6 +506,32 @@ const ActionTracker = ({
     }
   };
 
+  const loadRigs = async () => {
+    try {
+      const response = await rigService.getAllRigs();
+      if (response.success && response.data) {
+        const rigs = response.data.map((rig) => ({
+          id: rig.id,
+          name: rig.name,
+        }));
+        setAvailableRigs(rigs);
+
+        // Set default active tab to first rig if available
+        if (rigs.length > 0) {
+          setActiveTab(rigs[0].name);
+          // Initialize category tabs for each rig
+          const categoryDefaults: Record<string, string> = {};
+          rigs.forEach((r) => {
+            categoryDefaults[r.name] = "alle";
+          });
+          setActiveCategoryTab(categoryDefaults);
+        }
+      }
+    } catch (error) {
+      console.error("Fehler beim Laden der Rigs:", error);
+    }
+  };
+
   const loadActions = async () => {
     try {
       setIsLoading(true);
@@ -509,7 +539,7 @@ const ActionTracker = ({
 
       const loadedActions: Action[] = response.map((item: ApiAction) => ({
         id: item.id,
-        plant: item.plant as Action["plant"],
+        plant: item.plant,
         location: item.location,
         category: item.category as Action["category"],
         discipline: item.discipline as Action["discipline"],
@@ -588,7 +618,7 @@ const ActionTracker = ({
     setPhotoPreview(null);
     setMaterials([]); // Reset materials for new action
     setCurrentAction({
-      plant: undefined as unknown as Action["plant"], // No plant preselected - user feedback
+      plant: activeTab, // Use active tab as default
       title: "",
       description: "",
       status: "OPEN",
@@ -679,7 +709,7 @@ const ActionTracker = ({
             (m) =>
               `📦 ${m.mmNumber} | ${m.description} | ${m.quantity} ${
                 m.unit
-              } | ${m.status || "NICHT_BESTELLT"}`
+              } | ${m.status || "NICHT_BESTELLT"}`,
           )
           .join("\n");
         descriptionWithMaterials = currentAction.description
@@ -976,11 +1006,11 @@ const ActionTracker = ({
                         assignedUser: currentTask.assignedUser || "",
                         dueDate: currentTask.dueDate || "",
                       }
-                    : task
+                    : task,
                 ),
               }
-            : action
-        )
+            : action,
+        ),
       );
 
       toast({
@@ -1003,8 +1033,8 @@ const ActionTracker = ({
         prevActions.map((action) =>
           action.id === currentTaskActionId
             ? { ...action, tasks: [...action.tasks, newTask] }
-            : action
-        )
+            : action,
+        ),
       );
 
       toast({
@@ -1032,11 +1062,11 @@ const ActionTracker = ({
               tasks: action.tasks.map((task) =>
                 task.id === taskId
                   ? { ...task, completed: !task.completed }
-                  : task
+                  : task,
               ),
             }
-          : action
-      )
+          : action,
+      ),
     );
   };
 
@@ -1048,8 +1078,8 @@ const ActionTracker = ({
               ...action,
               tasks: action.tasks.filter((task) => task.id !== taskId),
             }
-          : action
-      )
+          : action,
+      ),
     );
 
     toast({
@@ -1094,7 +1124,7 @@ const ActionTracker = ({
 
     // Überprüfe auf Duplikate basierend auf Dateiname, Größe und Type
     const existingFileSignatures = pendingFiles.map(
-      (f) => `${f.name}-${f.size}-${f.type}`
+      (f) => `${f.name}-${f.size}-${f.type}`,
     );
     const newFiles = fileArray.filter((file) => {
       const signature = `${file.name}-${file.size}-${file.type}`;
@@ -1166,14 +1196,14 @@ const ActionTracker = ({
   // Helper function to get filtered actions based on plant and category
   const getFilteredActionsForCategory = (
     plant: string,
-    category: string
+    category: string,
   ): Action[] => {
     let filtered = actions.filter((a) => a.plant === plant);
 
     if (category === "allgemein") {
       // Allgemein: Actions without category or explicitly ALLGEMEIN
       filtered = filtered.filter(
-        (a) => !a.category || a.category === "ALLGEMEIN"
+        (a) => !a.category || a.category === "ALLGEMEIN",
       );
     } else if (category === "rigmoves") {
       // Rigmoves: Only RIGMOVE category
@@ -1188,7 +1218,7 @@ const ActionTracker = ({
         (a) =>
           a.title?.toLowerCase().includes(query) ||
           a.description?.toLowerCase().includes(query) ||
-          a.assignedTo?.toLowerCase().includes(query)
+          a.assignedTo?.toLowerCase().includes(query),
       );
     }
 
@@ -1211,7 +1241,7 @@ const ActionTracker = ({
     if (userFilter !== "all") {
       filtered = filtered.filter((a) => {
         const user = users.find(
-          (u) => `${u.firstName} ${u.lastName}` === userFilter
+          (u) => `${u.firstName} ${u.lastName}` === userFilter,
         );
         return user ? a.assignedTo === user.email : false;
       });
@@ -1269,7 +1299,7 @@ const ActionTracker = ({
       filteredActions,
       `MaintAIn_${activeTab}_Actions_${
         new Date().toISOString().split("T")[0]
-      }.xlsx`
+      }.xlsx`,
     );
 
     toast({
@@ -1359,7 +1389,7 @@ const ActionTracker = ({
 
     const openCount = myActions.filter((a) => a.status === "OPEN").length;
     const progressCount = myActions.filter(
-      (a) => a.status === "IN_PROGRESS"
+      (a) => a.status === "IN_PROGRESS",
     ).length;
 
     return (
@@ -1523,8 +1553,8 @@ const ActionTracker = ({
                           mobileFilter === "open"
                             ? "offenen"
                             : mobileFilter === "progress"
-                            ? "aktiven"
-                            : "erledigten"
+                              ? "aktiven"
+                              : "erledigten"
                         } Actions`}
                   </p>
                 </CardContent>
@@ -1562,8 +1592,8 @@ const ActionTracker = ({
                                   action.status === "COMPLETED"
                                     ? "bg-green-500"
                                     : action.status === "IN_PROGRESS"
-                                    ? "bg-blue-500"
-                                    : "bg-yellow-500 text-black"
+                                      ? "bg-blue-500"
+                                      : "bg-yellow-500 text-black"
                                 }`}
                               >
                                 {action.status === "OPEN" && "Offen"}
@@ -1588,10 +1618,10 @@ const ActionTracker = ({
                               action.priority === "URGENT"
                                 ? "bg-red-500"
                                 : action.priority === "HIGH"
-                                ? "bg-orange-500"
-                                : action.priority === "MEDIUM"
-                                ? "bg-yellow-500"
-                                : "bg-gray-400"
+                                  ? "bg-orange-500"
+                                  : action.priority === "MEDIUM"
+                                    ? "bg-yellow-500"
+                                    : "bg-gray-400"
                             }`}
                           >
                             <span className="text-white text-xs font-bold">
@@ -1644,7 +1674,7 @@ const ActionTracker = ({
                                   {
                                     day: "2-digit",
                                     month: "2-digit",
-                                  }
+                                  },
                                 )}
                               </span>
                             </div>
@@ -1666,7 +1696,7 @@ const ActionTracker = ({
                                 <ListTodo className="h-3 w-3 mr-1" />
                                 {
                                   action.tasks.filter(
-                                    (t: ActionTask) => t.completed
+                                    (t: ActionTask) => t.completed,
                                   ).length
                                 }
                                 /{action.tasks.length}
@@ -1704,8 +1734,8 @@ const ActionTracker = ({
                         selectedActionForEdit.status === "COMPLETED"
                           ? "bg-green-500"
                           : selectedActionForEdit.status === "IN_PROGRESS"
-                          ? "bg-blue-500"
-                          : "bg-yellow-500 text-black"
+                            ? "bg-blue-500"
+                            : "bg-yellow-500 text-black"
                       }`}
                     >
                       {selectedActionForEdit.status === "OPEN" && "Offen"}
@@ -1732,7 +1762,7 @@ const ActionTracker = ({
                   if (selectedActionForEdit) {
                     // Parse materials from description
                     const parsedMaterials = parseMaterialsFromDescription(
-                      selectedActionForEdit.description
+                      selectedActionForEdit.description,
                     );
                     const descriptionWithoutMaterials =
                       selectedActionForEdit.description
@@ -1745,7 +1775,7 @@ const ActionTracker = ({
                       description: descriptionWithoutMaterials,
                     });
                     setSelectedAssignees(
-                      selectedActionForEdit.assignedUsers || []
+                      selectedActionForEdit.assignedUsers || [],
                     );
                     setIsDialogOpen(true);
                     setShowEditDialog(false);
@@ -1793,20 +1823,25 @@ const ActionTracker = ({
               {/* Plant Selection - Button Grid */}
               <div className="space-y-2">
                 <Label>Anlage *</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {(["T208", "T207", "T700", "T46"] as const).map((plant) => (
+                <div
+                  className="grid gap-2"
+                  style={{
+                    gridTemplateColumns: `repeat(${Math.min(availableRigs.length, 4)}, minmax(0, 1fr))`,
+                  }}
+                >
+                  {availableRigs.map((rig) => (
                     <Button
-                      key={plant}
+                      key={rig.id}
                       type="button"
                       variant={
-                        currentAction.plant === plant ? "default" : "outline"
+                        currentAction.plant === rig.name ? "default" : "outline"
                       }
                       onClick={() =>
-                        setCurrentAction({ ...currentAction, plant })
+                        setCurrentAction({ ...currentAction, plant: rig.name })
                       }
                       className="h-12 text-base font-semibold"
                     >
-                      {plant}
+                      {rig.name}
                     </Button>
                   ))}
                 </div>
@@ -1827,7 +1862,7 @@ const ActionTracker = ({
                     className={cn(
                       "h-12 text-base font-semibold",
                       currentAction.priority === "LOW" &&
-                        "bg-green-500 hover:bg-green-600 text-white"
+                        "bg-green-500 hover:bg-green-600 text-white",
                     )}
                   >
                     Niedrig
@@ -1845,7 +1880,7 @@ const ActionTracker = ({
                     className={cn(
                       "h-12 text-base font-semibold",
                       currentAction.priority === "MEDIUM" &&
-                        "bg-yellow-500 hover:bg-yellow-600 text-white"
+                        "bg-yellow-500 hover:bg-yellow-600 text-white",
                     )}
                   >
                     Mittel
@@ -1861,7 +1896,7 @@ const ActionTracker = ({
                     className={cn(
                       "h-12 text-base font-semibold",
                       currentAction.priority === "HIGH" &&
-                        "bg-orange-500 hover:bg-orange-600 text-white"
+                        "bg-orange-500 hover:bg-orange-600 text-white",
                     )}
                   >
                     Hoch
@@ -1879,7 +1914,7 @@ const ActionTracker = ({
                     className={cn(
                       "h-12 text-base font-semibold",
                       currentAction.priority === "URGENT" &&
-                        "bg-red-500 hover:bg-red-600 text-white"
+                        "bg-red-500 hover:bg-red-600 text-white",
                     )}
                   >
                     Dringend
@@ -1999,7 +2034,7 @@ const ActionTracker = ({
                       if (fileInputRef.current) {
                         fileInputRef.current.setAttribute(
                           "capture",
-                          "environment"
+                          "environment",
                         );
                         fileInputRef.current.click();
                       }
@@ -2178,19 +2213,24 @@ const ActionTracker = ({
                 onValueChange={setActiveTab}
                 className="space-y-4"
               >
-                <TabsList className="grid w-full grid-cols-4 h-20 bg-muted/30 p-2 gap-2">
-                  {["T208", "T207", "T700", "T46"].map((plant) => {
-                    const stats = getActionStats(plant);
+                <TabsList
+                  className={`grid w-full h-20 bg-muted/30 p-2 gap-2`}
+                  style={{
+                    gridTemplateColumns: `repeat(${availableRigs.length || 1}, minmax(0, 1fr))`,
+                  }}
+                >
+                  {availableRigs.map((rig) => {
+                    const stats = getActionStats(rig.name);
                     const openCount = stats.open + stats.inProgress;
                     return (
                       <TabsTrigger
-                        key={plant}
-                        value={plant}
+                        key={rig.id}
+                        value={rig.name}
                         className="relative flex-col h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all shadow-sm hover:shadow-md py-2 px-3"
                       >
                         <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
                           <span className="text-base font-bold leading-tight">
-                            {plant}
+                            {rig.name}
                           </span>
                           <div className="flex items-center gap-1.5 flex-wrap justify-center">
                             {openCount > 0 && (
@@ -2226,15 +2266,15 @@ const ActionTracker = ({
                   })}
                 </TabsList>
 
-                {["T208", "T207", "T700", "T46"].map((plant) => (
-                  <TabsContent key={plant} value={plant}>
+                {availableRigs.map((rig) => (
+                  <TabsContent key={rig.id} value={rig.name}>
                     {/* Nested Category Tabs */}
                     <Tabs
-                      value={activeCategoryTab[plant] || "alle"}
+                      value={activeCategoryTab[rig.name] || "alle"}
                       onValueChange={(value) =>
                         setActiveCategoryTab({
                           ...activeCategoryTab,
-                          [plant]: value,
+                          [rig.name]: value,
                         })
                       }
                       className="space-y-4"
@@ -2252,7 +2292,7 @@ const ActionTracker = ({
                               variant="secondary"
                               className="px-1.5 py-0 text-[10px] data-[state=active]:bg-primary-foreground/20 leading-tight h-4"
                             >
-                              {getCategoryStats(plant, "allgemein")} Actions
+                              {getCategoryStats(rig.name, "allgemein")} Actions
                             </Badge>
                           </div>
                         </TabsTrigger>
@@ -2268,7 +2308,7 @@ const ActionTracker = ({
                               variant="secondary"
                               className="px-1.5 py-0 text-[10px] data-[state=active]:bg-primary-foreground/20 leading-tight h-4"
                             >
-                              {getCategoryStats(plant, "rigmoves")} Actions
+                              {getCategoryStats(rig.name, "rigmoves")} Actions
                             </Badge>
                           </div>
                         </TabsTrigger>
@@ -2284,7 +2324,7 @@ const ActionTracker = ({
                               variant="secondary"
                               className="px-1.5 py-0 text-[10px] data-[state=active]:bg-primary-foreground/20 leading-tight h-4"
                             >
-                              {getCategoryStats(plant, "alle")} Actions
+                              {getCategoryStats(rig.name, "alle")} Actions
                             </Badge>
                           </div>
                         </TabsTrigger>
@@ -2292,8 +2332,8 @@ const ActionTracker = ({
 
                       {["allgemein", "rigmoves", "alle"].map((category) => {
                         const categoryActions = getFilteredActionsForCategory(
-                          plant,
-                          category
+                          rig.name,
+                          category,
                         );
                         return (
                           <TabsContent key={category} value={category}>
@@ -2304,7 +2344,7 @@ const ActionTracker = ({
                                   Keine Actions
                                 </h3>
                                 <p className="text-sm text-muted-foreground mb-4">
-                                  Erstellen Sie die erste Action für {plant}
+                                  Erstellen Sie die erste Action für {rig.name}
                                 </p>
                                 <Button onClick={openNewDialog}>
                                   <Plus className="mr-2 h-4 w-4" />
@@ -2360,7 +2400,7 @@ const ActionTracker = ({
                                           className={`hover:bg-muted/50 transition-colors cursor-pointer ${
                                             isOverdue(
                                               action.dueDate,
-                                              action.status
+                                              action.status,
                                             )
                                               ? "bg-red-50/50 dark:bg-red-950/20 border-l-4 border-l-red-500"
                                               : ""
@@ -2415,12 +2455,12 @@ const ActionTracker = ({
                                                 action.discipline === "MECHANIK"
                                                   ? "border-cyan-500 text-cyan-700 dark:text-cyan-400"
                                                   : action.discipline ===
-                                                    "ELEKTRIK"
-                                                  ? "border-purple-500 text-purple-700 dark:text-purple-400"
-                                                  : action.discipline ===
-                                                    "ANLAGE"
-                                                  ? "border-pink-500 text-pink-700 dark:text-pink-400"
-                                                  : "border-gray-400 text-gray-600 dark:text-gray-400"
+                                                      "ELEKTRIK"
+                                                    ? "border-purple-500 text-purple-700 dark:text-purple-400"
+                                                    : action.discipline ===
+                                                        "ANLAGE"
+                                                      ? "border-pink-500 text-pink-700 dark:text-pink-400"
+                                                      : "border-gray-400 text-gray-600 dark:text-gray-400"
                                               }`}
                                             >
                                               {action.discipline ===
@@ -2444,9 +2484,9 @@ const ActionTracker = ({
                                                 action.status === "COMPLETED"
                                                   ? "border-green-500 text-green-700 dark:text-green-400"
                                                   : action.status ===
-                                                    "IN_PROGRESS"
-                                                  ? "border-blue-500 text-blue-700 dark:text-blue-400"
-                                                  : "border-yellow-500 text-yellow-700 dark:text-yellow-400"
+                                                      "IN_PROGRESS"
+                                                    ? "border-blue-500 text-blue-700 dark:text-blue-400"
+                                                    : "border-yellow-500 text-yellow-700 dark:text-yellow-400"
                                               }`}
                                             >
                                               {action.status === "OPEN" &&
@@ -2464,10 +2504,11 @@ const ActionTracker = ({
                                                 action.priority === "URGENT"
                                                   ? "border-red-500 text-red-700 dark:text-red-400"
                                                   : action.priority === "HIGH"
-                                                  ? "border-orange-500 text-orange-700 dark:text-orange-400"
-                                                  : action.priority === "MEDIUM"
-                                                  ? "border-yellow-500 text-yellow-700 dark:text-yellow-400"
-                                                  : "border-gray-500 text-gray-700 dark:text-gray-400"
+                                                    ? "border-orange-500 text-orange-700 dark:text-orange-400"
+                                                    : action.priority ===
+                                                        "MEDIUM"
+                                                      ? "border-yellow-500 text-yellow-700 dark:text-yellow-400"
+                                                      : "border-gray-500 text-gray-700 dark:text-gray-400"
                                               }`}
                                             >
                                               {action.priority}
@@ -2487,7 +2528,7 @@ const ActionTracker = ({
                                               className={`text-xs font-medium ${
                                                 isOverdue(
                                                   action.dueDate,
-                                                  action.status
+                                                  action.status,
                                                 )
                                                   ? "text-red-600 dark:text-red-400"
                                                   : ""
@@ -2495,7 +2536,7 @@ const ActionTracker = ({
                                             >
                                               {action.dueDate
                                                 ? new Date(
-                                                    action.dueDate
+                                                    action.dueDate,
                                                   ).toLocaleDateString("de-DE")
                                                 : "-"}
                                             </span>
@@ -2512,7 +2553,7 @@ const ActionTracker = ({
                                               <ListTodo className="h-3 w-3 mr-1" />
                                               {
                                                 action.tasks.filter(
-                                                  (t) => t.completed
+                                                  (t) => t.completed,
                                                 ).length
                                               }
                                               /{action.tasks.length}
@@ -2604,14 +2645,14 @@ const ActionTracker = ({
                                                         {/* Zeige Beschreibung ohne Foto-Zeile und ohne Material-Abschnitt */}
                                                         {action.description
                                                           .split(
-                                                            "--- Materialien ---"
+                                                            "--- Materialien ---",
                                                           )[0]
                                                           .split("\n")
                                                           .filter(
                                                             (line) =>
                                                               !line.startsWith(
-                                                                "📸 Photo:"
-                                                              )
+                                                                "📸 Photo:",
+                                                              ),
                                                           )
                                                           .join("\n")
                                                           .trim()}
@@ -2620,15 +2661,15 @@ const ActionTracker = ({
                                                       {(() => {
                                                         const photoUrl =
                                                           extractPhotoFromDescription(
-                                                            action.description
+                                                            action.description,
                                                           );
                                                         if (
                                                           photoUrl &&
                                                           (photoUrl.startsWith(
-                                                            "http://"
+                                                            "http://",
                                                           ) ||
                                                             photoUrl.startsWith(
-                                                              "https://"
+                                                              "https://",
                                                             ))
                                                         ) {
                                                           return (
@@ -2642,10 +2683,10 @@ const ActionTracker = ({
                                                                 className="w-32 h-32 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
                                                                 onClick={() => {
                                                                   setSelectedPhoto(
-                                                                    photoUrl
+                                                                    photoUrl,
                                                                   );
                                                                   setPhotoViewDialogOpen(
-                                                                    true
+                                                                    true,
                                                                   );
                                                                 }}
                                                               />
@@ -2658,15 +2699,15 @@ const ActionTracker = ({
                                                       {(() => {
                                                         const photoFilename =
                                                           extractPhotoFromDescription(
-                                                            action.description
+                                                            action.description,
                                                           );
                                                         if (
                                                           photoFilename &&
                                                           !photoFilename.startsWith(
-                                                            "http://"
+                                                            "http://",
                                                           ) &&
                                                           !photoFilename.startsWith(
-                                                            "https://"
+                                                            "https://",
                                                           )
                                                         ) {
                                                           return (
@@ -2678,7 +2719,7 @@ const ActionTracker = ({
                                                                   try {
                                                                     console.log(
                                                                       "📷 Loading photo via API:",
-                                                                      photoFilename
+                                                                      photoFilename,
                                                                     );
                                                                     const blob =
                                                                       await apiClient.request<Blob>(
@@ -2686,31 +2727,31 @@ const ActionTracker = ({
                                                                         {
                                                                           responseType:
                                                                             "blob",
-                                                                        }
+                                                                        },
                                                                       );
 
                                                                     const photoUrl =
                                                                       URL.createObjectURL(
-                                                                        blob
+                                                                        blob,
                                                                       );
                                                                     setSelectedPhoto(
-                                                                      photoUrl
+                                                                      photoUrl,
                                                                     );
                                                                     setPhotoViewDialogOpen(
-                                                                      true
+                                                                      true,
                                                                     );
 
                                                                     setTimeout(
                                                                       () =>
                                                                         URL.revokeObjectURL(
-                                                                          photoUrl
+                                                                          photoUrl,
                                                                         ),
-                                                                      10000
+                                                                      10000,
                                                                     );
                                                                   } catch (error) {
                                                                     console.error(
                                                                       "❌ Error loading photo:",
-                                                                      error
+                                                                      error,
                                                                     );
                                                                     toast({
                                                                       title:
@@ -2749,7 +2790,7 @@ const ActionTracker = ({
                                                           className="h-7"
                                                           onClick={() =>
                                                             handleOpenTaskDialog(
-                                                              action.id
+                                                              action.id,
                                                             )
                                                           }
                                                         >
@@ -2781,7 +2822,7 @@ const ActionTracker = ({
                                                                   onChange={() =>
                                                                     handleToggleTask(
                                                                       action.id,
-                                                                      task.id
+                                                                      task.id,
                                                                     )
                                                                   }
                                                                   className="mt-1 h-4 w-4 rounded border-gray-300"
@@ -2811,10 +2852,10 @@ const ActionTracker = ({
                                                                           const user =
                                                                             availableUsers.find(
                                                                               (
-                                                                                u
+                                                                                u,
                                                                               ) =>
                                                                                 u.id ===
-                                                                                task.assignedUser
+                                                                                task.assignedUser,
                                                                             );
                                                                           return user
                                                                             ? `${user.firstName} ${user.lastName}`
@@ -2826,9 +2867,9 @@ const ActionTracker = ({
                                                                       <span className="text-xs text-muted-foreground">
                                                                         Fällig:{" "}
                                                                         {new Date(
-                                                                          task.dueDate
+                                                                          task.dueDate,
                                                                         ).toLocaleDateString(
-                                                                          "de-DE"
+                                                                          "de-DE",
                                                                         )}
                                                                       </span>
                                                                     )}
@@ -2843,13 +2884,13 @@ const ActionTracker = ({
                                                                       setCurrentTask(
                                                                         {
                                                                           ...task,
-                                                                        }
+                                                                        },
                                                                       );
                                                                       setCurrentTaskActionId(
-                                                                        action.id
+                                                                        action.id,
                                                                       );
                                                                       setTaskDialogOpen(
-                                                                        true
+                                                                        true,
                                                                       );
                                                                     }}
                                                                     title="Bearbeiten"
@@ -2863,7 +2904,7 @@ const ActionTracker = ({
                                                                     onClick={() =>
                                                                       handleDeleteTask(
                                                                         action.id,
-                                                                        task.id
+                                                                        task.id,
                                                                       )
                                                                     }
                                                                     title="Löschen"
@@ -2872,7 +2913,7 @@ const ActionTracker = ({
                                                                   </Button>
                                                                 </div>
                                                               </div>
-                                                            )
+                                                            ),
                                                           )}
                                                         </div>
                                                       )}
@@ -2914,10 +2955,10 @@ const ActionTracker = ({
                                                                     className="w-full aspect-square object-cover cursor-pointer hover:opacity-80 transition-opacity"
                                                                     onClick={() => {
                                                                       setSelectedPhoto(
-                                                                        file.url
+                                                                        file.url,
                                                                       );
                                                                       setPhotoViewDialogOpen(
-                                                                        true
+                                                                        true,
                                                                       );
                                                                     }}
                                                                   />
@@ -2936,7 +2977,7 @@ const ActionTracker = ({
                                                                 {file.name}
                                                               </p>
                                                             </div>
-                                                          )
+                                                          ),
                                                         )}
                                                       </div>
                                                     </CardContent>
@@ -2947,7 +2988,7 @@ const ActionTracker = ({
                                                 {(() => {
                                                   const materials =
                                                     parseMaterialsFromDescription(
-                                                      action.description
+                                                      action.description,
                                                     );
                                                   if (materials.length === 0)
                                                     return null;
@@ -2979,7 +3020,7 @@ const ActionTracker = ({
                                                               // Status Badge Farbe & Text
                                                               const getStatusBadge =
                                                                 (
-                                                                  status?: MaterialItem["status"]
+                                                                  status?: MaterialItem["status"],
                                                                 ) => {
                                                                   switch (
                                                                     status
@@ -3035,7 +3076,7 @@ const ActionTracker = ({
                                                                           }
                                                                         </span>
                                                                         {getStatusBadge(
-                                                                          material.status
+                                                                          material.status,
                                                                         )}
                                                                       </div>
                                                                       <p className="text-xs line-clamp-1">
@@ -3059,7 +3100,7 @@ const ActionTracker = ({
                                                                   </div>
                                                                 </div>
                                                               );
-                                                            }
+                                                            },
                                                           )}
                                                         </div>
                                                       </CardContent>
@@ -3113,55 +3154,32 @@ const ActionTracker = ({
                 <div className="space-y-4 py-4 pr-4">
                   <div className="space-y-2">
                     <Label htmlFor="plant">Anlage *</Label>
-                    <div className="grid grid-cols-4 gap-2">
-                      <Button
-                        type="button"
-                        variant={
-                          currentAction.plant === "T208" ? "default" : "outline"
-                        }
-                        onClick={() =>
-                          setCurrentAction({ ...currentAction, plant: "T208" })
-                        }
-                        className="w-full"
-                      >
-                        T208
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={
-                          currentAction.plant === "T207" ? "default" : "outline"
-                        }
-                        onClick={() =>
-                          setCurrentAction({ ...currentAction, plant: "T207" })
-                        }
-                        className="w-full"
-                      >
-                        T207
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={
-                          currentAction.plant === "T700" ? "default" : "outline"
-                        }
-                        onClick={() =>
-                          setCurrentAction({ ...currentAction, plant: "T700" })
-                        }
-                        className="w-full"
-                      >
-                        T700
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={
-                          currentAction.plant === "T46" ? "default" : "outline"
-                        }
-                        onClick={() =>
-                          setCurrentAction({ ...currentAction, plant: "T46" })
-                        }
-                        className="w-full"
-                      >
-                        T46
-                      </Button>
+                    <div
+                      className="grid gap-2"
+                      style={{
+                        gridTemplateColumns: `repeat(${Math.min(availableRigs.length, 4)}, minmax(0, 1fr))`,
+                      }}
+                    >
+                      {availableRigs.map((rig) => (
+                        <Button
+                          key={rig.id}
+                          type="button"
+                          variant={
+                            currentAction.plant === rig.name
+                              ? "default"
+                              : "outline"
+                          }
+                          onClick={() =>
+                            setCurrentAction({
+                              ...currentAction,
+                              plant: rig.name,
+                            })
+                          }
+                          className="w-full"
+                        >
+                          {rig.name}
+                        </Button>
+                      ))}
                     </div>
                   </div>
 
@@ -3465,8 +3483,8 @@ const ActionTracker = ({
                                         if (isSelected) {
                                           setSelectedAssignees(
                                             selectedAssignees.filter(
-                                              (id) => id !== user.id
-                                            )
+                                              (id) => id !== user.id,
+                                            ),
                                           );
                                         } else {
                                           setSelectedAssignees([
@@ -3481,7 +3499,7 @@ const ActionTracker = ({
                                           "mr-2 h-4 w-4",
                                           selectedAssignees.includes(user.id)
                                             ? "opacity-100"
-                                            : "opacity-0"
+                                            : "opacity-0",
                                         )}
                                       />
                                       {user.firstName} {user.lastName}
@@ -3508,7 +3526,7 @@ const ActionTracker = ({
                           <div className="flex flex-wrap gap-2">
                             {selectedAssignees.map((userId) => {
                               const user = availableUsers.find(
-                                (u) => u.id === userId
+                                (u) => u.id === userId,
                               );
                               return user ? (
                                 <Badge
@@ -3521,8 +3539,8 @@ const ActionTracker = ({
                                     onClick={() => {
                                       setSelectedAssignees(
                                         selectedAssignees.filter(
-                                          (id) => id !== userId
-                                        )
+                                          (id) => id !== userId,
+                                        ),
                                       );
                                     }}
                                     className="ml-1 hover:bg-red-500 rounded-full w-4 h-4 flex items-center justify-center"
@@ -3794,7 +3812,7 @@ const ActionTracker = ({
                                   size="icon"
                                   onClick={() => {
                                     setMaterials(
-                                      materials.filter((_, i) => i !== index)
+                                      materials.filter((_, i) => i !== index),
                                     );
                                   }}
                                 >

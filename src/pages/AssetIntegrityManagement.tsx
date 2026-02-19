@@ -547,6 +547,12 @@ export default function AssetIntegrityManagement() {
       } catch (error) {
         console.error("Failed to load backup:", error);
       }
+    } else {
+      // Initialize localStorage with default rigs so other pages can access them
+      localStorage.setItem(
+        "asset-integrity-backup",
+        JSON.stringify(initialRigs),
+      );
     }
   }, []);
 
@@ -616,6 +622,19 @@ export default function AssetIntegrityManagement() {
         return "bg-orange-500/20 text-orange-400 border-orange-500/50";
       case "critical":
         return "bg-red-500/20 text-red-400 border-red-500/50";
+      default:
+        return "bg-slate-500/20 text-slate-400 border-slate-500/50";
+    }
+  };
+
+  const getImprovementPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "low":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/50";
+      case "medium":
+        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
+      case "high":
+        return "bg-orange-500/20 text-orange-400 border-orange-500/50";
       default:
         return "bg-slate-500/20 text-slate-400 border-slate-500/50";
     }
@@ -1492,301 +1511,557 @@ export default function AssetIntegrityManagement() {
       {selectedRig && (
         <Dialog open={!!selectedRig} onOpenChange={() => setSelectedRig(null)}>
           <DialogContent
-            className="w-[95vw] sm:w-[90vw] md:max-w-3xl lg:max-w-4xl max-h-[90vh] overflow-y-auto !bg-slate-800 border-slate-700"
+            className="min-w-[1200px] w-[min(1400px,95vw)] max-h-[90vh] overflow-hidden !bg-slate-800 border-slate-700"
             style={{ backgroundColor: "#1e293b" }}
           >
             <DialogHeader>
-              <div className="flex items-center gap-3">
-                <Building2 className="h-8 w-8 text-blue-400" />
-                <div>
-                  <DialogTitle className="text-2xl text-white">
+              <div className="flex items-center justify-between gap-3 overflow-hidden">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <Building2 className="h-6 w-6 text-blue-400 flex-shrink-0" />
+                  <DialogTitle className="text-xl text-white font-semibold truncate">
                     {selectedRig.name}
                   </DialogTitle>
-                  <DialogDescription className="text-slate-400">
-                    {selectedRig.location} • {selectedRig.region}
-                  </DialogDescription>
+                  <span className="text-slate-400 flex-shrink-0">•</span>
+                  <span className="text-sm text-slate-400 truncate">
+                    {selectedRig.location}
+                  </span>
+                  <span className="text-slate-400 flex-shrink-0">•</span>
+                  <span className="text-sm text-slate-400 flex-shrink-0">
+                    {selectedRig.region}
+                  </span>
+                  <Badge
+                    className={`${getContractStatusColor(selectedRig.contractStatus)} ml-1 flex-shrink-0`}
+                  >
+                    {selectedRig.contractStatus}
+                  </Badge>
                 </div>
+                {!isEditingGeneral && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setIsEditingGeneral(true);
+                      setEditedRig({
+                        operator: selectedRig.operator,
+                        dayRate: selectedRig.dayRate,
+                        contractEndDate: selectedRig.contractEndDate,
+                        location: selectedRig.location,
+                      });
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 flex-shrink-0"
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Bearbeiten
+                  </Button>
+                )}
               </div>
             </DialogHeader>
 
-            <Tabs defaultValue="info" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
-                <TabsTrigger value="info" className="text-xs sm:text-sm">
-                  <FileText className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Allgemein</span>
+            <Tabs
+              defaultValue="info"
+              className="w-full flex flex-col overflow-hidden"
+            >
+              <TabsList className="grid w-full grid-cols-5 gap-1">
+                <TabsTrigger value="info" className="text-sm">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Allgemein
                 </TabsTrigger>
-                <TabsTrigger value="inspections" className="text-xs sm:text-sm">
-                  <Calendar className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Inspektionen</span>
+                <TabsTrigger value="inspections" className="text-sm">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Inspektionen
                 </TabsTrigger>
-                <TabsTrigger value="issues" className="text-xs sm:text-sm">
-                  <ShieldAlert className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Risiken</span>
+                <TabsTrigger value="issues" className="text-sm">
+                  <ShieldAlert className="h-4 w-4 mr-2" />
+                  Risiken
                 </TabsTrigger>
-                <TabsTrigger
-                  value="improvements"
-                  className="text-xs sm:text-sm"
-                >
-                  <TrendingUp className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Upgrades</span>
+                <TabsTrigger value="improvements" className="text-sm">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Upgrades
+                </TabsTrigger>
+                <TabsTrigger value="meeting" className="text-sm">
+                  <Presentation className="h-4 w-4 mr-2" />
+                  Meeting
                 </TabsTrigger>
               </TabsList>
 
               {/* Tab: Allgemeine Infos */}
-              <TabsContent value="info" className="space-y-4 mt-4">
-                <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 mb-3">
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setOverviewForAll(false);
-                      setShowMeetingOverview(true);
-                    }}
-                    variant="outline"
-                    className="border-purple-500 text-purple-400 hover:bg-purple-500/10 touch-manipulation"
-                  >
-                    <Presentation className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Meeting-Übersicht</span>
-                    <span className="sm:hidden">Übersicht</span>
-                  </Button>
-                  {!isEditingGeneral ? (
+              <TabsContent value="info" className="mt-4 overflow-hidden flex-1">
+                {/* Save/Cancel Buttons für Edit-Modus */}
+                {isEditingGeneral && (
+                  <div className="flex gap-2 justify-end mb-4">
                     <Button
                       size="sm"
+                      variant="outline"
                       onClick={() => {
-                        setIsEditingGeneral(true);
-                        setEditedRig({
-                          operator: selectedRig.operator,
-                          dayRate: selectedRig.dayRate,
-                          contractEndDate: selectedRig.contractEndDate,
-                          location: selectedRig.location,
-                        });
+                        setIsEditingGeneral(false);
+                        setEditedRig({});
                       }}
-                      className="bg-blue-600 hover:bg-blue-700 touch-manipulation min-h-[44px]"
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
                     >
-                      <Edit className="h-5 w-5 mr-2" strokeWidth={2} />
-                      <span className="hidden sm:inline">Daten bearbeiten</span>
-                      <span className="sm:hidden">Bearbeiten</span>
+                      Abbrechen
                     </Button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setIsEditingGeneral(false);
-                          setEditedRig({});
-                        }}
-                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                      >
-                        Abbrechen
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleSaveGeneralInfo}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <Save className="h-4 w-4 mr-2" />
-                        Speichern
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                    <Button
+                      size="sm"
+                      onClick={handleSaveGeneralInfo}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Speichern
+                    </Button>
+                  </div>
+                )}
 
-                <Card className="bg-slate-900 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-lg text-white flex items-center gap-2">
-                      <User className="h-5 w-5" />
-                      Vertragsinformationen
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-slate-400">Status</p>
-                        <Badge
-                          className={`mt-1 ${getContractStatusColor(selectedRig.contractStatus)}`}
-                        >
-                          {selectedRig.contractStatus}
-                        </Badge>
-                      </div>
-                      {(selectedRig.contractEndDate || isEditingGeneral) && (
-                        <div>
-                          <Label className="text-xs text-slate-400">
-                            Vertragsende
-                          </Label>
-                          {isEditingGeneral ? (
-                            <Input
-                              type="date"
-                              value={editedRig.contractEndDate || ""}
-                              onChange={(e) =>
-                                setEditedRig({
-                                  ...editedRig,
-                                  contractEndDate: e.target.value,
-                                })
-                              }
-                              className="mt-1 !bg-slate-900 !border-slate-700 !text-white"
-                              style={{
-                                backgroundColor: "#0f172a",
-                                borderColor: "#334155",
-                                color: "#ffffff",
-                              }}
-                            />
-                          ) : (
-                            <p className="text-sm text-white font-medium mt-1">
-                              {selectedRig.contractEndDate &&
-                                new Date(
-                                  selectedRig.contractEndDate,
-                                ).toLocaleDateString("de-DE")}
+                {/* 2-Spalten-Layout */}
+                <div className="grid grid-cols-[1.2fr_0.8fr] gap-5 h-full overflow-hidden">
+                  {/* === LINKE SPALTE (60%) === */}
+                  <div className="flex flex-col gap-4 overflow-hidden min-w-0">
+                    {/* Vertragsinformationen als 2x2 Grid */}
+                    <Card className="bg-slate-900 border-slate-700">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base text-white flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Vertragsinformationen
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Row 1, Col 1: Status */}
+                          <div>
+                            <p className="text-xs text-slate-400 mb-1">
+                              Status
                             </p>
-                          )}
-                        </div>
-                      )}
-                      <div>
-                        <Label className="text-xs text-slate-400">
-                          Operator
-                        </Label>
-                        {isEditingGeneral ? (
-                          <Input
-                            value={editedRig.operator || ""}
-                            onChange={(e) =>
-                              setEditedRig({
-                                ...editedRig,
-                                operator: e.target.value,
-                              })
-                            }
-                            className="mt-1 !bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400 [&:autofill]:!bg-slate-900"
-                            placeholder="z.B. PDO"
-                            style={{
-                              backgroundColor: "#0f172a",
-                              borderColor: "#334155",
-                              color: "#ffffff",
-                            }}
-                          />
-                        ) : (
-                          <p className="text-sm text-white font-medium mt-1">
-                            {selectedRig.operator || "N/A"}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <Label className="text-xs text-slate-400">
-                          Day Rate
-                        </Label>
-                        {isEditingGeneral ? (
-                          <Input
-                            type="number"
-                            value={editedRig.dayRate || 0}
-                            onChange={(e) =>
-                              setEditedRig({
-                                ...editedRig,
-                                dayRate: Number(e.target.value),
-                              })
-                            }
-                            className="mt-1 !bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
-                            placeholder="28000"
-                            style={{
-                              backgroundColor: "#0f172a",
-                              borderColor: "#334155",
-                              color: "#ffffff",
-                            }}
-                          />
-                        ) : (
-                          selectedRig.dayRate && (
-                            <p className="text-sm text-white font-medium mt-1 flex items-center gap-1">
-                              <DollarSign className="h-3 w-3" />$
-                              {selectedRig.dayRate.toLocaleString()}/Tag
-                            </p>
-                          )
-                        )}
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-xs text-slate-400">
-                          Standort
-                        </Label>
-                        {isEditingGeneral ? (
-                          <Input
-                            value={editedRig.location || ""}
-                            onChange={(e) =>
-                              setEditedRig({
-                                ...editedRig,
-                                location: e.target.value,
-                              })
-                            }
-                            className="mt-1 !bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
-                            placeholder="z.B. Fahud Field"
-                            style={{
-                              backgroundColor: "#0f172a",
-                              borderColor: "#334155",
-                              color: "#ffffff",
-                            }}
-                          />
-                        ) : (
-                          <p className="text-sm text-white font-medium mt-1">
-                            {selectedRig.location}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-slate-900 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-lg text-white flex items-center gap-2">
-                      <Award className="h-5 w-5 text-blue-400" />
-                      Zertifizierungen
-                    </CardTitle>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Aktuelle Zertifizierungen und Standards
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    {selectedRig.certifications.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {selectedRig.certifications.map((cert, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg border border-blue-500/30 hover:border-blue-500/50 transition-colors"
-                          >
-                            <div className="p-2 bg-blue-500/20 rounded-lg">
-                              <Award className="h-5 w-5 text-blue-400" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-white">
-                                {cert}
-                              </p>
-                              <p className="text-xs text-green-400 mt-0.5 flex items-center gap-1">
-                                <CheckCircle className="h-3 w-3" />
-                                Gültig
-                              </p>
-                            </div>
+                            <Badge
+                              className={getContractStatusColor(
+                                selectedRig.contractStatus,
+                              )}
+                            >
+                              {selectedRig.contractStatus}
+                            </Badge>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-center text-slate-400 text-sm py-4">
-                        Keine Zertifizierungen vorhanden
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
 
-                {/* Allgemeine Informationen */}
-                <Card className="bg-slate-900 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-lg text-white flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Notizen & wichtige Informationen
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Eingabeformular */}
-                    <div className="space-y-3 p-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                      <div>
-                        <Label className="text-sm text-slate-300 mb-2 font-medium">
-                          Information / Notiz
-                        </Label>
+                          {/* Row 1, Col 2: Vertragsende */}
+                          {(selectedRig.contractEndDate ||
+                            isEditingGeneral) && (
+                            <div>
+                              <Label className="text-xs text-slate-400 mb-1 block">
+                                Vertragsende
+                              </Label>
+                              {isEditingGeneral ? (
+                                <Input
+                                  type="date"
+                                  value={editedRig.contractEndDate || ""}
+                                  onChange={(e) =>
+                                    setEditedRig({
+                                      ...editedRig,
+                                      contractEndDate: e.target.value,
+                                    })
+                                  }
+                                  className="!bg-slate-900 !border-slate-700 !text-white h-8"
+                                  style={{
+                                    backgroundColor: "#0f172a",
+                                    borderColor: "#334155",
+                                    color: "#ffffff",
+                                    colorScheme: "dark",
+                                  }}
+                                />
+                              ) : (
+                                <p className="text-sm text-white font-medium">
+                                  {selectedRig.contractEndDate
+                                    ? new Date(
+                                        selectedRig.contractEndDate,
+                                      ).toLocaleDateString("de-DE")
+                                    : "-"}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Row 2, Col 1: Operator */}
+                          <div>
+                            <Label className="text-xs text-slate-400 mb-1 block">
+                              Operator
+                            </Label>
+                            {isEditingGeneral ? (
+                              <Input
+                                value={editedRig.operator || ""}
+                                onChange={(e) =>
+                                  setEditedRig({
+                                    ...editedRig,
+                                    operator: e.target.value,
+                                  })
+                                }
+                                className="!bg-slate-900 !border-slate-700 !text-white h-8"
+                                placeholder="z.B. PDO"
+                                style={{
+                                  backgroundColor: "#0f172a",
+                                  borderColor: "#334155",
+                                  color: "#ffffff",
+                                }}
+                              />
+                            ) : (
+                              <p className="text-sm text-white font-medium truncate">
+                                {selectedRig.operator || "N/A"}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Row 2, Col 2: Day Rate */}
+                          <div>
+                            <Label className="text-xs text-slate-400 mb-1 block">
+                              Day Rate
+                            </Label>
+                            {isEditingGeneral ? (
+                              <Input
+                                type="number"
+                                value={editedRig.dayRate || 0}
+                                onChange={(e) =>
+                                  setEditedRig({
+                                    ...editedRig,
+                                    dayRate: Number(e.target.value),
+                                  })
+                                }
+                                className="!bg-slate-900 !border-slate-700 !text-white h-8"
+                                placeholder="28000"
+                                style={{
+                                  backgroundColor: "#0f172a",
+                                  borderColor: "#334155",
+                                  color: "#ffffff",
+                                }}
+                              />
+                            ) : (
+                              selectedRig.dayRate && (
+                                <p className="text-sm text-white font-medium flex items-center gap-1">
+                                  <DollarSign className="h-3 w-3" />$
+                                  {selectedRig.dayRate.toLocaleString()}/Tag
+                                </p>
+                              )
+                            )}
+                          </div>
+
+                          {/* Row 3: Standort (full width) */}
+                          <div className="col-span-2">
+                            <Label className="text-xs text-slate-400 mb-1 block">
+                              Standort
+                            </Label>
+                            {isEditingGeneral ? (
+                              <Input
+                                value={editedRig.location || ""}
+                                onChange={(e) =>
+                                  setEditedRig({
+                                    ...editedRig,
+                                    location: e.target.value,
+                                  })
+                                }
+                                className="!bg-slate-900 !border-slate-700 !text-white h-8"
+                                placeholder="z.B. Fahud Field"
+                                style={{
+                                  backgroundColor: "#0f172a",
+                                  borderColor: "#334155",
+                                  color: "#ffffff",
+                                }}
+                              />
+                            ) : (
+                              <p className="text-sm text-white font-medium flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {selectedRig.location}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Notizen-Liste (scrollable) */}
+                    <Card className="bg-slate-900 border-slate-700 flex-1 overflow-hidden flex flex-col">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base text-white flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            Notizen ({selectedRig.generalInfo?.length || 0})
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex-1 overflow-y-auto pr-2">
+                        {selectedRig.generalInfo &&
+                        selectedRig.generalInfo.length > 0 ? (
+                          <div className="space-y-2">
+                            {selectedRig.generalInfo
+                              .sort((a, b) => {
+                                if (a.deadline && !b.deadline) return -1;
+                                if (!a.deadline && b.deadline) return 1;
+                                if (a.deadline && b.deadline) {
+                                  return (
+                                    new Date(a.deadline).getTime() -
+                                    new Date(b.deadline).getTime()
+                                  );
+                                }
+                                return (
+                                  new Date(b.createdDate).getTime() -
+                                  new Date(a.createdDate).getTime()
+                                );
+                              })
+                              .map((info) => {
+                                const hasDeadline = !!info.deadline;
+                                const daysUntil = hasDeadline
+                                  ? Math.ceil(
+                                      (new Date(info.deadline!).getTime() -
+                                        new Date("2026-02-17").getTime()) /
+                                        (1000 * 60 * 60 * 24),
+                                    )
+                                  : null;
+
+                                // Farbcodierung nach Dringlichkeit
+                                let borderColor = "border-slate-700";
+                                let bgColor = "bg-slate-800/50";
+                                let colorIndicator = "bg-slate-600"; // Default: Grau
+
+                                if (daysUntil !== null) {
+                                  if (daysUntil < 0) {
+                                    // Überfällig: Rot
+                                    borderColor = "border-red-500/50";
+                                    bgColor = "bg-red-500/5";
+                                    colorIndicator = "bg-red-500";
+                                  } else if (daysUntil <= 30) {
+                                    // < 30 Tage: Rot
+                                    borderColor = "border-red-500/50";
+                                    bgColor = "bg-red-500/5";
+                                    colorIndicator = "bg-red-500";
+                                  } else if (daysUntil <= 90) {
+                                    // 30-90 Tage: Gelb
+                                    borderColor = "border-yellow-500/50";
+                                    bgColor = "bg-yellow-500/5";
+                                    colorIndicator = "bg-yellow-500";
+                                  } else {
+                                    // > 90 Tage: Grün
+                                    borderColor = "border-green-500/50";
+                                    bgColor = "bg-green-500/5";
+                                    colorIndicator = "bg-green-500";
+                                  }
+                                }
+
+                                const isEditing = editingInfoId === info.id;
+
+                                return (
+                                  <div
+                                    key={info.id}
+                                    className={`relative border ${borderColor} ${bgColor} rounded-lg overflow-hidden`}
+                                  >
+                                    {/* Farbbalken links (4px) */}
+                                    <div
+                                      className={`absolute left-0 top-0 bottom-0 w-1 ${colorIndicator}`}
+                                    ></div>
+
+                                    <div className="pl-4 pr-3 py-3">
+                                      {isEditing ? (
+                                        <div className="space-y-2">
+                                          <Textarea
+                                            value={editedInfo.description || ""}
+                                            onChange={(e) =>
+                                              setEditedInfo({
+                                                ...editedInfo,
+                                                description: e.target.value,
+                                              })
+                                            }
+                                            className="!bg-slate-900 !border-slate-700 !text-white resize-none text-sm"
+                                            style={{
+                                              backgroundColor: "#0f172a",
+                                              borderColor: "#334155",
+                                              color: "#ffffff",
+                                            }}
+                                            rows={2}
+                                          />
+                                          <Input
+                                            type="date"
+                                            value={editedInfo.deadline || ""}
+                                            onChange={(e) =>
+                                              setEditedInfo({
+                                                ...editedInfo,
+                                                deadline: e.target.value,
+                                              })
+                                            }
+                                            className="!bg-slate-900 !border-slate-700 !text-white h-8"
+                                            style={{
+                                              backgroundColor: "#0f172a",
+                                              borderColor: "#334155",
+                                              color: "#ffffff",
+                                              colorScheme: "dark",
+                                            }}
+                                          />
+                                          <div className="flex gap-2 justify-end">
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => {
+                                                setEditingInfoId(null);
+                                                setEditedInfo({});
+                                              }}
+                                              disabled={isSaving}
+                                              className="border-slate-700 h-8"
+                                            >
+                                              Abbrechen
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              onClick={handleSaveEditedInfo}
+                                              disabled={isSaving}
+                                              className="bg-green-600 hover:bg-green-700 h-8"
+                                            >
+                                              {isSaving ? (
+                                                <>
+                                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                  Speichere...
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Save className="h-4 w-4 mr-2" />
+                                                  Speichern
+                                                </>
+                                              )}
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-white text-sm leading-relaxed mb-2">
+                                              {info.description}
+                                            </p>
+                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                                              {hasDeadline && (
+                                                <span
+                                                  className={`flex items-center gap-1 font-medium ${
+                                                    daysUntil !== null &&
+                                                    daysUntil < 0
+                                                      ? "text-red-400"
+                                                      : daysUntil !== null &&
+                                                          daysUntil <= 30
+                                                        ? "text-red-400"
+                                                        : daysUntil !== null &&
+                                                            daysUntil <= 90
+                                                          ? "text-yellow-400"
+                                                          : "text-green-400"
+                                                  }`}
+                                                >
+                                                  <Calendar className="h-3 w-3" />
+                                                  {new Date(
+                                                    info.deadline!,
+                                                  ).toLocaleDateString("de-DE")}
+                                                  {daysUntil !== null && (
+                                                    <span className="ml-1">
+                                                      (
+                                                      {daysUntil < 0
+                                                        ? `${Math.abs(daysUntil)} Tage überfällig!`
+                                                        : `noch ${daysUntil} Tage`}
+                                                      )
+                                                    </span>
+                                                  )}
+                                                </span>
+                                              )}
+                                              <span className="flex items-center gap-1 text-slate-400">
+                                                <Clock className="h-3 w-3" />
+                                                {new Date(
+                                                  info.createdDate,
+                                                ).toLocaleDateString("de-DE")}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div className="flex gap-1 flex-shrink-0">
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() =>
+                                                handleEditGeneralInfo(info)
+                                              }
+                                              className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 w-8 p-0"
+                                              aria-label="Notiz bearbeiten"
+                                            >
+                                              <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() =>
+                                                handleDeleteGeneralInfo(info.id)
+                                              }
+                                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 p-0"
+                                              aria-label="Notiz löschen"
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        ) : (
+                          <p className="text-center text-slate-400 text-sm py-4">
+                            Keine Notizen vorhanden
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* === RECHTE SPALTE (40%) === */}
+                  <div className="flex flex-col gap-4 self-start min-w-0">
+                    {/* Zertifizierungen - kompakte Liste */}
+                    <Card className="bg-slate-900 border-slate-700">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base text-white flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <Award className="h-4 w-4 text-blue-400" />
+                            Zertifizierungen
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-xs text-blue-400 hover:text-blue-300"
+                          >
+                            + Neu
+                          </Button>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {selectedRig.certifications.length > 0 ? (
+                          <div className="space-y-1.5">
+                            {selectedRig.certifications.map((cert, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between px-3 py-2 bg-slate-800/50 rounded border border-slate-700/50 hover:border-blue-500/30 transition-colors"
+                              >
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <CheckCircle className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
+                                  <span className="text-sm text-white truncate">
+                                    {cert}
+                                  </span>
+                                </div>
+                                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                                  Gültig
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-center text-slate-400 text-sm py-3">
+                            Keine Zertifizierungen
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Neue Notiz hinzufügen - kompakt */}
+                    <Card className="bg-slate-900 border-slate-700">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base text-white flex items-center gap-2">
+                          <Plus className="h-4 w-4 text-blue-400" />
+                          Neue Notiz
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
                         <Textarea
-                          placeholder="z.B. Rig Move geplant, Supervisor vor Ort, Audit steht an..."
+                          placeholder="Notiz eingeben..."
                           value={newGeneralInfo.description}
                           onChange={(e) =>
                             setNewGeneralInfo({
@@ -1794,255 +2069,46 @@ export default function AssetIntegrityManagement() {
                               description: e.target.value,
                             })
                           }
-                          className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400 resize-none mt-2"
+                          className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400 resize-none text-sm"
                           style={{
                             backgroundColor: "#0f172a",
                             borderColor: "#334155",
                             color: "#ffffff",
                           }}
-                          rows={3}
+                          rows={2}
                         />
-                      </div>
-                      <div className="flex gap-2 items-end">
-                        <div className="flex-1">
-                          <Label className="text-sm text-slate-300 mb-2 font-medium flex items-center gap-1.5">
-                            <Calendar className="h-3.5 w-3.5" />
-                            Deadline (optional)
-                          </Label>
-                          <div className="relative mt-2">
-                            <Input
-                              type="date"
-                              value={newGeneralInfo.deadline}
-                              onChange={(e) =>
-                                setNewGeneralInfo({
-                                  ...newGeneralInfo,
-                                  deadline: e.target.value,
-                                })
-                              }
-                              className="!bg-slate-900 !border-slate-700 !text-white pl-3"
-                              style={{
-                                backgroundColor: "#0f172a",
-                                borderColor: "#334155",
-                                color: "#ffffff",
-                                colorScheme: "dark",
-                              }}
-                            />
-                          </div>
-                        </div>
-                        <Button
-                          onClick={handleAddGeneralInfo}
-                          disabled={!newGeneralInfo.description}
-                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 min-h-[44px] px-4 touch-manipulation"
-                        >
-                          <Plus className="h-5 w-5 mr-2" strokeWidth={2} />
-                          Hinzufügen
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Liste der Informationen */}
-                    {selectedRig.generalInfo &&
-                    selectedRig.generalInfo.length > 0 ? (
-                      <div className="space-y-2">
-                        {selectedRig.generalInfo
-                          .sort((a, b) => {
-                            // With deadline first, then by date
-                            if (a.deadline && !b.deadline) return -1;
-                            if (!a.deadline && b.deadline) return 1;
-                            if (a.deadline && b.deadline) {
-                              return (
-                                new Date(a.deadline).getTime() -
-                                new Date(b.deadline).getTime()
-                              );
+                        <div className="flex gap-2">
+                          <Input
+                            type="date"
+                            value={newGeneralInfo.deadline}
+                            onChange={(e) =>
+                              setNewGeneralInfo({
+                                ...newGeneralInfo,
+                                deadline: e.target.value,
+                              })
                             }
-                            return (
-                              new Date(b.createdDate).getTime() -
-                              new Date(a.createdDate).getTime()
-                            );
-                          })
-                          .map((info) => {
-                            const hasDeadline = !!info.deadline;
-                            const daysUntil = hasDeadline
-                              ? Math.ceil(
-                                  (new Date(info.deadline!).getTime() -
-                                    new Date("2026-02-15").getTime()) /
-                                    (1000 * 60 * 60 * 24),
-                                )
-                              : null;
-                            const isOverdue =
-                              daysUntil !== null && daysUntil < 0;
-                            const isDueSoon =
-                              daysUntil !== null &&
-                              daysUntil >= 0 &&
-                              daysUntil <= 7;
-                            const isEditing = editingInfoId === info.id;
-
-                            return (
-                              <Card
-                                key={info.id}
-                                className={`bg-slate-800/50 border ${
-                                  isOverdue
-                                    ? "border-red-500/50 bg-red-500/5"
-                                    : isDueSoon
-                                      ? "border-yellow-500/50 bg-yellow-500/5"
-                                      : "border-slate-700"
-                                }`}
-                              >
-                                <CardContent className="pt-4 pb-3">
-                                  {isEditing ? (
-                                    <div className="space-y-3">
-                                      <Textarea
-                                        value={editedInfo.description || ""}
-                                        onChange={(e) =>
-                                          setEditedInfo({
-                                            ...editedInfo,
-                                            description: e.target.value,
-                                          })
-                                        }
-                                        className="!bg-slate-900 !border-slate-700 !text-white resize-none"
-                                        style={{
-                                          backgroundColor: "#0f172a",
-                                          borderColor: "#334155",
-                                          color: "#ffffff",
-                                        }}
-                                        rows={2}
-                                      />
-                                      <Input
-                                        type="date"
-                                        value={editedInfo.deadline || ""}
-                                        onChange={(e) =>
-                                          setEditedInfo({
-                                            ...editedInfo,
-                                            deadline: e.target.value,
-                                          })
-                                        }
-                                        className="!bg-slate-900 !border-slate-700 !text-white"
-                                        style={{
-                                          backgroundColor: "#0f172a",
-                                          borderColor: "#334155",
-                                          color: "#ffffff",
-                                          colorScheme: "dark",
-                                        }}
-                                      />
-                                      <div className="flex gap-2 justify-end">
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => {
-                                            setEditingInfoId(null);
-                                            setEditedInfo({});
-                                          }}
-                                          disabled={isSaving}
-                                          className="border-slate-700 min-h-[44px] touch-manipulation"
-                                        >
-                                          Abbrechen
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          onClick={handleSaveEditedInfo}
-                                          disabled={isSaving}
-                                          className="bg-green-600 hover:bg-green-700 min-h-[44px] touch-manipulation"
-                                        >
-                                          {isSaving ? (
-                                            <>
-                                              <Loader2
-                                                className="h-5 w-5 mr-2 animate-spin"
-                                                strokeWidth={2}
-                                              />
-                                              Speichere...
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Save
-                                                className="h-5 w-5 mr-2"
-                                                strokeWidth={2}
-                                              />
-                                              Speichern
-                                            </>
-                                          )}
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-start justify-between gap-3">
-                                      <div className="flex-1 space-y-2">
-                                        <p className="text-white text-sm leading-relaxed">
-                                          {info.description}
-                                        </p>
-                                        <div className="flex items-center gap-4 text-xs text-slate-400">
-                                          <span className="flex items-center gap-1">
-                                            <Clock className="h-3.5 w-3.5" />
-                                            Erstellt:{" "}
-                                            {new Date(
-                                              info.createdDate,
-                                            ).toLocaleDateString("de-DE")}
-                                          </span>
-                                          {hasDeadline && (
-                                            <span
-                                              className={`flex items-center gap-1 font-medium ${isOverdue ? "text-red-400" : isDueSoon ? "text-yellow-400" : "text-blue-400"}`}
-                                            >
-                                              <Calendar className="h-3.5 w-3.5" />
-                                              Deadline:{" "}
-                                              {new Date(
-                                                info.deadline!,
-                                              ).toLocaleDateString("de-DE")}
-                                              {daysUntil !== null && (
-                                                <span className="ml-1">
-                                                  (
-                                                  {isOverdue
-                                                    ? `${Math.abs(daysUntil)} Tage überfällig!`
-                                                    : `noch ${daysUntil} Tage`}
-                                                  )
-                                                </span>
-                                              )}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <div className="flex gap-1.5 flex-shrink-0">
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() =>
-                                            handleEditGeneralInfo(info)
-                                          }
-                                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-11 w-11 min-h-[44px] min-w-[44px] p-0 touch-manipulation"
-                                          aria-label="Notiz bearbeiten"
-                                        >
-                                          <Edit
-                                            className="h-6 w-6"
-                                            strokeWidth={2}
-                                          />
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() =>
-                                            handleDeleteGeneralInfo(info.id)
-                                          }
-                                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-11 w-11 min-h-[44px] min-w-[44px] p-0 touch-manipulation"
-                                          aria-label="Notiz löschen"
-                                        >
-                                          <Trash2
-                                            className="h-6 w-6"
-                                            strokeWidth={2}
-                                          />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            );
-                          })}
-                      </div>
-                    ) : (
-                      <p className="text-center text-slate-400 text-sm py-8">
-                        Keine Informationen vorhanden
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
+                            placeholder="Deadline (optional)"
+                            className="!bg-slate-900 !border-slate-700 !text-white flex-1 h-9"
+                            style={{
+                              backgroundColor: "#0f172a",
+                              borderColor: "#334155",
+                              color: "#ffffff",
+                              colorScheme: "dark",
+                            }}
+                          />
+                          <Button
+                            onClick={handleAddGeneralInfo}
+                            disabled={!newGeneralInfo.description}
+                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 h-9"
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Hinzufügen
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
               </TabsContent>
 
               {/* Tab: Inspektionen */}
@@ -2227,11 +2293,9 @@ export default function AssetIntegrityManagement() {
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge
-                              className={
-                                improvement.priority === "high"
-                                  ? "bg-red-500/20 text-red-400"
-                                  : "bg-yellow-500/20 text-yellow-400"
-                              }
+                              className={getImprovementPriorityColor(
+                                improvement.priority,
+                              )}
                             >
                               {improvement.priority}
                             </Badge>
@@ -2273,6 +2337,47 @@ export default function AssetIntegrityManagement() {
                     </Card>
                   ))
                 )}
+              </TabsContent>
+
+              {/* Tab: Meeting-Übersicht */}
+              <TabsContent value="meeting" className="space-y-3 mt-4">
+                <Card className="bg-slate-900 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-white flex items-center gap-2">
+                      <Presentation className="h-5 w-5 text-purple-400" />
+                      Meeting-Übersicht für {selectedRig.name}
+                    </CardTitle>
+                    <p className="text-sm text-slate-400 mt-1">
+                      Zusammenfassung für Management-Meeting (
+                      {new Date("2026-02-17").toLocaleDateString("de-DE")})
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <pre className="whitespace-pre-wrap text-sm text-slate-200 font-mono p-4 bg-slate-950/50 rounded-lg border border-slate-700/50 max-h-[600px] overflow-y-auto">
+                      {generateMeetingOverview([selectedRig])}
+                    </pre>
+                    <div className="flex justify-end gap-2 mt-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            generateMeetingOverview([selectedRig]),
+                          );
+                          toast({
+                            title: "Kopiert",
+                            description:
+                              "Meeting-Übersicht wurde in die Zwischenablage kopiert",
+                          });
+                        }}
+                        className="border-slate-600"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        In Zwischenablage kopieren
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </DialogContent>
@@ -2694,7 +2799,10 @@ export default function AssetIntegrityManagement() {
 
       {/* Meeting-Übersicht Dialog */}
       <Dialog open={showMeetingOverview} onOpenChange={setShowMeetingOverview}>
-        <DialogContent className="w-[95vw] sm:w-[90vw] md:max-w-3xl lg:max-w-4xl max-h-[90vh] !bg-slate-800 border-slate-700">
+        <DialogContent
+          className="w-[95vw] sm:w-[90vw] md:max-w-3xl lg:max-w-4xl max-h-[90vh] !bg-slate-800 border-slate-700"
+          style={{ backgroundColor: "#1e293b" }}
+        >
           <DialogHeader>
             <DialogTitle className="text-2xl text-white flex items-center gap-2">
               <Presentation className="h-6 w-6 text-purple-400" />

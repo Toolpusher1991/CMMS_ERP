@@ -128,10 +128,16 @@ export const createFailureReport = async (req: AuthRequest, res: Response) => {
     // Generate ticket number
     const ticketNumber = await generateTicketNumber(plant);
 
+    // Find rigId based on plant name
+    const rig = await prisma.rig.findUnique({
+      where: { name: plant },
+    });
+
     const report = await prisma.failureReport.create({
       data: {
         ticketNumber,
         plant,
+        rigId: rig?.id || null, // Set rigId if rig exists
         title,
         description,
         location: location || null,

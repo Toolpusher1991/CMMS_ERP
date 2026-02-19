@@ -24,6 +24,7 @@ import {
 } from "@/services/project.service";
 import { userService } from "@/services/user.service";
 import type { User } from "@/services/auth.service";
+import { rigService } from "@/services/rig.service";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -100,10 +101,6 @@ import {
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/services/api";
 import { toPng } from "html-to-image";
-
-// ===== Constants =====
-const PLANTS = ["T208", "T207", "T700", "T46"] as const;
-type Plant = (typeof PLANTS)[number];
 
 // ===== Types =====
 type TaskStatus = ProjectTask["status"];
@@ -1044,7 +1041,10 @@ export default function ProjectsPage() {
   // State
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<Plant>("T208");
+  const [availableRigs, setAvailableRigs] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+  const [activeTab, setActiveTab] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(
     new Set(),
@@ -1069,7 +1069,7 @@ export default function ProjectsPage() {
     description: "",
     status: "IN_PROGRESS" as Project["status"],
     priority: "NORMAL" as Project["priority"],
-    plant: "T208" as Plant,
+    plant: "",
     startDate: "",
     endDate: "",
     managerId: "",
@@ -1119,6 +1119,22 @@ export default function ProjectsPage() {
     label: "",
   });
 
+  // Load Rigs
+  const loadRigs = useCallback(async () => {
+    try {
+      const response = await rigService.getAllRigs();
+      if (response.success && response.data) {
+        setAvailableRigs(response.data);
+        // Set active tab to first rig
+        if (response.data.length > 0) {
+          setActiveTab(response.data[0].name);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading rigs:", error);
+    }
+  }, []);
+
   // Load Users
   const loadUsers = useCallback(async () => {
     try {
@@ -1150,9 +1166,10 @@ export default function ProjectsPage() {
   }, [toast]);
 
   useEffect(() => {
+    loadRigs();
     loadProjects();
     loadUsers();
-  }, [loadProjects, loadUsers]);
+  }, [loadRigs, loadProjects, loadUsers]);
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -1204,7 +1221,7 @@ export default function ProjectsPage() {
 
   // Computed Values
   const getProjectStats = useCallback(
-    (plant: Plant) => {
+    (plant: string) => {
       const plantProjects = projects.filter((p) => p.plant === plant);
       const activeCount = plantProjects.filter(
         (p) =>
@@ -2450,7 +2467,7 @@ export default function ProjectsPage() {
       description: project.description || "",
       status: project.status,
       priority: project.priority,
-      plant: project.plant as Plant,
+      plant: project.plant || "",
       startDate: project.startDate?.split("T")[0] || "",
       endDate: project.endDate?.split("T")[0] || "",
       managerId: project.managerId || "",
@@ -2804,22 +2821,27 @@ export default function ProjectsPage() {
           ) : (
             <Tabs
               value={activeTab}
-              onValueChange={(v) => setActiveTab(v as Plant)}
+              onValueChange={(v) => setActiveTab(v)}
               className="space-y-4"
             >
               {/* Plant Tabs - Like ActionTracker */}
-              <TabsList className="grid w-full grid-cols-4 h-20 bg-muted/30 p-2 gap-2">
-                {PLANTS.map((plant) => {
-                  const stats = getProjectStats(plant);
+              <TabsList
+                className={`grid w-full h-20 bg-muted/30 p-2 gap-2`}
+                style={{
+                  gridTemplateColumns: `repeat(${availableRigs.length || 1}, minmax(0, 1fr))`,
+                }}
+              >
+                {availableRigs.map((rig) => {
+                  const stats = getProjectStats(rig.name);
                   return (
                     <TabsTrigger
-                      key={plant}
-                      value={plant}
+                      key={rig.id}
+                      value={rig.name}
                       className="relative flex-col h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all shadow-sm hover:shadow-md py-2 px-3"
                     >
                       <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
                         <span className="text-base font-bold leading-tight">
-                          {plant}
+                          {rig.name}
                         </span>
                         <div className="flex items-center gap-1.5 flex-wrap justify-center">
                           {stats.active > 0 && (
@@ -2855,14 +2877,18 @@ export default function ProjectsPage() {
                 })}
               </TabsList>
 
-              {PLANTS.map((plant) => (
-                <TabsContent key={plant} value={plant} className="space-y-4">
+              {availableRigs.map((rig) => (
+                <TabsContent
+                  key={rig.id}
+                  value={rig.name}
+                  className="space-y-4"
+                >
                   {filteredProjects.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <FolderKanban className="h-12 w-12 text-muted-foreground mb-4" />
                       <h3 className="text-lg font-semibold">Keine Projekte</h3>
                       <p className="text-sm text-muted-foreground mb-4">
-                        Erstellen Sie das erste Projekt für {plant}
+                        Erstellen Sie das erste Projekt für {rig.name}
                       </p>
                       <Button onClick={openNewProjectDialog}>
                         <Plus className="mr-2 h-4 w-4" />
@@ -3735,16 +3761,16 @@ export default function ProjectsPage() {
                 <Select
                   value={projectForm.plant}
                   onValueChange={(v) =>
-                    setProjectForm({ ...projectForm, plant: v as Plant })
+                    setProjectForm({ ...projectForm, plant: v })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PLANTS.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {p}
+                    {availableRigs.map((rig) => (
+                      <SelectItem key={rig.id} value={rig.name}>
+                        {rig.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -6,6 +6,7 @@ import {
 } from "@/services/project.service";
 import { authService } from "@/services/auth.service";
 import { userService } from "@/services/user.service";
+import { rigService } from "@/services/rig.service";
 import { fileService } from "@/services/file.service";
 import { apiClient } from "@/services/api";
 import type { User } from "@/services/auth.service";
@@ -83,7 +84,7 @@ import {
   Workflow,
 } from "lucide-react";
 
-type Anlage = "T208" | "T207" | "T700" | "T46";
+type Anlage = string;
 type Category = "Mechanisch" | "Elektrisch" | "Anlage";
 
 interface Task {
@@ -200,7 +201,7 @@ export default function AnlagenProjektManagement({
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [selectedAnlage, setSelectedAnlage] = useState<Anlage>("T208");
+  const [selectedAnlage, setSelectedAnlage] = useState<Anlage>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [userFilter, setUserFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -209,6 +210,9 @@ export default function AnlagenProjektManagement({
   const [selectedTaskUserId, setSelectedTaskUserId] = useState<string>("");
   const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [availableRigs, setAvailableRigs] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
 
   // Comment Management State
   const [projectComments, setProjectComments] = useState<
@@ -220,7 +224,7 @@ export default function AnlagenProjektManagement({
 
   const [formData, setFormData] = useState<Partial<Project>>({
     name: "",
-    anlage: "T208",
+    anlage: "",
     category: "Mechanisch",
     status: "Geplant",
     startDate: "",
@@ -245,7 +249,7 @@ export default function AnlagenProjektManagement({
   // Delete Confirmation States
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteType, setDeleteType] = useState<"project" | "task" | "file">(
-    "project"
+    "project",
   );
   const [deleteTarget, setDeleteTarget] = useState<{
     projectId?: string;
@@ -254,8 +258,28 @@ export default function AnlagenProjektManagement({
     name?: string;
   }>({});
 
-  const anlagen: Anlage[] = ["T208", "T207", "T700", "T46"];
   const categories: Category[] = ["Mechanisch", "Elektrisch", "Anlage"];
+
+  // Load Rigs
+  const loadRigs = async () => {
+    try {
+      const response = await rigService.getAllRigs();
+      if (response.success && response.data) {
+        const rigs = response.data.map((rig) => ({
+          id: rig.id,
+          name: rig.name,
+        }));
+        setAvailableRigs(rigs);
+
+        // Set default selected anlage to first rig if available
+        if (rigs.length > 0) {
+          setSelectedAnlage(rigs[0].name);
+        }
+      }
+    } catch (error) {
+      console.error("Fehler beim Laden der Rigs:", error);
+    }
+  };
 
   // Helper function to get user display name from ID or email
   const getUserDisplayName = (userIdOrEmail: string): string => {
@@ -293,7 +317,7 @@ export default function AnlagenProjektManagement({
 
   // Mapping Functions
   const mapBackendStatus = (
-    status: string
+    status: string,
   ): "Aktiv" | "Abgeschlossen" | "Geplant" => {
     switch (status) {
       case "IN_PROGRESS":
@@ -307,7 +331,7 @@ export default function AnlagenProjektManagement({
   };
 
   const mapFrontendStatus = (
-    status: string
+    status: string,
   ): "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "ON_HOLD" => {
     switch (status) {
       case "Aktiv":
@@ -322,7 +346,7 @@ export default function AnlagenProjektManagement({
 
   // Category mapping functions for backend communication
   const mapFrontendCategory = (
-    category: Category
+    category: Category,
   ): "MECHANICAL" | "ELECTRICAL" | "FACILITY" => {
     switch (category) {
       case "Mechanisch":
@@ -337,7 +361,7 @@ export default function AnlagenProjektManagement({
   };
 
   const mapBackendCategory = (
-    backendCategory: "MECHANICAL" | "ELECTRICAL" | "FACILITY"
+    backendCategory: "MECHANICAL" | "ELECTRICAL" | "FACILITY",
   ): Category => {
     switch (backendCategory) {
       case "MECHANICAL":
@@ -356,6 +380,9 @@ export default function AnlagenProjektManagement({
     try {
       setIsLoading(true);
       setError(null);
+
+      // Load rigs first
+      await loadRigs();
 
       // Parallel laden für bessere Performance
       const [projectResponse, userResponse] = await Promise.all([
@@ -409,9 +436,7 @@ export default function AnlagenProjektManagement({
           return {
             id: p.id,
             name: p.name,
-            anlage: (p.plant ||
-              p.projectNumber.match(/^(T\d+)/)?.[1] ||
-              "T208") as Anlage, // Use plant field or extract from projectNumber
+            anlage: p.plant || p.projectNumber.match(/^(T\d+)/)?.[1] || "", // Use plant field or extract from projectNumber
             category: mapBackendCategory(p.category || "MECHANICAL"), // Map backend category to frontend
             status: mapBackendStatus(p.status),
             startDate: p.startDate || "",
@@ -436,7 +461,7 @@ export default function AnlagenProjektManagement({
             })), // Map backend tasks to frontend format
             files: projectFiles, // Load files from backend
           };
-        })
+        }),
       );
 
       setProjects(mappedProjects);
@@ -489,7 +514,7 @@ export default function AnlagenProjektManagement({
         // Scroll to the project after a short delay
         setTimeout(() => {
           const element = document.getElementById(
-            `project-${initialProjectId}`
+            `project-${initialProjectId}`,
           );
           if (element) {
             element.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -556,8 +581,8 @@ export default function AnlagenProjektManagement({
         projects.map((p) =>
           p.id === project.id
             ? { ...p, status: newStatus, progress: newProgress }
-            : p
-        )
+            : p,
+        ),
       );
 
       toast({
@@ -639,8 +664,8 @@ export default function AnlagenProjektManagement({
           deleteType === "project"
             ? "Projekt"
             : deleteType === "task"
-            ? "Aufgabe"
-            : "Datei"
+              ? "Aufgabe"
+              : "Datei"
         } konnte nicht gelöscht werden.`,
         variant: "destructive",
       });
@@ -688,7 +713,7 @@ export default function AnlagenProjektManagement({
 
         const updated = await projectService.updateProject(
           editingProject.id,
-          updateData
+          updateData,
         );
 
         console.log("✅ Project updated, backend response:", updated);
@@ -714,7 +739,7 @@ export default function AnlagenProjektManagement({
         };
 
         setProjects(
-          projects.map((p) => (p.id === editingProject.id ? mappedProject : p))
+          projects.map((p) => (p.id === editingProject.id ? mappedProject : p)),
         );
 
         toast({
@@ -810,8 +835,8 @@ export default function AnlagenProjektManagement({
           projects.map((p) =>
             p.id === editingProject.id
               ? ({ ...formData, id: p.id } as Project)
-              : p
-          )
+              : p,
+          ),
         );
       } else {
         const newProject: Project = {
@@ -864,7 +889,7 @@ export default function AnlagenProjektManagement({
             status: taskFormData.completed ? "DONE" : "TODO",
             assignedTo: selectedTaskUserId || undefined,
             dueDate: taskFormData.dueDate || undefined,
-          }
+          },
         );
       } else {
         // Create new task in backend
@@ -896,7 +921,7 @@ export default function AnlagenProjektManagement({
                     dueDate: backendTask.dueDate || "",
                     createdAt: backendTask.createdAt,
                   } as Task)
-                : t
+                : t,
             );
           } else {
             const newTask: Task = {
@@ -948,7 +973,7 @@ export default function AnlagenProjektManagement({
         taskId,
         {
           status: task.completed ? "TODO" : "DONE",
-        }
+        },
       );
 
       // Update local state
@@ -957,7 +982,7 @@ export default function AnlagenProjektManagement({
           const updatedTasks = p.tasks.map((t) =>
             t.id === taskId
               ? { ...t, completed: updatedBackendTask.status === "DONE" }
-              : t
+              : t,
           );
           return { ...p, tasks: updatedTasks };
         }
@@ -1105,7 +1130,7 @@ export default function AnlagenProjektManagement({
                       checkedOutByName: response.data.checkedOutByName,
                       checkedOutAt: response.data.checkedOutAt,
                     }
-                  : f
+                  : f,
               ),
             };
           }
@@ -1162,7 +1187,7 @@ export default function AnlagenProjektManagement({
                       checkedOutByName: null,
                       checkedOutAt: null,
                     }
-                  : f
+                  : f,
               ),
             };
           }
@@ -1252,17 +1277,17 @@ export default function AnlagenProjektManagement({
   const handleUpdateComment = async (
     projectId: string,
     commentId: string,
-    text: string
+    text: string,
   ) => {
     const updatedComment = await updateProjectComment(
       projectId,
       commentId,
-      text
+      text,
     );
     setProjectComments((prev) => ({
       ...prev,
       [projectId]: (prev[projectId] || []).map((c) =>
-        c.id === commentId ? updatedComment : c
+        c.id === commentId ? updatedComment : c,
       ),
     }));
   };
@@ -1310,18 +1335,18 @@ export default function AnlagenProjektManagement({
 
     // Gesamtdauer in Tagen
     const totalDays = Math.ceil(
-      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
     );
 
     // Verstrichene Tage
     const elapsedDays = Math.ceil(
-      (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+      (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
     );
 
     // Prozentsatz der verstrichenen Zeit
     const timeProgress = Math.max(
       0,
-      Math.min(100, (elapsedDays / totalDays) * 100)
+      Math.min(100, (elapsedDays / totalDays) * 100),
     );
 
     // Status basierend auf Vergleich von Zeit und Fortschritt
@@ -1401,7 +1426,7 @@ export default function AnlagenProjektManagement({
   const getTotalBudget = (anlage: Anlage) => {
     return getFilteredProjects(anlage).reduce(
       (sum, project) => sum + project.budget,
-      0
+      0,
     );
   };
 
@@ -1486,55 +1511,32 @@ export default function AnlagenProjektManagement({
                   <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
                     <div className="grid gap-2">
                       <Label htmlFor="anlage">Anlage</Label>
-                      <div className="grid grid-cols-4 gap-2">
-                        <Button
-                          type="button"
-                          variant={
-                            formData.anlage === "T208" ? "default" : "outline"
-                          }
-                          onClick={() =>
-                            setFormData({ ...formData, anlage: "T208" })
-                          }
-                          className="w-full"
-                        >
-                          T208
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={
-                            formData.anlage === "T207" ? "default" : "outline"
-                          }
-                          onClick={() =>
-                            setFormData({ ...formData, anlage: "T207" })
-                          }
-                          className="w-full"
-                        >
-                          T207
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={
-                            formData.anlage === "T700" ? "default" : "outline"
-                          }
-                          onClick={() =>
-                            setFormData({ ...formData, anlage: "T700" })
-                          }
-                          className="w-full"
-                        >
-                          T700
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={
-                            formData.anlage === "T46" ? "default" : "outline"
-                          }
-                          onClick={() =>
-                            setFormData({ ...formData, anlage: "T46" })
-                          }
-                          className="w-full"
-                        >
-                          T46
-                        </Button>
+                      <div
+                        className="grid gap-2"
+                        style={{
+                          gridTemplateColumns: `repeat(${Math.min(availableRigs.length, 4)}, minmax(0, 1fr))`,
+                        }}
+                      >
+                        {availableRigs.map((rig) => (
+                          <Button
+                            key={rig.id}
+                            type="button"
+                            variant={
+                              formData.anlage === rig.name
+                                ? "default"
+                                : "outline"
+                            }
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                anlage: rig.name as Anlage,
+                              })
+                            }
+                            className="w-full"
+                          >
+                            {rig.name}
+                          </Button>
+                        ))}
                       </div>
                     </div>
                     <div className="grid gap-2">
@@ -1601,7 +1603,7 @@ export default function AnlagenProjektManagement({
                         <Select
                           value={formData.status}
                           onValueChange={(
-                            value: "Aktiv" | "Abgeschlossen" | "Geplant"
+                            value: "Aktiv" | "Abgeschlossen" | "Geplant",
                           ) => setFormData({ ...formData, status: value })}
                         >
                           <SelectTrigger>
@@ -2035,33 +2037,40 @@ export default function AnlagenProjektManagement({
             value={selectedAnlage}
             onValueChange={(value) => setSelectedAnlage(value as Anlage)}
           >
-            <TabsList className="grid w-full grid-cols-4 h-20">
-              {anlagen.map((anlage) => (
+            <TabsList
+              className={`grid w-full h-20`}
+              style={{
+                gridTemplateColumns: `repeat(${availableRigs.length || 1}, minmax(0, 1fr))`,
+              }}
+            >
+              {availableRigs.map((rig) => (
                 <TabsTrigger
-                  key={anlage}
-                  value={anlage}
+                  key={rig.id}
+                  value={rig.name}
                   className="flex flex-col items-center justify-center gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-full text-base"
                 >
-                  <span className="font-semibold text-lg">{anlage}</span>
+                  <span className="font-semibold text-lg">{rig.name}</span>
                   <Badge variant="secondary" className="text-xs px-2">
-                    {getFilteredProjects(anlage).length} Projekte
+                    {getFilteredProjects(rig.name as Anlage).length} Projekte
                   </Badge>
                 </TabsTrigger>
               ))}
             </TabsList>
 
-            {anlagen.map((anlage) => (
-              <TabsContent key={anlage} value={anlage} className="space-y-3">
+            {availableRigs.map((rig) => (
+              <TabsContent key={rig.id} value={rig.name} className="space-y-3">
                 <Card>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">Anlage {anlage}</CardTitle>
+                      <CardTitle className="text-lg">
+                        Anlage {rig.name}
+                      </CardTitle>
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground">
                           Gesamt-Budget
                         </p>
                         <p className="text-xl font-bold">
-                          {formatCurrency(getTotalBudget(anlage))}
+                          {formatCurrency(getTotalBudget(rig.name as Anlage))}
                         </p>
                       </div>
                     </div>
@@ -2105,7 +2114,7 @@ export default function AnlagenProjektManagement({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {getFilteredProjects(anlage).length === 0 ? (
+                          {getFilteredProjects(rig.name).length === 0 ? (
                             <TableRow>
                               <TableCell
                                 colSpan={11}
@@ -2115,7 +2124,7 @@ export default function AnlagenProjektManagement({
                               </TableCell>
                             </TableRow>
                           ) : (
-                            getFilteredProjects(anlage).map(
+                            getFilteredProjects(rig.name).map(
                               (project, index) => {
                                 const isExpanded = expandedRows.has(project.id);
                                 return (
@@ -2126,7 +2135,7 @@ export default function AnlagenProjektManagement({
                                       className={`hover:bg-muted/50 transition-colors ${
                                         isOverdue(
                                           project.endDate,
-                                          project.status
+                                          project.status,
                                         )
                                           ? "bg-red-50/50 dark:bg-red-950/20 border-l-4 border-l-red-500"
                                           : ""
@@ -2172,7 +2181,7 @@ export default function AnlagenProjektManagement({
                                       <TableCell className="py-3">
                                         <Badge
                                           className={`text-sm ${getCategoryColor(
-                                            project.category
+                                            project.category,
                                           )}`}
                                         >
                                           {project.category}
@@ -2181,7 +2190,7 @@ export default function AnlagenProjektManagement({
                                       <TableCell className="py-3">
                                         <Badge
                                           className={`text-sm ${getStatusColor(
-                                            project.status
+                                            project.status,
                                           )}`}
                                         >
                                           {project.status}
@@ -2208,7 +2217,7 @@ export default function AnlagenProjektManagement({
                                           <ListTodo className="h-3.5 w-3.5 mr-1" />
                                           {
                                             project.tasks.filter(
-                                              (t) => t.completed
+                                              (t) => t.completed,
                                             ).length
                                           }
                                           /{project.tasks.length}
@@ -2383,9 +2392,9 @@ export default function AnlagenProjektManagement({
                                                       <p className="text-sm mt-1">
                                                         {project.startDate
                                                           ? new Date(
-                                                              project.startDate
+                                                              project.startDate,
                                                             ).toLocaleDateString(
-                                                              "de-DE"
+                                                              "de-DE",
                                                             )
                                                           : "Nicht gesetzt"}
                                                       </p>
@@ -2398,7 +2407,7 @@ export default function AnlagenProjektManagement({
                                                         className={`text-sm mt-1 font-medium ${
                                                           isOverdue(
                                                             project.endDate,
-                                                            project.status
+                                                            project.status,
                                                           )
                                                             ? "text-red-600 dark:text-red-400"
                                                             : ""
@@ -2406,9 +2415,9 @@ export default function AnlagenProjektManagement({
                                                       >
                                                         {project.endDate
                                                           ? new Date(
-                                                              project.endDate
+                                                              project.endDate,
                                                             ).toLocaleDateString(
-                                                              "de-DE"
+                                                              "de-DE",
                                                             )
                                                           : "Nicht gesetzt"}
                                                       </p>
@@ -2431,7 +2440,7 @@ export default function AnlagenProjektManagement({
                                                     (() => {
                                                       const gantt =
                                                         calculateGanttData(
-                                                          project
+                                                          project,
                                                         );
                                                       return (
                                                         <div className="pt-3 border-t">
@@ -2444,15 +2453,15 @@ export default function AnlagenProjektManagement({
                                                                 gantt.isDelayed
                                                                   ? "text-red-600"
                                                                   : gantt.isAhead
-                                                                  ? "text-green-600"
-                                                                  : "text-blue-600"
+                                                                    ? "text-green-600"
+                                                                    : "text-blue-600"
                                                               }`}
                                                             >
                                                               {gantt.isDelayed
                                                                 ? "⚠️ Verzögert"
                                                                 : gantt.isAhead
-                                                                ? "✓ Vor Plan"
-                                                                : "→ Im Plan"}
+                                                                  ? "✓ Vor Plan"
+                                                                  : "→ Im Plan"}
                                                             </span>
                                                           </div>
 
@@ -2489,14 +2498,14 @@ export default function AnlagenProjektManagement({
                                                           <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
                                                             <span>
                                                               {new Date(
-                                                                project.startDate
+                                                                project.startDate,
                                                               ).toLocaleDateString(
                                                                 "de-DE",
                                                                 {
                                                                   day: "2-digit",
                                                                   month:
                                                                     "short",
-                                                                }
+                                                                },
                                                               )}
                                                             </span>
                                                             <div className="flex items-center gap-3">
@@ -2511,14 +2520,14 @@ export default function AnlagenProjektManagement({
                                                             </div>
                                                             <span>
                                                               {new Date(
-                                                                project.endDate
+                                                                project.endDate,
                                                               ).toLocaleDateString(
                                                                 "de-DE",
                                                                 {
                                                                   day: "2-digit",
                                                                   month:
                                                                     "short",
-                                                                }
+                                                                },
                                                               )}
                                                             </span>
                                                           </div>
@@ -2546,7 +2555,7 @@ export default function AnlagenProjektManagement({
                                                                 ⚠️ Projekt
                                                                 überfällig (
                                                                 {Math.abs(
-                                                                  gantt.daysRemaining
+                                                                  gantt.daysRemaining,
                                                                 )}{" "}
                                                                 Tage)
                                                               </span>
@@ -2573,7 +2582,7 @@ export default function AnlagenProjektManagement({
                                                       className="h-7"
                                                       onClick={() =>
                                                         handleOpenTaskDialog(
-                                                          project
+                                                          project,
                                                         )
                                                       }
                                                     >
@@ -2603,7 +2612,7 @@ export default function AnlagenProjektManagement({
                                                               onCheckedChange={() =>
                                                                 handleToggleTask(
                                                                   project.id,
-                                                                  task.id
+                                                                  task.id,
                                                                 )
                                                               }
                                                               className="mt-0.5"
@@ -2630,7 +2639,7 @@ export default function AnlagenProjektManagement({
                                                                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                                                                     <UserIcon className="h-3 w-3" />
                                                                     {getUserDisplayName(
-                                                                      task.assignedUser
+                                                                      task.assignedUser,
                                                                     )}
                                                                   </span>
                                                                 )}
@@ -2638,9 +2647,9 @@ export default function AnlagenProjektManagement({
                                                                   <span className="text-xs text-muted-foreground">
                                                                     Fällig:{" "}
                                                                     {new Date(
-                                                                      task.dueDate
+                                                                      task.dueDate,
                                                                     ).toLocaleDateString(
-                                                                      "de-DE"
+                                                                      "de-DE",
                                                                     )}
                                                                   </span>
                                                                 )}
@@ -2654,7 +2663,7 @@ export default function AnlagenProjektManagement({
                                                                 onClick={() =>
                                                                   handleOpenTaskDialog(
                                                                     project,
-                                                                    task
+                                                                    task,
                                                                   )
                                                                 }
                                                               >
@@ -2667,7 +2676,7 @@ export default function AnlagenProjektManagement({
                                                                 onClick={() =>
                                                                   handleDeleteTask(
                                                                     project.id,
-                                                                    task.id
+                                                                    task.id,
                                                                   )
                                                                 }
                                                               >
@@ -2675,7 +2684,7 @@ export default function AnlagenProjektManagement({
                                                               </Button>
                                                             </div>
                                                           </div>
-                                                        )
+                                                        ),
                                                       )}
                                                     </div>
                                                   )}
@@ -2698,7 +2707,7 @@ export default function AnlagenProjektManagement({
                                                     className="h-7"
                                                     onClick={() =>
                                                       handleOpenFileDialog(
-                                                        project
+                                                        project,
                                                       )
                                                     }
                                                   >
@@ -2718,7 +2727,7 @@ export default function AnlagenProjektManagement({
                                                       (file) => {
                                                         const isImage =
                                                           file.type.startsWith(
-                                                            "image/"
+                                                            "image/",
                                                           );
                                                         return (
                                                           <Card
@@ -2739,7 +2748,7 @@ export default function AnlagenProjektManagement({
                                                                     }
                                                                     className="w-full h-full object-cover"
                                                                     onError={(
-                                                                      e
+                                                                      e,
                                                                     ) => {
                                                                       // Fallback wenn Bild nicht geladen werden kann
                                                                       e.currentTarget.style.display =
@@ -2763,7 +2772,7 @@ export default function AnlagenProjektManagement({
                                                                     onClick={() =>
                                                                       handleDeleteFile(
                                                                         project.id,
-                                                                        file.id
+                                                                        file.id,
                                                                       )
                                                                     }
                                                                   >
@@ -2774,7 +2783,7 @@ export default function AnlagenProjektManagement({
                                                                 <div className="p-3 flex items-start justify-between gap-2">
                                                                   <div className="flex items-center gap-2 min-w-0 flex-1">
                                                                     {getFileIcon(
-                                                                      file.type
+                                                                      file.type,
                                                                     )}
                                                                     <div className="min-w-0 flex-1">
                                                                       <p className="text-sm font-medium truncate">
@@ -2784,7 +2793,7 @@ export default function AnlagenProjektManagement({
                                                                       </p>
                                                                       <p className="text-xs text-muted-foreground">
                                                                         {formatFileSize(
-                                                                          file.size
+                                                                          file.size,
                                                                         )}
                                                                       </p>
                                                                     </div>
@@ -2796,7 +2805,7 @@ export default function AnlagenProjektManagement({
                                                                     onClick={() =>
                                                                       handleDeleteFile(
                                                                         project.id,
-                                                                        file.id
+                                                                        file.id,
                                                                       )
                                                                     }
                                                                   >
@@ -2819,15 +2828,15 @@ export default function AnlagenProjektManagement({
                                                                   </p>
                                                                   <p>
                                                                     {new Date(
-                                                                      file.uploadedAt
+                                                                      file.uploadedAt,
                                                                     ).toLocaleDateString(
-                                                                      "de-DE"
+                                                                      "de-DE",
                                                                     )}
                                                                   </p>
                                                                   {!isImage && (
                                                                     <p>
                                                                       {formatFileSize(
-                                                                        file.size
+                                                                        file.size,
                                                                       )}
                                                                     </p>
                                                                   )}
@@ -2860,7 +2869,7 @@ export default function AnlagenProjektManagement({
                                                                       onClick={() =>
                                                                         handleCheckoutFile(
                                                                           project.id,
-                                                                          file.id
+                                                                          file.id,
                                                                         )
                                                                       }
                                                                     >
@@ -2890,7 +2899,7 @@ export default function AnlagenProjektManagement({
                                                                               onClick={() =>
                                                                                 handleCheckinFile(
                                                                                   project.id,
-                                                                                  file.id
+                                                                                  file.id,
                                                                                 )
                                                                               }
                                                                             >
@@ -2912,7 +2921,7 @@ export default function AnlagenProjektManagement({
                                                                       ) {
                                                                         window.open(
                                                                           file.url,
-                                                                          "_blank"
+                                                                          "_blank",
                                                                         );
                                                                       }
                                                                     }}
@@ -2924,7 +2933,7 @@ export default function AnlagenProjektManagement({
                                                             </CardContent>
                                                           </Card>
                                                         );
-                                                      }
+                                                      },
                                                     )}
                                                   </div>
                                                 )}
@@ -2948,25 +2957,25 @@ export default function AnlagenProjektManagement({
                                                   onAddComment={(text) =>
                                                     handleAddComment(
                                                       project.id,
-                                                      text
+                                                      text,
                                                     )
                                                   }
                                                   onUpdateComment={(
                                                     commentId,
-                                                    text
+                                                    text,
                                                   ) =>
                                                     handleUpdateComment(
                                                       project.id,
                                                       commentId,
-                                                      text
+                                                      text,
                                                     )
                                                   }
                                                   onDeleteComment={(
-                                                    commentId
+                                                    commentId,
                                                   ) =>
                                                     handleDeleteComment(
                                                       project.id,
-                                                      commentId
+                                                      commentId,
                                                     )
                                                   }
                                                   isLoading={
@@ -2981,7 +2990,7 @@ export default function AnlagenProjektManagement({
                                     )}
                                   </React.Fragment>
                                 );
-                              }
+                              },
                             )
                           )}
                         </TableBody>

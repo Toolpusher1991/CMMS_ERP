@@ -97,8 +97,12 @@ model Project {
   priority        String    @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
   progress        Int       @default(0) // 0-100%
   
-  // Plant Assignment - Projekt gehört zu einer Anlage
+  // Plant Assignment - Projekt gehört zu einer Anlage (kept for backwards compatibility)
   plant           String?   // T208, T207, T700, T46 - null für anlage-übergreifend
+  
+  // Rig Integration
+  rigId           String?   // Foreign key to Rig
+  rig             Rig?      @relation(fields: [rigId], references: [id], onDelete: SetNull)
   
   // Category - Projekttyp
   category        String    @default("MECHANICAL") // MECHANICAL, ELECTRICAL, FACILITY
@@ -128,6 +132,7 @@ model Project {
   tasks           Task[]
   files           File[]
 
+  @@index([rigId])
   @@map("projects")
 }
 
@@ -175,7 +180,12 @@ model File {
 
 model Action {
   id              String       @id @default(uuid())
-  plant           String       // T208, T207, T700, T46
+  plant           String       // T208, T207, T700, T46 (kept for backwards compatibility)
+  
+  // Rig Integration
+  rigId           String?      // Foreign key to Rig
+  rig             Rig?         @relation(fields: [rigId], references: [id], onDelete: SetNull)
+  
   location        String?      // TD, DW, MP1, MP2, MP3, PCR, Generatoren, Grid Container, Mud System
   category        String?      @default("ALLGEMEIN") // ALLGEMEIN, RIGMOVE
   discipline      String?      // MECHANIK, ELEKTRIK, ANLAGE
@@ -195,6 +205,7 @@ model Action {
   // Relations
   actionFiles     ActionFile[]
 
+  @@index([rigId])
   @@map("actions")
 }
 
@@ -254,6 +265,11 @@ model Rig {
   issues            String   @default("[]") // JSON array: [{id, category, severity, description, status, createdDate, dueDate}]
   improvements      String   @default("[]") // JSON array: [{id, description, category, priority, estimatedCost, potentialRevenue, status}]
   
+  // Relations to other modules
+  actions           Action[]
+  projects          Project[]
+  failureReports    FailureReport[]
+  
   // Audit
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -283,7 +299,12 @@ model Equipment {
 model FailureReport {
   id              String   @id @default(uuid())
   ticketNumber    String   @unique // Format: T208-202510-001
-  plant           String   // T208, T207, T700, T46
+  plant           String   // T208, T207, T700, T46 (kept for backwards compatibility)
+  
+  // Rig Integration
+  rigId           String?  // Foreign key to Rig
+  rig             Rig?     @relation(fields: [rigId], references: [id], onDelete: SetNull)
+  
   title           String
   description     String
   location        String?  // Genauer Ort auf der Anlage
@@ -307,6 +328,7 @@ model FailureReport {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   
+  @@index([rigId])
   @@map("failure_reports")
 }
 

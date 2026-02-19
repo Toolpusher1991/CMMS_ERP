@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
+import { rigService } from "@/services/rig.service";
 import { isMobileDevice } from "@/lib/device-detection";
 import { getActiveLocations } from "@/config/locations";
 import { cn } from "@/lib/utils";
@@ -88,7 +89,7 @@ const userListCache: {
 interface FailureReport {
   id: string;
   ticketNumber: string; // Format: T208-202510-001
-  plant: "T208" | "T207" | "T700" | "T46";
+  plant: string;
   title: string;
   description: string;
   location?: string;
@@ -116,13 +117,13 @@ const FailureReportingPage = ({
 }: FailureReportingProps) => {
   const { toast } = useToast();
   const isMobile = isMobileDevice();
-  const [activeTab, setActiveTab] = useState<string>("T208");
+  const [activeTab, setActiveTab] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [reportToDelete, setReportToDelete] = useState<string | null>(null);
   const [reportToConvert, setReportToConvert] = useState<FailureReport | null>(
-    null
+    null,
   );
   const [_isLoading, setIsLoading] = useState(true);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -137,7 +138,7 @@ const FailureReportingPage = ({
   // Get available plants based on current user
   const getAvailablePlants = () => {
     const currentUser = authService.getCurrentUser();
-    const allPlants = ["T208", "T207", "T700", "T46"];
+    const allPlants = availableRigs.map((rig) => rig.name);
 
     // If user has assigned plant and is not admin/manager, only show their plant
     if (
@@ -153,7 +154,7 @@ const FailureReportingPage = ({
   };
 
   const [currentReport, setCurrentReport] = useState<Partial<FailureReport>>({
-    plant: "T208",
+    plant: "",
     title: "",
     description: "",
     location: "",
@@ -176,11 +177,15 @@ const FailureReportingPage = ({
       assignedPlant?: string;
     }>
   >([]);
+  const [availableRigs, setAvailableRigs] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
 
   useEffect(() => {
     setIsMounted(true);
     loadReports();
     loadUsers();
+    loadRigs();
 
     // Set initial active tab to user's first available plant
     const availablePlants = getAvailablePlants();
@@ -205,12 +210,18 @@ const FailureReportingPage = ({
     }
   }, [initialReportId, reports]);
 
+  // Set plant field to active tab when it changes (for new reports)
+  useEffect(() => {
+    if (activeTab && !currentReport.plant) {
+      setCurrentReport((prev) => ({ ...prev, plant: activeTab }));
+    }
+  }, [activeTab, currentReport.plant]);
+
   const loadReports = async () => {
     try {
       setIsLoading(true);
-      const response = await apiClient.request<FailureReport[]>(
-        "/failure-reports"
-      );
+      const response =
+        await apiClient.request<FailureReport[]>("/failure-reports");
       setReports(response);
 
       if (isMounted) {
@@ -232,6 +243,26 @@ const FailureReportingPage = ({
       if (isMounted) {
         setIsLoading(false);
       }
+    }
+  };
+
+  const loadRigs = async () => {
+    try {
+      const response = await rigService.getAllRigs();
+      if (response.success && response.data) {
+        const rigs = response.data.map((rig) => ({
+          id: rig.id,
+          name: rig.name,
+        }));
+        setAvailableRigs(rigs);
+
+        // Set default active tab to first rig if available
+        if (rigs.length > 0) {
+          setActiveTab(rigs[0].name);
+        }
+      }
+    } catch (error) {
+      console.error("Fehler beim Laden der Rigs:", error);
     }
   };
 
@@ -341,7 +372,7 @@ const FailureReportingPage = ({
       // Don't set Content-Type header - browser will set it automatically with boundary
       const newReport = (await apiClient.post(
         "/failure-reports",
-        formData
+        formData,
       )) as FailureReport;
 
       console.log("✅ Report erstellt:", newReport);
@@ -349,7 +380,7 @@ const FailureReportingPage = ({
 
       setIsDialogOpen(false);
       setCurrentReport({
-        plant: "T208",
+        plant: activeTab,
         title: "",
         description: "",
         location: "",
@@ -422,7 +453,7 @@ const FailureReportingPage = ({
 
       const response = (await apiClient.post(
         `/failure-reports/${reportToConvert.id}/convert-to-action`,
-        payload
+        payload,
       )) as { action: { id: string } };
 
       setReports(
@@ -433,8 +464,8 @@ const FailureReportingPage = ({
                 status: "CONVERTED_TO_ACTION" as const,
                 convertedToActionId: response.action.id,
               }
-            : r
-        )
+            : r,
+        ),
       );
 
       toast({
@@ -563,7 +594,12 @@ const FailureReportingPage = ({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Anlage *</Label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div
+                    className="grid gap-2"
+                    style={{
+                      gridTemplateColumns: `repeat(${Math.min(availableRigs.length, 4)}, minmax(0, 1fr))`,
+                    }}
+                  >
                     {getAvailablePlants().map((plant) => (
                       <Button
                         key={plant}
@@ -574,12 +610,12 @@ const FailureReportingPage = ({
                         className={cn(
                           "w-full",
                           currentReport.plant === plant &&
-                            "bg-primary text-primary-foreground"
+                            "bg-primary text-primary-foreground",
                         )}
                         onClick={() =>
                           setCurrentReport({
                             ...currentReport,
-                            plant: plant as "T208" | "T207" | "T700" | "T46",
+                            plant: plant,
                           })
                         }
                       >
@@ -599,7 +635,7 @@ const FailureReportingPage = ({
                       }
                       className={cn(
                         currentReport.severity === "LOW" &&
-                          "bg-green-500 hover:bg-green-600 text-white"
+                          "bg-green-500 hover:bg-green-600 text-white",
                       )}
                       onClick={() =>
                         setCurrentReport({
@@ -619,7 +655,7 @@ const FailureReportingPage = ({
                       }
                       className={cn(
                         currentReport.severity === "MEDIUM" &&
-                          "bg-yellow-500 hover:bg-yellow-600 text-white"
+                          "bg-yellow-500 hover:bg-yellow-600 text-white",
                       )}
                       onClick={() =>
                         setCurrentReport({
@@ -639,7 +675,7 @@ const FailureReportingPage = ({
                       }
                       className={cn(
                         currentReport.severity === "HIGH" &&
-                          "bg-orange-500 hover:bg-orange-600 text-white"
+                          "bg-orange-500 hover:bg-orange-600 text-white",
                       )}
                       onClick={() =>
                         setCurrentReport({
@@ -659,7 +695,7 @@ const FailureReportingPage = ({
                       }
                       className={cn(
                         currentReport.severity === "CRITICAL" &&
-                          "bg-red-500 hover:bg-red-600 text-white"
+                          "bg-red-500 hover:bg-red-600 text-white",
                       )}
                       onClick={() =>
                         setCurrentReport({
@@ -739,7 +775,7 @@ const FailureReportingPage = ({
                       if (fileInputRef.current) {
                         fileInputRef.current.setAttribute(
                           "capture",
-                          "environment"
+                          "environment",
                         );
                         fileInputRef.current.click();
                       }
@@ -862,11 +898,16 @@ const FailureReportingPage = ({
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 h-20 bg-muted/30 p-2 gap-2">
+            <TabsList
+              className={`grid w-full h-20 bg-muted/30 p-2 gap-2`}
+              style={{
+                gridTemplateColumns: `repeat(${availableRigs.length || 1}, minmax(0, 1fr))`,
+              }}
+            >
               {getAvailablePlants().map((plant) => {
                 const plantReports = reports.filter((r) => r.plant === plant);
                 const openCount = plantReports.filter(
-                  (r) => r.status === "REPORTED" || r.status === "IN_REVIEW"
+                  (r) => r.status === "REPORTED" || r.status === "IN_REVIEW",
                 ).length;
                 const totalCount = plantReports.length;
 
@@ -997,7 +1038,7 @@ const FailureReportingPage = ({
                                     ) {
                                       console.log(
                                         "📷 Using Cloudinary URL:",
-                                        report.photoPath
+                                        report.photoPath,
                                       );
                                       setSelectedPhoto(report.photoPath);
                                       setPhotoViewDialogOpen(true);
@@ -1008,13 +1049,13 @@ const FailureReportingPage = ({
                                     try {
                                       console.log(
                                         "📷 Loading photo via API:",
-                                        report.photoFilename
+                                        report.photoFilename,
                                       );
                                       // Use API client with blob response type
                                       const blob =
                                         await apiClient.request<Blob>(
                                           `/failure-reports/photo/${report.photoFilename}`,
-                                          { responseType: "blob" }
+                                          { responseType: "blob" },
                                         );
 
                                       // Create blob URL for image display
@@ -1022,7 +1063,7 @@ const FailureReportingPage = ({
                                         URL.createObjectURL(blob);
 
                                       console.log(
-                                        "✅ Photo loaded successfully via API"
+                                        "✅ Photo loaded successfully via API",
                                       );
                                       setSelectedPhoto(photoUrl);
                                       setPhotoViewDialogOpen(true);
@@ -1030,19 +1071,19 @@ const FailureReportingPage = ({
                                       // Clean up blob URL after use
                                       setTimeout(
                                         () => URL.revokeObjectURL(photoUrl),
-                                        10000
+                                        10000,
                                       );
                                     } catch (error) {
                                       console.error(
                                         "❌ Error loading photo via API:",
-                                        error
+                                        error,
                                       );
                                       // Fallback to direct URL
                                       const getApiUrl = () => {
                                         if (import.meta.env.VITE_API_BASE_URL) {
                                           return import.meta.env.VITE_API_BASE_URL.replace(
                                             "/api",
-                                            ""
+                                            "",
                                           );
                                         }
                                         return window.location.hostname ===
@@ -1053,7 +1094,7 @@ const FailureReportingPage = ({
                                       setSelectedPhoto(
                                         `${getApiUrl()}/failure-reports/photo/${
                                           report.photoFilename
-                                        }`
+                                        }`,
                                       );
                                       setPhotoViewDialogOpen(true);
                                     }
@@ -1071,7 +1112,7 @@ const FailureReportingPage = ({
                               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                 <Clock className="h-3 w-3" />
                                 {new Date(report.createdAt).toLocaleDateString(
-                                  "de-DE"
+                                  "de-DE",
                                 )}
                               </div>
                             </TableCell>
@@ -1128,7 +1169,12 @@ const FailureReportingPage = ({
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Anlage *</Label>
-                <div className="grid grid-cols-4 gap-2">
+                <div
+                  className="grid gap-2"
+                  style={{
+                    gridTemplateColumns: `repeat(${Math.min(availableRigs.length, 4)}, minmax(0, 1fr))`,
+                  }}
+                >
                   {getAvailablePlants().map((plant) => (
                     <Button
                       key={plant}
@@ -1139,12 +1185,12 @@ const FailureReportingPage = ({
                       className={cn(
                         "w-full",
                         currentReport.plant === plant &&
-                          "bg-primary text-primary-foreground"
+                          "bg-primary text-primary-foreground",
                       )}
                       onClick={() =>
                         setCurrentReport({
                           ...currentReport,
-                          plant: plant as "T208" | "T207" | "T700" | "T46",
+                          plant: plant,
                         })
                       }
                     >
@@ -1164,7 +1210,7 @@ const FailureReportingPage = ({
                     }
                     className={cn(
                       currentReport.severity === "LOW" &&
-                        "bg-green-500 hover:bg-green-600 text-white"
+                        "bg-green-500 hover:bg-green-600 text-white",
                     )}
                     onClick={() =>
                       setCurrentReport({
@@ -1184,7 +1230,7 @@ const FailureReportingPage = ({
                     }
                     className={cn(
                       currentReport.severity === "MEDIUM" &&
-                        "bg-yellow-500 hover:bg-yellow-600 text-white"
+                        "bg-yellow-500 hover:bg-yellow-600 text-white",
                     )}
                     onClick={() =>
                       setCurrentReport({
@@ -1202,7 +1248,7 @@ const FailureReportingPage = ({
                     }
                     className={cn(
                       currentReport.severity === "HIGH" &&
-                        "bg-orange-500 hover:bg-orange-600 text-white"
+                        "bg-orange-500 hover:bg-orange-600 text-white",
                     )}
                     onClick={() =>
                       setCurrentReport({
@@ -1222,7 +1268,7 @@ const FailureReportingPage = ({
                     }
                     className={cn(
                       currentReport.severity === "CRITICAL" &&
-                        "bg-red-500 hover:bg-red-600 text-white"
+                        "bg-red-500 hover:bg-red-600 text-white",
                     )}
                     onClick={() =>
                       setCurrentReport({

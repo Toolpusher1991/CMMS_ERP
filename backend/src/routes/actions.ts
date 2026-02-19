@@ -94,10 +94,16 @@ router.post('/', authenticateToken, validatePlantAccess, async (req: Request, re
       return res.status(400).json({ error: 'Invalid plant' });
     }
 
+    // Find rigId based on plant name
+    const rig = await prisma.rig.findUnique({
+      where: { name: plant },
+    });
+
     const authReq = req as AuthRequest;
     const action = await prisma.action.create({
       data: {
         plant,
+        rigId: rig?.id || null, // Set rigId if rig exists
         location,
         category: category || 'ALLGEMEIN',
         discipline,
