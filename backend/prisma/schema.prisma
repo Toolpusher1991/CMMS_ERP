@@ -90,11 +90,14 @@ model Project {
   plant         String?
   category      String    @default("MECHANICAL")
   flowData      String?
+  rigId         String?
   files         File[]
   creator       User      @relation("ProjectCreator", fields: [createdBy], references: [id])
   manager       User?     @relation("ProjectManager", fields: [managerId], references: [id])
+  rig           Rig?      @relation(fields: [rigId], references: [id], onDelete: SetNull)
   tasks         Task[]
 
+  @@index([rigId])
   @@map("projects")
 }
 
@@ -149,8 +152,11 @@ model Action {
   updatedAt   DateTime     @updatedAt
   discipline  String?
   location    String?
+  rigId       String?
   actionFiles ActionFile[]
+  rig         Rig?         @relation(fields: [rigId], references: [id], onDelete: SetNull)
 
+  @@index([rigId])
   @@map("actions")
 }
 
@@ -171,8 +177,8 @@ model ActionFile {
 }
 
 model Rig {
-  id               String   @id @default(uuid())
-  name             String   @unique
+  id               String          @id @default(uuid())
+  name             String          @unique
   category         String
   maxDepth         Int
   maxHookLoad      Int
@@ -189,9 +195,20 @@ model Rig {
   description      String
   applications     String
   technicalSpecs   String
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  region           String?
+  contractStatus   String          @default("idle")
+  location         String?
+  certifications   String          @default("[]")
+  generalInfo      String          @default("[]")
+  inspections      String          @default("[]")
+  issues           String          @default("[]")
+  improvements     String          @default("[]")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
   lastEditedBy     String?
+  actions          Action[]
+  projects         Project[]
+  failureReports   FailureReport[]
 
   @@map("rigs")
 }
@@ -228,7 +245,10 @@ model FailureReport {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   ticketNumber        String    @unique
+  rigId               String?
+  rig                 Rig?      @relation(fields: [rigId], references: [id], onDelete: SetNull)
 
+  @@index([rigId])
   @@map("failure_reports")
 }
 
