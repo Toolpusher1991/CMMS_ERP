@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,54 +8,40 @@ datasource db {
 }
 
 model User {
-  id                  String         @id @default(uuid())
-  email               String         @unique
-  password            String
-  firstName           String
-  lastName            String
-  role                String         @default("USER") // ADMIN, USER, MANAGER
-  isActive            Boolean        @default(true)
-  
-  // Plant Assignment - User kann nur auf zugewiesene Anlage zugreifen
-  assignedPlant       String?        // T208, T207, T700, T46, oder null für Admin/alle
-  
-  // User Approval Workflow
-  approvalStatus      String         @default("PENDING") // PENDING, APPROVED, REJECTED
-  approvedBy          String?
-  approvedByUser      User?          @relation("UserApprovals", fields: [approvedBy], references: [id], onDelete: SetNull)
-  approvedAt          DateTime?
-  rejectionReason     String?
-  
-  // QR-Code Login (Mobile)
-  qrToken             String?        @unique // Unique token für QR-Code Login
-  qrTokenCreatedAt    DateTime?      // Wann wurde der QR-Code generiert
-  qrTokenExpiresAt    DateTime?      // Optional: QR-Code Ablaufdatum
-  qrTokenLastUsed     DateTime?      // Letzter QR-Login für Audit
-  
-  // Security Fields
-  loginAttempts       Int            @default(0)
-  lockedUntil         DateTime?
-  lastLoginAttempt    DateTime?
-  lastPasswordChange  DateTime?
-  
-  // Email & 2FA
-  emailVerified       Boolean        @default(false)
-  emailVerifyToken    String?
-  passwordResetToken  String?
-  passwordResetExpiry DateTime?
-  twoFactorSecret     String?
-  twoFactorEnabled    Boolean        @default(false)
-  
-  // Timestamps
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
-  
-  // Relations
-  refreshTokens       RefreshToken[]
-  approvedUsers       User[]         @relation("UserApprovals")
-  managedProjects     Project[]      @relation("ProjectManager")
-  createdProjects     Project[]      @relation("ProjectCreator")
+  id                   String                @id @default(uuid())
+  email                String                @unique
+  password             String
+  firstName            String
+  lastName             String
+  role                 String                @default("USER")
+  isActive             Boolean               @default(true)
+  assignedPlant        String?
+  approvalStatus       String                @default("PENDING")
+  approvedBy           String?
+  approvedAt           DateTime?
+  rejectionReason      String?
+  loginAttempts        Int                   @default(0)
+  lockedUntil          DateTime?
+  lastLoginAttempt     DateTime?
+  lastPasswordChange   DateTime?
+  emailVerified        Boolean               @default(false)
+  emailVerifyToken     String?
+  passwordResetToken   String?
+  passwordResetExpiry  DateTime?
+  twoFactorSecret      String?
+  twoFactorEnabled     Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  qrToken              String?               @unique
+  qrTokenCreatedAt     DateTime?
+  qrTokenExpiresAt     DateTime?
+  qrTokenLastUsed      DateTime?
+  createdProjects      Project[]             @relation("ProjectCreator")
+  managedProjects      Project[]             @relation("ProjectManager")
+  refreshTokens        RefreshToken[]
   tenderConfigurations TenderConfiguration[]
+  approvedByUser       User?                 @relation("UserApprovals", fields: [approvedBy], references: [id])
+  approvedUsers        User[]                @relation("UserApprovals")
 
   @@map("users")
 }
@@ -67,287 +50,199 @@ model RefreshToken {
   id        String   @id @default(uuid())
   token     String   @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
 }
 
 model PasswordResetRequest {
-  id          String    @id @default(uuid())
-  email       String
-  userId      String?
-  status      String    @default("PENDING") // PENDING, RESOLVED, CANCELLED
-  resolvedBy  String?
-  resolvedAt  DateTime?
-  note        String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String    @id @default(uuid())
+  email      String
+  userId     String?
+  status     String    @default("PENDING")
+  resolvedBy String?
+  resolvedAt DateTime?
+  note       String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@map("password_reset_requests")
 }
 
 model Project {
-  id              String    @id @default(uuid())
-  projectNumber   String    @unique // T208, T700, T207, T46
-  name            String
-  description     String?
-  status          String    @default("PLANNED") // PLANNED, IN_PROGRESS, COMPLETED, ON_HOLD
-  priority        String    @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
-  progress        Int       @default(0) // 0-100%
-  
-  // Plant Assignment - Projekt gehört zu einer Anlage (kept for backwards compatibility)
-  plant           String?   // T208, T207, T700, T46 - null für anlage-übergreifend
-  
-  // Rig Integration
-  rigId           String?   // Foreign key to Rig
-  rig             Rig?      @relation(fields: [rigId], references: [id], onDelete: SetNull)
-  
-  // Category - Projekttyp
-  category        String    @default("MECHANICAL") // MECHANICAL, ELECTRICAL, FACILITY
-  
-  // Budget
-  totalBudget     Float     @default(0)
-  spentBudget     Float     @default(0)
-  
-  // Timeline
-  startDate       DateTime?
-  endDate         DateTime?
-  
-  // Manager & Creator
-  managerId       String?
-  manager         User?     @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)
-  createdBy       String
-  creator         User      @relation("ProjectCreator", fields: [createdBy], references: [id])
-  
-  // Flow Visualization Data - JSON für React Flow Nodes & Edges
-  flowData        String?   @db.Text
-  
-  // Timestamps
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id            String    @id @default(uuid())
+  projectNumber String    @unique
+  name          String
+  description   String?
+  status        String    @default("PLANNED")
+  priority      String    @default("NORMAL")
+  progress      Int       @default(0)
+  totalBudget   Float     @default(0)
+  spentBudget   Float     @default(0)
+  startDate     DateTime?
+  endDate       DateTime?
+  managerId     String?
+  createdBy     String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  plant         String?
+  category      String    @default("MECHANICAL")
+  flowData      String?
+  files         File[]
+  creator       User      @relation("ProjectCreator", fields: [createdBy], references: [id])
+  manager       User?     @relation("ProjectManager", fields: [managerId], references: [id])
+  tasks         Task[]
 
-  // Relations
-  tasks           Task[]
-  files           File[]
-
-  @@index([rigId])
   @@map("projects")
 }
 
 model Task {
-  id              String    @id @default(uuid())
-  projectId       String
-  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  title           String
-  description     String?
-  status          String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
-  priority        String    @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
-  assignedTo      String?   // User name or ID
-  
-  dueDate         DateTime?
-  completedAt     DateTime?
-  
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id          String    @id @default(uuid())
+  projectId   String
+  title       String
+  description String?
+  status      String    @default("PENDING")
+  priority    String    @default("NORMAL")
+  assignedTo  String?
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("tasks")
 }
 
 model File {
-  id              String    @id @default(uuid())
-  projectId       String
-  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  filename        String
-  originalName    String
-  fileType        String    // MIME type
-  fileSize        Int       // in bytes
-  filePath        String    // relative path in uploads folder
-  
-  uploadedBy      String?   // User name or ID
-  uploadedAt      DateTime  @default(now())
-  
-  // Check-in/Check-out System
-  checkedOutBy    String?   // User ID who checked out the file
-  checkedOutByName String?  // User name for display
-  checkedOutAt    DateTime? // When the file was checked out
+  id               String    @id @default(uuid())
+  projectId        String
+  filename         String
+  originalName     String
+  fileType         String
+  fileSize         Int
+  filePath         String
+  uploadedBy       String?
+  uploadedAt       DateTime  @default(now())
+  checkedOutAt     DateTime?
+  checkedOutBy     String?
+  checkedOutByName String?
+  project          Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("files")
 }
 
 model Action {
-  id              String       @id @default(uuid())
-  plant           String       // T208, T207, T700, T46 (kept for backwards compatibility)
-  
-  // Rig Integration
-  rigId           String?      // Foreign key to Rig
-  rig             Rig?         @relation(fields: [rigId], references: [id], onDelete: SetNull)
-  
-  location        String?      // TD, DW, MP1, MP2, MP3, PCR, Generatoren, Grid Container, Mud System
-  category        String?      @default("ALLGEMEIN") // ALLGEMEIN, RIGMOVE
-  discipline      String?      // MECHANIK, ELEKTRIK, ANLAGE
-  title           String
-  description     String?
-  status          String       @default("OPEN") // OPEN, IN_PROGRESS, COMPLETED
-  priority        String       @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
-  assignedTo      String?      // User name or ID
-  
-  dueDate         DateTime?
-  completedAt     DateTime?
-  
-  createdBy       String?      // User name or ID
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id          String       @id @default(uuid())
+  plant       String
+  category    String?      @default("ALLGEMEIN")
+  title       String
+  description String?
+  status      String       @default("OPEN")
+  priority    String       @default("MEDIUM")
+  assignedTo  String?
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdBy   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  discipline  String?
+  location    String?
+  actionFiles ActionFile[]
 
-  // Relations
-  actionFiles     ActionFile[]
-
-  @@index([rigId])
   @@map("actions")
 }
 
 model ActionFile {
-  id              String    @id @default(uuid())
-  actionId        String
-  action          Action    @relation(fields: [actionId], references: [id], onDelete: Cascade)
-  
-  filename        String
-  originalName    String
-  fileType        String    // MIME type (image/jpeg, application/pdf, etc.)
-  fileSize        Int       // in bytes
-  filePath        String    // relative path in uploads folder
-  isPhoto         Boolean   @default(false) // true for photos, false for documents
-  
-  uploadedBy      String?   // User name or ID
-  uploadedAt      DateTime  @default(now())
+  id           String   @id @default(uuid())
+  actionId     String
+  filename     String
+  originalName String
+  fileType     String
+  fileSize     Int
+  filePath     String
+  isPhoto      Boolean  @default(false)
+  uploadedBy   String?
+  uploadedAt   DateTime @default(now())
+  action       Action   @relation(fields: [actionId], references: [id], onDelete: Cascade)
 
   @@map("action_files")
 }
 
 model Rig {
-  id                String   @id @default(uuid())
-  name              String   @unique // T700, T46, T350, etc.
-  category          String   // Schwerlast, Mittlere Leistung, Kompakt
-  
-  // Technical Specifications
-  maxDepth          Int      // in meters
-  maxHookLoad       Int      // in tons
-  footprint         String   // Klein, Mittel, Groß
-  rotaryTorque      Int      // in Nm
-  pumpPressure      Int      // in psi
-  
-  // Equipment Details (editierbar durch Admin)
-  drawworks         String   // z.B. "2000 HP"
-  mudPumps          String   // z.B. "2x 2200 HP Triplex"
-  topDrive          String   // z.B. "1000 HP"
-  derrickCapacity   String   // z.B. "1000 t"
-  crewSize          String   // z.B. "45-50"
-  mobilizationTime  String   // z.B. "30-45 Tage"
-  
-  // Pricing
-  dayRate           String   // Tagesrate in EUR
-  
-  // Description
-  description       String
-  applications      String   // JSON array as string
-  technicalSpecs    String
-  
-  // Asset Integrity Management (JSON fields)
-  region            String?  // Einsatzregion
-  contractStatus    String   @default("idle") // active, idle, maintenance
-  location          String?  // Aktueller Standort
-  certifications    String   @default("[]") // JSON array: ["API Spec 7K", "ISO 9001"]
-  generalInfo       String   @default("[]") // JSON array: [{id, description, deadline, createdDate}]
-  inspections       String   @default("[]") // JSON array: [{id, type, description, dueDate, status, responsible}]
-  issues            String   @default("[]") // JSON array: [{id, category, severity, description, status, createdDate, dueDate}]
-  improvements      String   @default("[]") // JSON array: [{id, description, category, priority, estimatedCost, potentialRevenue, status}]
-  
-  // Relations to other modules
-  actions           Action[]
-  projects          Project[]
-  failureReports    FailureReport[]
-  
-  // Audit
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  lastEditedBy      String?  // Admin user ID
-  
+  id               String   @id @default(uuid())
+  name             String   @unique
+  category         String
+  maxDepth         Int
+  maxHookLoad      Int
+  footprint        String
+  rotaryTorque     Int
+  pumpPressure     Int
+  drawworks        String
+  mudPumps         String
+  topDrive         String
+  derrickCapacity  String
+  crewSize         String
+  mobilizationTime String
+  dayRate          String
+  description      String
+  applications     String
+  technicalSpecs   String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  lastEditedBy     String?
+
   @@map("rigs")
 }
 
 model Equipment {
-  id          String   @id @default(uuid())
-  category    String   // drillPipe, tanks, power, camps, safety, mud, bop, cranes, misc
-  name        String
-  price       String   // Preis in EUR
-  
-  // Dynamic Properties (stored as JSON)
-  properties  String   // JSON object with custom key-value pairs
-  
-  // Audit
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   String?  // Admin user ID
-  lastEditedBy String? // Admin user ID
-  
+  id           String   @id @default(uuid())
+  category     String
+  name         String
+  price        String
+  properties   String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?
+  lastEditedBy String?
+
   @@map("equipment")
 }
 
 model FailureReport {
-  id              String   @id @default(uuid())
-  ticketNumber    String   @unique // Format: T208-202510-001
-  plant           String   // T208, T207, T700, T46 (kept for backwards compatibility)
-  
-  // Rig Integration
-  rigId           String?  // Foreign key to Rig
-  rig             Rig?     @relation(fields: [rigId], references: [id], onDelete: SetNull)
-  
-  title           String
-  description     String
-  location        String?  // Genauer Ort auf der Anlage
-  severity        String   @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
-  status          String   @default("REPORTED") // REPORTED, IN_REVIEW, CONVERTED_TO_ACTION, RESOLVED
-  
-  // Photo
-  photoFilename   String?  // Dateiname des Fotos
-  photoPath       String?  // Pfad zum Foto
-  
-  // Reporter Info
-  reportedBy      String   // Email des Melders
-  reportedByName  String   // Name des Melders
-  
-  // Conversion to Action
-  convertedToActionId String? // ID der erstellten Action (falls konvertiert)
-  convertedAt     DateTime?
-  convertedBy     String?
-  
-  // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@index([rigId])
+  id                  String    @id @default(uuid())
+  plant               String
+  title               String
+  description         String
+  location            String?
+  severity            String    @default("MEDIUM")
+  status              String    @default("REPORTED")
+  photoFilename       String?
+  photoPath           String?
+  reportedBy          String
+  reportedByName      String
+  convertedToActionId String?
+  convertedAt         DateTime?
+  convertedBy         String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  ticketNumber        String    @unique
+
   @@map("failure_reports")
 }
 
 model Notification {
   id        String   @id @default(uuid())
   userId    String
-  type      String   // FAILURE_REPORT, ACTION_ASSIGNED, ACTION_COMPLETED, COMMENT_MENTION, etc.
+  type      String
   title     String
   message   String
   isRead    Boolean  @default(false)
-  
-  // Optional metadata als JSON string
-  metadata  String?  // JSON: { failureReportId, actionId, projectId, etc. }
-  
-  // Link to notification source
-  relatedId String?  // ID of related entity (failureReport, action, etc.)
-  
+  metadata  String?
+  relatedId String?
   createdAt DateTime @default(now())
-  
+
   @@index([userId, isRead])
   @@map("notifications")
 }
@@ -357,10 +252,9 @@ model ActionComment {
   actionId  String
   userId    String
   text      String
-  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([actionId])
   @@map("action_comments")
 }
@@ -370,10 +264,9 @@ model ProjectComment {
   projectId String
   userId    String
   text      String
-  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([projectId])
   @@map("project_comments")
 }
@@ -384,63 +277,46 @@ model TenderConfiguration {
   clientName        String?
   location          String?
   projectDuration   String?
-  selectedRig       Json      // Rig data as JSON
-  selectedEquipment Json      // Equipment data as JSON
+  selectedRig       Json
+  selectedEquipment Json
   totalPrice        Float
   isUnderContract   Boolean   @default(false)
-  contractStartDate DateTime? // Contract start date for Gantt chart
   notes             String?
-  
-  // User who created this tender
   createdBy         String
-  createdByUser     User      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-  
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
-  
+  contractStartDate DateTime?
+  createdByUser     User      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
   @@index([createdBy])
   @@index([isUnderContract])
   @@map("tender_configurations")
 }
 
-// Inspection Reports (CAT III, etc.)
 model InspectionReport {
-  id                String                @id @default(uuid())
-  reportNumber      String                @unique // Auto-generated: CAT3-YYYYMM-NNN
-  
-  // Basic Info
-  title             String
-  type              String                // CAT_III_CROWN_BLOCK, CAT_II, etc.
-  plant             String                // T208, T207, T700, T46
-  equipment         String                // Equipment ID/Name
-  
-  // Inspection Details
-  inspectionDate    DateTime
-  inspector         String                // Inspector name
-  inspectorId       String?               // User ID
-  
-  // Status
-  status            String                @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, REJECTED
-  overallResult     String?               // PASSED, FAILED, CONDITIONAL
-  
-  // Signatures & Approval
-  inspectorSignature String?
+  id                  String                 @id @default(uuid())
+  reportNumber        String                 @unique
+  title               String
+  type                String
+  plant               String
+  equipment           String
+  inspectionDate      DateTime
+  inspector           String
+  inspectorId         String?
+  status              String                 @default("DRAFT")
+  overallResult       String?
+  inspectorSignature  String?
   supervisorSignature String?
-  approvedBy        String?
-  approvedAt        DateTime?
-  
-  // Notes & Summary
-  generalNotes      String?
-  recommendations   String?
-  
-  // Relations
-  sections          InspectionSection[]
-  attachments       InspectionAttachment[]
-  
-  createdBy         String?
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  
+  approvedBy          String?
+  approvedAt          DateTime?
+  generalNotes        String?
+  recommendations     String?
+  createdBy           String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  attachments         InspectionAttachment[]
+  sections            InspectionSection[]
+
   @@index([plant])
   @@index([type])
   @@index([status])
@@ -449,64 +325,110 @@ model InspectionReport {
 }
 
 model InspectionSection {
-  id                String                @id @default(uuid())
-  reportId          String
-  report            InspectionReport      @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  
-  sectionNumber     Int                   // Order/sequence
-  title             String
-  description       String?
-  
-  items             InspectionItem[]
-  
+  id            String           @id @default(uuid())
+  reportId      String
+  sectionNumber Int
+  title         String
+  description   String?
+  items         InspectionItem[]
+  report        InspectionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
   @@index([reportId])
   @@map("inspection_sections")
 }
 
 model InspectionItem {
-  id                String                @id @default(uuid())
-  sectionId         String
-  section           InspectionSection     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  
-  itemNumber        String                // e.g., "1.1", "2.3"
-  description       String
-  itemType          String                @default("CHECKBOX") // CHECKBOX, MEASUREMENT, TEXT, RATING
-  
-  // For different item types
-  isChecked         Boolean?              // For CHECKBOX
-  measurementValue  String?               // For MEASUREMENT
-  measurementUnit   String?               // mm, kg, etc.
-  textValue         String?               // For TEXT
-  rating            Int?                  // 1-5 for RATING
-  
-  // Result
-  result            String?               // OK, NOT_OK, N/A
-  notes             String?
-  
-  // Reference values
-  minValue          String?
-  maxValue          String?
-  referenceValue    String?
-  
+  id               String            @id @default(uuid())
+  sectionId        String
+  itemNumber       String
+  description      String
+  itemType         String            @default("CHECKBOX")
+  isChecked        Boolean?
+  measurementValue String?
+  measurementUnit  String?
+  textValue        String?
+  rating           Int?
+  result           String?
+  notes            String?
+  minValue         String?
+  maxValue         String?
+  referenceValue   String?
+  section          InspectionSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
   @@index([sectionId])
   @@map("inspection_items")
 }
 
 model InspectionAttachment {
-  id                String                @id @default(uuid())
-  reportId          String
-  report            InspectionReport      @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  
-  filename          String
-  originalName      String
-  fileType          String
-  fileSize          Int
-  filePath          String                // URL to file
-  
-  uploadedBy        String?
-  uploadedAt        DateTime              @default(now())
-  
+  id           String           @id @default(uuid())
+  reportId     String
+  filename     String
+  originalName String
+  fileType     String
+  fileSize     Int
+  filePath     String
+  uploadedBy   String?
+  uploadedAt   DateTime         @default(now())
+  report       InspectionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
   @@index([reportId])
   @@map("inspection_attachments")
 }
 
+model shift_assignments {
+  id              String          @id
+  plant           String
+  personnelId     String
+  positionId      String
+  year            Int
+  month           Int
+  startDay        Int
+  endDay          Int
+  isOff           Boolean         @default(false)
+  isHandover      Boolean         @default(false)
+  absenceType     String?
+  workDays        Int             @default(28)
+  offDays         Int             @default(28)
+  accommodation   String?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime
+  shift_personnel shift_personnel @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+  shift_positions shift_positions @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@index([personnelId])
+  @@index([plant])
+  @@index([positionId])
+  @@index([year, month])
+}
+
+model shift_personnel {
+  id                String              @id
+  plant             String
+  code              String
+  position          String
+  isBackToBack      Boolean             @default(false)
+  isActive          Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  shift_assignments shift_assignments[]
+
+  @@unique([plant, code])
+  @@index([plant])
+  @@index([position])
+}
+
+model shift_positions {
+  id                String              @id
+  plant             String
+  name              String
+  displayName       String
+  order             Int                 @default(0)
+  isActive          Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  shift_assignments shift_assignments[]
+
+  @@unique([plant, name])
+  @@index([plant])
+}
