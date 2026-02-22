@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/services/api";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRigs } from "@/hooks/useRigs";

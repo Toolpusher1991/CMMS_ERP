@@ -74,7 +74,6 @@ import type {
   Issue,
   Improvement,
   GeneralInfo,
-  AssetDocument as Document,
   AssetRig as Rig,
 } from "@/components/asset-integrity/types";
 import {
