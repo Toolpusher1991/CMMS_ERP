@@ -22,6 +22,9 @@ import {
   Loader2,
   Eye,
   ArrowUp,
+  LayoutGrid,
+  List,
+  Search,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +59,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 import * as assetIntegrityApi from "@/services/assetIntegrityApi";
 
@@ -323,6 +334,8 @@ export default function AssetIntegrityManagement() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hoveredRigId, setHoveredRigId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [rigSearchQuery, setRigSearchQuery] = useState("");
 
   // Debounced auto-save
   const debouncedSave = useDebouncedCallback(() => {
@@ -648,10 +661,21 @@ export default function AssetIntegrityManagement() {
   }, []);
 
   // Filter rigs by region
-  const filteredRigs =
+  const regionFilteredRigs =
     selectedRegion === "all"
       ? rigs
       : rigs.filter((rig) => rig.region === selectedRegion);
+
+  // Filter by search query
+  const filteredRigs = rigSearchQuery
+    ? regionFilteredRigs.filter(
+        (rig) =>
+          rig.name.toLowerCase().includes(rigSearchQuery.toLowerCase()) ||
+          rig.location.toLowerCase().includes(rigSearchQuery.toLowerCase()) ||
+          (rig.operator?.toLowerCase().includes(rigSearchQuery.toLowerCase()) ??
+            false),
+      )
+    : regionFilteredRigs;
 
   // Calculate statistics
   const totalRigs = filteredRigs.length;
@@ -1371,255 +1395,447 @@ export default function AssetIntegrityManagement() {
           </Card>
         </div>
 
-        {/* Region Filter */}
+        {/* Filter & View Controls */}
         <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground">
-              <MapPin className="h-5 w-5" />
-              Region auswählen
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs
-              value={selectedRegion}
-              onValueChange={(v) =>
-                setSelectedRegion(v as "Oman" | "Pakistan" | "all")
-              }
-            >
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="all">Alle Regionen</TabsTrigger>
-                <TabsTrigger value="Oman">Oman</TabsTrigger>
-                <TabsTrigger value="Pakistan">Pakistan</TabsTrigger>
-              </TabsList>
-            </Tabs>
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Region Filter */}
+              <div className="flex-1">
+                <Tabs
+                  value={selectedRegion}
+                  onValueChange={(v) =>
+                    setSelectedRegion(v as "Oman" | "Pakistan" | "all")
+                  }
+                >
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="all">Alle Regionen</TabsTrigger>
+                    <TabsTrigger value="Oman">Oman</TabsTrigger>
+                    <TabsTrigger value="Pakistan">Pakistan</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+              {/* Search */}
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Anlage suchen..."
+                  value={rigSearchQuery}
+                  onChange={(e) => setRigSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              {/* View Toggle */}
+              <div className="flex gap-1 border rounded-md p-1 self-start">
+                <Button
+                  size="sm"
+                  variant={viewMode === "cards" ? "default" : "ghost"}
+                  className="h-8 w-8 p-0"
+                  onClick={() => setViewMode("cards")}
+                  title="Kartenansicht"
+                  aria-label="Kartenansicht"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant={viewMode === "table" ? "default" : "ghost"}
+                  className="h-8 w-8 p-0"
+                  onClick={() => setViewMode("table")}
+                  title="Tabellenansicht"
+                  aria-label="Tabellenansicht"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Rigs Grid with Priority Coloring */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredRigs.map((rig) => {
-            const priorityStatus = getRigPriorityStatus(rig);
-            const priorityColor = getPriorityColor(priorityStatus);
-            const isHovered = hoveredRigId === rig.id;
-
-            return (
-              <Card
-                key={rig.id}
-                className={`group relative border bg-card/80 hover:bg-card transition-all cursor-pointer hover:shadow-2xl hover:scale-[1.02] backdrop-blur-sm ${priorityColor}`}
-                onClick={() => setSelectedRig(rig)}
-                onMouseEnter={() => setHoveredRigId(rig.id)}
-                onMouseLeave={() => setHoveredRigId(null)}
-              >
-                {/* Status Badge - Top Right Corner */}
-                <div className="absolute top-3 right-3 z-10">
-                  <Badge
-                    className={`text-xs font-medium ${getContractStatusColor(rig.contractStatus)}`}
-                  >
-                    {rig.contractStatus === "active"
-                      ? "Im Vertrag"
-                      : rig.contractStatus === "idle"
-                        ? "Idle"
-                        : rig.contractStatus === "standby"
-                          ? "Standby"
-                          : "Wartung"}
-                  </Badge>
-                </div>
-
-                {/* Quick Actions - visible on hover */}
-                {/* Quick Action Buttons - Immer sichtbar auf Touch-Geräten, nur Hover auf Desktop */}
-                <div
-                  className={`absolute -top-3 -right-3 flex gap-1.5 z-20 transition-opacity ${
-                    isHovered
-                      ? "opacity-100"
-                      : "opacity-0 md:opacity-0 touch:opacity-100"
-                  }`}
-                >
-                  <Button
-                    size="sm"
-                    className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 bg-blue-600 hover:bg-blue-700 shadow-lg rounded-full touch-manipulation"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedRig(rig);
-                    }}
-                    title="Details ansehen"
-                    aria-label="Details ansehen"
-                  >
-                    <Eye className="h-6 w-6" strokeWidth={2} />
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 bg-green-600 hover:bg-green-700 shadow-lg rounded-full touch-manipulation"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedRig(rig);
-                      setIsAddInspectionOpen(true);
-                    }}
-                    title="Inspektion planen"
-                    aria-label="Inspektion planen"
-                  >
-                    <Calendar className="h-6 w-6" strokeWidth={2} />
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 bg-orange-600 hover:bg-orange-700 shadow-lg rounded-full touch-manipulation"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedRig(rig);
-                      setIsAddIssueOpen(true);
-                    }}
-                    title="Issue melden"
-                    aria-label="Issue melden"
-                  >
-                    <AlertCircle className="h-6 w-6" strokeWidth={2} />
-                  </Button>
-                </div>
-
-                <CardHeader className="pb-3">
-                  <div className="flex items-start gap-3 pr-20">
-                    <div className="p-2.5 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg shadow-lg flex-shrink-0">
-                      <Building2 className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-xl font-bold text-foreground truncate">
-                        {rig.name}
-                      </CardTitle>
-                      <Badge
-                        variant="outline"
-                        className="text-xs border-border text-muted-foreground mt-1.5"
-                      >
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {rig.region}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-4">
-                  {/* Day Rate - Prominent Display */}
-                  {rig.dayRate && (
-                    <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-0.5">
-                            Day Rate
-                          </p>
-                          <p className="text-2xl font-bold text-foreground flex items-baseline gap-1">
-                            <DollarSign className="h-5 w-5 text-green-400" />
-                            {rig.dayRate.toLocaleString()}
-                            <span className="text-sm font-normal text-muted-foreground">
-                              /Tag
-                            </span>
-                          </p>
+        {/* Table View */}
+        {viewMode === "table" && (
+          <Card className="bg-card border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-border">
+                  <TableHead className="text-muted-foreground">
+                    Anlage
+                  </TableHead>
+                  <TableHead className="text-muted-foreground">
+                    Region
+                  </TableHead>
+                  <TableHead className="text-muted-foreground">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-muted-foreground">
+                    Standort
+                  </TableHead>
+                  <TableHead className="text-muted-foreground">
+                    Operator
+                  </TableHead>
+                  <TableHead className="text-muted-foreground text-right">
+                    Day Rate
+                  </TableHead>
+                  <TableHead className="text-muted-foreground text-center">
+                    Inspektionen
+                  </TableHead>
+                  <TableHead className="text-muted-foreground text-center">
+                    Issues
+                  </TableHead>
+                  <TableHead className="text-muted-foreground text-center">
+                    Upgrades
+                  </TableHead>
+                  <TableHead className="text-muted-foreground">
+                    Priorität
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredRigs.map((rig) => {
+                  const priorityStatus = getRigPriorityStatus(rig);
+                  const openIssues = rig.issues.filter(
+                    (i) => i.status !== "closed",
+                  ).length;
+                  return (
+                    <TableRow
+                      key={rig.id}
+                      className="cursor-pointer hover:bg-muted/50 border-border"
+                      onClick={() => setSelectedRig(rig)}
+                    >
+                      <TableCell className="font-bold text-foreground">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-md">
+                            <Building2 className="h-4 w-4 text-white" />
+                          </div>
+                          {rig.name}
                         </div>
-                        {rig.contractEndDate && (
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">
-                              Vertragsende
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-border text-muted-foreground"
+                        >
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {rig.region}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={`text-xs font-medium ${getContractStatusColor(rig.contractStatus)}`}
+                        >
+                          {rig.contractStatus === "active"
+                            ? "Im Vertrag"
+                            : rig.contractStatus === "idle"
+                              ? "Idle"
+                              : rig.contractStatus === "standby"
+                                ? "Standby"
+                                : "Wartung"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-foreground">
+                        {rig.location}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {rig.operator || "—"}
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-foreground">
+                        {rig.dayRate ? `$${rig.dayRate.toLocaleString()}` : "—"}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Calendar className="h-3.5 w-3.5 text-blue-400" />
+                          <span className="font-bold text-foreground">
+                            {rig.inspections.length}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <AlertCircle className="h-3.5 w-3.5 text-orange-400" />
+                          <span
+                            className={`font-bold ${openIssues > 0 ? "text-orange-400" : "text-foreground"}`}
+                          >
+                            {openIssues}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <TrendingUp className="h-3.5 w-3.5 text-green-400" />
+                          <span className="font-bold text-foreground">
+                            {rig.improvements.length}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {priorityStatus === "overdue" && (
+                          <Badge className="bg-red-500/20 text-red-400 border-red-500/50 text-xs">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            OVERDUE
+                          </Badge>
+                        )}
+                        {priorityStatus === "due-soon" && (
+                          <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/50 text-xs">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Fällig
+                          </Badge>
+                        )}
+                        {priorityStatus === "upcoming" && (
+                          <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/50 text-xs">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Anstehend
+                          </Badge>
+                        )}
+                        {priorityStatus === "ok" && (
+                          <Badge className="bg-green-500/20 text-green-400 border-green-500/50 text-xs">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            OK
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {filteredRigs.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={10}
+                      className="text-center py-8 text-muted-foreground"
+                    >
+                      Keine Anlagen gefunden
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        )}
+
+        {/* Rigs Card Grid with Priority Coloring */}
+        {viewMode === "cards" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredRigs.map((rig) => {
+              const priorityStatus = getRigPriorityStatus(rig);
+              const priorityColor = getPriorityColor(priorityStatus);
+              const isHovered = hoveredRigId === rig.id;
+
+              return (
+                <Card
+                  key={rig.id}
+                  className={`group relative border bg-card/80 hover:bg-card transition-all cursor-pointer hover:shadow-2xl hover:scale-[1.02] backdrop-blur-sm ${priorityColor}`}
+                  onClick={() => setSelectedRig(rig)}
+                  onMouseEnter={() => setHoveredRigId(rig.id)}
+                  onMouseLeave={() => setHoveredRigId(null)}
+                >
+                  {/* Status Badge - Top Right Corner */}
+                  <div className="absolute top-3 right-3 z-10">
+                    <Badge
+                      className={`text-xs font-medium ${getContractStatusColor(rig.contractStatus)}`}
+                    >
+                      {rig.contractStatus === "active"
+                        ? "Im Vertrag"
+                        : rig.contractStatus === "idle"
+                          ? "Idle"
+                          : rig.contractStatus === "standby"
+                            ? "Standby"
+                            : "Wartung"}
+                    </Badge>
+                  </div>
+
+                  {/* Quick Actions - visible on hover */}
+                  {/* Quick Action Buttons - Immer sichtbar auf Touch-Geräten, nur Hover auf Desktop */}
+                  <div
+                    className={`absolute -top-3 -right-3 flex gap-1.5 z-20 transition-opacity ${
+                      isHovered
+                        ? "opacity-100"
+                        : "opacity-0 md:opacity-0 touch:opacity-100"
+                    }`}
+                  >
+                    <Button
+                      size="sm"
+                      className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 bg-blue-600 hover:bg-blue-700 shadow-lg rounded-full touch-manipulation"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRig(rig);
+                      }}
+                      title="Details ansehen"
+                      aria-label="Details ansehen"
+                    >
+                      <Eye className="h-6 w-6" strokeWidth={2} />
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 bg-green-600 hover:bg-green-700 shadow-lg rounded-full touch-manipulation"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRig(rig);
+                        setIsAddInspectionOpen(true);
+                      }}
+                      title="Inspektion planen"
+                      aria-label="Inspektion planen"
+                    >
+                      <Calendar className="h-6 w-6" strokeWidth={2} />
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 bg-orange-600 hover:bg-orange-700 shadow-lg rounded-full touch-manipulation"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRig(rig);
+                        setIsAddIssueOpen(true);
+                      }}
+                      title="Issue melden"
+                      aria-label="Issue melden"
+                    >
+                      <AlertCircle className="h-6 w-6" strokeWidth={2} />
+                    </Button>
+                  </div>
+
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start gap-3 pr-20">
+                      <div className="p-2.5 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg shadow-lg flex-shrink-0">
+                        <Building2 className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-xl font-bold text-foreground truncate">
+                          {rig.name}
+                        </CardTitle>
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-border text-muted-foreground mt-1.5"
+                        >
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {rig.region}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="space-y-4">
+                    {/* Day Rate - Prominent Display */}
+                    {rig.dayRate && (
+                      <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">
+                              Day Rate
                             </p>
-                            <p className="text-sm font-medium text-foreground">
-                              {new Date(rig.contractEndDate).toLocaleDateString(
-                                "de-DE",
-                                {
+                            <p className="text-2xl font-bold text-foreground flex items-baseline gap-1">
+                              <DollarSign className="h-5 w-5 text-green-400" />
+                              {rig.dayRate.toLocaleString()}
+                              <span className="text-sm font-normal text-muted-foreground">
+                                /Tag
+                              </span>
+                            </p>
+                          </div>
+                          {rig.contractEndDate && (
+                            <div className="text-right">
+                              <p className="text-xs text-muted-foreground">
+                                Vertragsende
+                              </p>
+                              <p className="text-sm font-medium text-foreground">
+                                {new Date(
+                                  rig.contractEndDate,
+                                ).toLocaleDateString("de-DE", {
                                   day: "2-digit",
                                   month: "short",
                                   year: "numeric",
-                                },
-                              )}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Location & Operator */}
-                  <div className="space-y-2.5">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">
-                        Standort
-                      </p>
-                      <p className="text-sm text-foreground font-medium">
-                        {rig.location}
-                      </p>
-                    </div>
-                    {rig.operator && (
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">
-                          Operator
-                        </p>
-                        <p className="text-sm text-foreground font-medium">
-                          {rig.operator}
-                        </p>
+                                })}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
-                  </div>
 
-                  {/* Quick Stats */}
-                  <div className="grid grid-cols-3 gap-3 pt-3 border-t border-border/50">
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground mb-1">
-                        Inspektionen
-                      </p>
-                      <div className="flex items-center justify-center gap-1">
-                        <Calendar className="h-3.5 w-3.5 text-blue-400" />
-                        <p className="text-lg font-bold text-foreground">
-                          {rig.inspections.length}
+                    {/* Location & Operator */}
+                    <div className="space-y-2.5">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Standort
+                        </p>
+                        <p className="text-sm text-foreground font-medium">
+                          {rig.location}
                         </p>
                       </div>
+                      {rig.operator && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">
+                            Operator
+                          </p>
+                          <p className="text-sm text-foreground font-medium">
+                            {rig.operator}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground mb-1">
-                        Issues
-                      </p>
-                      <div className="flex items-center justify-center gap-1">
-                        <AlertCircle className="h-3.5 w-3.5 text-orange-400" />
-                        <p className="text-lg font-bold text-foreground">
-                          {
-                            rig.issues.filter((i) => i.status !== "closed")
-                              .length
-                          }
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground mb-1">
-                        Upgrades
-                      </p>
-                      <div className="flex items-center justify-center gap-1">
-                        <TrendingUp className="h-3.5 w-3.5 text-green-400" />
-                        <p className="text-lg font-bold text-foreground">
-                          {rig.improvements.length}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Priority Alert */}
-                  {priorityStatus === "overdue" && (
-                    <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-2">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-red-400" />
-                        <span className="text-xs text-red-400 font-medium">
-                          OVERDUE ITEMS - Sofortige Maßnahmen erforderlich!
-                        </span>
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-3 gap-3 pt-3 border-t border-border/50">
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Inspektionen
+                        </p>
+                        <div className="flex items-center justify-center gap-1">
+                          <Calendar className="h-3.5 w-3.5 text-blue-400" />
+                          <p className="text-lg font-bold text-foreground">
+                            {rig.inspections.length}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Issues
+                        </p>
+                        <div className="flex items-center justify-center gap-1">
+                          <AlertCircle className="h-3.5 w-3.5 text-orange-400" />
+                          <p className="text-lg font-bold text-foreground">
+                            {
+                              rig.issues.filter((i) => i.status !== "closed")
+                                .length
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Upgrades
+                        </p>
+                        <div className="flex items-center justify-center gap-1">
+                          <TrendingUp className="h-3.5 w-3.5 text-green-400" />
+                          <p className="text-lg font-bold text-foreground">
+                            {rig.improvements.length}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  )}
-                  {priorityStatus === "due-soon" && (
-                    <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-2">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-orange-400" />
-                        <span className="text-xs text-orange-400 font-medium">
-                          Items fällig innerhalb 7 Tagen
-                        </span>
+
+                    {/* Priority Alert */}
+                    {priorityStatus === "overdue" && (
+                      <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-2">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-red-400" />
+                          <span className="text-xs text-red-400 font-medium">
+                            OVERDUE ITEMS - Sofortige Maßnahmen erforderlich!
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                    )}
+                    {priorityStatus === "due-soon" && (
+                      <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-2">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-orange-400" />
+                          <span className="text-xs text-orange-400 font-medium">
+                            Items fällig innerhalb 7 Tagen
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
         {/* Legende */}
         <Card className="border-blue-500/50 bg-card">

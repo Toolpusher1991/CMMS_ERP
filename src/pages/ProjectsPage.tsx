@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -2805,58 +2805,53 @@ export default function ProjectsPage() {
               onValueChange={(v) => setActiveTab(v)}
               className="space-y-4"
             >
-              {/* Plant Tabs - Like ActionTracker */}
-              <TabsList
-                className={`grid w-full h-20 bg-muted/30 p-2 gap-2`}
-                style={{
-                  gridTemplateColumns: `repeat(${availableRigs.length || 1}, minmax(0, 1fr))`,
-                }}
-              >
-                {availableRigs.map((rig) => {
-                  const stats = getProjectStats(rig.name);
-                  return (
-                    <TabsTrigger
-                      key={rig.id}
-                      value={rig.name}
-                      className="relative flex-col h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all shadow-sm hover:shadow-md py-2 px-3"
-                    >
-                      <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
-                        <span className="text-base font-bold leading-tight">
-                          {rig.name}
-                        </span>
-                        <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                          {stats.active > 0 && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] opacity-70 leading-tight">
-                                Aktiv:
-                              </span>
+              {/* Rig Selector Dropdown - scales for 20+ rigs */}
+              <div className="flex items-center gap-3">
+                <Select
+                  value={activeTab}
+                  onValueChange={(v) => setActiveTab(v)}
+                >
+                  <SelectTrigger className="w-full sm:w-72 h-12 bg-muted/30">
+                    <SelectValue placeholder="Anlage auswählen..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableRigs.map((rig) => {
+                      const stats = getProjectStats(rig.name);
+                      return (
+                        <SelectItem key={rig.id} value={rig.name}>
+                          <div className="flex items-center gap-3 py-1">
+                            <span className="font-bold">{rig.name}</span>
+                            {stats.active > 0 && (
                               <Badge
                                 variant="destructive"
-                                className="px-1.5 py-0 text-[10px] font-bold leading-tight h-4"
+                                className="px-1.5 py-0 text-[10px] font-bold h-4"
                               >
-                                {stats.active}
+                                {stats.active} Aktiv
                               </Badge>
-                            </div>
-                          )}
-                          {stats.active === 0 && stats.total > 0 && (
-                            <Badge
-                              variant="outline"
-                              className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 leading-tight h-4"
-                            >
-                              ✓ Alle erledigt
-                            </Badge>
-                          )}
-                          {stats.total === 0 && (
-                            <span className="text-[10px] opacity-60 leading-tight">
-                              Keine Projekte
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
+                            )}
+                            {stats.active === 0 && stats.total > 0 && (
+                              <Badge
+                                variant="outline"
+                                className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 h-4"
+                              >
+                                Alle erledigt
+                              </Badge>
+                            )}
+                            {stats.total === 0 && (
+                              <span className="text-[10px] text-muted-foreground">
+                                Keine Projekte
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  {availableRigs.length} Anlagen
+                </span>
+              </div>
 
               {availableRigs.map((rig) => (
                 <TabsContent

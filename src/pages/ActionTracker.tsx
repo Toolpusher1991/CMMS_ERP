@@ -1804,31 +1804,26 @@ const ActionTracker = ({
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              {/* Plant Selection - Button Grid */}
+              {/* Plant Selection */}
               <div className="space-y-2">
                 <Label>Anlage *</Label>
-                <div
-                  className="grid gap-2"
-                  style={{
-                    gridTemplateColumns: `repeat(${Math.min(availableRigs.length, 4)}, minmax(0, 1fr))`,
-                  }}
+                <Select
+                  value={currentAction.plant}
+                  onValueChange={(v) =>
+                    setCurrentAction({ ...currentAction, plant: v })
+                  }
                 >
-                  {availableRigs.map((rig) => (
-                    <Button
-                      key={rig.id}
-                      type="button"
-                      variant={
-                        currentAction.plant === rig.name ? "default" : "outline"
-                      }
-                      onClick={() =>
-                        setCurrentAction({ ...currentAction, plant: rig.name })
-                      }
-                      className="h-12 text-base font-semibold"
-                    >
-                      {rig.name}
-                    </Button>
-                  ))}
-                </div>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Anlage auswählen..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableRigs.map((rig) => (
+                      <SelectItem key={rig.id} value={rig.name}>
+                        {rig.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Priority Selection - Button Grid with colors (NO EMOJIS) */}
@@ -2197,58 +2192,51 @@ const ActionTracker = ({
                 onValueChange={setActiveTab}
                 className="space-y-4"
               >
-                <TabsList
-                  className={`grid w-full h-20 bg-muted/30 p-2 gap-2`}
-                  style={{
-                    gridTemplateColumns: `repeat(${availableRigs.length || 1}, minmax(0, 1fr))`,
-                  }}
-                >
-                  {availableRigs.map((rig) => {
-                    const stats = getActionStats(rig.name);
-                    const openCount = stats.open + stats.inProgress;
-                    return (
-                      <TabsTrigger
-                        key={rig.id}
-                        value={rig.name}
-                        className="relative flex-col h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all shadow-sm hover:shadow-md py-2 px-3"
-                      >
-                        <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
-                          <span className="text-base font-bold leading-tight">
-                            {rig.name}
-                          </span>
-                          <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                            {openCount > 0 && (
-                              <div className="flex items-center gap-1">
-                                <span className="text-[10px] opacity-70 leading-tight">
-                                  Offen:
-                                </span>
+                {/* Rig Selector Dropdown - scales for 20+ rigs */}
+                <div className="flex items-center gap-3">
+                  <Select value={activeTab} onValueChange={setActiveTab}>
+                    <SelectTrigger className="w-full sm:w-72 h-12 bg-muted/30">
+                      <SelectValue placeholder="Anlage auswählen..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRigs.map((rig) => {
+                        const stats = getActionStats(rig.name);
+                        const openCount = stats.open + stats.inProgress;
+                        return (
+                          <SelectItem key={rig.id} value={rig.name}>
+                            <div className="flex items-center gap-3 py-1">
+                              <span className="font-bold">{rig.name}</span>
+                              {openCount > 0 && (
                                 <Badge
                                   variant="destructive"
-                                  className="px-1.5 py-0 text-[10px] font-bold leading-tight h-4"
+                                  className="px-1.5 py-0 text-[10px] font-bold h-4"
                                 >
-                                  {openCount}
+                                  {openCount} Offen
                                 </Badge>
-                              </div>
-                            )}
-                            {openCount === 0 && stats.total > 0 && (
-                              <Badge
-                                variant="outline"
-                                className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 leading-tight h-4"
-                              >
-                                ✓ Alle erledigt
-                              </Badge>
-                            )}
-                            {stats.total === 0 && (
-                              <span className="text-[10px] opacity-60 leading-tight">
-                                Keine Actions
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
+                              )}
+                              {openCount === 0 && stats.total > 0 && (
+                                <Badge
+                                  variant="outline"
+                                  className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 h-4"
+                                >
+                                  Alle erledigt
+                                </Badge>
+                              )}
+                              {stats.total === 0 && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  Keine Actions
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-sm text-muted-foreground hidden sm:inline">
+                    {availableRigs.length} Anlagen
+                  </span>
+                </div>
 
                 {availableRigs.map((rig) => (
                   <TabsContent key={rig.id} value={rig.name}>
@@ -3134,33 +3122,23 @@ const ActionTracker = ({
                 <div className="space-y-4 py-4 pr-4">
                   <div className="space-y-2">
                     <Label htmlFor="plant">Anlage *</Label>
-                    <div
-                      className="grid gap-2"
-                      style={{
-                        gridTemplateColumns: `repeat(${Math.min(availableRigs.length, 4)}, minmax(0, 1fr))`,
-                      }}
+                    <Select
+                      value={currentAction.plant}
+                      onValueChange={(v) =>
+                        setCurrentAction({ ...currentAction, plant: v })
+                      }
                     >
-                      {availableRigs.map((rig) => (
-                        <Button
-                          key={rig.id}
-                          type="button"
-                          variant={
-                            currentAction.plant === rig.name
-                              ? "default"
-                              : "outline"
-                          }
-                          onClick={() =>
-                            setCurrentAction({
-                              ...currentAction,
-                              plant: rig.name,
-                            })
-                          }
-                          className="w-full"
-                        >
-                          {rig.name}
-                        </Button>
-                      ))}
-                    </div>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Anlage auswählen..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableRigs.map((rig) => (
+                          <SelectItem key={rig.id} value={rig.name}>
+                            {rig.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
