@@ -1877,8 +1877,8 @@ export default function AssetIntegrityManagement() {
       {/* Detail Dialog */}
       {selectedRig && (
         <Dialog open={!!selectedRig} onOpenChange={() => setSelectedRig(null)}>
-          <DialogContent className="min-w-[1200px] w-[min(1400px,95vw)] max-h-[90vh] overflow-hidden bg-card border-border">
-            <DialogHeader>
+          <DialogContent className="min-w-[1200px] w-[min(1400px,95vw)] max-h-[90vh] flex flex-col overflow-hidden bg-card border-border">
+            <DialogHeader className="flex-shrink-0">
               <div className="flex items-center justify-between gap-3 overflow-hidden">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <Building2 className="h-6 w-6 text-blue-400 flex-shrink-0" />
@@ -1922,9 +1922,9 @@ export default function AssetIntegrityManagement() {
 
             <Tabs
               defaultValue="info"
-              className="w-full flex flex-col overflow-hidden"
+              className="w-full flex flex-col overflow-hidden flex-1 min-h-0"
             >
-              <TabsList className="grid w-full grid-cols-5 gap-1">
+              <TabsList className="grid w-full grid-cols-5 gap-1 flex-shrink-0">
                 <TabsTrigger value="info" className="text-sm">
                   <FileText className="h-4 w-4 mr-2" />
                   Allgemein
@@ -1948,7 +1948,7 @@ export default function AssetIntegrityManagement() {
               </TabsList>
 
               {/* Tab: Allgemeine Infos */}
-              <TabsContent value="info" className="mt-4 overflow-hidden flex-1">
+              <TabsContent value="info" className="mt-4 overflow-y-auto flex-1 min-h-0">
                 {/* Save/Cancel Buttons für Edit-Modus */}
                 {isEditingGeneral && (
                   <div className="flex gap-2 justify-end mb-4">
@@ -2433,7 +2433,7 @@ export default function AssetIntegrityManagement() {
               </TabsContent>
 
               {/* Tab: Inspektionen */}
-              <TabsContent value="inspections" className="space-y-3 mt-4">
+              <TabsContent value="inspections" className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0">
                 <div className="flex justify-end mb-3">
                   <Button
                     size="sm"
@@ -2517,7 +2517,7 @@ export default function AssetIntegrityManagement() {
               </TabsContent>
 
               {/* Tab: Issues */}
-              <TabsContent value="issues" className="space-y-3 mt-4">
+              <TabsContent value="issues" className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0">
                 <div className="flex justify-end mb-3">
                   <Button
                     size="sm"
@@ -2594,7 +2594,7 @@ export default function AssetIntegrityManagement() {
               </TabsContent>
 
               {/* Tab: Verbesserungen */}
-              <TabsContent value="improvements" className="space-y-3 mt-4">
+              <TabsContent value="improvements" className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0">
                 <div className="flex justify-end mb-3">
                   <Button
                     size="sm"
@@ -2681,7 +2681,7 @@ export default function AssetIntegrityManagement() {
               </TabsContent>
 
               {/* Tab: Meeting-Übersicht */}
-              <TabsContent value="meeting" className="space-y-3 mt-4">
+              <TabsContent value="meeting" className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0">
                 <Card className="bg-background border-border">
                   <CardHeader>
                     <CardTitle className="text-lg text-foreground flex items-center gap-2">
