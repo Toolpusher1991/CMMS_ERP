@@ -185,26 +185,26 @@ function TaskFlowNode({
   });
 
   const statusColors: Record<TaskStatus, string> = {
-    TODO: "bg-gray-50 border-gray-300 dark:bg-gray-800 dark:border-gray-600",
+    TODO: "bg-gray-50/90 border-gray-300 dark:bg-gray-800/90 dark:border-gray-600",
     IN_PROGRESS:
-      "bg-blue-50 border-blue-400 dark:bg-blue-900/50 dark:border-blue-500",
+      "bg-blue-50/90 border-blue-400 dark:bg-blue-950/70 dark:border-blue-500",
     REVIEW:
-      "bg-yellow-50 border-yellow-400 dark:bg-yellow-900/50 dark:border-yellow-500",
-    DONE: "bg-green-50 border-green-500 dark:bg-green-900/50 dark:border-green-400",
+      "bg-amber-50/90 border-amber-400 dark:bg-amber-950/70 dark:border-amber-500",
+    DONE: "bg-emerald-50/90 border-emerald-400 dark:bg-emerald-950/70 dark:border-emerald-400",
   };
 
   const statusBadgeColors: Record<TaskStatus, string> = {
-    TODO: "bg-gray-200 text-gray-700",
-    IN_PROGRESS: "bg-blue-200 text-blue-700",
-    REVIEW: "bg-yellow-200 text-yellow-700",
-    DONE: "bg-green-200 text-green-700",
+    TODO: "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
+    IN_PROGRESS: "bg-blue-500 text-white",
+    REVIEW: "bg-amber-500 text-white",
+    DONE: "bg-emerald-500 text-white",
   };
 
   const priorityIndicator: Record<string, string> = {
     LOW: "bg-gray-400",
-    NORMAL: "bg-blue-400",
+    NORMAL: "bg-blue-500",
     HIGH: "bg-orange-500",
-    URGENT: "bg-red-500",
+    URGENT: "bg-red-600 animate-pulse",
   };
 
   const handleStatusClick = (e: React.MouseEvent) => {
@@ -249,55 +249,56 @@ function TaskFlowNode({
         <PopoverTrigger asChild>
           <div
             className={cn(
-              "group relative px-3 py-2 rounded-lg border-2 shadow-sm min-w-[180px] max-w-[280px] cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] h-full flex flex-col justify-center",
+              "group relative px-3.5 py-2.5 rounded-xl border-2 shadow-md min-w-[200px] max-w-[300px] cursor-pointer transition-all duration-200 hover:shadow-xl hover:scale-[1.03] h-full flex flex-col justify-center backdrop-blur-sm",
               statusColors[data.status],
-              selected && "ring-2 ring-primary",
-              isOverdue && "ring-2 ring-red-400",
+              selected && "ring-2 ring-primary ring-offset-1 ring-offset-background",
+              isOverdue && "ring-2 ring-red-400 ring-offset-1",
               hasMaterial &&
                 !localMaterial.materialDelivered &&
-                "ring-2 ring-orange-400",
+                "ring-2 ring-orange-400 ring-offset-1",
             )}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
             {/* Quick Actions - sichtbar beim Hover */}
-            {isHovered && !isOpen && (
-              <div className="absolute -top-2 -right-2 flex gap-1 z-10">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsOpen(true);
-                  }}
-                  className="p-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transition-all"
-                  title="Bearbeiten"
-                >
-                  <Edit className="h-3 w-3" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (data.onDelete && data.taskId) {
-                      data.onDelete(data.taskId);
-                    }
-                  }}
-                  className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-all"
-                  title="Löschen"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-                <button
-                  onClick={handleStatusClick}
-                  className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-lg transition-all"
-                  title="Status wechseln"
-                >
-                  <CheckCircle2 className="h-3 w-3" />
-                </button>
-              </div>
-            )}
+            <div className={cn(
+              "absolute -top-3 -right-2 flex gap-1 z-10 transition-all duration-200",
+              isHovered && !isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1 pointer-events-none"
+            )}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(true);
+                }}
+                className="p-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transition-all hover:scale-110"
+                title="Bearbeiten"
+              >
+                <Edit className="h-3 w-3" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (data.onDelete && data.taskId) {
+                    data.onDelete(data.taskId);
+                  }
+                }}
+                className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-all hover:scale-110"
+                title="Löschen"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+              <button
+                onClick={handleStatusClick}
+                className="p-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-lg transition-all hover:scale-110"
+                title="Status wechseln"
+              >
+                <CheckCircle2 className="h-3 w-3" />
+              </button>
+            </div>
             {/* Priority indicator bar */}
             <div
               className={cn(
-                "absolute left-0 top-0 bottom-0 w-1 rounded-l-md",
+                "absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl transition-all",
                 priorityIndicator[data.priority || "NORMAL"],
               )}
             />
@@ -305,18 +306,19 @@ function TaskFlowNode({
             <Handle
               type="target"
               position={Position.Left}
-              className="w-2.5 h-2.5 !bg-primary"
+              className="!w-3 !h-3 !bg-primary !border-2 !border-white dark:!border-slate-800 !shadow-md transition-transform hover:!scale-125"
             />
 
-            {/* Content - mehr Details sichtbar */}
-            <div className="pl-2 space-y-1">
+            {/* Content */}
+            <div className="pl-2.5 space-y-1.5">
               {/* Titel */}
               <div className="flex items-center gap-2">
                 <span
                   className={cn(
-                    "font-medium text-sm truncate flex-1",
-                    data.status === "DONE" && "line-through opacity-60",
+                    "font-semibold text-sm leading-tight flex-1",
+                    data.status === "DONE" && "line-through opacity-50",
                   )}
+                  title={data.label}
                 >
                   {data.label}
                 </span>
@@ -332,18 +334,18 @@ function TaskFlowNode({
                 )}
               </div>
 
-              {/* Beschreibung - vollständig mit Zeilenumbruch */}
+              {/* Beschreibung */}
               {data.description && (
-                <p className="text-[10px] text-muted-foreground whitespace-pre-wrap break-words">
+                <p className="text-[11px] text-muted-foreground/80 whitespace-pre-wrap break-words leading-snug line-clamp-2">
                   {data.description}
                 </p>
               )}
 
-              {/* Status & Verantwortlicher */}
-              <div className="flex items-center gap-2 flex-wrap">
+              {/* Status & Meta */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                 <span
                   className={cn(
-                    "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
+                    "text-[10px] px-2 py-0.5 rounded-full font-semibold tracking-wide uppercase shadow-sm",
                     statusBadgeColors[data.status],
                   )}
                 >
@@ -356,7 +358,7 @@ function TaskFlowNode({
                         : "Fertig"}
                 </span>
                 {data.assignedTo && (
-                  <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1 bg-muted/50 px-1.5 py-0.5 rounded-full">
                     <UserIcon className="h-2.5 w-2.5" />
                     {data.assignedTo}
                   </span>
@@ -364,10 +366,10 @@ function TaskFlowNode({
                 {data.dueDate && (
                   <span
                     className={cn(
-                      "text-[10px] flex items-center gap-0.5",
+                      "text-[10px] flex items-center gap-1 px-1.5 py-0.5 rounded-full",
                       isOverdue
-                        ? "text-red-500 font-medium"
-                        : "text-muted-foreground",
+                        ? "text-red-600 bg-red-100 dark:bg-red-950/50 font-semibold"
+                        : "text-muted-foreground bg-muted/50",
                     )}
                   >
                     <Calendar className="h-2.5 w-2.5" />
@@ -375,10 +377,8 @@ function TaskFlowNode({
                       day: "2-digit",
                       month: "2-digit",
                     })}
+                    {isOverdue && <AlertTriangle className="h-2.5 w-2.5" />}
                   </span>
-                )}
-                {isOverdue && (
-                  <AlertTriangle className="h-3 w-3 text-red-500" />
                 )}
               </div>
             </div>
@@ -386,7 +386,7 @@ function TaskFlowNode({
             <Handle
               type="source"
               position={Position.Right}
-              className="w-2.5 h-2.5 !bg-primary"
+              className="!w-3 !h-3 !bg-primary !border-2 !border-white dark:!border-slate-800 !shadow-md transition-transform hover:!scale-125"
             />
           </div>
         </PopoverTrigger>
@@ -730,33 +730,36 @@ function MilestoneNode({ data }: { data: MilestoneNodeData }) {
   return (
     <div
       className={cn(
-        "w-16 h-16 rotate-45 flex items-center justify-center border-2 shadow-md transition-all",
+        "w-20 h-20 rotate-45 flex items-center justify-center border-2 shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105",
         data.completed
-          ? "bg-green-500 border-green-600 text-white"
-          : "bg-amber-100 border-amber-400 dark:bg-amber-900 dark:border-amber-500",
+          ? "bg-gradient-to-br from-emerald-400 to-emerald-600 border-emerald-500 text-white"
+          : "bg-gradient-to-br from-amber-100 to-amber-200 border-amber-400 dark:from-amber-900 dark:to-amber-800 dark:border-amber-500",
       )}
     >
       <Handle
         type="target"
         position={Position.Left}
-        className="w-3 h-3 !bg-primary -rotate-45"
+        className="!w-3 !h-3 !bg-primary !border-2 !border-white dark:!border-slate-800 -rotate-45 !shadow-md"
         style={{ left: -8 }}
       />
       <div className="-rotate-45 text-center">
         <Diamond
           className={cn(
-            "h-4 w-4 mx-auto",
-            data.completed ? "text-white" : "text-amber-600",
+            "h-5 w-5 mx-auto drop-shadow-sm",
+            data.completed ? "text-white" : "text-amber-600 dark:text-amber-300",
           )}
         />
-        <span className="text-[10px] font-bold block mt-0.5 max-w-[50px] truncate">
+        <span className={cn(
+          "text-[10px] font-bold block mt-1 max-w-[60px] truncate",
+          data.completed ? "text-white" : "text-amber-800 dark:text-amber-200",
+        )}>
           {data.label}
         </span>
       </div>
       <Handle
         type="source"
         position={Position.Right}
-        className="w-3 h-3 !bg-primary -rotate-45"
+        className="!w-3 !h-3 !bg-primary !border-2 !border-white dark:!border-slate-800 -rotate-45 !shadow-md"
         style={{ right: -8 }}
       />
     </div>
@@ -765,20 +768,20 @@ function MilestoneNode({ data }: { data: MilestoneNodeData }) {
 
 function StartNode({ data }: { data: { onDelete?: () => void } }) {
   return (
-    <div className="relative group px-4 py-2 rounded-full bg-green-500 text-white font-bold text-sm shadow-lg">
+    <div className="relative group px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold text-sm shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 border border-emerald-400">
       <Handle
         type="source"
         position={Position.Right}
-        className="w-3 h-3 !bg-white"
+        className="!w-3 !h-3 !bg-white !border-2 !border-emerald-500 !shadow-md"
       />
-      START
+      <span className="drop-shadow-sm tracking-wide">START</span>
       {data.onDelete && (
         <button
           onClick={(e) => {
             e.stopPropagation();
             data.onDelete?.();
           }}
-          className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-all shadow-md"
           title="Löschen"
         >
           <X className="h-3 w-3" />
@@ -790,20 +793,20 @@ function StartNode({ data }: { data: { onDelete?: () => void } }) {
 
 function EndNode({ data }: { data: { onDelete?: () => void } }) {
   return (
-    <div className="relative group px-4 py-2 rounded-full bg-red-500 text-white font-bold text-sm shadow-lg">
+    <div className="relative group px-5 py-2.5 rounded-full bg-gradient-to-r from-red-500 to-rose-500 text-white font-bold text-sm shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 border border-red-400">
       <Handle
         type="target"
         position={Position.Left}
-        className="w-3 h-3 !bg-white"
+        className="!w-3 !h-3 !bg-white !border-2 !border-red-500 !shadow-md"
       />
-      ENDE
+      <span className="drop-shadow-sm tracking-wide">ENDE</span>
       {data.onDelete && (
         <button
           onClick={(e) => {
             e.stopPropagation();
             data.onDelete?.();
           }}
-          className="absolute -top-2 -right-2 bg-gray-700 hover:bg-gray-800 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute -top-2 -right-2 bg-gray-700 hover:bg-gray-800 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-all shadow-md"
           title="Löschen"
         >
           <X className="h-3 w-3" />
@@ -839,37 +842,37 @@ function GroupNode({
         lineClassName="!border-indigo-500"
         handleClassName="!w-3 !h-3 !bg-indigo-500 !border-indigo-600"
       />
-      <div className="rounded-lg h-full border-2 border-indigo-500 bg-indigo-500/5">
+      <div className="rounded-xl h-full border-2 border-indigo-500/80 bg-indigo-500/5 dark:bg-indigo-950/20 shadow-lg shadow-indigo-500/10">
         <Handle
           type="target"
           position={Position.Left}
-          className="w-3 h-3 !bg-indigo-500"
+          className="!w-3 !h-3 !bg-indigo-500 !border-2 !border-white dark:!border-slate-800 !shadow-md"
           style={{ top: "50%" }}
         />
         {/* Header - Doppelklick zum Umbenennen */}
         <div
-          className="px-3 py-1 rounded-t-md text-xs font-semibold text-white flex items-center justify-between gap-2 cursor-pointer bg-indigo-500"
+          className="px-3 py-1.5 rounded-t-[10px] text-xs font-semibold text-white flex items-center justify-between gap-2 cursor-pointer bg-gradient-to-r from-indigo-600 to-indigo-500"
           onDoubleClick={handleDoubleClick}
           title="Doppelklick zum Umbenennen"
         >
-          <span>{data.label || `${count} Aufgaben`}</span>
+          <span className="tracking-wide">{data.label || `${count} Aufgaben`}</span>
           {data.onDissolve && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 data.onRequestDissolve?.();
               }}
-              className="hover:bg-white/20 rounded px-1 text-[10px]"
+              className="hover:bg-white/20 rounded-full w-5 h-5 flex items-center justify-center transition-colors"
               title="Gruppe auflösen"
             >
-              ✕
+              <X className="h-3 w-3" />
             </button>
           )}
         </div>
         <Handle
           type="source"
           position={Position.Right}
-          className="w-3 h-3 !bg-indigo-500"
+          className="!w-3 !h-3 !bg-indigo-500 !border-2 !border-white dark:!border-slate-800 !shadow-md"
           style={{ top: "50%" }}
         />
       </div>
@@ -3363,6 +3366,8 @@ export default function ProjectsPage() {
           >
             <ReactFlow
               nodes={nodesWithGroupCallbacks}
+              snapToGrid={true}
+              snapGrid={[16, 16]}
               edges={edges
                 .filter((e) => {
                   // Hide edges from/to nodes that are in a group
@@ -3408,6 +3413,12 @@ export default function ProjectsPage() {
                   return {
                     ...e,
                     type: "smoothstep", // Bezier-Kurven für smoother Linien
+                    markerEnd: {
+                      type: MarkerType.ArrowClosed,
+                      width: 16,
+                      height: 16,
+                      color: isSourceDone ? "#22c55e" : "#64748b",
+                    },
                     style: {
                       stroke: isSourceDone ? "#22c55e" : "#64748b",
                       strokeWidth: isSourceDone ? 3 : 2,
@@ -3458,7 +3469,7 @@ export default function ProjectsPage() {
                 }}
                 maskColor="rgba(0, 0, 0, 0.6)"
               />
-              <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+              <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#475569" />
               {/* Top-Left Panel: Add Buttons */}
               <Panel position="top-left" className="flex gap-2">
                 <Button
