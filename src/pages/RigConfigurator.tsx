@@ -597,8 +597,7 @@ const RigConfigurator = () => {
         console.error("Fehler beim Laden der Rigs:", error);
         toast({
           title: "Backend-Fehler",
-          description:
-            "Konnte Rigs nicht laden. Bitte Seite neu laden.",
+          description: "Konnte Rigs nicht laden. Bitte Seite neu laden.",
           variant: "destructive",
         });
       } finally {
