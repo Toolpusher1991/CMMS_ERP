@@ -1,10 +1,12 @@
-Ôªøimport React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-client";
 import { apiClient } from "@/services/api";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRigs } from "@/hooks/useRigs";
 import { isMobileDevice } from "@/lib/device-detection";
 import { getActiveLocations } from "@/config/locations";
-import { getUserListCache, setUserListCache } from "@/lib/constants";
+import { useUserList } from "@/hooks/useQueryHooks";
 import {
   PhotoViewDialog,
   TaskDialog,
@@ -146,8 +148,60 @@ const ActionTracker = ({
   const [actionToComplete, setActionToComplete] = useState<string | null>(null);
   const [photoViewDialogOpen, setPhotoViewDialogOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(true);
+  const queryClient = useQueryClient();
+
+  // -- React Query: users (shared, deduplicated across pages) --
+  const { data: userListData } = useUserList();
+  const users: UserListItem[] = userListData ?? [];
+
+  // -- React Query: actions --
+  const transformActions = useCallback((response: ApiAction[]): Action[] => {
+    return response.map((item: ApiAction) => ({
+      id: item.id,
+      plant: item.plant,
+      location: item.location,
+      category: item.category as Action["category"],
+      discipline: item.discipline as Action["discipline"],
+      title: item.title,
+      description: item.description || "",
+      status: item.status as Action["status"],
+      priority: item.priority as Action["priority"],
+      assignedTo: item.assignedTo || "",
+      assignedUsers: item.assignedUsers || [],
+      dueDate: item.dueDate ? item.dueDate.split("T")[0] : "",
+      completedAt: item.completedAt ? item.completedAt.split("T")[0] : undefined,
+      createdBy: item.createdBy || "System",
+      createdAt: item.createdAt
+        ? item.createdAt.split("T")[0]
+        : formatDateForInput(new Date()),
+      files: (item.actionFiles || []).map((file: ApiActionFile) => ({
+        id: file.id,
+        name: file.originalName || file.filename,
+        type: file.fileType || "application/octet-stream",
+        url:
+          file.filePath ||
+          `${import.meta.env.VITE_API_URL || "http://localhost:5137"}/api/actions/files/${file.filename}`,
+        uploadedAt: file.uploadedAt,
+        isPhoto: file.isPhoto || false,
+      })),
+      comments: [],
+      tasks: [],
+    }));
+  }, []);
+
+  const { data: actionsData, isLoading } = useQuery({
+    queryKey: queryKeys.actions.list(),
+    queryFn: async () => {
+      const response = await apiClient.request<ApiAction[]>("/actions");
+      return transformActions(response);
+    },
+  });
+  const actions: Action[] = actionsData ?? [];
+
+  /** Invalidate actions query (replaces old loadActions) */
+  const refreshActions = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.actions.all });
+  }, [queryClient]);
 
   // Material Management State
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
@@ -164,8 +218,6 @@ const ActionTracker = ({
     dueDate: "",
     completed: false,
   });
-
-  const [users, setUsers] = useState<UserListItem[]>([]);
 
   const [currentAction, setCurrentAction] = useState<Partial<Action>>({
     plant: "",
@@ -185,9 +237,30 @@ const ActionTracker = ({
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const uploadInProgressRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMounted = useRef(true);
+  useEffect(() => { return () => { isMounted.current = false; }; }, []);
+  // Derive availableUsers from React Query user list
+  const availableUsers: User[] = React.useMemo(() => {
+    const allUsers = users.map((u) => ({
+      id: u.id,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      email: u.email || "",
+      role: u.role || "USER",
+      plant: u.assignedPlant || "",
+    }));
+    if (
+      currentUser?.assignedPlant &&
+      currentUser.role !== "ADMIN" &&
+      currentUser.role !== "MANAGER"
+    ) {
+      return allUsers.filter(
+        (u) => !u.plant || u.plant === currentUser.assignedPlant,
+      );
+    }
+    return allUsers;
+  }, [users, currentUser]);
 
-  const [actions, setActions] = useState<Action[]>([]);
-  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [availableLocations, setAvailableLocations] =
     useState(getActiveLocations());
@@ -198,12 +271,18 @@ const ActionTracker = ({
 
   // Filter hook (manages all 6 filter states + computed results)
   const {
-    searchQuery, setSearchQuery,
-    statusFilter, setStatusFilter,
-    disciplineFilter, setDisciplineFilter,
-    priorityFilter, setPriorityFilter,
-    userFilter, setUserFilter,
-    locationFilter, setLocationFilter,
+    searchQuery,
+    setSearchQuery,
+    statusFilter,
+    setStatusFilter,
+    disciplineFilter,
+    setDisciplineFilter,
+    priorityFilter,
+    setPriorityFilter,
+    userFilter,
+    setUserFilter,
+    locationFilter,
+    setLocationFilter,
     getFilteredActionsForCategory,
     getActionStats,
     getCategoryStats,
@@ -218,21 +297,12 @@ const ActionTracker = ({
     useState<Action | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
-  // Backend laden
+  // Set user filter when showOnlyMyActions changes
   useEffect(() => {
-    setIsMounted(true);
-    loadActions();
-    loadUsers();
-
-    // Set user filter to current user if showOnlyMyActions is true
     if (showOnlyMyActions && currentUser) {
       const userName = `${currentUser.firstName} ${currentUser.lastName}`;
       setUserFilter(userName);
     }
-
-    return () => {
-      setIsMounted(false);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showOnlyMyActions]);
 
@@ -279,71 +349,6 @@ const ActionTracker = ({
     }
   }, [initialActionId, actions]);
 
-  const loadUsers = async () => {
-    try {
-      // Check cache first
-      const cached = getUserListCache();
-      if (cached) {
-        const cachedUsers = cached.users as UserListItem[];
-        setUsers(cachedUsers);
-
-        // Process cached data
-        const allUsers = cachedUsers.map((user) => ({
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email || "",
-          role: user.role || "USER",
-          plant: user.assignedPlant || "",
-        }));
-
-        const filteredUsers =
-          currentUser?.assignedPlant &&
-          currentUser.role !== "ADMIN" &&
-          currentUser.role !== "MANAGER"
-            ? allUsers.filter((u) => u.plant === currentUser.assignedPlant)
-            : allUsers;
-
-        setAvailableUsers(filteredUsers);
-        return;
-      }
-
-      // Fetch from API
-      const response = await apiClient.request<UserListItem[]>("/users/list");
-
-      // Update cache
-      setUserListCache(response as UserListItem[]);
-
-      setUsers(response);
-
-      // Alle User laden f√ºr Multi-User Assignment
-      const allUsers = response.map((user) => ({
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email || "",
-        role: user.role || "USER",
-        plant: user.assignedPlant || "",
-      }));
-
-      // Filter users by current user's plant (unless admin/manager)
-      const filteredUsers =
-        currentUser?.assignedPlant &&
-        currentUser.role !== "ADMIN" &&
-        currentUser.role !== "MANAGER"
-          ? allUsers.filter(
-              (user) =>
-                !user.plant || // Users without plant assignment (admins/managers)
-                user.plant === currentUser.assignedPlant, // Same plant users
-            )
-          : allUsers; // Show all users for admins/managers
-
-      setAvailableUsers(filteredUsers);
-    } catch (error) {
-      console.error("Fehler beim Laden der User:", error);
-    }
-  };
-
   // Initialize rig data and category tabs when rigs load
   useEffect(() => {
     if (loadedRigs.length > 0) {
@@ -356,76 +361,6 @@ const ActionTracker = ({
       setActiveCategoryTab(categoryDefaults);
     }
   }, [loadedRigs]);
-
-  const loadActions = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiClient.request<ApiAction[]>("/actions");
-
-      const loadedActions: Action[] = response.map((item: ApiAction) => ({
-        id: item.id,
-        plant: item.plant,
-        location: item.location,
-        category: item.category as Action["category"],
-        discipline: item.discipline as Action["discipline"],
-        title: item.title,
-        description: item.description || "",
-        status: item.status as Action["status"],
-        priority: item.priority as Action["priority"],
-        assignedTo: item.assignedTo || "",
-        assignedUsers: item.assignedUsers || [],
-        dueDate: item.dueDate ? item.dueDate.split("T")[0] : "",
-        completedAt: item.completedAt
-          ? item.completedAt.split("T")[0]
-          : undefined,
-        createdBy: item.createdBy || "System",
-        createdAt: item.createdAt
-          ? item.createdAt.split("T")[0]
-          : formatDateForInput(new Date()),
-        files: (item.actionFiles || []).map((file: ApiActionFile) => ({
-          id: file.id,
-          name: file.originalName || file.filename,
-          type: file.fileType || "application/octet-stream",
-          url:
-            file.filePath ||
-            `${
-              import.meta.env.VITE_API_URL || "http://localhost:5137"
-            }/api/actions/files/${file.filename}`, // Use Cloudinary URL or fallback
-          uploadedAt: file.uploadedAt,
-          isPhoto: file.isPhoto || false,
-        })),
-        comments: [], // Kommentare werden sp√§ter geladen
-        tasks: [], // Tasks werden erstmal leer initialisiert
-      }));
-
-      setActions(loadedActions);
-      if (isMounted) {
-        toast({
-          variant: "success" as const,
-          title: "Actions geladen",
-          description: `${loadedActions.length} Actions erfolgreich geladen.`,
-        });
-      }
-    } catch (error) {
-      console.error("Fehler beim Laden der Actions:", error);
-      // Nur Toast anzeigen wenn Component mounted ist und kein Token-Refresh-Fehler
-      if (
-        isMounted &&
-        error instanceof Error &&
-        !error.message.includes("Token refresh failed")
-      ) {
-        toast({
-          title: "Fehler",
-          description: "Actions konnten nicht geladen werden.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      if (isMounted) {
-        setIsLoading(false);
-      }
-    }
-  };
 
   const toggleRow = (id: string) => {
     const newExpanded = new Set(expandedRows);
@@ -504,7 +439,7 @@ const ActionTracker = ({
       toast({
         title: "Fehler",
         description:
-          "Bitte w√§hlen Sie eine Anlage, einen Standort und geben Sie einen Titel ein.",
+          "Bitte w‰hlen Sie eine Anlage, einen Standort und geben Sie einen Titel ein.",
         variant: "destructive",
       });
       return;
@@ -518,7 +453,7 @@ const ActionTracker = ({
       toast({
         title: "Fehler",
         description:
-          "Bitte f√ºllen Sie alle Pflichtfelder aus (Zugewiesen an, F√§lligkeitsdatum).",
+          "Bitte f¸llen Sie alle Pflichtfelder aus (Zugewiesen an, F‰lligkeitsdatum).",
         variant: "destructive",
       });
       return;
@@ -533,7 +468,7 @@ const ActionTracker = ({
         const materialsText = materials
           .map(
             (m) =>
-              `üì¶ ${m.mmNumber} | ${m.description} | ${m.quantity} ${
+              `?? ${m.mmNumber} | ${m.description} | ${m.quantity} ${
                 m.unit
               } | ${m.status || "NICHT_BESTELLT"}`,
           )
@@ -564,7 +499,7 @@ const ActionTracker = ({
 
         actionId = currentAction.id;
 
-        if (isMounted) {
+        if (isMounted.current) {
           toast({
             variant: "success" as const,
             title: "Action aktualisiert",
@@ -592,7 +527,7 @@ const ActionTracker = ({
 
         actionId = response.id;
 
-        if (isMounted) {
+        if (isMounted.current) {
           toast({
             variant: "success" as const,
             title: "Action erstellt",
@@ -619,7 +554,7 @@ const ActionTracker = ({
         try {
           await apiClient.post(`/actions/${actionId}/files`, formData);
 
-          if (isMounted) {
+          if (isMounted.current) {
             toast({
               variant: "success" as const,
               title: "Dateien hochgeladen",
@@ -632,7 +567,7 @@ const ActionTracker = ({
           setPhotoPreview(null);
         } catch (uploadError) {
           console.error("Fehler beim Datei-Upload:", uploadError);
-          if (isMounted) {
+          if (isMounted.current) {
             toast({
               title: "Upload-Fehler",
               description: "Dateien konnten nicht hochgeladen werden.",
@@ -645,11 +580,11 @@ const ActionTracker = ({
         }
       }
 
-      await loadActions();
+      refreshActions();
       setIsDialogOpen(false);
     } catch (error) {
       console.error("Fehler beim Speichern:", error);
-      if (isMounted) {
+      if (isMounted.current) {
         toast({
           title: "Fehler",
           description: "Action konnte nicht gespeichert werden.",
@@ -688,7 +623,7 @@ const ActionTracker = ({
         try {
           await apiClient.post("/notifications", {
             title: "Action abgeschlossen",
-            message: `Action "${action.title}" f√ºr ${action.plant} wurde abgeschlossen.`,
+            message: `Action "${action.title}" f¸r ${action.plant} wurde abgeschlossen.`,
             type: "ACTION_COMPLETED",
             targetRoles: ["ADMIN", "MANAGER"],
             relatedId: action.id,
@@ -709,12 +644,12 @@ const ActionTracker = ({
         } markiert.`,
       });
 
-      await loadActions();
+      refreshActions();
     } catch (error) {
-      console.error("Fehler beim √Ñndern des Status:", error);
+      console.error("Fehler beim ƒndern des Status:", error);
       toast({
         title: "Fehler",
-        description: "Status konnte nicht ge√§ndert werden.",
+        description: "Status konnte nicht ge‰ndert werden.",
         variant: "destructive",
       });
     }
@@ -737,7 +672,7 @@ const ActionTracker = ({
         try {
           await apiClient.post("/notifications", {
             title: "Action abgeschlossen",
-            message: `Action "${action?.title}" f√ºr ${action?.plant} wurde abgeschlossen.`,
+            message: `Action "${action?.title}" f¸r ${action?.plant} wurde abgeschlossen.`,
             type: "ACTION_COMPLETED",
             targetRoles: ["ADMIN", "MANAGER"],
             relatedId: actionToComplete,
@@ -753,11 +688,11 @@ const ActionTracker = ({
           description: `${action?.title} wurde als abgeschlossen markiert.`,
         });
 
-        await loadActions();
+        refreshActions();
         setCompleteDialogOpen(false);
         setActionToComplete(null);
       } catch (error) {
-        console.error("Fehler beim Abschlie√üen:", error);
+        console.error("Fehler beim Abschlieﬂen:", error);
         toast({
           title: "Fehler",
           description: "Action konnte nicht abgeschlossen werden.",
@@ -778,18 +713,18 @@ const ActionTracker = ({
 
         toast({
           variant: "success" as const,
-          title: "Action gel√∂scht",
-          description: `${action?.title} wurde erfolgreich gel√∂scht.`,
+          title: "Action gelˆscht",
+          description: `${action?.title} wurde erfolgreich gelˆscht.`,
         });
 
-        await loadActions();
+        refreshActions();
         setDeleteDialogOpen(false);
         setActionToDelete(null);
       } catch (error) {
-        console.error("Fehler beim L√∂schen:", error);
+        console.error("Fehler beim Lˆschen:", error);
         toast({
           title: "Fehler",
-          description: "Action konnte nicht gel√∂scht werden.",
+          description: "Action konnte nicht gelˆscht werden.",
           variant: "destructive",
         });
       }
@@ -819,13 +754,13 @@ const ActionTracker = ({
       return;
     }
 
-    // Pr√ºfen ob es eine bestehende Aufgabe ist (hat ID) oder eine neue
+    // Pr¸fen ob es eine bestehende Aufgabe ist (hat ID) oder eine neue
     const isEditMode = !!currentTask.id;
 
     if (isEditMode) {
       // Aufgabe aktualisieren
-      setActions((prevActions) =>
-        prevActions.map((action) =>
+      queryClient.setQueryData<Action[]>(queryKeys.actions.list(), (prev) =>
+        (prev ?? []).map((action) =>
           action.id === currentTaskActionId
             ? {
                 ...action,
@@ -848,7 +783,7 @@ const ActionTracker = ({
       toast({
         variant: "success" as const,
         title: "Aufgabe aktualisiert",
-        description: "Die Aufgabe wurde erfolgreich ge√§ndert.",
+        description: "Die Aufgabe wurde erfolgreich ge‰ndert.",
       });
     } else {
       // Neue Aufgabe erstellen
@@ -862,8 +797,8 @@ const ActionTracker = ({
         createdAt: new Date().toISOString(),
       };
 
-      setActions((prevActions) =>
-        prevActions.map((action) =>
+      queryClient.setQueryData<Action[]>(queryKeys.actions.list(), (prev) =>
+        (prev ?? []).map((action) =>
           action.id === currentTaskActionId
             ? { ...action, tasks: [...action.tasks, newTask] }
             : action,
@@ -873,7 +808,7 @@ const ActionTracker = ({
       toast({
         variant: "success" as const,
         title: "Aufgabe erstellt",
-        description: "Die Aufgabe wurde erfolgreich hinzugef√ºgt.",
+        description: "Die Aufgabe wurde erfolgreich hinzugef¸gt.",
       });
     }
 
@@ -888,8 +823,8 @@ const ActionTracker = ({
   };
 
   const handleToggleTask = (actionId: string, taskId: string) => {
-    setActions((prevActions) =>
-      prevActions.map((action) =>
+    queryClient.setQueryData<Action[]>(queryKeys.actions.list(), (prev) =>
+      (prev ?? []).map((action) =>
         action.id === actionId
           ? {
               ...action,
@@ -905,8 +840,8 @@ const ActionTracker = ({
   };
 
   const handleDeleteTask = (actionId: string, taskId: string) => {
-    setActions((prevActions) =>
-      prevActions.map((action) =>
+    queryClient.setQueryData<Action[]>(queryKeys.actions.list(), (prev) =>
+      (prev ?? []).map((action) =>
         action.id === actionId
           ? {
               ...action,
@@ -918,7 +853,7 @@ const ActionTracker = ({
 
     toast({
       variant: "success" as const,
-      title: "Aufgabe gel√∂scht",
+      title: "Aufgabe gelˆscht",
       description: "Die Aufgabe wurde erfolgreich entfernt.",
     });
   };
@@ -954,10 +889,10 @@ const ActionTracker = ({
     const files = event.target.files;
     if (!files || uploadInProgressRef.current) return;
 
-    // Speichere die echten File-Objekte f√ºr den Upload
+    // Speichere die echten File-Objekte f¸r den Upload
     const fileArray = Array.from(files);
 
-    // √úberpr√ºfe auf Duplikate basierend auf Dateiname, Gr√∂√üe und Type
+    // ‹berpr¸fe auf Duplikate basierend auf Dateiname, Grˆﬂe und Type
     const existingFileSignatures = pendingFiles.map(
       (f) => `${f.name}-${f.size}-${f.type}`,
     );
@@ -968,9 +903,9 @@ const ActionTracker = ({
 
     if (newFiles.length === 0) {
       toast({
-        title: "Datei bereits hinzugef√ºgt",
+        title: "Datei bereits hinzugef¸gt",
         description:
-          "Diese Datei(en) wurden bereits zur Upload-Liste hinzugef√ºgt.",
+          "Diese Datei(en) wurden bereits zur Upload-Liste hinzugef¸gt.",
         variant: "destructive",
       });
       return;
@@ -978,7 +913,7 @@ const ActionTracker = ({
 
     setPendingFiles([...pendingFiles, ...newFiles]);
 
-    // Erstelle Preview-Objekte f√ºr die UI
+    // Erstelle Preview-Objekte f¸r die UI
     const newFileObjects: ActionFile[] = newFiles.map((file) => ({
       id: Date.now().toString() + Math.random(),
       name: file.name,
@@ -993,10 +928,10 @@ const ActionTracker = ({
       files: [...(currentAction.files || []), ...newFileObjects],
     });
 
-    if (isMounted) {
+    if (isMounted.current) {
       toast({
-        title: "Dateien hinzugef√ºgt",
-        description: `${newFiles.length} Datei(en) wurden hinzugef√ºgt.`,
+        title: "Dateien hinzugef¸gt",
+        description: `${newFiles.length} Datei(en) wurden hinzugef¸gt.`,
       });
     }
   };
@@ -1008,7 +943,7 @@ const ActionTracker = ({
         await apiClient.delete(`/actions/${currentAction.id}/files/${fileId}`);
 
         toast({
-          title: "Datei gel√∂scht",
+          title: "Datei gelˆscht",
           description: "Die Datei wurde erfolgreich entfernt.",
         });
       }
@@ -1019,10 +954,10 @@ const ActionTracker = ({
         files: currentAction.files?.filter((f) => f.id !== fileId) || [],
       });
     } catch (error) {
-      console.error("Fehler beim L√∂schen der Datei:", error);
+      console.error("Fehler beim Lˆschen der Datei:", error);
       toast({
         title: "Fehler",
-        description: "Datei konnte nicht gel√∂scht werden.",
+        description: "Datei konnte nicht gelˆscht werden.",
         variant: "destructive",
       });
     }
@@ -1070,7 +1005,7 @@ const ActionTracker = ({
       }
 
       // Refresh actions
-      await loadActions();
+      refreshActions();
 
       toast({
         title: "Import erfolgreich",
@@ -1141,7 +1076,7 @@ const ActionTracker = ({
           className="mb-2 -ml-2"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Zur√ºck
+          Zur¸ck
         </Button>
 
         {/* Header Card */}
@@ -1171,7 +1106,7 @@ const ActionTracker = ({
               variant="outline"
               className="w-full h-12 bg-white/10 text-white border-white/30 hover:bg-white/20"
             >
-              {showList ? "√úbersicht anzeigen" : "Meine Actions anzeigen"}
+              {showList ? "‹bersicht anzeigen" : "Meine Actions anzeigen"}
             </Button>
           </CardContent>
         </Card>
@@ -1336,7 +1271,7 @@ const ActionTracker = ({
                               >
                                 {action.status === "OPEN" && "Offen"}
                                 {action.status === "IN_PROGRESS" && "In Arbeit"}
-                                {action.status === "COMPLETED" && "‚úì Erledigt"}
+                                {action.status === "COMPLETED" && "? Erledigt"}
                               </Badge>
                             </div>
                             <CardTitle
@@ -1366,7 +1301,7 @@ const ActionTracker = ({
                               {action.priority === "URGENT" && "!!!"}
                               {action.priority === "HIGH" && "!!"}
                               {action.priority === "MEDIUM" && "!"}
-                              {action.priority === "LOW" && "¬∑"}
+                              {action.priority === "LOW" && "∑"}
                             </span>
                           </div>
                         </div>
@@ -1457,7 +1392,7 @@ const ActionTracker = ({
             <DialogHeader>
               <DialogTitle className="text-lg">Action bearbeiten</DialogTitle>
               <DialogDescription className="text-sm">
-                M√∂chten Sie diese Action bearbeiten?
+                Mˆchten Sie diese Action bearbeiten?
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-2">
@@ -1517,7 +1452,7 @@ const ActionTracker = ({
                     );
                     setIsDialogOpen(true);
                     setShowEditDialog(false);
-                    setShowList(false); // Zur√ºck zur √úbersicht
+                    setShowList(false); // Zur¸ck zur ‹bersicht
                   }
                 }}
                 className="flex-1 bg-slate-700 hover:bg-slate-800"
@@ -1535,7 +1470,7 @@ const ActionTracker = ({
                 className="flex-1"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                L√∂schen
+                Lˆschen
               </Button>
               <Button
                 onClick={() => setShowEditDialog(false)}
@@ -1554,7 +1489,7 @@ const ActionTracker = ({
             <DialogHeader>
               <DialogTitle>Neue Action erstellen</DialogTitle>
               <DialogDescription>
-                W√§hlen Sie Anlage und Priorit√§t aus
+                W‰hlen Sie Anlage und Priorit‰t aus
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -1568,7 +1503,7 @@ const ActionTracker = ({
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Anlage ausw√§hlen..." />
+                    <SelectValue placeholder="Anlage ausw‰hlen..." />
                   </SelectTrigger>
                   <SelectContent>
                     {availableRigs.map((rig) => (
@@ -1582,7 +1517,7 @@ const ActionTracker = ({
 
               {/* Priority Selection - Button Grid with colors (NO EMOJIS) */}
               <div className="space-y-2">
-                <Label>Priorit√§t *</Label>
+                <Label>Priorit‰t *</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
@@ -1668,7 +1603,7 @@ const ActionTracker = ({
                   }
                 >
                   <SelectTrigger className="h-12 text-base">
-                    <SelectValue placeholder="Standort ausw√§hlen" />
+                    <SelectValue placeholder="Standort ausw‰hlen" />
                   </SelectTrigger>
                   <SelectContent>
                     {availableLocations.map((location) => (
@@ -1725,7 +1660,7 @@ const ActionTracker = ({
                   }
                 >
                   <SelectTrigger id="assignedTo" className="h-12 text-base">
-                    <SelectValue placeholder="Person ausw√§hlen..." />
+                    <SelectValue placeholder="Person ausw‰hlen..." />
                   </SelectTrigger>
                   <SelectContent>
                     {users
@@ -1758,7 +1693,7 @@ const ActionTracker = ({
 
               {/* Photo Upload like FailureReporting */}
               <div className="space-y-2">
-                <Label>Foto hinzuf√ºgen</Label>
+                <Label>Foto hinzuf¸gen</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
@@ -1843,7 +1778,7 @@ const ActionTracker = ({
                 {isUploadingFiles ? (
                   <>
                     <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    L√§dt hoch...
+                    L‰dt hoch...
                   </>
                 ) : (
                   "Speichern"
@@ -1868,7 +1803,7 @@ const ActionTracker = ({
         className="mb-2"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Zur√ºck
+        Zur¸ck
       </Button>
 
       <Card>
@@ -1880,7 +1815,7 @@ const ActionTracker = ({
                 Action Tracker
               </CardTitle>
               <CardDescription>
-                Aufgabenverfolgung f√ºr alle Anlagen
+                Aufgabenverfolgung f¸r alle Anlagen
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -1950,7 +1885,7 @@ const ActionTracker = ({
                 <div className="flex items-center gap-3">
                   <Select value={activeTab} onValueChange={setActiveTab}>
                     <SelectTrigger className="w-full sm:w-72 h-12 bg-muted/30">
-                      <SelectValue placeholder="Anlage ausw√§hlen..." />
+                      <SelectValue placeholder="Anlage ausw‰hlen..." />
                     </SelectTrigger>
                     <SelectContent>
                       {availableRigs.map((rig) => {
@@ -2070,7 +2005,7 @@ const ActionTracker = ({
                                   Keine Actions
                                 </h3>
                                 <p className="text-sm text-muted-foreground mb-4">
-                                  Erstellen Sie die erste Action f√ºr {rig.name}
+                                  Erstellen Sie die erste Action f¸r {rig.name}
                                 </p>
                                 <Button onClick={openNewDialog}>
                                   <Plus className="mr-2 h-4 w-4" />
@@ -2099,13 +2034,13 @@ const ActionTracker = ({
                                         Status
                                       </TableHead>
                                       <TableHead className="py-2 h-9 text-xs font-semibold">
-                                        Priorit√§t
+                                        Priorit‰t
                                       </TableHead>
                                       <TableHead className="py-2 h-9 text-xs font-semibold">
                                         Zugewiesen
                                       </TableHead>
                                       <TableHead className="py-2 h-9 text-xs font-semibold">
-                                        F√§llig
+                                        F‰llig
                                       </TableHead>
                                       <TableHead className="text-center py-2 h-9 w-[70px] text-xs font-semibold">
                                         Tasks
@@ -2318,7 +2253,7 @@ const ActionTracker = ({
                                                 title={
                                                   action.status === "COMPLETED"
                                                     ? "Action reaktivieren"
-                                                    : "Action abschlie√üen"
+                                                    : "Action abschlieﬂen"
                                                 }
                                               >
                                                 <CheckCircle2 className="h-3.5 w-3.5" />
@@ -2341,7 +2276,7 @@ const ActionTracker = ({
                                                 onClick={() =>
                                                   handleDelete(action.id)
                                                 }
-                                                title="Action l√∂schen"
+                                                title="Action lˆschen"
                                               >
                                                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
                                               </Button>
@@ -2377,7 +2312,7 @@ const ActionTracker = ({
                                                           .filter(
                                                             (line) =>
                                                               !line.startsWith(
-                                                                "üì∏ Photo:",
+                                                                "?? Photo:",
                                                               ),
                                                           )
                                                           .join("\n")
@@ -2421,7 +2356,7 @@ const ActionTracker = ({
                                                         }
                                                         return null;
                                                       })()}
-                                                      {/* Zeige Foto-Button nur f√ºr alte lokale Dateien */}
+                                                      {/* Zeige Foto-Button nur f¸r alte lokale Dateien */}
                                                       {(() => {
                                                         const photoFilename =
                                                           extractPhotoFromDescription(
@@ -2472,7 +2407,7 @@ const ActionTracker = ({
                                                                     );
                                                                   } catch (error) {
                                                                     console.error(
-                                                                      "‚ùå Error loading photo:",
+                                                                      "? Error loading photo:",
                                                                       error,
                                                                     );
                                                                     toast({
@@ -2587,7 +2522,7 @@ const ActionTracker = ({
                                                                     )}
                                                                     {task.dueDate && (
                                                                       <span className="text-xs text-muted-foreground">
-                                                                        F√§llig:{" "}
+                                                                        F‰llig:{" "}
                                                                         {new Date(
                                                                           task.dueDate,
                                                                         ).toLocaleDateString(
@@ -2629,7 +2564,7 @@ const ActionTracker = ({
                                                                         task.id,
                                                                       )
                                                                     }
-                                                                    title="L√∂schen"
+                                                                    title="Lˆschen"
                                                                   >
                                                                     <X className="h-3 w-3" />
                                                                   </Button>
@@ -2643,12 +2578,12 @@ const ActionTracker = ({
                                                   </Card>
                                                 </div>
 
-                                                {/* Angeh√§ngte Dateien Card */}
+                                                {/* Angeh‰ngte Dateien Card */}
                                                 {action.files.length > 0 && (
                                                   <Card>
                                                     <CardHeader className="pb-3">
                                                       <CardTitle className="text-base flex items-center gap-2">
-                                                        üìé Angeh√§ngte Dateien
+                                                        ?? Angeh‰ngte Dateien
                                                         <Badge
                                                           variant="secondary"
                                                           className="ml-2"
@@ -2720,7 +2655,7 @@ const ActionTracker = ({
                                                       <CardHeader className="bg-muted/50 pb-2 pt-3">
                                                         <div className="flex items-center justify-between">
                                                           <CardTitle className="text-base flex items-center gap-2">
-                                                            üì¶ Bestellte
+                                                            ?? Bestellte
                                                             Materialien
                                                           </CardTitle>
                                                           <Badge
@@ -2750,21 +2685,21 @@ const ActionTracker = ({
                                                                     case "GELIEFERT":
                                                                       return (
                                                                         <Badge className="bg-green-600 hover:bg-green-700 text-white">
-                                                                          üü¢
+                                                                          ??
                                                                           Geliefert
                                                                         </Badge>
                                                                       );
                                                                     case "UNTERWEGS":
                                                                       return (
                                                                         <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
-                                                                          üîµ
+                                                                          ??
                                                                           Unterwegs
                                                                         </Badge>
                                                                       );
                                                                     case "BESTELLT":
                                                                       return (
                                                                         <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
-                                                                          üü°
+                                                                          ??
                                                                           Bestellt
                                                                         </Badge>
                                                                       );
@@ -2774,7 +2709,7 @@ const ActionTracker = ({
                                                                           variant="outline"
                                                                           className="border-2"
                                                                         >
-                                                                          ‚ö™
+                                                                          ?
                                                                           Nicht
                                                                           bestellt
                                                                         </Badge>
@@ -2860,7 +2795,7 @@ const ActionTracker = ({
             </DialogTitle>
             <DialogDescription>
               {isEditMode
-                ? "√Ñndern Sie die Action-Details"
+                ? "ƒndern Sie die Action-Details"
                 : "Erstellen Sie eine neue Action"}
             </DialogDescription>
           </DialogHeader>
@@ -2883,7 +2818,7 @@ const ActionTracker = ({
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Anlage ausw√§hlen..." />
+                        <SelectValue placeholder="Anlage ausw‰hlen..." />
                       </SelectTrigger>
                       <SelectContent>
                         {availableRigs.map((rig) => (
@@ -3004,7 +2939,7 @@ const ActionTracker = ({
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Standort ausw√§hlen" />
+                        <SelectValue placeholder="Standort ausw‰hlen" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="TD">TD</SelectItem>
@@ -3056,7 +2991,7 @@ const ActionTracker = ({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="priority">Priorit√§t</Label>
+                      <Label htmlFor="priority">Priorit‰t</Label>
                       <Select
                         value={currentAction.priority}
                         onValueChange={(value: Action["priority"]) =>
@@ -3117,14 +3052,14 @@ const ActionTracker = ({
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="User ausw√§hlen" />
+                          <SelectValue placeholder="User ausw‰hlen" />
                         </SelectTrigger>
                         <SelectContent>
                           {users
                             .filter((user) => {
-                              // Admins und Manager k√∂nnen immer ausgew√§hlt werden
+                              // Admins und Manager kˆnnen immer ausgew‰hlt werden
                               if (!user.assignedPlant) return true;
-                              // User muss zur ausgew√§hlten Anlage geh√∂ren
+                              // User muss zur ausgew‰hlten Anlage gehˆren
                               return user.assignedPlant === currentAction.plant;
                             })
                             .map((user) => (
@@ -3142,7 +3077,7 @@ const ActionTracker = ({
                     <div className="space-y-2">
                       <Label htmlFor="assignedUsers">
                         <Users className="w-4 h-4 inline mr-2" />
-                        Zus√§tzliche Zust√§ndige
+                        Zus‰tzliche Zust‰ndige
                       </Label>
                       <div className="space-y-2">
                         <Popover>
@@ -3153,8 +3088,8 @@ const ActionTracker = ({
                               className="w-full justify-between"
                             >
                               {selectedAssignees.length > 0
-                                ? `${selectedAssignees.length} User ausgew√§hlt`
-                                : "User ausw√§hlen..."}
+                                ? `${selectedAssignees.length} User ausgew‰hlt`
+                                : "User ausw‰hlen..."}
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </PopoverTrigger>
@@ -3233,7 +3168,7 @@ const ActionTracker = ({
                           </PopoverContent>
                         </Popover>
 
-                        {/* Ausgew√§hlte User anzeigen */}
+                        {/* Ausgew‰hlte User anzeigen */}
                         {selectedAssignees.length > 0 && (
                           <div className="flex flex-wrap gap-2">
                             {selectedAssignees.map((userId) => {
@@ -3257,7 +3192,7 @@ const ActionTracker = ({
                                     }}
                                     className="ml-1 hover:bg-red-500 rounded-full w-4 h-4 flex items-center justify-center"
                                   >
-                                    √ó
+                                    ◊
                                   </button>
                                 </Badge>
                               ) : null;
@@ -3268,7 +3203,7 @@ const ActionTracker = ({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="dueDate">F√§lligkeitsdatum *</Label>
+                      <Label htmlFor="dueDate">F‰lligkeitsdatum *</Label>
                       <DatePicker
                         date={
                           currentAction.dueDate
@@ -3281,13 +3216,13 @@ const ActionTracker = ({
                             dueDate: date ? formatDateForInput(date) : "",
                           })
                         }
-                        placeholder="F√§lligkeitsdatum w√§hlen"
+                        placeholder="F‰lligkeitsdatum w‰hlen"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Dateien anh√§ngen</Label>
+                    <Label>Dateien anh‰ngen</Label>
                     <div className="flex gap-2">
                       <Button
                         type="button"
@@ -3298,7 +3233,7 @@ const ActionTracker = ({
                         className="flex-1"
                       >
                         <Paperclip className="mr-2 h-4 w-4" />
-                        Dateien ausw√§hlen
+                        Dateien ausw‰hlen
                       </Button>
                       <Button
                         type="button"
@@ -3384,13 +3319,13 @@ const ActionTracker = ({
                       }}
                     >
                       <Plus className="h-4 w-4 mr-1" />
-                      Material hinzuf√ºgen
+                      Material hinzuf¸gen
                     </Button>
                   </div>
 
                   {materials.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      Noch keine Materialien hinzugef√ºgt
+                      Noch keine Materialien hinzugef¸gt
                     </div>
                   ) : (
                     <div className="border rounded-lg">
@@ -3471,8 +3406,8 @@ const ActionTracker = ({
                                     <SelectItem value="L">L</SelectItem>
                                     <SelectItem value="kg">kg</SelectItem>
                                     <SelectItem value="m">m</SelectItem>
-                                    <SelectItem value="m¬≤">m¬≤</SelectItem>
-                                    <SelectItem value="m¬≥">m¬≥</SelectItem>
+                                    <SelectItem value="m≤">m≤</SelectItem>
+                                    <SelectItem value="m≥">m≥</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </TableCell>
@@ -3494,25 +3429,25 @@ const ActionTracker = ({
                                       value="NICHT_BESTELLT"
                                       className="text-base"
                                     >
-                                      ‚ö™ Nicht bestellt
+                                      ? Nicht bestellt
                                     </SelectItem>
                                     <SelectItem
                                       value="BESTELLT"
                                       className="text-base"
                                     >
-                                      üü° Bestellt
+                                      ?? Bestellt
                                     </SelectItem>
                                     <SelectItem
                                       value="UNTERWEGS"
                                       className="text-base"
                                     >
-                                      üîµ Unterwegs
+                                      ?? Unterwegs
                                     </SelectItem>
                                     <SelectItem
                                       value="GELIEFERT"
                                       className="text-base"
                                     >
-                                      üü¢ Geliefert
+                                      ?? Geliefert
                                     </SelectItem>
                                   </SelectContent>
                                 </Select>
@@ -3554,7 +3489,7 @@ const ActionTracker = ({
               {isUploadingFiles ? (
                 <>
                   <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  L√§dt hoch...
+                  L‰dt hoch...
                 </>
               ) : isEditMode ? (
                 "Speichern"
@@ -3572,19 +3507,19 @@ const ActionTracker = ({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-red-600">
               <Trash2 className="h-5 w-5" />
-              Action wirklich l√∂schen?
+              Action wirklich lˆschen?
             </AlertDialogTitle>
             <AlertDialogDescription>
               {actionToDelete && (
                 <>
                   <p className="mb-2">
-                    Sie sind dabei, die folgende Action zu l√∂schen:
+                    Sie sind dabei, die folgende Action zu lˆschen:
                   </p>
                   <p className="font-semibold text-foreground">
                     "{actions.find((a) => a.id === actionToDelete)?.title}"
                   </p>
                   <p className="mt-3">
-                    Diese Aktion kann nicht r√ºckg√§ngig gemacht werden. Die
+                    Diese Aktion kann nicht r¸ckg‰ngig gemacht werden. Die
                     Action wird dauerhaft aus der Datenbank entfernt.
                   </p>
                 </>
@@ -3598,7 +3533,7 @@ const ActionTracker = ({
               className="bg-red-600 hover:bg-red-700"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Endg√ºltig l√∂schen
+              Endg¸ltig lˆschen
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -3611,10 +3546,10 @@ const ActionTracker = ({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Action abschlie√üen?</AlertDialogTitle>
+            <AlertDialogTitle>Action abschlieﬂen?</AlertDialogTitle>
             <AlertDialogDescription>
-              M√∂chten Sie diese Action wirklich als abgeschlossen markieren? Die
-              Manager werden √ºber den Abschluss benachrichtigt.
+              Mˆchten Sie diese Action wirklich als abgeschlossen markieren? Die
+              Manager werden ¸ber den Abschluss benachrichtigt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -3623,7 +3558,7 @@ const ActionTracker = ({
               onClick={confirmComplete}
               className="bg-green-600"
             >
-              Abschlie√üen
+              Abschlieﬂen
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-client";
 import {
   Shield,
   Building2,
@@ -267,8 +269,72 @@ const initialRigs: Rig[] = [
 
 export default function AssetIntegrityManagement() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
+  // React Query: asset integrity rigs
+  const { data: rigsData } = useQuery({
+    queryKey: queryKeys.assetRigs.list(),
+    queryFn: async () => {
+      try {
+        const apiRigs = await assetIntegrityApi.getAllRigs();
+        if (Array.isArray(apiRigs) && apiRigs.length > 0) {
+          const normalizedRigs = apiRigs.map(
+            (rig: Partial<Rig> & { id: string; name: string }) => ({
+              id: rig.id,
+              name: rig.name,
+              region: (rig.region as Rig["region"]) || "Oman",
+              contractStatus:
+                (rig.contractStatus as Rig["contractStatus"]) || "idle",
+              contractEndDate: rig.contractEndDate,
+              operator: rig.operator,
+              location: rig.location || "",
+              dayRate:
+                typeof rig.dayRate === "string"
+                  ? Number(rig.dayRate) || undefined
+                  : rig.dayRate,
+              certifications: Array.isArray(rig.certifications)
+                ? rig.certifications
+                : [],
+              generalInfo: Array.isArray(rig.generalInfo)
+                ? rig.generalInfo
+                : [],
+              documents: Array.isArray((rig as Rig).documents)
+                ? (rig as Rig).documents
+                : [],
+              inspections: Array.isArray(rig.inspections)
+                ? rig.inspections
+                : [],
+              issues: Array.isArray(rig.issues) ? rig.issues : [],
+              improvements: Array.isArray(rig.improvements)
+                ? rig.improvements
+                : [],
+            }),
+          ) as Rig[];
+          localStorage.setItem(
+            "asset-integrity-backup",
+            JSON.stringify(normalizedRigs),
+          );
+          return normalizedRigs;
+        }
+      } catch (err) {
+        console.warn("API nicht erreichbar, nutze localStorage-Fallback:", err);
+      }
+      // Fallback: localStorage
+      const backup = localStorage.getItem("asset-integrity-backup");
+      if (backup) {
+        return JSON.parse(backup) as Rig[];
+      }
+      return initialRigs;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
   const [rigs, setRigs] = useState<Rig[]>(initialRigs);
+
+  // Sync React Query data into local state (rigs mutated locally before save)
+  useEffect(() => {
+    if (rigsData) setRigs(rigsData);
+  }, [rigsData]);
+
   const [selectedRegion, setSelectedRegion] = useState<
     "Oman" | "Pakistan" | "all"
   >("all");
@@ -386,6 +452,9 @@ export default function AssetIntegrityManagement() {
       setLastSaved(new Date());
       setHasUnsavedChanges(false);
 
+      // Sync React Query cache
+      queryClient.setQueryData(queryKeys.assetRigs.list(), rigs);
+
       toast({
         variant: "success" as const,
         title: "Gespeichert",
@@ -406,7 +475,7 @@ export default function AssetIntegrityManagement() {
     } finally {
       setIsSaving(false);
     }
-  }, [rigs, toast]);
+  }, [rigs, toast, queryClient]);
 
   // Auto-Save on changes (debounced)
   useEffect(() => {
@@ -464,87 +533,7 @@ export default function AssetIntegrityManagement() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  // Load backup from localStorage on mount, then try API
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadRigs() {
-      // 1. Try loading from backend API first
-      try {
-        const apiRigs = await assetIntegrityApi.getAllRigs();
-        if (!cancelled && Array.isArray(apiRigs) && apiRigs.length > 0) {
-          // Ensure all required arrays exist
-          const normalizedRigs = apiRigs.map(
-            (rig: Partial<Rig> & { id: string; name: string }) => ({
-              id: rig.id,
-              name: rig.name,
-              region: (rig.region as Rig["region"]) || "Oman",
-              contractStatus:
-                (rig.contractStatus as Rig["contractStatus"]) || "idle",
-              contractEndDate: rig.contractEndDate,
-              operator: rig.operator,
-              location: rig.location || "",
-              dayRate:
-                typeof rig.dayRate === "string"
-                  ? Number(rig.dayRate) || undefined
-                  : rig.dayRate,
-              certifications: Array.isArray(rig.certifications)
-                ? rig.certifications
-                : [],
-              generalInfo: Array.isArray(rig.generalInfo)
-                ? rig.generalInfo
-                : [],
-              documents: Array.isArray((rig as Rig).documents)
-                ? (rig as Rig).documents
-                : [],
-              inspections: Array.isArray(rig.inspections)
-                ? rig.inspections
-                : [],
-              issues: Array.isArray(rig.issues) ? rig.issues : [],
-              improvements: Array.isArray(rig.improvements)
-                ? rig.improvements
-                : [],
-            }),
-          ) as Rig[];
-          setRigs(normalizedRigs);
-          setLastSaved(new Date());
-          // Also update localStorage backup
-          localStorage.setItem(
-            "asset-integrity-backup",
-            JSON.stringify(normalizedRigs),
-          );
-          return;
-        }
-      } catch (err) {
-        console.warn("API nicht erreichbar, nutze localStorage-Fallback:", err);
-      }
-
-      // 2. Fallback: localStorage
-      const backup = localStorage.getItem("asset-integrity-backup");
-      if (backup) {
-        try {
-          const parsedRigs = JSON.parse(backup);
-          if (!cancelled) {
-            setRigs(parsedRigs);
-            setLastSaved(new Date());
-          }
-        } catch (error) {
-          console.error("Failed to load backup:", error);
-        }
-      } else {
-        // 3. Last fallback: Initialize localStorage with default rigs
-        localStorage.setItem(
-          "asset-integrity-backup",
-          JSON.stringify(initialRigs),
-        );
-      }
-    }
-
-    loadRigs();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Data loading is now handled by React Query (useQuery above)
 
   // Filter rigs by region
   const regionFilteredRigs =

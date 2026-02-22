@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-client";
 import { apiClient } from "@/services/api";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRigs } from "@/hooks/useRigs";
@@ -6,11 +8,10 @@ import { isMobileDevice } from "@/lib/device-detection";
 import { getActiveLocations } from "@/config/locations";
 import { cn } from "@/lib/utils";
 import {
-  getUserListCache,
-  setUserListCache,
   SEVERITY_CONFIG,
   FAILURE_STATUS_CONFIG,
 } from "@/lib/constants";
+import { useUserList } from "@/hooks/useQueryHooks";
 import "./FailureReporting.mobile.css";
 import {
   Card,
@@ -122,7 +123,6 @@ const FailureReportingPage = ({
   const [reportToConvert, setReportToConvert] = useState<FailureReport | null>(
     null,
   );
-  const [isLoading, setIsLoading] = useState(true);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoViewDialogOpen, setPhotoViewDialogOpen] = useState(false);
@@ -130,7 +130,21 @@ const FailureReportingPage = ({
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const photoUploadInProgressRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isMounted, setIsMounted] = useState(true);
+  const isMounted = useRef(true);
+  const queryClient = useQueryClient();
+
+  // React Query: shared user list
+  const { data: userListData } = useUserList();
+  const users = userListData ?? [];
+
+  // React Query: failure reports
+  const { data: reportsData, isLoading } = useQuery({
+    queryKey: queryKeys.failureReports.list(),
+    queryFn: () => apiClient.request<FailureReport[]>("/failure-reports"),
+  });
+  const reports = reportsData ?? [];
+
+  useEffect(() => { return () => { isMounted.current = false; }; }, []);
 
   // Get available plants based on current user
   const getAvailablePlants = () => {
@@ -164,34 +178,18 @@ const FailureReportingPage = ({
     dueDate: undefined as Date | undefined,
   });
 
-  const [reports, setReports] = useState<FailureReport[]>([]);
-  const [users, setUsers] = useState<
-    Array<{
-      id: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-      assignedPlant?: string;
-    }>
-  >([]);
   const { rigs: availableRigs } = useRigs();
 
+  // Set initial active tab when rigs load
   useEffect(() => {
-    setIsMounted(true);
-    loadReports();
-    loadUsers();
-
-    // Set initial active tab to user's first available plant
-    const availablePlants = getAvailablePlants();
-    if (availablePlants.length > 0) {
-      setActiveTab(availablePlants[0]);
+    if (!activeTab && availableRigs.length > 0) {
+      const availablePlants = getAvailablePlants();
+      if (availablePlants.length > 0) {
+        setActiveTab(availablePlants[0]);
+      }
     }
-
-    return () => {
-      setIsMounted(false);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [availableRigs]);
 
   // Handle initial report ID
   useEffect(() => {
@@ -210,65 +208,6 @@ const FailureReportingPage = ({
       setCurrentReport((prev) => ({ ...prev, plant: activeTab }));
     }
   }, [activeTab, currentReport.plant]);
-
-  const loadReports = async () => {
-    try {
-      setIsLoading(true);
-      const response =
-        await apiClient.request<FailureReport[]>("/failure-reports");
-      setReports(response);
-
-      if (isMounted) {
-        toast({
-          variant: "success" as const,
-          title: "Failure Reports geladen",
-          description: `${response.length} Berichte erfolgreich geladen.`,
-        });
-      }
-    } catch (error) {
-      console.error("Fehler beim Laden der Failure Reports:", error);
-      if (isMounted) {
-        toast({
-          title: "Fehler",
-          description: "Failure Reports konnten nicht geladen werden.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      if (isMounted) {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const loadUsers = async () => {
-    try {
-      // Check cache first
-      const cached = getUserListCache();
-      if (cached) {
-        setUsers(cached.users as UserListItem[]);
-        return;
-      }
-
-      // Fetch from API
-      const response = await apiClient.request<
-        Array<{
-          id: string;
-          email: string;
-          firstName: string;
-          lastName: string;
-          assignedPlant?: string;
-        }>
-      >("/users/list");
-
-      // Update cache
-      setUserListCache(response as UserListItem[]);
-
-      setUsers(response);
-    } catch (error) {
-      console.error("Fehler beim Laden der User:", error);
-    }
-  };
 
   const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -341,7 +280,11 @@ const FailureReportingPage = ({
         formData,
       )) as FailureReport;
 
-      setReports([newReport, ...reports]);
+      queryClient.setQueryData<FailureReport[]>(queryKeys.failureReports.list(), (prev) =>
+        [newReport, ...(prev ?? [])],
+      );
+      // Also invalidate actions since failure reports are shown on Dashboard
+      queryClient.invalidateQueries({ queryKey: queryKeys.failureReports.all });
 
       setIsDialogOpen(false);
       setCurrentReport({
@@ -379,7 +322,9 @@ const FailureReportingPage = ({
 
     try {
       await apiClient.delete(`/failure-reports/${reportToDelete}`);
-      setReports(reports.filter((r) => r.id !== reportToDelete));
+      queryClient.setQueryData<FailureReport[]>(queryKeys.failureReports.list(), (prev) =>
+        (prev ?? []).filter((r) => r.id !== reportToDelete),
+      );
 
       toast({
         variant: "success" as const,
@@ -423,8 +368,8 @@ const FailureReportingPage = ({
         payload,
       )) as { action: { id: string } };
 
-      setReports(
-        reports.map((r) =>
+      queryClient.setQueryData<FailureReport[]>(queryKeys.failureReports.list(), (prev) =>
+        (prev ?? []).map((r) =>
           r.id === reportToConvert.id
             ? {
                 ...r,
@@ -434,6 +379,8 @@ const FailureReportingPage = ({
             : r,
         ),
       );
+      // Invalidate actions cache since a new action was created
+      queryClient.invalidateQueries({ queryKey: queryKeys.actions.all });
 
       toast({
         variant: "success" as const,

@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { actionService, type Action } from "@/services/action.service";
-import { projectService, type Project } from "@/services/project.service";
-import { apiClient } from "@/services/api";
+import type { Action } from "@/services/action.service";
+import type { Project } from "@/services/project.service";
 import {
   PRIORITY_CONFIG,
   ACTION_STATUS_CONFIG,
@@ -32,6 +31,7 @@ import {
   QuickAccessSkeleton,
 } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
+import { useDashboardData } from "@/hooks/useQueryHooks";
 import type { FailureReport, DashboardStats, QuickAccessItem } from "@/types";
 
 interface DashboardProps {
@@ -40,11 +40,14 @@ interface DashboardProps {
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const { toast } = useToast();
-  const [actions, setActions] = useState<Action[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [failureReports, setFailureReports] = useState<FailureReport[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const {
+    actions,
+    projects,
+    failureReports,
+    isLoading: loading,
+    error: loadError,
+    refetch: loadData,
+  } = useDashboardData();
   const [quickAccessFilter, setQuickAccessFilter] = useState<
     "all" | "projects" | "actions" | "failures"
   >("all");
@@ -56,47 +59,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     firstName: string;
     lastName: string;
     email: string;
-  } | null>(null);
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setLoadError(null);
-
-      const userStr = localStorage.getItem("user");
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        setCurrentUser(user);
-      }
-
-      const [actionsData, projectsData, failureReportsData] = await Promise.all(
-        [
-          actionService.getAll(),
-          projectService.getProjects(),
-          apiClient.request<FailureReport[]>("/failure-reports"),
-        ],
-      );
-
-      setActions(actionsData);
-      setProjects(projectsData.projects);
-      setFailureReports(failureReportsData);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unbekannter Fehler";
-      setLoadError(message);
-      toast({
-        variant: "destructive",
-        title: "Fehler beim Laden",
-        description: `Dashboard-Daten konnten nicht geladen werden: ${message}`,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  } | null>(() => {
+    const userStr = localStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+  });
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -413,7 +379,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 Fehler beim Laden der Dashboard-Daten
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {loadError}
+                {loadError instanceof Error ? loadError.message : String(loadError)}
               </p>
             </div>
           </div>

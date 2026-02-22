@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-client";
 import {
   ReactFlow,
   Controls,
@@ -17,12 +19,12 @@ import {
 import type { Connection, Edge, Node } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
+import { useUserList } from "@/hooks/useQueryHooks";
 import {
   projectService,
   type Project,
   type ProjectTask,
 } from "@/services/project.service";
-import { userService } from "@/services/user.service";
 import type { User } from "@/services/auth.service";
 import { useRigs } from "@/hooks/useRigs";
 import { Button } from "@/components/ui/button";
@@ -1033,10 +1035,27 @@ function ProjectsPageSkeleton() {
 // ===== Main Component =====
 export default function ProjectsPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // React Query: projects
+  const { data: projectsData, isLoading: loading } = useQuery({
+    queryKey: queryKeys.projects.list(),
+    queryFn: async () => {
+      const { projects: data } = await projectService.getProjects();
+      return data;
+    },
+  });
+  const projects = projectsData ?? [];
+
+  // React Query: shared user list
+  const { data: userListData } = useUserList();
+  const users: User[] = (userListData ?? []) as unknown as User[];
+
+  const refreshProjects = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+  }, [queryClient]);
 
   // State
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
   const { rigs: availableRigs } = useRigs();
   const [activeTab, setActiveTab] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -1079,9 +1098,6 @@ export default function ProjectsPage() {
     taskId: string;
   } | null>(null);
 
-  // Users State
-  const [users, setUsers] = useState<User[]>([]);
-
   // Flow State
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -1119,41 +1135,6 @@ export default function ProjectsPage() {
       setActiveTab(availableRigs[0].name);
     }
   }, [availableRigs, activeTab]);
-
-  // Load Users
-  const loadUsers = useCallback(async () => {
-    try {
-      const response = await userService.getAllUsers();
-      if (response.success) {
-        setUsers(response.data);
-      }
-    } catch (error) {
-      console.error("Error loading users:", error);
-    }
-  }, []);
-
-  // Load Projects
-  const loadProjects = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { projects: data } = await projectService.getProjects();
-      setProjects(data);
-    } catch (error) {
-      console.error("Error loading projects:", error);
-      toast({
-        title: "Fehler",
-        description: "Projekte konnten nicht geladen werden.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    loadProjects();
-    loadUsers();
-  }, [loadProjects, loadUsers]);
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -1348,7 +1329,7 @@ export default function ProjectsPage() {
         // Reload project data
         const { projects: updatedProjects } =
           await projectService.getProjects();
-        setProjects(updatedProjects);
+        queryClient.setQueryData(queryKeys.projects.list(), updatedProjects);
         const updatedProject = updatedProjects.find((p) => p.id === project.id);
         if (updatedProject) {
           setSelectedProject(updatedProject);
@@ -1398,7 +1379,7 @@ export default function ProjectsPage() {
 
       // Reload project data
       const { projects: updatedProjects } = await projectService.getProjects();
-      setProjects(updatedProjects);
+      queryClient.setQueryData(queryKeys.projects.list(), updatedProjects);
       const updatedProject = updatedProjects.find((p) => p.id === project.id);
       if (updatedProject) {
         setSelectedProject(updatedProject);
@@ -1487,7 +1468,7 @@ export default function ProjectsPage() {
         // Reload project data
         const { projects: updatedProjects } =
           await projectService.getProjects();
-        setProjects(updatedProjects);
+        queryClient.setQueryData(queryKeys.projects.list(), updatedProjects);
         const updatedProject = updatedProjects.find((p) => p.id === project.id);
         if (updatedProject) {
           setSelectedProject(updatedProject);
@@ -1569,7 +1550,7 @@ export default function ProjectsPage() {
 
       // Reload project data
       const { projects: updatedProjects } = await projectService.getProjects();
-      setProjects(updatedProjects);
+      queryClient.setQueryData(queryKeys.projects.list(), updatedProjects);
       const updatedProject = updatedProjects.find(
         (p) => p.id === selectedProject.id,
       );
@@ -2411,7 +2392,7 @@ export default function ProjectsPage() {
         flowData: JSON.stringify(flowData),
       });
 
-      await loadProjects();
+      refreshProjects();
       setHasFlowChanges(false);
       toast({
         title: "Flow gespeichert",
@@ -2496,7 +2477,7 @@ export default function ProjectsPage() {
           description: `${projectForm.name} wurde erfolgreich erstellt.`,
         });
       }
-      await loadProjects();
+      refreshProjects();
       setShowProjectDialog(false);
     } catch (error) {
       console.error("Error saving project:", error);
@@ -2517,7 +2498,7 @@ export default function ProjectsPage() {
         title: "Projekt gelöscht",
         description: `${selectedProject.name} wurde gelöscht.`,
       });
-      await loadProjects();
+      refreshProjects();
       setShowDeleteProjectDialog(false);
       setSelectedProject(null);
     } catch (error) {
@@ -2645,7 +2626,7 @@ export default function ProjectsPage() {
 
       // Reload projects and update selected project
       const { projects: updatedProjects } = await projectService.getProjects();
-      setProjects(updatedProjects);
+      queryClient.setQueryData(queryKeys.projects.list(), updatedProjects);
 
       if (showFlowDialog && selectedProject) {
         const updatedProject = updatedProjects.find(
@@ -2683,7 +2664,7 @@ export default function ProjectsPage() {
         title: "Aufgabe gelöscht",
         description: "Die Aufgabe wurde entfernt.",
       });
-      await loadProjects();
+      refreshProjects();
       setShowDeleteTaskDialog(false);
       setTaskToDelete(null);
     } catch (error) {
@@ -2705,7 +2686,7 @@ export default function ProjectsPage() {
       await projectService.updateTask(project.id, task.id, {
         status: nextStatus,
       });
-      await loadProjects();
+      refreshProjects();
     } catch (error) {
       console.error("Error updating task status:", error);
     }

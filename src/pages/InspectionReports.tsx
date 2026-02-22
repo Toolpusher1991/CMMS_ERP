@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-client";
+import { Skeleton } from "@/components/ui/skeleton";
 import { apiClient } from "@/services/api";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRigs } from "@/hooks/useRigs";
@@ -124,8 +127,25 @@ interface InspectionReport {
 
 const InspectionReports = () => {
   const { toast } = useToast();
-  const [reports, setReports] = useState<InspectionReport[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // React Query: inspection reports
+  const { data: reportsData, isLoading } = useQuery({
+    queryKey: queryKeys.inspections.list(),
+    queryFn: async () => {
+      const response = await apiClient.get<{
+        success: boolean;
+        data: InspectionReport[];
+      }>("/inspection-reports");
+      return response.success ? response.data : [];
+    },
+  });
+  const reports = reportsData ?? [];
+
+  const refreshReports = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.inspections.all });
+  };
+
   const { rigs: availableRigs } = useRigs();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -168,10 +188,6 @@ const InspectionReports = () => {
 
   const user = useAuthStore((s) => s.user);
 
-  useEffect(() => {
-    loadReports();
-  }, []);
-
   const filteredReports = useMemo(() => {
     let filtered = [...reports];
 
@@ -199,29 +215,6 @@ const InspectionReports = () => {
 
     return filtered;
   }, [reports, filterPlant, filterType, filterStatus, searchTerm]);
-
-  const loadReports = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiClient.get<{
-        success: boolean;
-        data: InspectionReport[];
-      }>("/inspection-reports");
-
-      if (response.success && response.data) {
-        setReports(response.data);
-      }
-    } catch (error) {
-      console.error("Error loading reports:", error);
-      toast({
-        title: "Fehler",
-        description: "Inspektionsberichte konnten nicht geladen werden.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleCreateReport = async () => {
     if (
@@ -251,7 +244,7 @@ const InspectionReports = () => {
       });
 
       if (response.success && response.data) {
-        setReports([response.data, ...reports]);
+        refreshReports();
         setIsCreateDialogOpen(false);
         setNewReport({
           title: "",
@@ -461,9 +454,7 @@ const InspectionReports = () => {
         setSelectedReport(updatedReport);
 
         // Update reports list
-        setReports(
-          reports.map((r) => (r.id === updatedReport.id ? updatedReport : r)),
-        );
+        refreshReports();
       }
     } catch (error) {
       console.error("Error updating item:", error);
@@ -494,9 +485,7 @@ const InspectionReports = () => {
         };
 
         setSelectedReport(updatedReport);
-        setReports(
-          reports.map((r) => (r.id === updatedReport.id ? updatedReport : r)),
-        );
+        refreshReports();
 
         toast({
           variant: "success" as const,
@@ -520,7 +509,7 @@ const InspectionReports = () => {
 
     try {
       await apiClient.delete(`/inspection-reports/${reportId}`);
-      setReports(reports.filter((r) => r.id !== reportId));
+      refreshReports();
 
       toast({
         variant: "success" as const,
@@ -761,9 +750,7 @@ const InspectionReports = () => {
           ],
         };
         setSelectedReport(updatedReport);
-        setReports(
-          reports.map((r) => (r.id === updatedReport.id ? updatedReport : r)),
-        );
+        refreshReports();
 
         toast({
           variant: "success" as const,
@@ -800,9 +787,7 @@ const InspectionReports = () => {
         ),
       };
       setSelectedReport(updatedReport);
-      setReports(
-        reports.map((r) => (r.id === updatedReport.id ? updatedReport : r)),
-      );
+      refreshReports();
 
       toast({
         variant: "success" as const,
@@ -858,7 +843,7 @@ const InspectionReports = () => {
       }>("/inspection-reports/parse-pdf", formData);
 
       if (response.success && response.data) {
-        setReports([response.data, ...reports]);
+        refreshReports();
         setIsPDFUploadDialogOpen(false);
         setPDFFile(null);
         setNewReport({
@@ -1099,8 +1084,20 @@ const InspectionReports = () => {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Lade Berichte...
+            <div className="space-y-3 py-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex gap-4">
+                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="h-5 flex-1" />
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-5 w-20" />
+                </div>
+              ))}
             </div>
           ) : filteredReports.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">

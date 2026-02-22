@@ -1,4 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { queryClient } from "@/lib/query-client";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegistrationPage } from "@/pages/RegistrationPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
@@ -147,6 +150,7 @@ function App() {
   }
 
   return (
+    <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="dark" storageKey="cmms-erp-theme">
       {isMobile ? (
         // Mobile View: Simplified layout - Create Failures and Actions only
@@ -274,6 +278,8 @@ function App() {
       )}
       <Toaster />
     </ThemeProvider>
+    <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   );
 }
 

@@ -1,4 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-client";
+import { useUserList } from "@/hooks/useQueryHooks";
 import {
   Card,
   CardContent,
@@ -67,13 +70,15 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { apiClient } from "@/services/api";
 import { rigQuoteExportService } from "@/services/rig-quote-export.service";
 import { PageHeader } from "@/components/shared/PageHeader";
-import type { ProjectRequirements, EquipmentItem } from "@/components/rig-configurator/types";
+import type {
+  ProjectRequirements,
+  EquipmentItem,
+} from "@/components/rig-configurator/types";
 
 const RigConfigurator = () => {
   const { toast } = useToast();
   const { isAdmin: checkIsAdmin } = useAuthStore();
   const [isAdmin] = useState(checkIsAdmin());
-  const [, setLoadingRigs] = useState(false);
 
   const [requirements, setRequirements] = useState<ProjectRequirements>({
     projectName: "",
@@ -139,23 +144,36 @@ const RigConfigurator = () => {
     assignedTo: "",
     description: "",
   });
-  const [users, setUsers] = useState<
-    Array<{ id: string; email: string; firstName: string; lastName: string }>
-  >([]);
+  const queryClient = useQueryClient();
+
+  // React Query: shared user list
+  const { data: userListData } = useUserList();
+  const users = (userListData ?? []).map((u) => ({
+    id: u.id,
+    email: u.email,
+    firstName: u.firstName,
+    lastName: u.lastName,
+  }));
 
   // Rig Management (Admin only)
   const [rigEditDialogOpen, setRigEditDialogOpen] = useState(false);
   const [editingRigData, setEditingRigData] = useState<Rig | null>(null);
   const [savingRig, setSavingRig] = useState(false);
 
-  // Tender Management
-  const [savedConfigurations, setSavedConfigurations] = useState<
-    TenderConfiguration[]
-  >([]);
+  // React Query: tenders
+  const { data: tendersData, isLoading: loadingTenders } = useQuery({
+    queryKey: queryKeys.tenders.list(),
+    queryFn: () => tenderService.getAllTenders(),
+  });
+  const savedConfigurations = tendersData ?? [];
+
+  const refreshTenders = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.tenders.all });
+  };
+
   const [tenderDetailDialogOpen, setTenderDetailDialogOpen] = useState(false);
   const [selectedTenderConfig, setSelectedTenderConfig] =
     useState<TenderConfiguration | null>(null);
-  const [loadingTenders, setLoadingTenders] = useState(false);
 
   // Equipment Management for Tenders
   const [equipmentManagementDialogOpen, setEquipmentManagementDialogOpen] =
@@ -178,32 +196,7 @@ const RigConfigurator = () => {
   );
   const [isSubmittingContract, setIsSubmittingContract] = useState(false);
 
-  // Load saved tenders from API
-  useEffect(() => {
-    const loadTenders = async () => {
-      try {
-        setLoadingTenders(true);
-        const tenders = await tenderService.getAllTenders();
-        setSavedConfigurations(tenders);
-      } catch (error) {
-        console.error("Error loading tenders:", error);
-        toast({
-          title: "❌ Fehler beim Laden",
-          description:
-            "Gespeicherte Tender-Konfigurationen konnten nicht geladen werden.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoadingTenders(false);
-      }
-    };
-
-    loadTenders();
-  }, []);
-
   // Bohranlagen Datenbank (wird vom Backend geladen)
-  const [rigs, setRigs] = useState<Rig[]>([]);
-
   // Icon mapping for equipment categories (not in state, to prevent serialization issues)
   const equipmentCategoryIcons: Record<
     string,
@@ -556,55 +549,15 @@ const RigConfigurator = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Backend: Lade Rigs vom Backend
-  useEffect(() => {
-    const loadRigsFromBackend = async () => {
-      setLoadingRigs(true);
-      try {
-        const result = await rigService.getAllRigs();
-        if (result.success && result.data.length > 0) {
-          setRigs(result.data);
-          toast({
-            variant: "success" as const,
-            title: "Rigs geladen",
-            description: `${result.data.length} Bohranlagen geladen.`,
-          });
-        }
-      } catch (error) {
-        console.error("Fehler beim Laden der Rigs:", error);
-        toast({
-          title: "Backend-Fehler",
-          description: "Konnte Rigs nicht laden. Bitte Seite neu laden.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoadingRigs(false);
-      }
-    };
+  // React Query: Rigs
+  const { data: rigsResult, isLoading: loadingRigs } = useQuery({
+    queryKey: queryKeys.rigs.list(),
+    queryFn: () => rigService.getAllRigs(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const rigs = rigsResult?.success ? rigsResult.data : [];
 
-    loadRigsFromBackend();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Load users for quick action assignment
-  useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        const response = await apiClient.request<
-          Array<{
-            id: string;
-            email: string;
-            firstName: string;
-            lastName: string;
-          }>
-        >("/users/list");
-        setUsers(response);
-      } catch (error) {
-        console.error("Fehler beim Laden der User:", error);
-      }
-    };
-    loadUsers();
-  }, []);
+  // Load users for quick action assignment — now via useUserList (see above)
 
   // LocalStorage: Speichere Equipment-Daten bei Änderungen
   useEffect(() => {
@@ -789,11 +742,10 @@ const RigConfigurator = () => {
   const savePrice = () => {
     if (editingRig) {
       // Rig-Preis aktualisieren
-      setRigs((prevRigs) =>
-        prevRigs.map((r) =>
-          r.id === editingRig.id ? { ...r, dayRate: tempPrice } : r,
-        ),
-      );
+      queryClient.setQueryData(queryKeys.rigs.list(), (prev: { success: boolean; data: Rig[] } | undefined) => {
+        if (!prev) return prev;
+        return { ...prev, data: prev.data.map((r) => r.id === editingRig.id ? { ...r, dayRate: tempPrice } : r) };
+      });
 
       // Wenn das bearbeitete Rig ausgewählt ist, auch selectedRig aktualisieren
       if (selectedRig?.id === editingRig.id) {
@@ -880,9 +832,10 @@ const RigConfigurator = () => {
 
       if (result.success) {
         // Update local state
-        setRigs((prevRigs) =>
-          prevRigs.map((r) => (r.id === editingRigData.id ? result.data : r)),
-        );
+        queryClient.setQueryData(queryKeys.rigs.list(), (prev: { success: boolean; data: Rig[] } | undefined) => {
+          if (!prev) return prev;
+          return { ...prev, data: prev.data.map((r) => r.id === editingRigData.id ? result.data : r) };
+        });
 
         // Update selected rig if necessary
         if (selectedRig?.id === editingRigData.id) {
@@ -1073,7 +1026,7 @@ const RigConfigurator = () => {
         notes: "",
       });
 
-      setSavedConfigurations((prev) => [...prev, newTender]);
+      refreshTenders();
       toast({
         variant: "success" as const,
         title: "✅ Konfiguration gespeichert",
@@ -1116,9 +1069,7 @@ const RigConfigurator = () => {
           isUnderContract: false,
           contractStartDate: "",
         });
-        setSavedConfigurations((prev) =>
-          prev.map((c) => (c.id === configId ? updatedTender : c)),
-        );
+        refreshTenders();
         toast({
           variant: "success" as const,
           title: "✅ Status geändert",
@@ -1166,11 +1117,7 @@ const RigConfigurator = () => {
 
       console.log("✅ Update successful:", updatedTender);
 
-      setSavedConfigurations((prev) =>
-        prev.map((config) =>
-          config.id === pendingContractConfig.id ? updatedTender : config,
-        ),
-      );
+      refreshTenders();
 
       toast({
         title: "✅ Vertrag gestartet",
@@ -1202,9 +1149,7 @@ const RigConfigurator = () => {
   const deleteTenderConfiguration = async (configId: string) => {
     try {
       await tenderService.deleteTender(configId);
-      setSavedConfigurations((prev) =>
-        prev.filter((config) => config.id !== configId),
-      );
+      refreshTenders();
       toast({
         variant: "success" as const,
         title: "🗑️ Konfiguration gelöscht",
@@ -1239,11 +1184,7 @@ const RigConfigurator = () => {
 
       await tenderService.updateTender(editingTenderConfig.id, updatedConfig);
 
-      setSavedConfigurations((prev) =>
-        prev.map((config) =>
-          config.id === editingTenderConfig.id ? updatedConfig : config,
-        ),
-      );
+      refreshTenders();
 
       toast({
         title: "✅ Equipment aktualisiert",
