@@ -673,7 +673,6 @@ export default function AnlagenProjektManagement({
     }
 
     try {
-
       if (editingProject) {
         // Update existing project
         const updateData = {

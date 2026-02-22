@@ -22,7 +22,7 @@ interface NotificationBellProps {
       | "actions"
       | "tender"
       | "failures"
-      | "admin"
+      | "admin",
   ) => void;
 }
 

@@ -10,6 +10,23 @@ import {
   TaskDialog,
   ActionFilterCard,
 } from "@/components/action-tracker";
+import type {
+  Action,
+  ActionFile,
+  ActionTask,
+  ActionTrackerProps,
+  ApiAction,
+  ApiActionFile,
+  MaterialItem,
+  UserListItem,
+} from "@/components/action-tracker/types";
+import {
+  formatDateForInput,
+  extractPhotoFromDescription,
+  parseMaterialsFromDescription,
+  isOverdue,
+} from "@/components/action-tracker/types";
+import { useActionFilters } from "@/components/action-tracker/useActionFilters";
 import { ActionTrackerSkeleton } from "@/components/ui/skeleton";
 import {
   Card,
@@ -100,66 +117,6 @@ import {
   downloadActionTemplate,
 } from "@/services/excel.service";
 
-interface ActionFile {
-  id: string;
-  name: string;
-  type: string;
-  url: string;
-  uploadedAt: string;
-  isPhoto: boolean;
-}
-
-interface MaterialItem {
-  id: string;
-  mmNumber: string;
-  description: string;
-  quantity: number;
-  unit: string;
-  status?: "NICHT_BESTELLT" | "BESTELLT" | "UNTERWEGS" | "GELIEFERT";
-}
-
-interface ActionTask {
-  id: string;
-  title: string;
-  description?: string;
-  assignedUser?: string;
-  dueDate?: string;
-  completed: boolean;
-  createdAt: string;
-}
-
-interface Action {
-  id: string;
-  plant: string;
-  category?: "ALLGEMEIN" | "RIGMOVE";
-  discipline?: "MECHANIK" | "ELEKTRIK" | "ANLAGE";
-  location?: string; // Standort: TD, DW, MP1-3, PCR, etc.
-  title: string;
-  description: string;
-  status: "OPEN" | "IN_PROGRESS" | "COMPLETED";
-  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-  assignedTo: string;
-  assignedUsers?: string[]; // Multi-User Zuweisung
-  dueDate: string;
-  completedAt?: string;
-  createdBy: string;
-  createdAt: string;
-  files: ActionFile[];
-  materials?: MaterialItem[];
-  comments?: Comment[];
-  tasks: ActionTask[];
-}
-
-interface ApiActionFile {
-  id: string;
-  filename: string;
-  originalName?: string;
-  fileType?: string;
-  filePath?: string; // Cloudinary URL
-  uploadedAt: string;
-  isPhoto?: boolean;
-}
-
 interface User {
   id: string;
   firstName: string;
@@ -167,41 +124,6 @@ interface User {
   email: string;
   role: string;
   plant: string;
-}
-
-interface ApiAction {
-  id: string;
-  plant: string;
-  location?: string;
-  category?: string;
-  discipline?: string;
-  title: string;
-  description?: string;
-  status: string;
-  priority: string;
-  assignedTo?: string;
-  assignedUsers?: string[];
-  dueDate?: string;
-  completedAt?: string;
-  createdBy?: string;
-  createdAt?: string;
-  actionFiles?: ApiActionFile[];
-}
-
-interface ActionTrackerProps {
-  initialActionId?: string;
-  showOnlyMyActions?: boolean;
-  onNavigateBack?: () => void;
-}
-
-// User list item interface (cache shared via @/lib/constants)
-interface UserListItem {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role?: string;
-  assignedPlant?: string;
 }
 
 const ActionTracker = ({
@@ -243,16 +165,7 @@ const ActionTracker = ({
     completed: false,
   });
 
-  const [users, setUsers] = useState<
-    Array<{
-      id: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-      role?: string;
-      assignedPlant?: string;
-    }>
-  >([]);
+  const [users, setUsers] = useState<UserListItem[]>([]);
 
   const [currentAction, setCurrentAction] = useState<Partial<Action>>({
     plant: "",
@@ -283,13 +196,18 @@ const ActionTracker = ({
   >([]);
   const { rigs: loadedRigs } = useRigs();
 
-  // Filter States
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [disciplineFilter, setDisciplineFilter] = useState<string>("all");
-  const [priorityFilter, setPriorityFilter] = useState<string>("all");
-  const [userFilter, setUserFilter] = useState<string>("all");
-  const [locationFilter, setLocationFilter] = useState<string>("all");
+  // Filter hook (manages all 6 filter states + computed results)
+  const {
+    searchQuery, setSearchQuery,
+    statusFilter, setStatusFilter,
+    disciplineFilter, setDisciplineFilter,
+    priorityFilter, setPriorityFilter,
+    userFilter, setUserFilter,
+    locationFilter, setLocationFilter,
+    getFilteredActionsForCategory,
+    getActionStats,
+    getCategoryStats,
+  } = useActionFilters(actions, users);
 
   // Mobile States
   const [mobileFilter, setMobileFilter] = useState<
@@ -299,60 +217,6 @@ const ActionTracker = ({
   const [selectedActionForEdit, setSelectedActionForEdit] =
     useState<Action | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
-
-  // Helper function to format date without timezone issues
-  const formatDateForInput = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  // Extrahiere Foto-Dateinamen oder URL aus Beschreibung (von Failure Reports)
-  const extractPhotoFromDescription = (description: string): string | null => {
-    const match = description.match(/📸 Photo: (.+?)(?:\n|$)/i);
-    return match ? match[1].trim() : null;
-  };
-
-  // Parse materials from description
-  const parseMaterialsFromDescription = (
-    description: string,
-  ): MaterialItem[] => {
-    const materialsSection = description.split("--- Materialien ---")[1];
-    if (!materialsSection) return [];
-
-    const lines = materialsSection.trim().split("\n");
-    return lines
-      .filter((line) => line.startsWith("📦"))
-      .map((line, index) => {
-        // Format: 📦 MM-Nr | Beschreibung | Menge Einheit | Status
-        const parts = line
-          .substring(2)
-          .split("|")
-          .map((p) => p.trim());
-        const [mmNumber, description, quantityUnit, status] = parts;
-
-        // Parse quantity and unit
-        const qtyMatch = quantityUnit?.match(/^(\d+)\s*(.+)$/);
-        const quantity = qtyMatch ? parseInt(qtyMatch[1]) : 1;
-        const unit = qtyMatch ? qtyMatch[2] : "Stk";
-
-        return {
-          id: `${Date.now()}-${index}`,
-          mmNumber: mmNumber || "",
-          description: description || "",
-          quantity,
-          unit,
-          status: (status as MaterialItem["status"]) || "NICHT_BESTELLT",
-        };
-      });
-  };
-
-  // Check if action is overdue
-  const isOverdue = (dueDate?: string, status?: string) => {
-    if (!dueDate || status === "COMPLETED") return false;
-    return new Date(dueDate) < new Date();
-  };
 
   // Backend laden
   useEffect(() => {
@@ -445,16 +309,7 @@ const ActionTracker = ({
       }
 
       // Fetch from API
-      const response = await apiClient.request<
-        Array<{
-          id: string;
-          email: string;
-          firstName: string;
-          lastName: string;
-          role?: string;
-          assignedPlant?: string;
-        }>
-      >("/users/list");
+      const response = await apiClient.request<UserListItem[]>("/users/list");
 
       // Update cache
       setUserListCache(response as UserListItem[]);
@@ -1171,102 +1026,6 @@ const ActionTracker = ({
         variant: "destructive",
       });
     }
-  };
-
-  // Helper function to get filtered actions based on plant and category
-  const getFilteredActionsForCategory = (
-    plant: string,
-    category: string,
-  ): Action[] => {
-    let filtered = actions.filter((a) => a.plant === plant);
-
-    if (category === "allgemein") {
-      // Allgemein: Actions without category or explicitly ALLGEMEIN
-      filtered = filtered.filter(
-        (a) => !a.category || a.category === "ALLGEMEIN",
-      );
-    } else if (category === "rigmoves") {
-      // Rigmoves: Only RIGMOVE category
-      filtered = filtered.filter((a) => a.category === "RIGMOVE");
-    }
-    // "alle" shows all actions for the plant
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (a) =>
-          a.title?.toLowerCase().includes(query) ||
-          a.description?.toLowerCase().includes(query) ||
-          a.assignedTo?.toLowerCase().includes(query),
-      );
-    }
-
-    // Apply status filter
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((a) => a.status === statusFilter);
-    }
-
-    // Apply discipline filter
-    if (disciplineFilter !== "all") {
-      filtered = filtered.filter((a) => a.discipline === disciplineFilter);
-    }
-
-    // Apply priority filter
-    if (priorityFilter !== "all") {
-      filtered = filtered.filter((a) => a.priority === priorityFilter);
-    }
-
-    // Apply user filter
-    if (userFilter !== "all") {
-      filtered = filtered.filter((a) => {
-        const user = users.find(
-          (u) => `${u.firstName} ${u.lastName}` === userFilter,
-        );
-        return user ? a.assignedTo === user.email : false;
-      });
-    }
-
-    // Apply location filter
-    if (locationFilter !== "all") {
-      filtered = filtered.filter((a) => a.location === locationFilter);
-    }
-
-    // Sort by due date and status
-    return filtered.sort((a, b) => {
-      // COMPLETED actions always at the bottom
-      if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1;
-      if (a.status !== "COMPLETED" && b.status === "COMPLETED") return -1;
-
-      // For non-completed actions, sort by due date
-      if (a.status !== "COMPLETED" && b.status !== "COMPLETED") {
-        // Actions without due date go to the end
-        if (!a.dueDate && b.dueDate) return 1;
-        if (a.dueDate && !b.dueDate) return -1;
-        if (!a.dueDate && !b.dueDate) return 0;
-
-        // Sort by due date (earliest first)
-        const dateA = new Date(a.dueDate!).getTime();
-        const dateB = new Date(b.dueDate!).getTime();
-        return dateA - dateB;
-      }
-
-      return 0;
-    });
-  };
-
-  const getActionStats = (plant: string) => {
-    const plantActions = actions.filter((a) => a.plant === plant);
-    return {
-      total: plantActions.length,
-      open: plantActions.filter((a) => a.status === "OPEN").length,
-      inProgress: plantActions.filter((a) => a.status === "IN_PROGRESS").length,
-      completed: plantActions.filter((a) => a.status === "COMPLETED").length,
-    };
-  };
-
-  const getCategoryStats = (plant: string, category: string) => {
-    return getFilteredActionsForCategory(plant, category).length;
   };
 
   // Excel Export Handler
