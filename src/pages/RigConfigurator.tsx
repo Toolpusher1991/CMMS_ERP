@@ -67,31 +67,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { apiClient } from "@/services/api";
 import { rigQuoteExportService } from "@/services/rig-quote-export.service";
 import { PageHeader } from "@/components/shared/PageHeader";
-
-// Types
-interface ProjectRequirements {
-  projectName: string;
-  clientName: string;
-  location: string;
-  projectDuration: string;
-  depth: string;
-  hookLoad: string;
-  footprint: "Klein" | "Mittel" | "Groß" | "";
-  rotaryTorque: string;
-  pumpPressure: string;
-  mudWeight: string;
-  casingSize: string;
-  holeSize: string;
-  formationPressure: string;
-  additionalNotes: string;
-}
-
-interface EquipmentItem {
-  id: string;
-  name: string;
-  price: string;
-  [key: string]: string | undefined;
-}
+import type { ProjectRequirements, EquipmentItem } from "@/components/rig-configurator/types";
 
 const RigConfigurator = () => {
   const { toast } = useToast();

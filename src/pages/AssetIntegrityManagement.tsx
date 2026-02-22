@@ -69,77 +69,23 @@ import {
 } from "@/components/ui/table";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 import * as assetIntegrityApi from "@/services/assetIntegrityApi";
-
-// Enhanced Interfaces
-interface Inspection {
-  id: string;
-  type: "statutory" | "internal" | "client" | "certification";
-  description: string;
-  dueDate: string;
-  completedDate?: string;
-  status: "upcoming" | "due" | "overdue" | "completed";
-  responsible: string;
-}
-
-interface Issue {
-  id: string;
-  category: "safety" | "technical" | "compliance" | "commercial";
-  severity: "low" | "medium" | "high" | "critical";
-  description: string;
-  dueDate?: string;
-  status: "open" | "in-progress" | "closed";
-  createdDate: string;
-}
-
-interface Improvement {
-  id: string;
-  description: string;
-  category: "equipment" | "certification" | "compliance" | "efficiency";
-  priority: "low" | "medium" | "high";
-  estimatedCost: number;
-  potentialRevenue: string;
-  status: "planned" | "in-progress" | "completed";
-}
-
-interface GeneralInfo {
-  id: string;
-  description: string;
-  deadline?: string;
-  createdDate: string;
-}
-
-interface Document {
-  id: string;
-  name: string;
-  type: "contract" | "certificate" | "photo" | "report" | "drawing";
-  size: number;
-  uploadDate: string;
-  uploadedBy: string;
-  version: number;
-  url?: string;
-}
-
-interface Rig {
-  id: string;
-  name: string;
-  region: "Oman" | "Pakistan";
-  // Contract Info
-  contractStatus: "active" | "idle" | "standby" | "maintenance";
-  contractEndDate?: string;
-  operator?: string;
-  location: string;
-  dayRate?: number;
-  // Certifications
-  certifications: string[];
-  // General Information
-  generalInfo?: GeneralInfo[];
-  // Documents
-  documents?: Document[];
-  // Data
-  inspections: Inspection[];
-  issues: Issue[];
-  improvements: Improvement[];
-}
+import type {
+  Inspection,
+  Issue,
+  Improvement,
+  GeneralInfo,
+  AssetDocument as Document,
+  AssetRig as Rig,
+} from "@/components/asset-integrity/types";
+import {
+  getDaysUntil,
+  getRigPriorityStatus,
+  getPriorityColor,
+  getContractStatusColor,
+  getInspectionStatusColor,
+  getSeverityColor,
+  getImprovementPriorityColor,
+} from "@/components/asset-integrity/utils";
 
 // Mock Data mit realistischen Beispielen
 const initialRigs: Rig[] = [
@@ -408,65 +354,6 @@ export default function AssetIntegrityManagement() {
     contractEndDate: "",
   });
 
-  // Helper: Calculate days until date
-  const getDaysUntil = (dateStr: string): number => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const target = new Date(dateStr);
-    const diffTime = target.getTime() - today.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
-
-  // Helper: Calculate rig priority status based on overdue items
-  const getRigPriorityStatus = (
-    rig: Rig,
-  ): "ok" | "upcoming" | "due-soon" | "overdue" => {
-    let minDays = Infinity;
-    let hasOverdue = false;
-
-    // Check inspections
-    rig.inspections.forEach((inspection) => {
-      if (inspection.status === "overdue") {
-        hasOverdue = true;
-      } else if (inspection.status !== "completed") {
-        const days = getDaysUntil(inspection.dueDate);
-        if (days < minDays) minDays = days;
-      }
-    });
-
-    // Check issues with due dates
-    rig.issues.forEach((issue) => {
-      if (issue.dueDate && issue.status !== "closed") {
-        const days = getDaysUntil(issue.dueDate);
-        if (days < 0) hasOverdue = true;
-        else if (days < minDays) minDays = days;
-      }
-    });
-
-    if (hasOverdue) return "overdue";
-    if (minDays <= 7) return "due-soon";
-    if (minDays <= 30) return "upcoming";
-    return "ok";
-  };
-
-  // Helper: Get color for priority status
-  const getPriorityColor = (
-    status: "ok" | "upcoming" | "due-soon" | "overdue",
-  ) => {
-    switch (status) {
-      case "ok":
-        return "border-green-500/50 bg-green-500/10";
-      case "upcoming":
-        return "border-yellow-500/50 bg-yellow-500/10";
-      case "due-soon":
-        return "border-orange-500/50 bg-orange-500/10";
-      case "overdue":
-        return "border-red-500/50 bg-red-500/20";
-      default:
-        return "border-border";
-    }
-  };
-
   // Auto-Save Logic
   const saveData = useCallback(async () => {
     setIsSaving(true);
@@ -695,65 +582,6 @@ export default function AssetIntegrityManagement() {
       ).length,
     0,
   );
-
-  // Get contract status badge color
-  const getContractStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-500/20 text-green-400 border-green-500/50";
-      case "idle":
-        return "bg-gray-500/20 text-gray-400 border-gray-500/50";
-      case "standby":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
-      case "maintenance":
-        return "bg-orange-500/20 text-orange-400 border-orange-500/50";
-      default:
-        return "bg-muted text-muted-foreground border-border";
-    }
-  };
-
-  const getInspectionStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-500/20 text-green-400 border-green-500/50";
-      case "upcoming":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/50";
-      case "due":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
-      case "overdue":
-        return "bg-red-500/20 text-red-400 border-red-500/50";
-      default:
-        return "bg-muted text-muted-foreground border-border";
-    }
-  };
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "low":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/50";
-      case "medium":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
-      case "high":
-        return "bg-orange-500/20 text-orange-400 border-orange-500/50";
-      case "critical":
-        return "bg-red-500/20 text-red-400 border-red-500/50";
-      default:
-        return "bg-muted text-muted-foreground border-border";
-    }
-  };
-
-  const getImprovementPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "low":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/50";
-      case "medium":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
-      case "high":
-        return "bg-orange-500/20 text-orange-400 border-orange-500/50";
-      default:
-        return "bg-muted text-muted-foreground border-border";
-    }
-  };
 
   // CRUD Operations
   const handleAddInspection = () => {

@@ -14,6 +14,28 @@ import type { Comment } from "@/components/CommentSection";
 import { CommentSection } from "@/components/CommentSection";
 import { ProjectListSkeleton } from "@/components/ui/skeleton";
 import * as Sentry from "@sentry/react";
+import type {
+  Anlage,
+  Category,
+  Task,
+  FileAttachment,
+  Project,
+  ProjectListProps,
+} from "@/components/project-list/types";
+import {
+  mapBackendStatus,
+  mapFrontendStatus,
+  mapFrontendCategory,
+  mapBackendCategory,
+  getStatusColor,
+  getCategoryColor,
+  calculateGanttData,
+  formatDateForInput,
+  isOverdue,
+  formatCurrency,
+  formatFileSize,
+  getUserDisplayName,
+} from "@/components/project-list/utils";
 import {
   getProjectComments,
   createProjectComment,
@@ -85,51 +107,6 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 
-type Anlage = string;
-type Category = "Mechanisch" | "Elektrisch" | "Anlage";
-
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  completed: boolean;
-  assignedUser: string;
-  assignedUserId?: string;
-  dueDate: string;
-  createdAt: string;
-}
-
-interface FileAttachment {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  url: string;
-  uploadedAt: string;
-  uploadedBy: string;
-  checkedOutBy?: string | null;
-  checkedOutByName?: string | null;
-  checkedOutAt?: string | null;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  anlage: Anlage;
-  category: Category;
-  status: "Aktiv" | "Abgeschlossen" | "Geplant";
-  startDate: string;
-  endDate: string;
-  description: string;
-  budget: number;
-  assignedUser: string;
-  assignedUserId?: string;
-  progress: number;
-  notes: string;
-  tasks: Task[];
-  files: FileAttachment[];
-}
-
 // Fallback Demo-Daten
 const initialProjects: Project[] = [
   {
@@ -178,12 +155,6 @@ const initialProjects: Project[] = [
     ],
   },
 ];
-
-interface ProjectListProps {
-  initialProjectId?: string;
-  showOnlyMyProjects?: boolean;
-  onOpenFlow?: (projectId: string) => void;
-}
 
 export default function AnlagenProjektManagement({
   initialProjectId,
@@ -260,99 +231,9 @@ export default function AnlagenProjektManagement({
 
   const categories: Category[] = ["Mechanisch", "Elektrisch", "Anlage"];
 
-  // Helper function to get user display name from ID or email
-  const getUserDisplayName = (userIdOrEmail: string): string => {
-    if (!userIdOrEmail) return "Nicht zugewiesen";
-
-    // Check if it's already a formatted name (contains space)
-    if (userIdOrEmail.includes(" ") && !userIdOrEmail.includes("@")) {
-      return userIdOrEmail;
-    }
-
-    // Try to find user by ID first
-    const userById = users.find((u) => u.id === userIdOrEmail);
-    if (userById) {
-      return `${userById.firstName} ${userById.lastName}`;
-    }
-
-    // Try to find user by email
-    const userByEmail = users.find((u) => u.email === userIdOrEmail);
-    if (userByEmail) {
-      return `${userByEmail.firstName} ${userByEmail.lastName}`;
-    }
-
-    // If it looks like an email, show just the email prefix
-    if (userIdOrEmail.includes("@")) {
-      return userIdOrEmail.split("@")[0];
-    }
-
-    // Fallback: return as-is but truncate if it's a UUID
-    if (userIdOrEmail.length > 20) {
-      return "Unbekannter User";
-    }
-
-    return userIdOrEmail;
-  };
-
-  // Mapping Functions
-  const mapBackendStatus = (
-    status: string,
-  ): "Aktiv" | "Abgeschlossen" | "Geplant" => {
-    switch (status) {
-      case "IN_PROGRESS":
-        return "Aktiv";
-      case "COMPLETED":
-        return "Abgeschlossen";
-      case "PLANNED":
-      default:
-        return "Geplant";
-    }
-  };
-
-  const mapFrontendStatus = (
-    status: string,
-  ): "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "ON_HOLD" => {
-    switch (status) {
-      case "Aktiv":
-        return "IN_PROGRESS";
-      case "Abgeschlossen":
-        return "COMPLETED";
-      case "Geplant":
-      default:
-        return "PLANNED";
-    }
-  };
-
-  // Category mapping functions for backend communication
-  const mapFrontendCategory = (
-    category: Category,
-  ): "MECHANICAL" | "ELECTRICAL" | "FACILITY" => {
-    switch (category) {
-      case "Mechanisch":
-        return "MECHANICAL";
-      case "Elektrisch":
-        return "ELECTRICAL";
-      case "Anlage":
-        return "FACILITY";
-      default:
-        return "MECHANICAL";
-    }
-  };
-
-  const mapBackendCategory = (
-    backendCategory: "MECHANICAL" | "ELECTRICAL" | "FACILITY",
-  ): Category => {
-    switch (backendCategory) {
-      case "MECHANICAL":
-        return "Mechanisch";
-      case "ELECTRICAL":
-        return "Elektrisch";
-      case "FACILITY":
-        return "Anlage";
-      default:
-        return "Mechanisch";
-    }
-  };
+  // getUserDisplayName wrapper (uses imported function with local users state)
+  const getDisplayName = (userIdOrEmail: string) =>
+    getUserDisplayName(userIdOrEmail, users);
 
   // Load data from backend
   const loadData = async () => {
@@ -1281,88 +1162,6 @@ export default function AnlagenProjektManagement({
     }));
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Aktiv":
-        return "bg-green-500";
-      case "Abgeschlossen":
-        return "bg-blue-500";
-      case "Geplant":
-        return "bg-yellow-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
-
-  const getCategoryColor = (category: Category) => {
-    switch (category) {
-      case "Mechanisch":
-        return "bg-orange-500";
-      case "Elektrisch":
-        return "bg-purple-500";
-      case "Anlage":
-        return "bg-cyan-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
-
-  // Gantt-Diagramm Helper
-  const calculateGanttData = (project: Project) => {
-    const today = new Date();
-    const start = new Date(project.startDate);
-    const end = new Date(project.endDate);
-
-    // Gesamtdauer in Tagen
-    const totalDays = Math.ceil(
-      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
-    );
-
-    // Verstrichene Tage
-    const elapsedDays = Math.ceil(
-      (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
-    );
-
-    // Prozentsatz der verstrichenen Zeit
-    const timeProgress = Math.max(
-      0,
-      Math.min(100, (elapsedDays / totalDays) * 100),
-    );
-
-    // Status basierend auf Vergleich von Zeit und Fortschritt
-    const isOnTrack = project.progress >= timeProgress - 10; // 10% Toleranz
-    const isDelayed = project.progress < timeProgress - 10;
-    const isAhead = project.progress > timeProgress + 10;
-
-    return {
-      totalDays,
-      elapsedDays,
-      timeProgress: Math.round(timeProgress),
-      isOnTrack,
-      isDelayed,
-      isAhead,
-      daysRemaining: totalDays - elapsedDays,
-    };
-  };
-
-  // Helper function to format date without timezone issues
-  const formatDateForInput = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  // Helper function to check if a project is overdue
-  const isOverdue = (endDate: string | null, status: string) => {
-    if (!endDate || status === "Abgeschlossen") return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const target = new Date(endDate);
-    target.setHours(0, 0, 0, 0);
-    return target < today;
-  };
-
   const getFilteredProjects = (anlage: Anlage) => {
     const filtered = projects.filter((project) => {
       const matchesAnlage = project.anlage === anlage;
@@ -1408,21 +1207,6 @@ export default function AnlagenProjektManagement({
       (sum, project) => sum + project.budget,
       0,
     );
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("de-DE", {
-      style: "currency",
-      currency: "EUR",
-    }).format(amount);
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
   };
 
   const getFileIcon = (type: string) => {
@@ -2623,7 +2407,7 @@ export default function AnlagenProjektManagement({
                                                                 {task.assignedUser && (
                                                                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                                                                     <UserIcon className="h-3 w-3" />
-                                                                    {getUserDisplayName(
+                                                                    {getDisplayName(
                                                                       task.assignedUser,
                                                                     )}
                                                                   </span>
