@@ -12,7 +12,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { ErrorBoundary, PageErrorBoundary } from "@/components/ErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
-import { authService } from "@/services/auth.service";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { isMobileDevice } from "@/lib/device-detection";
 import type { User } from "@/services/auth.service";
 
@@ -43,41 +43,32 @@ type AppPage =
   | "admin";
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const {
+    user,
+    isAuthenticated,
+    isLoading,
+    initialize,
+    logout: authLogout,
+    setUser,
+  } = useAuthStore();
   const [authView, setAuthView] = useState<AuthView>("login");
   const [currentPage, setCurrentPage] = useState<AppPage>("dashboard");
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [initialActionId, setInitialActionId] = useState<string | undefined>();
   const [initialReportId, setInitialReportId] = useState<string | undefined>();
   const [showOnlyMyActions, setShowOnlyMyActions] = useState(false);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const token = authService.getToken();
-    const savedUser = authService.getCurrentUser();
-
-    if (token && savedUser) {
-      setIsAuthenticated(true);
-      setUser(savedUser);
-    }
-
-    // Detect mobile device
+    initialize();
     setIsMobile(isMobileDevice());
-
-    setIsLoading(false);
-  }, []);
+  }, [initialize]);
 
   const handleLogin = (loggedInUser: User) => {
-    setIsAuthenticated(true);
     setUser(loggedInUser);
   };
 
   const handleLogout = () => {
-    authService.logout();
-    setIsAuthenticated(false);
-    setUser(null);
+    authLogout();
     if (isMobile) {
       setAuthView("login");
     }
@@ -86,7 +77,7 @@ function App() {
   const handleMobileNavigate = (page: string) => {
     if (page === "login") {
       setAuthView("login");
-      setIsAuthenticated(false);
+      authLogout();
     } else if (page === "failures") {
       setCurrentPage("failures");
     } else if (page === "actions") {

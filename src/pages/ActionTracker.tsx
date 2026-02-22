@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
 import { apiClient } from "@/services/api";
-import { authService } from "@/services/auth.service";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useRigs } from "@/hooks/useRigs";
 import { isMobileDevice } from "@/lib/device-detection";
 import { getActiveLocations } from "@/config/locations";
@@ -210,6 +210,7 @@ const ActionTracker = ({
   onNavigateBack,
 }: ActionTrackerProps) => {
   const { toast } = useToast();
+  const { user: currentUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState<string>("");
   const [activeCategoryTab, setActiveCategoryTab] = useState<
     Record<string, string>
@@ -360,12 +361,9 @@ const ActionTracker = ({
     loadUsers();
 
     // Set user filter to current user if showOnlyMyActions is true
-    if (showOnlyMyActions) {
-      const currentUser = authService.getCurrentUser();
-      if (currentUser) {
-        const userName = `${currentUser.firstName} ${currentUser.lastName}`;
-        setUserFilter(userName);
-      }
+    if (showOnlyMyActions && currentUser) {
+      const userName = `${currentUser.firstName} ${currentUser.lastName}`;
+      setUserFilter(userName);
     }
 
     return () => {
@@ -426,7 +424,6 @@ const ActionTracker = ({
         setUsers(cachedUsers);
 
         // Process cached data
-        const currentUser = authService.getCurrentUser();
         const allUsers = cachedUsers.map((user) => ({
           id: user.id,
           firstName: user.firstName,
@@ -465,7 +462,6 @@ const ActionTracker = ({
       setUsers(response);
 
       // Alle User laden für Multi-User Assignment
-      const currentUser = authService.getCurrentUser();
       const allUsers = response.map((user) => ({
         id: user.id,
         firstName: user.firstName,
@@ -1309,7 +1305,7 @@ const ActionTracker = ({
           // Create new action
           await apiClient.post("/actions", {
             ...action,
-            createdBy: authService.getCurrentUser()?.email || "System",
+            createdBy: currentUser?.email || "System",
           });
         }
       }
@@ -1339,7 +1335,6 @@ const ActionTracker = ({
   // Mobile View: Enhanced with action list and filters
   if (isMobile) {
     // Get current user's actions
-    const currentUser = authService.getCurrentUser();
     const myActions = actions
       .filter((action) => {
         // Filter by status

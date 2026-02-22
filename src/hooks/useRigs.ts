@@ -1,45 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
-import { rigService } from "@/services/rig.service";
+import { useEffect } from "react";
+import { useRigStore, type RigOption } from "@/stores/useRigStore";
 
-export interface RigOption {
-  id: string;
-  name: string;
-}
+export type { RigOption };
 
 /**
  * Shared hook for loading available rigs.
- * Deduplicates the loadRigs pattern found in ActionTracker, FailureReporting,
- * InspectionReports, ProjectList, and others.
+ * Backed by Zustand store — all consumers share the same cached data.
+ * Only one API call is made, with a 2-minute cache.
  */
 export function useRigs() {
-  const [rigs, setRigs] = useState<RigOption[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadRigs = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await rigService.getAllRigs();
-      if (response.success && response.data) {
-        setRigs(
-          response.data.map((rig) => ({
-            id: rig.id,
-            name: rig.name,
-          }))
-        );
-      }
-    } catch (err) {
-      console.error("Fehler beim Laden der Rigs:", err);
-      setError("Rigs konnten nicht geladen werden");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const { rigs, isLoading, error, fetchRigs, refresh } = useRigStore();
 
   useEffect(() => {
-    loadRigs();
-  }, [loadRigs]);
+    fetchRigs();
+  }, [fetchRigs]);
 
-  return { rigs, isLoading, error, refresh: loadRigs };
+  return { rigs, isLoading, error, refresh };
 }

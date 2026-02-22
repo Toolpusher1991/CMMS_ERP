@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { apiClient } from "@/services/api";
-import { authService } from "@/services/auth.service";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useRigs } from "@/hooks/useRigs";
 import { useToast } from "@/components/ui/use-toast";
 import jsPDF from "jspdf";
@@ -166,7 +166,7 @@ const InspectionReports = () => {
     inspector: "",
   });
 
-  const user = authService.getCurrentUser();
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
     loadReports();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { apiClient } from "@/services/api";
-import { authService } from "@/services/auth.service";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useRigs } from "@/hooks/useRigs";
 import { isMobileDevice } from "@/lib/device-detection";
 import { getActiveLocations } from "@/config/locations";
@@ -134,7 +134,7 @@ const FailureReportingPage = ({
 
   // Get available plants based on current user
   const getAvailablePlants = () => {
-    const currentUser = authService.getCurrentUser();
+    const currentUser = useAuthStore.getState().user;
     const allPlants = availableRigs.map((rig) => rig.name);
 
     // If user has assigned plant and is not admin/manager, only show their plant

@@ -4,7 +4,7 @@ import {
   type Project as BackendProject,
   type ProjectTask,
 } from "@/services/project.service";
-import { authService } from "@/services/auth.service";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { userService } from "@/services/user.service";
 import { useRigs } from "@/hooks/useRigs";
 import { fileService } from "@/services/file.service";
@@ -192,6 +192,7 @@ export default function AnlagenProjektManagement({
 }: ProjectListProps) {
   // State Management
   const { toast } = useToast();
+  const { user: currentUser } = useAuthStore();
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -474,11 +475,8 @@ export default function AnlagenProjektManagement({
     loadData();
 
     // Set user filter to current user if showOnlyMyProjects is true
-    if (showOnlyMyProjects) {
-      const currentUser = authService.getCurrentUser();
-      if (currentUser) {
-        setUserFilter(currentUser.email);
-      }
+    if (showOnlyMyProjects && currentUser) {
+      setUserFilter(currentUser.email);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showOnlyMyProjects]);
@@ -675,7 +673,6 @@ export default function AnlagenProjektManagement({
     }
 
     try {
-      const currentUser = authService.getCurrentUser();
 
       if (editingProject) {
         // Update existing project
@@ -1016,7 +1013,6 @@ export default function AnlagenProjektManagement({
 
     try {
       // Get current user for uploadedBy field
-      const currentUser = authService.getCurrentUser();
       const userName = currentUser
         ? `${currentUser.firstName} ${currentUser.lastName}`
         : "Unbekannt";
@@ -2868,8 +2864,6 @@ export default function AnlagenProjektManagement({
                                                                   ) : (
                                                                     <>
                                                                       {(() => {
-                                                                        const currentUser =
-                                                                          authService.getCurrentUser();
                                                                         const isOwner =
                                                                           currentUser?.id ===
                                                                           file.checkedOutBy;
@@ -2932,8 +2926,6 @@ export default function AnlagenProjektManagement({
 
                                             {/* Comment Section */}
                                             {(() => {
-                                              const currentUser =
-                                                authService.getCurrentUser();
                                               if (!currentUser) return null;
 
                                               return (

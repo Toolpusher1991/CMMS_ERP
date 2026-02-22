@@ -63,7 +63,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { rigService, type Rig } from "@/services/rig.service";
-import { authService } from "@/services/auth.service";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { apiClient } from "@/services/api";
 import { rigQuoteExportService } from "@/services/rig-quote-export.service";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -95,7 +95,8 @@ interface EquipmentItem {
 
 const RigConfigurator = () => {
   const { toast } = useToast();
-  const [isAdmin] = useState(authService.isAdmin());
+  const { isAdmin: checkIsAdmin } = useAuthStore();
+  const [isAdmin] = useState(checkIsAdmin());
   const [, setLoadingRigs] = useState(false);
 
   const [requirements, setRequirements] = useState<ProjectRequirements>({

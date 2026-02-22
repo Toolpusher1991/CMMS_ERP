@@ -45,7 +45,7 @@ jobs:
       - name: Backend TypeScript check
         working-directory: ./backend
         run: npx tsc --noEmit
-        continue-on-error: true  # Backend may have looser TS config
+        continue-on-error: true # Backend may have looser TS config
 
   security:
     name: Security Audit

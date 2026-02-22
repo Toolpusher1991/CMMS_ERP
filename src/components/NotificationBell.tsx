@@ -10,11 +10,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import {
-  notificationService,
-  type Notification,
-  type NotificationsResponse,
-} from "@/services/notification.service";
+import { useNotificationStore } from "@/stores/useNotificationStore";
+import type { Notification } from "@/services/notification.service";
 
 interface NotificationBellProps {
   onNavigate?: (
@@ -32,81 +29,46 @@ interface NotificationBellProps {
 export const NotificationBell: React.FC<NotificationBellProps> = ({
   onNavigate,
 }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const {
+    notifications,
+    unreadCount,
+    fetch: fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteAll,
+    startPolling,
+  } = useNotificationStore();
   const [isOpen, setIsOpen] = useState(false);
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const { toast } = useToast();
 
-  // Load notifications
-  const loadNotifications = async () => {
-    try {
-      const data: NotificationsResponse =
-        await notificationService.getNotifications(showUnreadOnly);
-      console.log("🔔 Notifications loaded:", {
-        total: data.notifications.length,
-        unread: data.unreadCount,
-        notifications: data.notifications,
-      });
-      setNotifications(data.notifications);
-      setUnreadCount(data.unreadCount);
-    } catch (error) {
-      console.error("Failed to load notifications:", error);
-    }
-  };
-
-  // Poll for new notifications
+  // Load notifications and start polling
   useEffect(() => {
-    const fetchNotifications = async () => {
-      await loadNotifications();
-    };
-
-    fetchNotifications();
-
-    const cleanup = notificationService.pollNotifications(
-      (data) => {
-        setNotifications(data.notifications);
-        setUnreadCount(data.unreadCount);
-      },
-      30000 // Poll every 30 seconds
-    );
-
+    fetchNotifications(showUnreadOnly);
+    const cleanup = startPolling(30000);
     return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showUnreadOnly]);
 
   // Mark notification as read
   const handleMarkAsRead = async (notificationId: string) => {
-    try {
-      await notificationService.markAsRead(notificationId);
-      loadNotifications();
-    } catch (error) {
-      console.error("Failed to mark notification as read:", error);
-    }
+    await markAsRead(notificationId);
   };
 
   // Mark all as read
   const handleMarkAllAsRead = async () => {
-    try {
-      await notificationService.markAllAsRead();
-      loadNotifications();
-    } catch (error) {
-      console.error("Failed to mark all as read:", error);
-    }
+    await markAllAsRead();
   };
 
   // Clear all notifications (delete)
   const handleClearAll = async () => {
     try {
-      await notificationService.deleteAllNotifications();
-      setNotifications([]);
-      setUnreadCount(0);
+      await deleteAll();
       toast({
         title: "Inbox geleert",
         description: "Alle Benachrichtigungen wurden gelöscht.",
       });
-    } catch (error) {
-      console.error("Failed to clear notifications:", error);
+    } catch {
       toast({
         title: "Fehler",
         description: "Benachrichtigungen konnten nicht gelöscht werden.",
