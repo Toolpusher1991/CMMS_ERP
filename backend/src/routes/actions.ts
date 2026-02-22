@@ -4,6 +4,8 @@ import { authenticate as authenticateToken, AuthRequest } from '../middleware/au
 import { filterByAssignedPlant, validatePlantAccess } from '../middleware/plant-access.middleware';
 import { sendStatusRequest } from '../controllers/status-request.controller';
 import { cloudinaryUpload } from '../lib/cloudinary';
+import { validate } from '../middleware/validate.middleware';
+import { createActionSchema, updateActionSchema, statusRequestSchema } from '../schemas/action.schema';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -69,7 +71,7 @@ router.get('/:id', authenticateToken, filterByAssignedPlant, async (req: Request
 });
 
 // CREATE new action
-router.post('/', authenticateToken, validatePlantAccess, async (req: Request, res: Response) => {
+router.post('/', authenticateToken, validatePlantAccess, validate(createActionSchema), async (req: Request, res: Response) => {
   try {
     const {
       plant,
@@ -83,16 +85,6 @@ router.post('/', authenticateToken, validatePlantAccess, async (req: Request, re
       assignedTo,
       dueDate,
     } = req.body;
-
-    // Validation
-    if (!plant || !title) {
-      return res.status(400).json({ error: 'Plant and title are required' });
-    }
-
-    const validPlants = ['T208', 'T207', 'T700', 'T46'];
-    if (!validPlants.includes(plant)) {
-      return res.status(400).json({ error: 'Invalid plant' });
-    }
 
     // Find rigId based on plant name
     const rig = await prisma.rig.findUnique({
@@ -160,7 +152,7 @@ router.post('/', authenticateToken, validatePlantAccess, async (req: Request, re
 });
 
 // UPDATE action
-router.put('/:id', authenticateToken, validatePlantAccess, async (req: Request, res: Response) => {
+router.put('/:id', authenticateToken, validatePlantAccess, validate(updateActionSchema), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const {
@@ -390,6 +382,6 @@ router.delete(
 // No file serving route needed - files use full Cloudinary URLs
 
 // POST status request for action
-router.post('/:id/status-request', authenticateToken, sendStatusRequest);
+router.post('/:id/status-request', authenticateToken, validate(statusRequestSchema), sendStatusRequest);
 
 export default router;

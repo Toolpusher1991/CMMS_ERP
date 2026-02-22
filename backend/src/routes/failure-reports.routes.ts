@@ -2,6 +2,8 @@ import express from 'express';
 import { authenticate as authenticateToken } from '../middleware/auth.middleware';
 import * as failureReportController from '../controllers/failure-report.controller';
 import { cloudinaryUpload } from '../lib/cloudinary';
+import { validate } from '../middleware/validate.middleware';
+import { updateFailureReportSchema, convertToActionSchema } from '../schemas/failure-report.schema';
 
 const router = express.Router();
 
@@ -36,13 +38,13 @@ router.post(
 );
 
 // UPDATE failure report
-router.put('/:id', authenticateToken, failureReportController.updateFailureReport);
+router.put('/:id', authenticateToken, validate(updateFailureReportSchema), failureReportController.updateFailureReport);
 
 // DELETE failure report
 router.delete('/:id', authenticateToken, failureReportController.deleteFailureReport);
 
 // CONVERT to action
-router.post('/:id/convert-to-action', authenticateToken, failureReportController.convertToAction);
+router.post('/:id/convert-to-action', authenticateToken, validate(convertToActionSchema), failureReportController.convertToAction);
 
 // Serve uploaded photos - Redirect to Cloudinary or return 404
 router.get('/photo/:filename', async (req, res) => {

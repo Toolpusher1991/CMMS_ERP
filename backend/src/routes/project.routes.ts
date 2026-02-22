@@ -1,6 +1,14 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.middleware';
 import * as projectController from '../controllers/project.controller';
+import { validate } from '../middleware/validate.middleware';
+import {
+  createProjectSchema,
+  updateProjectSchema,
+  createTaskSchema,
+  updateTaskSchema,
+  createProjectFileSchema,
+} from '../schemas/project.schema';
 
 const router = Router();
 
@@ -32,19 +40,19 @@ router.use(authenticate);
 // Projects
 router.get('/', projectController.getProjects);
 router.get('/:id', projectController.getProjectById);
-router.post('/', projectController.createProject);
-router.put('/:id', projectController.updateProject);
+router.post('/', validate(createProjectSchema), projectController.createProject);
+router.put('/:id', validate(updateProjectSchema), projectController.updateProject);
 router.delete('/:id', projectController.deleteProject);
 
 // Tasks
 router.get('/:id/tasks', projectController.getProjectTasks);
-router.post('/:id/tasks', projectController.createTask);
-router.put('/:id/tasks/:taskId', projectController.updateTask);
+router.post('/:id/tasks', validate(createTaskSchema), projectController.createTask);
+router.put('/:id/tasks/:taskId', validate(updateTaskSchema), projectController.updateTask);
 router.delete('/:id/tasks/:taskId', projectController.deleteTask);
 
 // Files
 router.get('/:id/files', projectController.getProjectFiles);
-router.post('/:id/files', projectController.createFile);
+router.post('/:id/files', validate(createProjectFileSchema), projectController.createFile);
 router.delete('/:id/files/:fileId', projectController.deleteFile);
 router.post('/:id/files/:fileId/checkout', projectController.checkoutFile);
 router.post('/:id/files/:fileId/checkin', projectController.checkinFile);

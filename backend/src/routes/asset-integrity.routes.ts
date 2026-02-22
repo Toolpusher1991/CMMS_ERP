@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { validate } from '../middleware/validate.middleware';
+import { createAssetRigSchema, updateAssetRigSchema } from '../schemas/asset-integrity.schema';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -118,7 +120,7 @@ router.get('/rigs/:id', authenticate, async (req: Request, res: Response) => {
 });
 
 // POST create new rig (Admin only)
-router.post('/rigs', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+router.post('/rigs', authenticate, requireAdmin, validate(createAssetRigSchema), async (req: AuthRequest, res: Response) => {
   try {
     const {
       name,
@@ -130,14 +132,6 @@ router.post('/rigs', authenticate, requireAdmin, async (req: AuthRequest, res: R
       contractEndDate,
       certifications
     } = req.body;
-
-    // Validate required fields
-    if (!name || !region) {
-      return res.status(400).json({
-        success: false,
-        message: 'Pflichtfelder fehlen: name, region'
-      });
-    }
 
     // Check if rig with same name already exists
     const existingRig = await prisma.rig.findUnique({
@@ -207,7 +201,7 @@ router.post('/rigs', authenticate, requireAdmin, async (req: AuthRequest, res: R
 });
 
 // PUT update rig asset integrity data
-router.put('/rigs/:id', authenticate, async (req: AuthRequest, res: Response) => {
+router.put('/rigs/:id', authenticate, validate(updateAssetRigSchema), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const {

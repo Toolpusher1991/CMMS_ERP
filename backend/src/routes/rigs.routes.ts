@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { validate } from '../middleware/validate.middleware';
+import { createRigSchema, updateRigSchema } from '../schemas/rig.schema';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -74,7 +76,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST create new rig (Admin only)
-router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+router.post('/', authenticate, requireAdmin, validate(createRigSchema), async (req: AuthRequest, res: Response) => {
   try {
     const {
       name,
@@ -95,14 +97,6 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
       applications,
       technicalSpecs
     } = req.body;
-
-    // Validate required fields
-    if (!name || !category || !maxDepth || !maxHookLoad) {
-      return res.status(400).json({
-        success: false,
-        message: 'Pflichtfelder fehlen: name, category, maxDepth, maxHookLoad'
-      });
-    }
 
     // Check if rig with same name already exists
     const existingRig = await prisma.rig.findUnique({
@@ -157,7 +151,7 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
 });
 
 // PUT update rig (Admin only)
-router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+router.put('/:id', authenticate, requireAdmin, validate(updateRigSchema), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const {

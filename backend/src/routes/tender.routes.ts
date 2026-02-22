@@ -8,6 +8,8 @@ import {
   getTenderConfiguration
 } from '../controllers/tender.controller';
 import { authenticate } from '../middleware/auth.middleware';
+import { validate } from '../middleware/validate.middleware';
+import { createTenderSchema, updateTenderSchema } from '../schemas/tender.schema';
 
 const router = express.Router();
 
@@ -18,13 +20,13 @@ router.use(authenticate);
 router.get('/', getAllTenderConfigurations);
 
 // POST /api/tender - Create a new tender configuration
-router.post('/', createTenderConfiguration);
+router.post('/', validate(createTenderSchema), createTenderConfiguration);
 
 // GET /api/tender/:id - Get a specific tender configuration
 router.get('/:id', getTenderConfiguration);
 
 // PUT /api/tender/:id - Update a tender configuration
-router.put('/:id', updateTenderConfiguration);
+router.put('/:id', validate(updateTenderSchema), updateTenderConfiguration);
 
 // PATCH /api/tender/:id/contract-status - Toggle contract status
 router.patch('/:id/contract-status', toggleContractStatus);

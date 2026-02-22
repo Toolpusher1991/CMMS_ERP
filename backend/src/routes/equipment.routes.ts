@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { validate } from '../middleware/validate.middleware';
+import { createEquipmentSchema, updateEquipmentSchema } from '../schemas/equipment.schema';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -77,17 +79,9 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST create new equipment (Admin only)
-router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+router.post('/', authenticate, requireAdmin, validate(createEquipmentSchema), async (req: AuthRequest, res: Response) => {
   try {
     const { category, name, price, properties } = req.body;
-
-    // Validate required fields
-    if (!category || !name || !price) {
-      return res.status(400).json({
-        success: false,
-        message: 'Pflichtfelder fehlen: category, name, price'
-      });
-    }
 
     const equipment = await prisma.equipment.create({
       data: {
@@ -118,7 +112,7 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
 });
 
 // PUT update equipment (Admin only)
-router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+router.put('/:id', authenticate, requireAdmin, validate(updateEquipmentSchema), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { category, name, price, properties } = req.body;

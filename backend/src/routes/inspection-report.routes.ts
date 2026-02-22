@@ -3,6 +3,12 @@ import { authenticate } from '../middleware/auth.middleware';
 import * as inspectionController from '../controllers/inspection-report.controller';
 import { cloudinaryInspectionAttachmentsUpload } from '../lib/cloudinary';
 import multer from 'multer';
+import { validate } from '../middleware/validate.middleware';
+import {
+  createInspectionReportSchema,
+  updateInspectionReportSchema,
+  updateInspectionItemSchema,
+} from '../schemas/inspection-report.schema';
 
 const router = express.Router();
 const pdfUpload = multer({ storage: multer.memoryStorage() });
@@ -20,12 +26,12 @@ router.post(
 // Inspection Reports
 router.get('/', inspectionController.getInspectionReports);
 router.get('/:id', inspectionController.getInspectionReport);
-router.post('/', inspectionController.createInspectionReport);
-router.put('/:id', inspectionController.updateInspectionReport);
+router.post('/', validate(createInspectionReportSchema), inspectionController.createInspectionReport);
+router.put('/:id', validate(updateInspectionReportSchema), inspectionController.updateInspectionReport);
 router.delete('/:id', inspectionController.deleteInspectionReport);
 
 // Inspection Items
-router.put('/items/:itemId', inspectionController.updateInspectionItem);
+router.put('/items/:itemId', validate(updateInspectionItemSchema), inspectionController.updateInspectionItem);
 
 // Attachments - with Cloudinary upload
 router.post(
