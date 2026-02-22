@@ -8,6 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "cap:init": "npx cap init",
     "cap:add:android": "npx cap add android",
     "cap:sync": "npm run build && npx cap sync",
@@ -73,6 +76,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^24.8.1",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
@@ -82,6 +88,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.22",
     "globals": "^16.4.0",
+    "jsdom": "^28.1.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.18",
     "tailwindcss-animate": "^1.0.7",
@@ -90,6 +97,7 @@
     "typescript-eslint": "^8.45.0",
     "vite": "^7.1.7",
     "vite-plugin-pwa": "^1.1.0",
+    "vitest": "^4.0.18",
     "workbox-window": "^7.3.0"
   }
 }
