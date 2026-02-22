@@ -79,7 +79,12 @@ async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
     throw new Error(error.message || `API Error: ${response.status}`);
   }
 
-  return response.json();
+  const json = await response.json();
+  // Backend wraps responses in { success, data, message } — unwrap automatically
+  if (json && typeof json === 'object' && 'data' in json) {
+    return json.data as T;
+  }
+  return json as T;
 }
 
 // ===== RIG MANAGEMENT =====
@@ -113,7 +118,7 @@ export async function createRig(rig: Omit<Rig, 'id'>): Promise<Rig> {
  */
 export async function updateRig(rigId: string, updates: Partial<Rig>): Promise<Rig> {
   return apiCall<Rig>(`/api/asset-integrity/rigs/${rigId}`, {
-    method: 'PATCH',
+    method: 'PUT',
     body: JSON.stringify(updates),
   });
 }

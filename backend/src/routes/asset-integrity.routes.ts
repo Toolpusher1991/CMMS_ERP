@@ -157,6 +157,8 @@ router.post('/rigs', authenticate, requireAdmin, async (req: AuthRequest, res: R
         region,
         contractStatus: contractStatus || 'idle',
         location: location || '',
+        operator: operator || null,
+        contractEndDate: contractEndDate || null,
         // Required technical fields with defaults
         category: 'Mittlere Leistung',
         maxDepth: 5000,
@@ -240,7 +242,9 @@ router.put('/rigs/:id', authenticate, async (req: AuthRequest, res: Response) =>
     if (region !== undefined) updateData.region = region;
     if (contractStatus !== undefined) updateData.contractStatus = contractStatus;
     if (location !== undefined) updateData.location = location;
-    if (dayRate !== undefined) updateData.dayRate = dayRate;
+    if (operator !== undefined) updateData.operator = operator;
+    if (contractEndDate !== undefined) updateData.contractEndDate = contractEndDate;
+    if (dayRate !== undefined) updateData.dayRate = String(dayRate);
     if (certifications !== undefined) updateData.certifications = JSON.stringify(certifications);
     if (generalInfo !== undefined) updateData.generalInfo = JSON.stringify(generalInfo);
     if (inspections !== undefined) updateData.inspections = JSON.stringify(inspections);

@@ -458,10 +458,28 @@ export default function AssetIntegrityManagement() {
   const saveData = useCallback(async () => {
     setIsSaving(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Save each rig to the backend API
+      const updatePromises = rigs.map((rig) =>
+        assetIntegrityApi.updateRig(rig.id, {
+          region: rig.region,
+          contractStatus: rig.contractStatus,
+          location: rig.location,
+          operator: rig.operator,
+          dayRate: rig.dayRate,
+          contractEndDate: rig.contractEndDate,
+          certifications: rig.certifications,
+          generalInfo: rig.generalInfo,
+          inspections: rig.inspections,
+          issues: rig.issues,
+          improvements: rig.improvements,
+        }).catch((err) => {
+          console.warn(`API-Update für ${rig.name} fehlgeschlagen:`, err);
+          return null; // Don't block other saves
+        })
+      );
+      await Promise.all(updatePromises);
 
-      // In production: await assetIntegrityApi.updateRigs(rigs);
+      // Also save to localStorage as backup
       localStorage.setItem("asset-integrity-backup", JSON.stringify(rigs));
 
       setLastSaved(new Date());
@@ -469,7 +487,7 @@ export default function AssetIntegrityManagement() {
 
       toast({
         variant: "success" as const,
-        title: "Gespeichert ✓",
+        title: "Gespeichert",
         description: `Änderungen um ${new Date().toLocaleTimeString("de-DE")} gespeichert`,
         duration: 2000,
       });
@@ -545,24 +563,65 @@ export default function AssetIntegrityManagement() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  // Load backup from localStorage on mount
+  // Load backup from localStorage on mount, then try API
   useEffect(() => {
-    const backup = localStorage.getItem("asset-integrity-backup");
-    if (backup) {
+    let cancelled = false;
+
+    async function loadRigs() {
+      // 1. Try loading from backend API first
       try {
-        const parsedRigs = JSON.parse(backup);
-        setRigs(parsedRigs);
-        setLastSaved(new Date());
-      } catch (error) {
-        console.error("Failed to load backup:", error);
+        const apiRigs = await assetIntegrityApi.getAllRigs();
+        if (!cancelled && Array.isArray(apiRigs) && apiRigs.length > 0) {
+          // Ensure all required arrays exist
+          const normalizedRigs = apiRigs.map((rig: Partial<Rig> & { id: string; name: string }) => ({
+            id: rig.id,
+            name: rig.name,
+            region: (rig.region as Rig["region"]) || "Oman",
+            contractStatus: (rig.contractStatus as Rig["contractStatus"]) || "idle",
+            contractEndDate: rig.contractEndDate,
+            operator: rig.operator,
+            location: rig.location || "",
+            dayRate: typeof rig.dayRate === "string" ? Number(rig.dayRate) || undefined : rig.dayRate,
+            certifications: Array.isArray(rig.certifications) ? rig.certifications : [],
+            generalInfo: Array.isArray(rig.generalInfo) ? rig.generalInfo : [],
+            documents: Array.isArray((rig as Rig).documents) ? (rig as Rig).documents : [],
+            inspections: Array.isArray(rig.inspections) ? rig.inspections : [],
+            issues: Array.isArray(rig.issues) ? rig.issues : [],
+            improvements: Array.isArray(rig.improvements) ? rig.improvements : [],
+          })) as Rig[];
+          setRigs(normalizedRigs);
+          setLastSaved(new Date());
+          // Also update localStorage backup
+          localStorage.setItem("asset-integrity-backup", JSON.stringify(normalizedRigs));
+          return;
+        }
+      } catch (err) {
+        console.warn("API nicht erreichbar, nutze localStorage-Fallback:", err);
       }
-    } else {
-      // Initialize localStorage with default rigs so other pages can access them
-      localStorage.setItem(
-        "asset-integrity-backup",
-        JSON.stringify(initialRigs),
-      );
+
+      // 2. Fallback: localStorage
+      const backup = localStorage.getItem("asset-integrity-backup");
+      if (backup) {
+        try {
+          const parsedRigs = JSON.parse(backup);
+          if (!cancelled) {
+            setRigs(parsedRigs);
+            setLastSaved(new Date());
+          }
+        } catch (error) {
+          console.error("Failed to load backup:", error);
+        }
+      } else {
+        // 3. Last fallback: Initialize localStorage with default rigs
+        localStorage.setItem(
+          "asset-integrity-backup",
+          JSON.stringify(initialRigs),
+        );
+      }
     }
+
+    loadRigs();
+    return () => { cancelled = true; };
   }, []);
 
   // Filter rigs by region
@@ -995,26 +1054,66 @@ export default function AssetIntegrityManagement() {
     return overview;
   };
 
-  const handleAddRig = () => {
+  const handleAddRig = async () => {
     if (!newRig.name || !newRig.location) return;
 
-    const rig: Rig = {
-      id: Date.now().toString(),
-      name: newRig.name,
-      region: newRig.region,
-      contractStatus: newRig.contractStatus,
-      operator: newRig.operator || undefined,
-      location: newRig.location,
-      dayRate: newRig.dayRate > 0 ? newRig.dayRate : undefined,
-      contractEndDate: newRig.contractEndDate || undefined,
-      certifications: [],
-      generalInfo: [],
-      inspections: [],
-      issues: [],
-      improvements: [],
-    };
+    try {
+      // Create rig via API first
+      const apiRig = await assetIntegrityApi.createRig({
+        name: newRig.name,
+        region: newRig.region,
+        contractStatus: newRig.contractStatus,
+        operator: newRig.operator || undefined,
+        location: newRig.location,
+        dayRate: newRig.dayRate > 0 ? newRig.dayRate : undefined,
+        contractEndDate: newRig.contractEndDate || undefined,
+        certifications: [],
+        inspections: [],
+        issues: [],
+        improvements: [],
+      });
 
-    setRigs([...rigs, rig]);
+      const rig: Rig = {
+        id: apiRig.id || Date.now().toString(),
+        name: newRig.name,
+        region: newRig.region,
+        contractStatus: newRig.contractStatus,
+        operator: newRig.operator || undefined,
+        location: newRig.location,
+        dayRate: newRig.dayRate > 0 ? newRig.dayRate : undefined,
+        contractEndDate: newRig.contractEndDate || undefined,
+        certifications: [],
+        generalInfo: [],
+        inspections: [],
+        issues: [],
+        improvements: [],
+      };
+
+      setRigs([...rigs, rig]);
+      setHasUnsavedChanges(true);
+    } catch (err) {
+      console.warn("API-Erstellung fehlgeschlagen, nutze lokale ID:", err);
+      // Fallback: create locally
+      const rig: Rig = {
+        id: Date.now().toString(),
+        name: newRig.name,
+        region: newRig.region,
+        contractStatus: newRig.contractStatus,
+        operator: newRig.operator || undefined,
+        location: newRig.location,
+        dayRate: newRig.dayRate > 0 ? newRig.dayRate : undefined,
+        contractEndDate: newRig.contractEndDate || undefined,
+        certifications: [],
+        generalInfo: [],
+        inspections: [],
+        issues: [],
+        improvements: [],
+      };
+
+      setRigs([...rigs, rig]);
+      setHasUnsavedChanges(true);
+    }
+
     setNewRig({
       name: "",
       region: "Oman",
