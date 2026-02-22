@@ -1948,7 +1948,10 @@ export default function AssetIntegrityManagement() {
               </TabsList>
 
               {/* Tab: Allgemeine Infos */}
-              <TabsContent value="info" className="mt-4 overflow-y-auto flex-1 min-h-0">
+              <TabsContent
+                value="info"
+                className="mt-4 overflow-y-auto flex-1 min-h-0"
+              >
                 {/* Save/Cancel Buttons für Edit-Modus */}
                 {isEditingGeneral && (
                   <div className="flex gap-2 justify-end mb-4">
@@ -2433,7 +2436,10 @@ export default function AssetIntegrityManagement() {
               </TabsContent>
 
               {/* Tab: Inspektionen */}
-              <TabsContent value="inspections" className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0">
+              <TabsContent
+                value="inspections"
+                className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0"
+              >
                 <div className="flex justify-end mb-3">
                   <Button
                     size="sm"
@@ -2517,7 +2523,10 @@ export default function AssetIntegrityManagement() {
               </TabsContent>
 
               {/* Tab: Issues */}
-              <TabsContent value="issues" className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0">
+              <TabsContent
+                value="issues"
+                className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0"
+              >
                 <div className="flex justify-end mb-3">
                   <Button
                     size="sm"
@@ -2594,7 +2603,10 @@ export default function AssetIntegrityManagement() {
               </TabsContent>
 
               {/* Tab: Verbesserungen */}
-              <TabsContent value="improvements" className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0">
+              <TabsContent
+                value="improvements"
+                className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0"
+              >
                 <div className="flex justify-end mb-3">
                   <Button
                     size="sm"
@@ -2681,7 +2693,10 @@ export default function AssetIntegrityManagement() {
               </TabsContent>
 
               {/* Tab: Meeting-Übersicht */}
-              <TabsContent value="meeting" className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0">
+              <TabsContent
+                value="meeting"
+                className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0"
+              >
                 <Card className="bg-background border-border">
                   <CardHeader>
                     <CardTitle className="text-lg text-foreground flex items-center gap-2">
