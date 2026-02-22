@@ -742,10 +742,18 @@ const RigConfigurator = () => {
   const savePrice = () => {
     if (editingRig) {
       // Rig-Preis aktualisieren
-      queryClient.setQueryData(queryKeys.rigs.list(), (prev: { success: boolean; data: Rig[] } | undefined) => {
-        if (!prev) return prev;
-        return { ...prev, data: prev.data.map((r) => r.id === editingRig.id ? { ...r, dayRate: tempPrice } : r) };
-      });
+      queryClient.setQueryData(
+        queryKeys.rigs.list(),
+        (prev: { success: boolean; data: Rig[] } | undefined) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            data: prev.data.map((r) =>
+              r.id === editingRig.id ? { ...r, dayRate: tempPrice } : r,
+            ),
+          };
+        },
+      );
 
       // Wenn das bearbeitete Rig ausgewählt ist, auch selectedRig aktualisieren
       if (selectedRig?.id === editingRig.id) {
@@ -832,10 +840,18 @@ const RigConfigurator = () => {
 
       if (result.success) {
         // Update local state
-        queryClient.setQueryData(queryKeys.rigs.list(), (prev: { success: boolean; data: Rig[] } | undefined) => {
-          if (!prev) return prev;
-          return { ...prev, data: prev.data.map((r) => r.id === editingRigData.id ? result.data : r) };
-        });
+        queryClient.setQueryData(
+          queryKeys.rigs.list(),
+          (prev: { success: boolean; data: Rig[] } | undefined) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              data: prev.data.map((r) =>
+                r.id === editingRigData.id ? result.data : r,
+              ),
+            };
+          },
+        );
 
         // Update selected rig if necessary
         if (selectedRig?.id === editingRigData.id) {

@@ -169,7 +169,9 @@ const ActionTracker = ({
       assignedTo: item.assignedTo || "",
       assignedUsers: item.assignedUsers || [],
       dueDate: item.dueDate ? item.dueDate.split("T")[0] : "",
-      completedAt: item.completedAt ? item.completedAt.split("T")[0] : undefined,
+      completedAt: item.completedAt
+        ? item.completedAt.split("T")[0]
+        : undefined,
       createdBy: item.createdBy || "System",
       createdAt: item.createdAt
         ? item.createdAt.split("T")[0]
@@ -238,7 +240,11 @@ const ActionTracker = ({
   const uploadInProgressRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMounted = useRef(true);
-  useEffect(() => { return () => { isMounted.current = false; }; }, []);
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
   // Derive availableUsers from React Query user list
   const availableUsers: User[] = React.useMemo(() => {
     const allUsers = users.map((u) => ({
@@ -439,7 +445,7 @@ const ActionTracker = ({
       toast({
         title: "Fehler",
         description:
-          "Bitte wählen Sie eine Anlage, einen Standort und geben Sie einen Titel ein.",
+          "Bitte wï¿½hlen Sie eine Anlage, einen Standort und geben Sie einen Titel ein.",
         variant: "destructive",
       });
       return;
@@ -453,7 +459,7 @@ const ActionTracker = ({
       toast({
         title: "Fehler",
         description:
-          "Bitte füllen Sie alle Pflichtfelder aus (Zugewiesen an, Fälligkeitsdatum).",
+          "Bitte fï¿½llen Sie alle Pflichtfelder aus (Zugewiesen an, Fï¿½lligkeitsdatum).",
         variant: "destructive",
       });
       return;
@@ -623,7 +629,7 @@ const ActionTracker = ({
         try {
           await apiClient.post("/notifications", {
             title: "Action abgeschlossen",
-            message: `Action "${action.title}" für ${action.plant} wurde abgeschlossen.`,
+            message: `Action "${action.title}" fï¿½r ${action.plant} wurde abgeschlossen.`,
             type: "ACTION_COMPLETED",
             targetRoles: ["ADMIN", "MANAGER"],
             relatedId: action.id,
@@ -646,10 +652,10 @@ const ActionTracker = ({
 
       refreshActions();
     } catch (error) {
-      console.error("Fehler beim Ändern des Status:", error);
+      console.error("Fehler beim ï¿½ndern des Status:", error);
       toast({
         title: "Fehler",
-        description: "Status konnte nicht geändert werden.",
+        description: "Status konnte nicht geï¿½ndert werden.",
         variant: "destructive",
       });
     }
@@ -672,7 +678,7 @@ const ActionTracker = ({
         try {
           await apiClient.post("/notifications", {
             title: "Action abgeschlossen",
-            message: `Action "${action?.title}" für ${action?.plant} wurde abgeschlossen.`,
+            message: `Action "${action?.title}" fï¿½r ${action?.plant} wurde abgeschlossen.`,
             type: "ACTION_COMPLETED",
             targetRoles: ["ADMIN", "MANAGER"],
             relatedId: actionToComplete,
@@ -692,7 +698,7 @@ const ActionTracker = ({
         setCompleteDialogOpen(false);
         setActionToComplete(null);
       } catch (error) {
-        console.error("Fehler beim Abschließen:", error);
+        console.error("Fehler beim Abschlieï¿½en:", error);
         toast({
           title: "Fehler",
           description: "Action konnte nicht abgeschlossen werden.",
@@ -713,18 +719,18 @@ const ActionTracker = ({
 
         toast({
           variant: "success" as const,
-          title: "Action gelöscht",
-          description: `${action?.title} wurde erfolgreich gelöscht.`,
+          title: "Action gelï¿½scht",
+          description: `${action?.title} wurde erfolgreich gelï¿½scht.`,
         });
 
         refreshActions();
         setDeleteDialogOpen(false);
         setActionToDelete(null);
       } catch (error) {
-        console.error("Fehler beim Löschen:", error);
+        console.error("Fehler beim Lï¿½schen:", error);
         toast({
           title: "Fehler",
-          description: "Action konnte nicht gelöscht werden.",
+          description: "Action konnte nicht gelï¿½scht werden.",
           variant: "destructive",
         });
       }
@@ -754,7 +760,7 @@ const ActionTracker = ({
       return;
     }
 
-    // Prüfen ob es eine bestehende Aufgabe ist (hat ID) oder eine neue
+    // Prï¿½fen ob es eine bestehende Aufgabe ist (hat ID) oder eine neue
     const isEditMode = !!currentTask.id;
 
     if (isEditMode) {
@@ -783,7 +789,7 @@ const ActionTracker = ({
       toast({
         variant: "success" as const,
         title: "Aufgabe aktualisiert",
-        description: "Die Aufgabe wurde erfolgreich geändert.",
+        description: "Die Aufgabe wurde erfolgreich geï¿½ndert.",
       });
     } else {
       // Neue Aufgabe erstellen
@@ -808,7 +814,7 @@ const ActionTracker = ({
       toast({
         variant: "success" as const,
         title: "Aufgabe erstellt",
-        description: "Die Aufgabe wurde erfolgreich hinzugefügt.",
+        description: "Die Aufgabe wurde erfolgreich hinzugefï¿½gt.",
       });
     }
 
@@ -853,7 +859,7 @@ const ActionTracker = ({
 
     toast({
       variant: "success" as const,
-      title: "Aufgabe gelöscht",
+      title: "Aufgabe gelï¿½scht",
       description: "Die Aufgabe wurde erfolgreich entfernt.",
     });
   };
@@ -889,10 +895,10 @@ const ActionTracker = ({
     const files = event.target.files;
     if (!files || uploadInProgressRef.current) return;
 
-    // Speichere die echten File-Objekte für den Upload
+    // Speichere die echten File-Objekte fï¿½r den Upload
     const fileArray = Array.from(files);
 
-    // Überprüfe auf Duplikate basierend auf Dateiname, Größe und Type
+    // ï¿½berprï¿½fe auf Duplikate basierend auf Dateiname, Grï¿½ï¿½e und Type
     const existingFileSignatures = pendingFiles.map(
       (f) => `${f.name}-${f.size}-${f.type}`,
     );
@@ -903,9 +909,9 @@ const ActionTracker = ({
 
     if (newFiles.length === 0) {
       toast({
-        title: "Datei bereits hinzugefügt",
+        title: "Datei bereits hinzugefï¿½gt",
         description:
-          "Diese Datei(en) wurden bereits zur Upload-Liste hinzugefügt.",
+          "Diese Datei(en) wurden bereits zur Upload-Liste hinzugefï¿½gt.",
         variant: "destructive",
       });
       return;
@@ -913,7 +919,7 @@ const ActionTracker = ({
 
     setPendingFiles([...pendingFiles, ...newFiles]);
 
-    // Erstelle Preview-Objekte für die UI
+    // Erstelle Preview-Objekte fï¿½r die UI
     const newFileObjects: ActionFile[] = newFiles.map((file) => ({
       id: Date.now().toString() + Math.random(),
       name: file.name,
@@ -930,8 +936,8 @@ const ActionTracker = ({
 
     if (isMounted.current) {
       toast({
-        title: "Dateien hinzugefügt",
-        description: `${newFiles.length} Datei(en) wurden hinzugefügt.`,
+        title: "Dateien hinzugefï¿½gt",
+        description: `${newFiles.length} Datei(en) wurden hinzugefï¿½gt.`,
       });
     }
   };
@@ -943,7 +949,7 @@ const ActionTracker = ({
         await apiClient.delete(`/actions/${currentAction.id}/files/${fileId}`);
 
         toast({
-          title: "Datei gelöscht",
+          title: "Datei gelï¿½scht",
           description: "Die Datei wurde erfolgreich entfernt.",
         });
       }
@@ -954,10 +960,10 @@ const ActionTracker = ({
         files: currentAction.files?.filter((f) => f.id !== fileId) || [],
       });
     } catch (error) {
-      console.error("Fehler beim Löschen der Datei:", error);
+      console.error("Fehler beim Lï¿½schen der Datei:", error);
       toast({
         title: "Fehler",
-        description: "Datei konnte nicht gelöscht werden.",
+        description: "Datei konnte nicht gelï¿½scht werden.",
         variant: "destructive",
       });
     }
@@ -1076,7 +1082,7 @@ const ActionTracker = ({
           className="mb-2 -ml-2"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Zurück
+          Zurï¿½ck
         </Button>
 
         {/* Header Card */}
@@ -1106,7 +1112,7 @@ const ActionTracker = ({
               variant="outline"
               className="w-full h-12 bg-white/10 text-white border-white/30 hover:bg-white/20"
             >
-              {showList ? "Übersicht anzeigen" : "Meine Actions anzeigen"}
+              {showList ? "ï¿½bersicht anzeigen" : "Meine Actions anzeigen"}
             </Button>
           </CardContent>
         </Card>
@@ -1301,7 +1307,7 @@ const ActionTracker = ({
                               {action.priority === "URGENT" && "!!!"}
                               {action.priority === "HIGH" && "!!"}
                               {action.priority === "MEDIUM" && "!"}
-                              {action.priority === "LOW" && "·"}
+                              {action.priority === "LOW" && "ï¿½"}
                             </span>
                           </div>
                         </div>
@@ -1392,7 +1398,7 @@ const ActionTracker = ({
             <DialogHeader>
               <DialogTitle className="text-lg">Action bearbeiten</DialogTitle>
               <DialogDescription className="text-sm">
-                Möchten Sie diese Action bearbeiten?
+                Mï¿½chten Sie diese Action bearbeiten?
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-2">
@@ -1452,7 +1458,7 @@ const ActionTracker = ({
                     );
                     setIsDialogOpen(true);
                     setShowEditDialog(false);
-                    setShowList(false); // Zurück zur Übersicht
+                    setShowList(false); // Zurï¿½ck zur ï¿½bersicht
                   }
                 }}
                 className="flex-1 bg-slate-700 hover:bg-slate-800"
@@ -1470,7 +1476,7 @@ const ActionTracker = ({
                 className="flex-1"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Löschen
+                Lï¿½schen
               </Button>
               <Button
                 onClick={() => setShowEditDialog(false)}
@@ -1489,7 +1495,7 @@ const ActionTracker = ({
             <DialogHeader>
               <DialogTitle>Neue Action erstellen</DialogTitle>
               <DialogDescription>
-                Wählen Sie Anlage und Priorität aus
+                Wï¿½hlen Sie Anlage und Prioritï¿½t aus
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -1503,7 +1509,7 @@ const ActionTracker = ({
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Anlage auswählen..." />
+                    <SelectValue placeholder="Anlage auswï¿½hlen..." />
                   </SelectTrigger>
                   <SelectContent>
                     {availableRigs.map((rig) => (
@@ -1517,7 +1523,7 @@ const ActionTracker = ({
 
               {/* Priority Selection - Button Grid with colors (NO EMOJIS) */}
               <div className="space-y-2">
-                <Label>Priorität *</Label>
+                <Label>Prioritï¿½t *</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
@@ -1603,7 +1609,7 @@ const ActionTracker = ({
                   }
                 >
                   <SelectTrigger className="h-12 text-base">
-                    <SelectValue placeholder="Standort auswählen" />
+                    <SelectValue placeholder="Standort auswï¿½hlen" />
                   </SelectTrigger>
                   <SelectContent>
                     {availableLocations.map((location) => (
@@ -1660,7 +1666,7 @@ const ActionTracker = ({
                   }
                 >
                   <SelectTrigger id="assignedTo" className="h-12 text-base">
-                    <SelectValue placeholder="Person auswählen..." />
+                    <SelectValue placeholder="Person auswï¿½hlen..." />
                   </SelectTrigger>
                   <SelectContent>
                     {users
@@ -1693,7 +1699,7 @@ const ActionTracker = ({
 
               {/* Photo Upload like FailureReporting */}
               <div className="space-y-2">
-                <Label>Foto hinzufügen</Label>
+                <Label>Foto hinzufï¿½gen</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
@@ -1778,7 +1784,7 @@ const ActionTracker = ({
                 {isUploadingFiles ? (
                   <>
                     <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    Lädt hoch...
+                    Lï¿½dt hoch...
                   </>
                 ) : (
                   "Speichern"
@@ -1803,7 +1809,7 @@ const ActionTracker = ({
         className="mb-2"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Zurück
+        Zurï¿½ck
       </Button>
 
       <Card>
@@ -1815,7 +1821,7 @@ const ActionTracker = ({
                 Action Tracker
               </CardTitle>
               <CardDescription>
-                Aufgabenverfolgung für alle Anlagen
+                Aufgabenverfolgung fï¿½r alle Anlagen
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -1885,7 +1891,7 @@ const ActionTracker = ({
                 <div className="flex items-center gap-3">
                   <Select value={activeTab} onValueChange={setActiveTab}>
                     <SelectTrigger className="w-full sm:w-72 h-12 bg-muted/30">
-                      <SelectValue placeholder="Anlage auswählen..." />
+                      <SelectValue placeholder="Anlage auswï¿½hlen..." />
                     </SelectTrigger>
                     <SelectContent>
                       {availableRigs.map((rig) => {
@@ -2005,7 +2011,7 @@ const ActionTracker = ({
                                   Keine Actions
                                 </h3>
                                 <p className="text-sm text-muted-foreground mb-4">
-                                  Erstellen Sie die erste Action für {rig.name}
+                                  Erstellen Sie die erste Action fï¿½r {rig.name}
                                 </p>
                                 <Button onClick={openNewDialog}>
                                   <Plus className="mr-2 h-4 w-4" />
@@ -2013,7 +2019,7 @@ const ActionTracker = ({
                                 </Button>
                               </div>
                             ) : (
-                              <div className="rounded-md border">
+                              <div className="rounded-md border overflow-x-auto -webkit-overflow-scrolling-touch">
                                 <Table>
                                   <TableHeader>
                                     <TableRow className="border-b">
@@ -2034,13 +2040,13 @@ const ActionTracker = ({
                                         Status
                                       </TableHead>
                                       <TableHead className="py-2 h-9 text-xs font-semibold">
-                                        Priorität
+                                        Prioritï¿½t
                                       </TableHead>
                                       <TableHead className="py-2 h-9 text-xs font-semibold">
                                         Zugewiesen
                                       </TableHead>
                                       <TableHead className="py-2 h-9 text-xs font-semibold">
-                                        Fällig
+                                        Fï¿½llig
                                       </TableHead>
                                       <TableHead className="text-center py-2 h-9 w-[70px] text-xs font-semibold">
                                         Tasks
@@ -2253,7 +2259,7 @@ const ActionTracker = ({
                                                 title={
                                                   action.status === "COMPLETED"
                                                     ? "Action reaktivieren"
-                                                    : "Action abschließen"
+                                                    : "Action abschlieï¿½en"
                                                 }
                                               >
                                                 <CheckCircle2 className="h-3.5 w-3.5" />
@@ -2276,7 +2282,7 @@ const ActionTracker = ({
                                                 onClick={() =>
                                                   handleDelete(action.id)
                                                 }
-                                                title="Action löschen"
+                                                title="Action lï¿½schen"
                                               >
                                                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
                                               </Button>
@@ -2356,7 +2362,7 @@ const ActionTracker = ({
                                                         }
                                                         return null;
                                                       })()}
-                                                      {/* Zeige Foto-Button nur für alte lokale Dateien */}
+                                                      {/* Zeige Foto-Button nur fï¿½r alte lokale Dateien */}
                                                       {(() => {
                                                         const photoFilename =
                                                           extractPhotoFromDescription(
@@ -2522,7 +2528,7 @@ const ActionTracker = ({
                                                                     )}
                                                                     {task.dueDate && (
                                                                       <span className="text-xs text-muted-foreground">
-                                                                        Fällig:{" "}
+                                                                        Fï¿½llig:{" "}
                                                                         {new Date(
                                                                           task.dueDate,
                                                                         ).toLocaleDateString(
@@ -2564,7 +2570,7 @@ const ActionTracker = ({
                                                                         task.id,
                                                                       )
                                                                     }
-                                                                    title="Löschen"
+                                                                    title="Lï¿½schen"
                                                                   >
                                                                     <X className="h-3 w-3" />
                                                                   </Button>
@@ -2578,12 +2584,12 @@ const ActionTracker = ({
                                                   </Card>
                                                 </div>
 
-                                                {/* Angehängte Dateien Card */}
+                                                {/* Angehï¿½ngte Dateien Card */}
                                                 {action.files.length > 0 && (
                                                   <Card>
                                                     <CardHeader className="pb-3">
                                                       <CardTitle className="text-base flex items-center gap-2">
-                                                        ?? Angehängte Dateien
+                                                        ?? Angehï¿½ngte Dateien
                                                         <Badge
                                                           variant="secondary"
                                                           className="ml-2"
@@ -2795,7 +2801,7 @@ const ActionTracker = ({
             </DialogTitle>
             <DialogDescription>
               {isEditMode
-                ? "Ändern Sie die Action-Details"
+                ? "ï¿½ndern Sie die Action-Details"
                 : "Erstellen Sie eine neue Action"}
             </DialogDescription>
           </DialogHeader>
@@ -2818,7 +2824,7 @@ const ActionTracker = ({
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Anlage auswählen..." />
+                        <SelectValue placeholder="Anlage auswï¿½hlen..." />
                       </SelectTrigger>
                       <SelectContent>
                         {availableRigs.map((rig) => (
@@ -2939,7 +2945,7 @@ const ActionTracker = ({
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Standort auswählen" />
+                        <SelectValue placeholder="Standort auswï¿½hlen" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="TD">TD</SelectItem>
@@ -2991,7 +2997,7 @@ const ActionTracker = ({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="priority">Priorität</Label>
+                      <Label htmlFor="priority">Prioritï¿½t</Label>
                       <Select
                         value={currentAction.priority}
                         onValueChange={(value: Action["priority"]) =>
@@ -3052,14 +3058,14 @@ const ActionTracker = ({
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="User auswählen" />
+                          <SelectValue placeholder="User auswï¿½hlen" />
                         </SelectTrigger>
                         <SelectContent>
                           {users
                             .filter((user) => {
-                              // Admins und Manager können immer ausgewählt werden
+                              // Admins und Manager kï¿½nnen immer ausgewï¿½hlt werden
                               if (!user.assignedPlant) return true;
-                              // User muss zur ausgewählten Anlage gehören
+                              // User muss zur ausgewï¿½hlten Anlage gehï¿½ren
                               return user.assignedPlant === currentAction.plant;
                             })
                             .map((user) => (
@@ -3077,7 +3083,7 @@ const ActionTracker = ({
                     <div className="space-y-2">
                       <Label htmlFor="assignedUsers">
                         <Users className="w-4 h-4 inline mr-2" />
-                        Zusätzliche Zuständige
+                        Zusï¿½tzliche Zustï¿½ndige
                       </Label>
                       <div className="space-y-2">
                         <Popover>
@@ -3088,8 +3094,8 @@ const ActionTracker = ({
                               className="w-full justify-between"
                             >
                               {selectedAssignees.length > 0
-                                ? `${selectedAssignees.length} User ausgewählt`
-                                : "User auswählen..."}
+                                ? `${selectedAssignees.length} User ausgewï¿½hlt`
+                                : "User auswï¿½hlen..."}
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </PopoverTrigger>
@@ -3168,7 +3174,7 @@ const ActionTracker = ({
                           </PopoverContent>
                         </Popover>
 
-                        {/* Ausgewählte User anzeigen */}
+                        {/* Ausgewï¿½hlte User anzeigen */}
                         {selectedAssignees.length > 0 && (
                           <div className="flex flex-wrap gap-2">
                             {selectedAssignees.map((userId) => {
@@ -3192,7 +3198,7 @@ const ActionTracker = ({
                                     }}
                                     className="ml-1 hover:bg-red-500 rounded-full w-4 h-4 flex items-center justify-center"
                                   >
-                                    ×
+                                    ï¿½
                                   </button>
                                 </Badge>
                               ) : null;
@@ -3203,7 +3209,7 @@ const ActionTracker = ({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="dueDate">Fälligkeitsdatum *</Label>
+                      <Label htmlFor="dueDate">Fï¿½lligkeitsdatum *</Label>
                       <DatePicker
                         date={
                           currentAction.dueDate
@@ -3216,13 +3222,13 @@ const ActionTracker = ({
                             dueDate: date ? formatDateForInput(date) : "",
                           })
                         }
-                        placeholder="Fälligkeitsdatum wählen"
+                        placeholder="Fï¿½lligkeitsdatum wï¿½hlen"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Dateien anhängen</Label>
+                    <Label>Dateien anhï¿½ngen</Label>
                     <div className="flex gap-2">
                       <Button
                         type="button"
@@ -3233,7 +3239,7 @@ const ActionTracker = ({
                         className="flex-1"
                       >
                         <Paperclip className="mr-2 h-4 w-4" />
-                        Dateien auswählen
+                        Dateien auswï¿½hlen
                       </Button>
                       <Button
                         type="button"
@@ -3319,13 +3325,13 @@ const ActionTracker = ({
                       }}
                     >
                       <Plus className="h-4 w-4 mr-1" />
-                      Material hinzufügen
+                      Material hinzufï¿½gen
                     </Button>
                   </div>
 
                   {materials.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      Noch keine Materialien hinzugefügt
+                      Noch keine Materialien hinzugefï¿½gt
                     </div>
                   ) : (
                     <div className="border rounded-lg">
@@ -3406,8 +3412,8 @@ const ActionTracker = ({
                                     <SelectItem value="L">L</SelectItem>
                                     <SelectItem value="kg">kg</SelectItem>
                                     <SelectItem value="m">m</SelectItem>
-                                    <SelectItem value="m²">m²</SelectItem>
-                                    <SelectItem value="m³">m³</SelectItem>
+                                    <SelectItem value="mï¿½">mï¿½</SelectItem>
+                                    <SelectItem value="mï¿½">mï¿½</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </TableCell>
@@ -3489,7 +3495,7 @@ const ActionTracker = ({
               {isUploadingFiles ? (
                 <>
                   <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  Lädt hoch...
+                  Lï¿½dt hoch...
                 </>
               ) : isEditMode ? (
                 "Speichern"
@@ -3507,19 +3513,19 @@ const ActionTracker = ({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-red-600">
               <Trash2 className="h-5 w-5" />
-              Action wirklich löschen?
+              Action wirklich lï¿½schen?
             </AlertDialogTitle>
             <AlertDialogDescription>
               {actionToDelete && (
                 <>
                   <p className="mb-2">
-                    Sie sind dabei, die folgende Action zu löschen:
+                    Sie sind dabei, die folgende Action zu lï¿½schen:
                   </p>
                   <p className="font-semibold text-foreground">
                     "{actions.find((a) => a.id === actionToDelete)?.title}"
                   </p>
                   <p className="mt-3">
-                    Diese Aktion kann nicht rückgängig gemacht werden. Die
+                    Diese Aktion kann nicht rï¿½ckgï¿½ngig gemacht werden. Die
                     Action wird dauerhaft aus der Datenbank entfernt.
                   </p>
                 </>
@@ -3533,7 +3539,7 @@ const ActionTracker = ({
               className="bg-red-600 hover:bg-red-700"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Endgültig löschen
+              Endgï¿½ltig lï¿½schen
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -3546,10 +3552,10 @@ const ActionTracker = ({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Action abschließen?</AlertDialogTitle>
+            <AlertDialogTitle>Action abschlieï¿½en?</AlertDialogTitle>
             <AlertDialogDescription>
-              Möchten Sie diese Action wirklich als abgeschlossen markieren? Die
-              Manager werden über den Abschluss benachrichtigt.
+              Mï¿½chten Sie diese Action wirklich als abgeschlossen markieren? Die
+              Manager werden ï¿½ber den Abschluss benachrichtigt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -3558,7 +3564,7 @@ const ActionTracker = ({
               onClick={confirmComplete}
               className="bg-green-600"
             >
-              Abschließen
+              Abschlieï¿½en
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

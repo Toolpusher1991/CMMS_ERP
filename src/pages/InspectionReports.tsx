@@ -1104,6 +1104,7 @@ const InspectionReports = () => {
               Keine Berichte gefunden
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -1167,6 +1168,7 @@ const InspectionReports = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

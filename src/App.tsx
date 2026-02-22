@@ -151,134 +151,134 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="dark" storageKey="cmms-erp-theme">
-      {isMobile ? (
-        // Mobile View: Simplified layout - Create Failures and Actions only
-        <MobileLayout
-          isLoggedIn={true}
-          userName={`${user.firstName} ${user.lastName}`}
-          onLogout={handleLogout}
-          onNavigate={handleMobileNavigate}
-        >
-          <Suspense
-            fallback={
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-              </div>
-            }
+      <ThemeProvider defaultTheme="dark" storageKey="cmms-erp-theme">
+        {isMobile ? (
+          // Mobile View: Simplified layout - Create Failures and Actions only
+          <MobileLayout
+            isLoggedIn={true}
+            userName={`${user.firstName} ${user.lastName}`}
+            onLogout={handleLogout}
+            onNavigate={handleMobileNavigate}
           >
-            {currentPage === "failures" ? (
-              <FailureReporting
-                onNavigateBack={() => handleMobileNavigate("home")}
-              />
-            ) : currentPage === "actions" ? (
-              <ActionTracker
-                onNavigateBack={() => handleMobileNavigate("home")}
-              />
-            ) : null}
-          </Suspense>
-        </MobileLayout>
-      ) : (
-        // Desktop View: Full app with Sidebar
-        <div className="flex h-screen overflow-hidden">
-          {/* Sidebar */}
-          <Sidebar
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            userRole={user?.role}
-          />
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                </div>
+              }
+            >
+              {currentPage === "failures" ? (
+                <FailureReporting
+                  onNavigateBack={() => handleMobileNavigate("home")}
+                />
+              ) : currentPage === "actions" ? (
+                <ActionTracker
+                  onNavigateBack={() => handleMobileNavigate("home")}
+                />
+              ) : null}
+            </Suspense>
+          </MobileLayout>
+        ) : (
+          // Desktop View: Full app with Sidebar
+          <div className="flex h-screen overflow-hidden">
+            {/* Sidebar */}
+            <Sidebar
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              userRole={user?.role}
+            />
 
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Top Header - Minimal */}
-            <header className="h-16 border-b bg-card flex items-center justify-end px-4 gap-3">
-              <span className="text-sm text-muted-foreground mr-auto ml-4">
-                {user.firstName} {user.lastName}
-              </span>
-              <NotificationBell onNavigate={setCurrentPage} />
-              <ModeToggle />
-              <Button onClick={handleLogout} variant="outline" size="sm">
-                Abmelden
-              </Button>
-            </header>
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Top Header - Minimal */}
+              <header className="h-16 border-b bg-card flex items-center justify-end px-4 gap-3">
+                <span className="text-sm text-muted-foreground mr-auto ml-4">
+                  {user.firstName} {user.lastName}
+                </span>
+                <NotificationBell onNavigate={setCurrentPage} />
+                <ModeToggle />
+                <Button onClick={handleLogout} variant="outline" size="sm">
+                  Abmelden
+                </Button>
+              </header>
 
-            {/* Content Area with Scroll */}
-            <main className="flex-1 overflow-y-auto bg-background">
-              <div className="container mx-auto max-w-full p-4 sm:p-6 lg:p-8">
-                <ErrorBoundary>
-                  <Suspense
-                    fallback={
-                      <div className="flex items-center justify-center h-64">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                      </div>
-                    }
-                  >
-                    {currentPage === "dashboard" && (
-                      <PageErrorBoundary>
-                        <Dashboard onNavigate={handleNavigate} />
-                      </PageErrorBoundary>
-                    )}
-                    {currentPage === "projects" && (
-                      <PageErrorBoundary>
-                        <ProjectsPage />
-                      </PageErrorBoundary>
-                    )}
-                    {currentPage === "workorders" && (
-                      <PageErrorBoundary>
-                        <WorkOrderManagement />
-                      </PageErrorBoundary>
-                    )}
-                    {currentPage === "actions" && (
-                      <PageErrorBoundary>
-                        <ActionTracker
-                          initialActionId={initialActionId}
-                          showOnlyMyActions={showOnlyMyActions}
-                        />
-                      </PageErrorBoundary>
-                    )}
-                    {currentPage === "failures" && (
-                      <PageErrorBoundary>
-                        <FailureReporting initialReportId={initialReportId} />
-                      </PageErrorBoundary>
-                    )}
-                    {currentPage === "inspections" && (
-                      <PageErrorBoundary>
-                        <InspectionReports />
-                      </PageErrorBoundary>
-                    )}
-                    {currentPage === "shifts" && (
-                      <PageErrorBoundary>
-                        <ShiftPlanner />
-                      </PageErrorBoundary>
-                    )}
-                    {currentPage === "tender" && (
-                      <PageErrorBoundary>
-                        <RigConfigurator />
-                      </PageErrorBoundary>
-                    )}
-                    {currentPage === "integrity" && (
-                      <PageErrorBoundary>
-                        <AssetIntegrityManagement />
-                      </PageErrorBoundary>
-                    )}
-                    {currentPage === "admin" && user.role === "ADMIN" && (
-                      <PageErrorBoundary>
-                        <AdminPanel />
-                      </PageErrorBoundary>
-                    )}
-                  </Suspense>
-                </ErrorBoundary>
-              </div>
-            </main>
+              {/* Content Area with Scroll */}
+              <main className="flex-1 overflow-y-auto bg-background">
+                <div className="container mx-auto max-w-full p-4 sm:p-6 lg:p-8">
+                  <ErrorBoundary>
+                    <Suspense
+                      fallback={
+                        <div className="flex items-center justify-center h-64">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                        </div>
+                      }
+                    >
+                      {currentPage === "dashboard" && (
+                        <PageErrorBoundary>
+                          <Dashboard onNavigate={handleNavigate} />
+                        </PageErrorBoundary>
+                      )}
+                      {currentPage === "projects" && (
+                        <PageErrorBoundary>
+                          <ProjectsPage />
+                        </PageErrorBoundary>
+                      )}
+                      {currentPage === "workorders" && (
+                        <PageErrorBoundary>
+                          <WorkOrderManagement />
+                        </PageErrorBoundary>
+                      )}
+                      {currentPage === "actions" && (
+                        <PageErrorBoundary>
+                          <ActionTracker
+                            initialActionId={initialActionId}
+                            showOnlyMyActions={showOnlyMyActions}
+                          />
+                        </PageErrorBoundary>
+                      )}
+                      {currentPage === "failures" && (
+                        <PageErrorBoundary>
+                          <FailureReporting initialReportId={initialReportId} />
+                        </PageErrorBoundary>
+                      )}
+                      {currentPage === "inspections" && (
+                        <PageErrorBoundary>
+                          <InspectionReports />
+                        </PageErrorBoundary>
+                      )}
+                      {currentPage === "shifts" && (
+                        <PageErrorBoundary>
+                          <ShiftPlanner />
+                        </PageErrorBoundary>
+                      )}
+                      {currentPage === "tender" && (
+                        <PageErrorBoundary>
+                          <RigConfigurator />
+                        </PageErrorBoundary>
+                      )}
+                      {currentPage === "integrity" && (
+                        <PageErrorBoundary>
+                          <AssetIntegrityManagement />
+                        </PageErrorBoundary>
+                      )}
+                      {currentPage === "admin" && user.role === "ADMIN" && (
+                        <PageErrorBoundary>
+                          <AdminPanel />
+                        </PageErrorBoundary>
+                      )}
+                    </Suspense>
+                  </ErrorBoundary>
+                </div>
+              </main>
+            </div>
+
+            {/* Floating Chatbot */}
+            <FloatingChatButton />
           </div>
-
-          {/* Floating Chatbot */}
-          <FloatingChatButton />
-        </div>
-      )}
-      <Toaster />
-    </ThemeProvider>
-    <ReactQueryDevtools initialIsOpen={false} />
+        )}
+        <Toaster />
+      </ThemeProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }

@@ -253,29 +253,33 @@ function TaskFlowNode({
             className={cn(
               "group relative px-3.5 py-2.5 rounded-xl border-2 shadow-md min-w-[200px] max-w-[300px] cursor-pointer transition-all duration-200 hover:shadow-xl hover:scale-[1.03] h-full flex flex-col justify-center backdrop-blur-sm",
               statusColors[data.status],
-              selected && "ring-2 ring-primary ring-offset-1 ring-offset-background",
+              selected &&
+                "ring-2 ring-primary ring-offset-1 ring-offset-background",
               isOverdue && "ring-2 ring-red-400 ring-offset-1",
               hasMaterial &&
                 !localMaterial.materialDelivered &&
                 "ring-2 ring-orange-400 ring-offset-1",
             )}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
           >
-            {/* Quick Actions - sichtbar beim Hover */}
-            <div className={cn(
-              "absolute -top-3 -right-2 flex gap-1 z-10 transition-all duration-200",
-              isHovered && !isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1 pointer-events-none"
-            )}>
+            {/* Quick Actions - hover on desktop, always visible on touch (via CSS) */}
+            <div
+              className={cn(
+                "absolute -top-3 -right-2 flex gap-1 z-10 transition-all duration-200",
+                isHovered && !isOpen
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0",
+                isOpen && "pointer-events-none",
+              )}
+            >
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsOpen(true);
                 }}
-                className="p-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transition-all hover:scale-110"
+                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transition-all hover:scale-110 touch-manipulation"
                 title="Bearbeiten"
               >
-                <Edit className="h-3 w-3" />
+                <Edit className="h-4 w-4" />
               </button>
               <button
                 onClick={(e) => {
@@ -284,14 +288,14 @@ function TaskFlowNode({
                     data.onDelete(data.taskId);
                   }
                 }}
-                className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-all hover:scale-110"
+                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-all hover:scale-110 touch-manipulation"
                 title="Löschen"
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className="h-4 w-4" />
               </button>
               <button
                 onClick={handleStatusClick}
-                className="p-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-lg transition-all hover:scale-110"
+                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-lg transition-all hover:scale-110 touch-manipulation"
                 title="Status wechseln"
               >
                 <CheckCircle2 className="h-3 w-3" />
@@ -748,13 +752,19 @@ function MilestoneNode({ data }: { data: MilestoneNodeData }) {
         <Diamond
           className={cn(
             "h-5 w-5 mx-auto drop-shadow-sm",
-            data.completed ? "text-white" : "text-amber-600 dark:text-amber-300",
+            data.completed
+              ? "text-white"
+              : "text-amber-600 dark:text-amber-300",
           )}
         />
-        <span className={cn(
-          "text-[10px] font-bold block mt-1 max-w-[60px] truncate",
-          data.completed ? "text-white" : "text-amber-800 dark:text-amber-200",
-        )}>
+        <span
+          className={cn(
+            "text-[10px] font-bold block mt-1 max-w-[60px] truncate",
+            data.completed
+              ? "text-white"
+              : "text-amber-800 dark:text-amber-200",
+          )}
+        >
           {data.label}
         </span>
       </div>
@@ -783,10 +793,10 @@ function StartNode({ data }: { data: { onDelete?: () => void } }) {
             e.stopPropagation();
             data.onDelete?.();
           }}
-          className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-all shadow-md"
+          className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 min-w-[36px] min-h-[36px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md touch-manipulation"
           title="Löschen"
         >
-          <X className="h-3 w-3" />
+          <X className="h-4 w-4" />
         </button>
       )}
     </div>
@@ -808,10 +818,10 @@ function EndNode({ data }: { data: { onDelete?: () => void } }) {
             e.stopPropagation();
             data.onDelete?.();
           }}
-          className="absolute -top-2 -right-2 bg-gray-700 hover:bg-gray-800 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-all shadow-md"
+          className="absolute -top-2 -right-2 bg-gray-700 hover:bg-gray-800 text-white rounded-full p-2 min-w-[36px] min-h-[36px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md touch-manipulation"
           title="Löschen"
         >
-          <X className="h-3 w-3" />
+          <X className="h-4 w-4" />
         </button>
       )}
     </div>
@@ -857,7 +867,9 @@ function GroupNode({
           onDoubleClick={handleDoubleClick}
           title="Doppelklick zum Umbenennen"
         >
-          <span className="tracking-wide">{data.label || `${count} Aufgaben`}</span>
+          <span className="tracking-wide">
+            {data.label || `${count} Aufgaben`}
+          </span>
           {data.onDissolve && (
             <button
               onClick={(e) => {
@@ -3450,7 +3462,12 @@ export default function ProjectsPage() {
                 }}
                 maskColor="rgba(0, 0, 0, 0.6)"
               />
-              <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#475569" />
+              <Background
+                variant={BackgroundVariant.Dots}
+                gap={16}
+                size={1}
+                color="#475569"
+              />
               {/* Top-Left Panel: Add Buttons */}
               <Panel position="top-left" className="flex gap-2">
                 <Button

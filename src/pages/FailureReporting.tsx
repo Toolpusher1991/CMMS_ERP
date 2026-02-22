@@ -7,10 +7,7 @@ import { useRigs } from "@/hooks/useRigs";
 import { isMobileDevice } from "@/lib/device-detection";
 import { getActiveLocations } from "@/config/locations";
 import { cn } from "@/lib/utils";
-import {
-  SEVERITY_CONFIG,
-  FAILURE_STATUS_CONFIG,
-} from "@/lib/constants";
+import { SEVERITY_CONFIG, FAILURE_STATUS_CONFIG } from "@/lib/constants";
 import { useUserList } from "@/hooks/useQueryHooks";
 import "./FailureReporting.mobile.css";
 import {
@@ -144,7 +141,11 @@ const FailureReportingPage = ({
   });
   const reports = reportsData ?? [];
 
-  useEffect(() => { return () => { isMounted.current = false; }; }, []);
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Get available plants based on current user
   const getAvailablePlants = () => {
@@ -280,8 +281,9 @@ const FailureReportingPage = ({
         formData,
       )) as FailureReport;
 
-      queryClient.setQueryData<FailureReport[]>(queryKeys.failureReports.list(), (prev) =>
-        [newReport, ...(prev ?? [])],
+      queryClient.setQueryData<FailureReport[]>(
+        queryKeys.failureReports.list(),
+        (prev) => [newReport, ...(prev ?? [])],
       );
       // Also invalidate actions since failure reports are shown on Dashboard
       queryClient.invalidateQueries({ queryKey: queryKeys.failureReports.all });
@@ -322,8 +324,9 @@ const FailureReportingPage = ({
 
     try {
       await apiClient.delete(`/failure-reports/${reportToDelete}`);
-      queryClient.setQueryData<FailureReport[]>(queryKeys.failureReports.list(), (prev) =>
-        (prev ?? []).filter((r) => r.id !== reportToDelete),
+      queryClient.setQueryData<FailureReport[]>(
+        queryKeys.failureReports.list(),
+        (prev) => (prev ?? []).filter((r) => r.id !== reportToDelete),
       );
 
       toast({
@@ -368,16 +371,18 @@ const FailureReportingPage = ({
         payload,
       )) as { action: { id: string } };
 
-      queryClient.setQueryData<FailureReport[]>(queryKeys.failureReports.list(), (prev) =>
-        (prev ?? []).map((r) =>
-          r.id === reportToConvert.id
-            ? {
-                ...r,
-                status: "CONVERTED_TO_ACTION" as const,
-                convertedToActionId: response.action.id,
-              }
-            : r,
-        ),
+      queryClient.setQueryData<FailureReport[]>(
+        queryKeys.failureReports.list(),
+        (prev) =>
+          (prev ?? []).map((r) =>
+            r.id === reportToConvert.id
+              ? {
+                  ...r,
+                  status: "CONVERTED_TO_ACTION" as const,
+                  convertedToActionId: response.action.id,
+                }
+              : r,
+          ),
       );
       // Invalidate actions cache since a new action was created
       queryClient.invalidateQueries({ queryKey: queryKeys.actions.all });
@@ -878,7 +883,7 @@ const FailureReportingPage = ({
 
             {getAvailablePlants().map((plant) => (
               <TabsContent key={plant} value={plant}>
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>

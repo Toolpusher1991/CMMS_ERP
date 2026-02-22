@@ -379,7 +379,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 Fehler beim Laden der Dashboard-Daten
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {loadError instanceof Error ? loadError.message : String(loadError)}
+                {loadError instanceof Error
+                  ? loadError.message
+                  : String(loadError)}
               </p>
             </div>
           </div>

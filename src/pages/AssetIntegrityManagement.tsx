@@ -344,7 +344,6 @@ export default function AssetIntegrityManagement() {
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [hoveredRigId, setHoveredRigId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [rigSearchQuery, setRigSearchQuery] = useState("");
 
@@ -1432,15 +1431,11 @@ export default function AssetIntegrityManagement() {
             {filteredRigs.map((rig) => {
               const priorityStatus = getRigPriorityStatus(rig);
               const priorityColor = getPriorityColor(priorityStatus);
-              const isHovered = hoveredRigId === rig.id;
-
               return (
                 <Card
                   key={rig.id}
                   className={`group relative border bg-card/80 hover:bg-card transition-all cursor-pointer hover:shadow-2xl hover:scale-[1.02] backdrop-blur-sm ${priorityColor}`}
                   onClick={() => setSelectedRig(rig)}
-                  onMouseEnter={() => setHoveredRigId(rig.id)}
-                  onMouseLeave={() => setHoveredRigId(null)}
                 >
                   {/* Status Badge - Top Right Corner */}
                   <div className="absolute top-3 right-3 z-10">
@@ -1457,14 +1452,9 @@ export default function AssetIntegrityManagement() {
                     </Badge>
                   </div>
 
-                  {/* Quick Actions - visible on hover */}
-                  {/* Quick Action Buttons - Immer sichtbar auf Touch-Geräten, nur Hover auf Desktop */}
+                  {/* Quick Action Buttons - visible on hover (desktop) / always visible (touch via CSS) */}
                   <div
-                    className={`absolute -top-3 -right-3 flex gap-1.5 z-20 transition-opacity ${
-                      isHovered
-                        ? "opacity-100"
-                        : "opacity-0 md:opacity-0 touch:opacity-100"
-                    }`}
+                    className="absolute -top-3 -right-3 flex gap-1.5 z-20 transition-opacity opacity-0 group-hover:opacity-100"
                   >
                     <Button
                       size="sm"
@@ -1693,7 +1683,7 @@ export default function AssetIntegrityManagement() {
       {/* Detail Dialog */}
       {selectedRig && (
         <Dialog open={!!selectedRig} onOpenChange={() => setSelectedRig(null)}>
-          <DialogContent className="min-w-[1200px] w-[min(1400px,95vw)] max-h-[90vh] flex flex-col overflow-hidden bg-card border-border">
+          <DialogContent className="w-[95vw] max-w-[1400px] max-h-[90vh] flex flex-col overflow-hidden bg-card border-border">
             <DialogHeader className="flex-shrink-0">
               <div className="flex items-center justify-between gap-3 overflow-hidden">
                 <div className="flex items-center gap-2 min-w-0 flex-1">

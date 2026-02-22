@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -21,6 +21,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { isTabletDevice } from "@/lib/device-detection";
 
 type AppPage =
   | "dashboard"
@@ -61,7 +62,20 @@ interface SidebarProps {
 }
 
 export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  // Auto-collapse on iPad portrait
+  const [collapsed, setCollapsed] = useState(() => {
+    if (isTabletDevice() && window.innerWidth < 1024) return true;
+    return false;
+  });
+
+  // React to orientation changes on iPad
+  useEffect(() => {
+    if (!isTabletDevice()) return;
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const handler = (e: MediaQueryListEvent) => setCollapsed(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   // Filter nav items based on user role
   const navItems = useMemo(() => {
@@ -108,7 +122,7 @@ export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
           variant="ghost"
           size="icon"
           onClick={() => setCollapsed(!collapsed)}
-          className="h-8 w-8"
+          className="h-11 w-11"
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -159,7 +173,7 @@ export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
                 key={item.page}
                 onClick={() => onPageChange(item.page)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium group relative",
+                  "w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all text-sm font-medium group relative touch-manipulation min-h-[44px]",
                   isActive
                     ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/20"
                     : "text-sidebar-foreground hover:bg-slate-800/50 hover:shadow-md",

@@ -1452,9 +1452,9 @@ const ShiftPlanner: React.FC = () => {
                   e.stopPropagation();
                   handleEdit(assignment.key, assignment.data);
                 }}
-                className="text-white/80 hover:text-white p-0.5"
+                className="text-white/80 hover:text-white p-1.5 min-w-[28px] min-h-[28px] flex items-center justify-center touch-manipulation"
               >
-                <Edit2 className="w-3 h-3" />
+                <Edit2 className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={(e) => {
@@ -1464,9 +1464,9 @@ const ShiftPlanner: React.FC = () => {
                     value: assignment.key,
                   });
                 }}
-                className="text-white/80 hover:text-white p-0.5"
+                className="text-white/80 hover:text-white p-1.5 min-w-[28px] min-h-[28px] flex items-center justify-center touch-manipulation"
               >
-                <Trash2 className="w-3 h-3" />
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -2304,19 +2304,19 @@ const ShiftPlanner: React.FC = () => {
                     });
                     setShowAbsenceModal(true);
                   }}
-                  className="opacity-0 group-hover:opacity-100 ml-1 hover:text-red-300 transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 ml-1 hover:text-red-300 transition-opacity p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center touch-manipulation"
                   title="Abwesenheit eintragen"
                 >
-                  <HeartPulse className="w-3 h-3" />
+                  <HeartPulse className="w-4 h-4" />
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setDeleteConfirm({ type: "personnel", value: person });
                   }}
-                  className="opacity-0 group-hover:opacity-100 ml-1 hover:text-destructive transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 ml-1 hover:text-destructive transition-opacity p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center touch-manipulation"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             ))}
@@ -2425,9 +2425,9 @@ const ShiftPlanner: React.FC = () => {
                             value: position,
                           })
                         }
-                        className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive/80 transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive/80 transition-opacity p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center touch-manipulation"
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                     <div
