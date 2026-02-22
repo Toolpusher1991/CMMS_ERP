@@ -24,7 +24,7 @@ import {
 } from "@/services/project.service";
 import { userService } from "@/services/user.service";
 import type { User } from "@/services/auth.service";
-import { rigService } from "@/services/rig.service";
+import { useRigs } from "@/hooks/useRigs";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -1034,9 +1034,7 @@ export default function ProjectsPage() {
   // State
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [availableRigs, setAvailableRigs] = useState<
-    Array<{ id: string; name: string }>
-  >([]);
+  const { rigs: availableRigs } = useRigs();
   const [activeTab, setActiveTab] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(
@@ -1112,21 +1110,12 @@ export default function ProjectsPage() {
     label: "",
   });
 
-  // Load Rigs
-  const loadRigs = useCallback(async () => {
-    try {
-      const response = await rigService.getAllRigs();
-      if (response.success && response.data) {
-        setAvailableRigs(response.data);
-        // Set active tab to first rig
-        if (response.data.length > 0) {
-          setActiveTab(response.data[0].name);
-        }
-      }
-    } catch (error) {
-      console.error("Error loading rigs:", error);
+  // Set active tab to first rig when rigs load
+  useEffect(() => {
+    if (availableRigs.length > 0 && !activeTab) {
+      setActiveTab(availableRigs[0].name);
     }
-  }, []);
+  }, [availableRigs, activeTab]);
 
   // Load Users
   const loadUsers = useCallback(async () => {
@@ -1159,10 +1148,9 @@ export default function ProjectsPage() {
   }, [toast]);
 
   useEffect(() => {
-    loadRigs();
     loadProjects();
     loadUsers();
-  }, [loadRigs, loadProjects, loadUsers]);
+  }, [loadProjects, loadUsers]);
 
   // Keyboard Shortcuts
   useEffect(() => {

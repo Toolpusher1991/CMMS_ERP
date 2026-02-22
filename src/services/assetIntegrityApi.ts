@@ -1,13 +1,12 @@
 /**
  * Asset Integrity Management API Service
  * 
- * Dieser Service handled alle API-Calls für das Asset Integrity Management System.
- * Backend-Endpunkte müssen in backend/src/routes/ angelegt werden.
+ * Nutzt den gemeinsamen apiClient für Auth-Token, Timeout, Token-Refresh und Rate-Limit-Retry.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5137';
+import { apiClient } from './api';
 
-// Types (sollten mit Backend synchronisiert werden)
+// Types (synchronisiert mit Backend)
 export interface GeneralInfo {
   id: string;
   description: string;
@@ -61,30 +60,12 @@ export interface Rig {
   improvements: Improvement[];
 }
 
-// Helper function for API calls
-async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('token');
-  
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...options?.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-    throw new Error(error.message || `API Error: ${response.status}`);
+// Helper: Backend wraps responses in { success, data } — unwrap automatically
+function unwrap<T>(response: { success?: boolean; data?: T } | T): T {
+  if (response && typeof response === 'object' && 'data' in response) {
+    return (response as { data: T }).data;
   }
-
-  const json = await response.json();
-  // Backend wraps responses in { success, data, message } — unwrap automatically
-  if (json && typeof json === 'object' && 'data' in json) {
-    return json.data as T;
-  }
-  return json as T;
+  return response as T;
 }
 
 // ===== RIG MANAGEMENT =====
@@ -93,43 +74,39 @@ async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
  * Alle Anlagen abrufen
  */
 export async function getAllRigs(): Promise<Rig[]> {
-  return apiCall<Rig[]>('/api/asset-integrity/rigs');
+  const response = await apiClient.get<{ success: boolean; data: Rig[] }>('/asset-integrity/rigs');
+  return unwrap(response);
 }
 
 /**
  * Einzelne Anlage abrufen
  */
 export async function getRigById(rigId: string): Promise<Rig> {
-  return apiCall<Rig>(`/api/asset-integrity/rigs/${rigId}`);
+  const response = await apiClient.get<{ success: boolean; data: Rig }>(`/asset-integrity/rigs/${rigId}`);
+  return unwrap(response);
 }
 
 /**
  * Neue Anlage erstellen
  */
 export async function createRig(rig: Omit<Rig, 'id'>): Promise<Rig> {
-  return apiCall<Rig>('/api/asset-integrity/rigs', {
-    method: 'POST',
-    body: JSON.stringify(rig),
-  });
+  const response = await apiClient.post<{ success: boolean; data: Rig }>('/asset-integrity/rigs', rig);
+  return unwrap(response);
 }
 
 /**
  * Anlage aktualisieren
  */
 export async function updateRig(rigId: string, updates: Partial<Rig>): Promise<Rig> {
-  return apiCall<Rig>(`/api/asset-integrity/rigs/${rigId}`, {
-    method: 'PUT',
-    body: JSON.stringify(updates),
-  });
+  const response = await apiClient.put<{ success: boolean; data: Rig }>(`/asset-integrity/rigs/${rigId}`, updates);
+  return unwrap(response);
 }
 
 /**
  * Anlage löschen
  */
 export async function deleteRig(rigId: string): Promise<void> {
-  return apiCall<void>(`/api/asset-integrity/rigs/${rigId}`, {
-    method: 'DELETE',
-  });
+  await apiClient.delete<{ success: boolean; message: string }>(`/asset-integrity/rigs/${rigId}`);
 }
 
 // ===== GENERAL INFO MANAGEMENT =====
@@ -141,10 +118,8 @@ export async function addGeneralInfo(
   rigId: string,
   info: Omit<GeneralInfo, 'id' | 'createdDate'>
 ): Promise<GeneralInfo> {
-  return apiCall<GeneralInfo>(`/api/asset-integrity/rigs/${rigId}/general-info`, {
-    method: 'POST',
-    body: JSON.stringify(info),
-  });
+  const response = await apiClient.post<{ success: boolean; data: GeneralInfo }>(`/asset-integrity/rigs/${rigId}/general-info`, info);
+  return unwrap(response);
 }
 
 /**
@@ -155,19 +130,15 @@ export async function updateGeneralInfo(
   infoId: string,
   updates: Partial<GeneralInfo>
 ): Promise<GeneralInfo> {
-  return apiCall<GeneralInfo>(`/api/asset-integrity/rigs/${rigId}/general-info/${infoId}`, {
-    method: 'PATCH',
-    body: JSON.stringify(updates),
-  });
+  const response = await apiClient.put<{ success: boolean; data: GeneralInfo }>(`/asset-integrity/rigs/${rigId}/general-info/${infoId}`, updates);
+  return unwrap(response);
 }
 
 /**
  * Notiz/Info löschen
  */
 export async function deleteGeneralInfo(rigId: string, infoId: string): Promise<void> {
-  return apiCall<void>(`/api/asset-integrity/rigs/${rigId}/general-info/${infoId}`, {
-    method: 'DELETE',
-  });
+  await apiClient.delete<{ success: boolean; message: string }>(`/asset-integrity/rigs/${rigId}/general-info/${infoId}`);
 }
 
 // ===== INSPECTION MANAGEMENT =====
@@ -179,10 +150,8 @@ export async function addInspection(
   rigId: string,
   inspection: Omit<Inspection, 'id' | 'status'>
 ): Promise<Inspection> {
-  return apiCall<Inspection>(`/api/asset-integrity/rigs/${rigId}/inspections`, {
-    method: 'POST',
-    body: JSON.stringify(inspection),
-  });
+  const response = await apiClient.post<{ success: boolean; data: Inspection }>(`/asset-integrity/rigs/${rigId}/inspections`, inspection);
+  return unwrap(response);
 }
 
 /**
@@ -193,19 +162,15 @@ export async function updateInspection(
   inspectionId: string,
   updates: Partial<Inspection>
 ): Promise<Inspection> {
-  return apiCall<Inspection>(`/api/asset-integrity/rigs/${rigId}/inspections/${inspectionId}`, {
-    method: 'PATCH',
-    body: JSON.stringify(updates),
-  });
+  const response = await apiClient.put<{ success: boolean; data: Inspection }>(`/asset-integrity/rigs/${rigId}/inspections/${inspectionId}`, updates);
+  return unwrap(response);
 }
 
 /**
  * Inspektion löschen
  */
 export async function deleteInspection(rigId: string, inspectionId: string): Promise<void> {
-  return apiCall<void>(`/api/asset-integrity/rigs/${rigId}/inspections/${inspectionId}`, {
-    method: 'DELETE',
-  });
+  await apiClient.delete<{ success: boolean; message: string }>(`/asset-integrity/rigs/${rigId}/inspections/${inspectionId}`);
 }
 
 // ===== ISSUE MANAGEMENT =====
@@ -217,10 +182,8 @@ export async function addIssue(
   rigId: string,
   issue: Omit<Issue, 'id' | 'status' | 'createdDate'>
 ): Promise<Issue> {
-  return apiCall<Issue>(`/api/asset-integrity/rigs/${rigId}/issues`, {
-    method: 'POST',
-    body: JSON.stringify(issue),
-  });
+  const response = await apiClient.post<{ success: boolean; data: Issue }>(`/asset-integrity/rigs/${rigId}/issues`, issue);
+  return unwrap(response);
 }
 
 /**
@@ -231,19 +194,15 @@ export async function updateIssue(
   issueId: string,
   updates: Partial<Issue>
 ): Promise<Issue> {
-  return apiCall<Issue>(`/api/asset-integrity/rigs/${rigId}/issues/${issueId}`, {
-    method: 'PATCH',
-    body: JSON.stringify(updates),
-  });
+  const response = await apiClient.put<{ success: boolean; data: Issue }>(`/asset-integrity/rigs/${rigId}/issues/${issueId}`, updates);
+  return unwrap(response);
 }
 
 /**
  * Issue löschen
  */
 export async function deleteIssue(rigId: string, issueId: string): Promise<void> {
-  return apiCall<void>(`/api/asset-integrity/rigs/${rigId}/issues/${issueId}`, {
-    method: 'DELETE',
-  });
+  await apiClient.delete<{ success: boolean; message: string }>(`/asset-integrity/rigs/${rigId}/issues/${issueId}`);
 }
 
 // ===== IMPROVEMENT MANAGEMENT =====
@@ -255,10 +214,8 @@ export async function addImprovement(
   rigId: string,
   improvement: Omit<Improvement, 'id' | 'status'>
 ): Promise<Improvement> {
-  return apiCall<Improvement>(`/api/asset-integrity/rigs/${rigId}/improvements`, {
-    method: 'POST',
-    body: JSON.stringify(improvement),
-  });
+  const response = await apiClient.post<{ success: boolean; data: Improvement }>(`/asset-integrity/rigs/${rigId}/improvements`, improvement);
+  return unwrap(response);
 }
 
 /**
@@ -269,19 +226,15 @@ export async function updateImprovement(
   improvementId: string,
   updates: Partial<Improvement>
 ): Promise<Improvement> {
-  return apiCall<Improvement>(`/api/asset-integrity/rigs/${rigId}/improvements/${improvementId}`, {
-    method: 'PATCH',
-    body: JSON.stringify(updates),
-  });
+  const response = await apiClient.put<{ success: boolean; data: Improvement }>(`/asset-integrity/rigs/${rigId}/improvements/${improvementId}`, updates);
+  return unwrap(response);
 }
 
 /**
  * Improvement löschen
  */
 export async function deleteImprovement(rigId: string, improvementId: string): Promise<void> {
-  return apiCall<void>(`/api/asset-integrity/rigs/${rigId}/improvements/${improvementId}`, {
-    method: 'DELETE',
-  });
+  await apiClient.delete<{ success: boolean; message: string }>(`/asset-integrity/rigs/${rigId}/improvements/${improvementId}`);
 }
 
 // ===== REPORTING =====
@@ -290,10 +243,8 @@ export async function deleteImprovement(rigId: string, improvementId: string): P
  * Meeting-Übersicht generieren
  */
 export async function generateMeetingOverview(rigIds?: string[]): Promise<{ overview: string }> {
-  return apiCall<{ overview: string }>('/api/asset-integrity/meeting-overview', {
-    method: 'POST',
-    body: JSON.stringify({ rigIds }),
-  });
+  const response = await apiClient.post<{ success: boolean; data: { overview: string } }>('/asset-integrity/meeting-overview', { rigIds });
+  return unwrap(response);
 }
 
 // Export all functions

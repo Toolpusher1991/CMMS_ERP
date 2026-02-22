@@ -1,10 +1,12 @@
 import { apiClient } from './api';
 
-// Default rigs - matching AssetIntegrityManagement initialRigs
+// Default rigs — fallback if backend AND localStorage are both unavailable
 const DEFAULT_RIG_NAMES = [
   { id: "1", name: "T700" },
   { id: "2", name: "T46" },
-  { id: "3", name: "T350" },
+  { id: "3", name: "T203" },
+  { id: "4", name: "T208" },
+  { id: "5", name: "T207" },
 ];
 
 export interface Rig {

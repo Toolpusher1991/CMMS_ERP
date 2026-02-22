@@ -163,7 +163,8 @@ export const SEVERITY_CONFIG = {
 } as const;
 
 // ===== Plant / Location Configuration =====
-export const PLANTS = ["T208", "T207", "T700", "T46"] as const;
+// Known plants — extended dynamically via useRigs hook where possible
+export const PLANTS = ["T700", "T46", "T203", "T208", "T207", "T350"] as const;
 
 export const LOCATIONS = [
   "TD",

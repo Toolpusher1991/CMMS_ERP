@@ -1,5 +1,6 @@
 // ===== Plant Types =====
-export type Plant = 'T208' | 'T207' | 'T700' | 'T46';
+// Dynamic — rigs are loaded from the backend database
+export type Plant = string;
 
 // ===== Priority & Status =====
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';

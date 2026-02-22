@@ -460,22 +460,24 @@ export default function AssetIntegrityManagement() {
     try {
       // Save each rig to the backend API
       const updatePromises = rigs.map((rig) =>
-        assetIntegrityApi.updateRig(rig.id, {
-          region: rig.region,
-          contractStatus: rig.contractStatus,
-          location: rig.location,
-          operator: rig.operator,
-          dayRate: rig.dayRate,
-          contractEndDate: rig.contractEndDate,
-          certifications: rig.certifications,
-          generalInfo: rig.generalInfo,
-          inspections: rig.inspections,
-          issues: rig.issues,
-          improvements: rig.improvements,
-        }).catch((err) => {
-          console.warn(`API-Update für ${rig.name} fehlgeschlagen:`, err);
-          return null; // Don't block other saves
-        })
+        assetIntegrityApi
+          .updateRig(rig.id, {
+            region: rig.region,
+            contractStatus: rig.contractStatus,
+            location: rig.location,
+            operator: rig.operator,
+            dayRate: rig.dayRate,
+            contractEndDate: rig.contractEndDate,
+            certifications: rig.certifications,
+            generalInfo: rig.generalInfo,
+            inspections: rig.inspections,
+            issues: rig.issues,
+            improvements: rig.improvements,
+          })
+          .catch((err) => {
+            console.warn(`API-Update für ${rig.name} fehlgeschlagen:`, err);
+            return null; // Don't block other saves
+          }),
       );
       await Promise.all(updatePromises);
 
@@ -573,26 +575,45 @@ export default function AssetIntegrityManagement() {
         const apiRigs = await assetIntegrityApi.getAllRigs();
         if (!cancelled && Array.isArray(apiRigs) && apiRigs.length > 0) {
           // Ensure all required arrays exist
-          const normalizedRigs = apiRigs.map((rig: Partial<Rig> & { id: string; name: string }) => ({
-            id: rig.id,
-            name: rig.name,
-            region: (rig.region as Rig["region"]) || "Oman",
-            contractStatus: (rig.contractStatus as Rig["contractStatus"]) || "idle",
-            contractEndDate: rig.contractEndDate,
-            operator: rig.operator,
-            location: rig.location || "",
-            dayRate: typeof rig.dayRate === "string" ? Number(rig.dayRate) || undefined : rig.dayRate,
-            certifications: Array.isArray(rig.certifications) ? rig.certifications : [],
-            generalInfo: Array.isArray(rig.generalInfo) ? rig.generalInfo : [],
-            documents: Array.isArray((rig as Rig).documents) ? (rig as Rig).documents : [],
-            inspections: Array.isArray(rig.inspections) ? rig.inspections : [],
-            issues: Array.isArray(rig.issues) ? rig.issues : [],
-            improvements: Array.isArray(rig.improvements) ? rig.improvements : [],
-          })) as Rig[];
+          const normalizedRigs = apiRigs.map(
+            (rig: Partial<Rig> & { id: string; name: string }) => ({
+              id: rig.id,
+              name: rig.name,
+              region: (rig.region as Rig["region"]) || "Oman",
+              contractStatus:
+                (rig.contractStatus as Rig["contractStatus"]) || "idle",
+              contractEndDate: rig.contractEndDate,
+              operator: rig.operator,
+              location: rig.location || "",
+              dayRate:
+                typeof rig.dayRate === "string"
+                  ? Number(rig.dayRate) || undefined
+                  : rig.dayRate,
+              certifications: Array.isArray(rig.certifications)
+                ? rig.certifications
+                : [],
+              generalInfo: Array.isArray(rig.generalInfo)
+                ? rig.generalInfo
+                : [],
+              documents: Array.isArray((rig as Rig).documents)
+                ? (rig as Rig).documents
+                : [],
+              inspections: Array.isArray(rig.inspections)
+                ? rig.inspections
+                : [],
+              issues: Array.isArray(rig.issues) ? rig.issues : [],
+              improvements: Array.isArray(rig.improvements)
+                ? rig.improvements
+                : [],
+            }),
+          ) as Rig[];
           setRigs(normalizedRigs);
           setLastSaved(new Date());
           // Also update localStorage backup
-          localStorage.setItem("asset-integrity-backup", JSON.stringify(normalizedRigs));
+          localStorage.setItem(
+            "asset-integrity-backup",
+            JSON.stringify(normalizedRigs),
+          );
           return;
         }
       } catch (err) {
@@ -621,7 +642,9 @@ export default function AssetIntegrityManagement() {
     }
 
     loadRigs();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Filter rigs by region
