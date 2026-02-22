@@ -6,7 +6,7 @@ import {
 } from "@/services/project.service";
 import { authService } from "@/services/auth.service";
 import { userService } from "@/services/user.service";
-import { rigService } from "@/services/rig.service";
+import { useRigs } from "@/hooks/useRigs";
 import { fileService } from "@/services/file.service";
 import { apiClient } from "@/services/api";
 import type { User } from "@/services/auth.service";
@@ -83,6 +83,7 @@ import {
   CheckCircle2,
   Workflow,
 } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 type Anlage = string;
 type Category = "Mechanisch" | "Elektrisch" | "Anlage";
@@ -210,9 +211,7 @@ export default function AnlagenProjektManagement({
   const [selectedTaskUserId, setSelectedTaskUserId] = useState<string>("");
   const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  const [availableRigs, setAvailableRigs] = useState<
-    Array<{ id: string; name: string }>
-  >([]);
+  const { rigs: availableRigs } = useRigs();
 
   // Comment Management State
   const [projectComments, setProjectComments] = useState<
@@ -259,27 +258,6 @@ export default function AnlagenProjektManagement({
   }>({});
 
   const categories: Category[] = ["Mechanisch", "Elektrisch", "Anlage"];
-
-  // Load Rigs
-  const loadRigs = async () => {
-    try {
-      const response = await rigService.getAllRigs();
-      if (response.success && response.data) {
-        const rigs = response.data.map((rig) => ({
-          id: rig.id,
-          name: rig.name,
-        }));
-        setAvailableRigs(rigs);
-
-        // Set default selected anlage to first rig if available
-        if (rigs.length > 0) {
-          setSelectedAnlage(rigs[0].name);
-        }
-      }
-    } catch (error) {
-      console.error("Fehler beim Laden der Rigs:", error);
-    }
-  };
 
   // Helper function to get user display name from ID or email
   const getUserDisplayName = (userIdOrEmail: string): string => {
@@ -381,9 +359,6 @@ export default function AnlagenProjektManagement({
       setIsLoading(true);
       setError(null);
 
-      // Load rigs first
-      await loadRigs();
-
       // Parallel laden für bessere Performance
       const [projectResponse, userResponse] = await Promise.all([
         projectService.getProjects({}),
@@ -467,6 +442,7 @@ export default function AnlagenProjektManagement({
       setProjects(mappedProjects);
 
       toast({
+        variant: "success" as const,
         title: "Erfolgreich geladen",
         description: `${mappedProjects.length} Projekte wurden geladen.`,
       });
@@ -487,6 +463,13 @@ export default function AnlagenProjektManagement({
   };
 
   // Initial data load
+  // Set default selected anlage when rigs load
+  useEffect(() => {
+    if (availableRigs.length > 0 && !selectedAnlage) {
+      setSelectedAnlage(availableRigs[0].name);
+    }
+  }, [availableRigs]);
+
   useEffect(() => {
     loadData();
 
@@ -586,6 +569,7 @@ export default function AnlagenProjektManagement({
       );
 
       toast({
+        variant: "success" as const,
         title:
           newStatus === "Abgeschlossen"
             ? "Projekt abgeschlossen"
@@ -609,6 +593,7 @@ export default function AnlagenProjektManagement({
         setProjects(projects.filter((p) => p.id !== deleteTarget.projectId));
 
         toast({
+          variant: "success" as const,
           title: "Projekt gelöscht",
           description: "Das Projekt wurde erfolgreich gelöscht.",
         });
@@ -629,6 +614,7 @@ export default function AnlagenProjektManagement({
         setProjects(updatedProjects);
 
         toast({
+          variant: "success" as const,
           title: "Aufgabe gelöscht",
           description: "Die Aufgabe wurde erfolgreich gelöscht.",
         });
@@ -651,6 +637,7 @@ export default function AnlagenProjektManagement({
         setProjects(updatedProjects);
 
         toast({
+          variant: "success" as const,
           title: "Datei gelöscht",
           description: "Die Datei wurde erfolgreich gelöscht.",
         });
@@ -709,14 +696,10 @@ export default function AnlagenProjektManagement({
           managerId: selectedUserId || undefined,
         };
 
-        console.log("🔧 Updating project with data:", updateData);
-
         const updated = await projectService.updateProject(
           editingProject.id,
           updateData,
         );
-
-        console.log("✅ Project updated, backend response:", updated);
 
         const mappedProject: Project = {
           id: updated.id,
@@ -743,6 +726,7 @@ export default function AnlagenProjektManagement({
         );
 
         toast({
+          variant: "success" as const,
           title: "Projekt aktualisiert",
           description: "Das Projekt wurde erfolgreich aktualisiert.",
         });
@@ -771,11 +755,7 @@ export default function AnlagenProjektManagement({
           managerId: selectedUserId || undefined,
         };
 
-        console.log("🔧 Creating project with data:", createData);
-
         const created = await projectService.createProject(createData);
-
-        console.log("✅ Project created, backend response:", created);
 
         const mappedProject: Project = {
           id: created.id,
@@ -800,6 +780,7 @@ export default function AnlagenProjektManagement({
         setProjects([...projects, mappedProject]);
 
         toast({
+          variant: "success" as const,
           title: "Projekt erstellt",
           description: "Das Projekt wurde erfolgreich erstellt.",
         });
@@ -947,6 +928,7 @@ export default function AnlagenProjektManagement({
       setIsTaskDialogOpen(false);
 
       toast({
+        variant: "success" as const,
         title: editingTask ? "Aufgabe aktualisiert" : "Aufgabe erstellt",
         description: "Die Aufgabe wurde erfolgreich gespeichert.",
       });
@@ -1090,6 +1072,7 @@ export default function AnlagenProjektManagement({
       setUploadingFiles([]);
 
       toast({
+        variant: "success" as const,
         title: "Dateien hochgeladen",
         description: `${newFiles.length} Datei(en) wurden erfolgreich hochgeladen.`,
       });
@@ -1140,6 +1123,7 @@ export default function AnlagenProjektManagement({
         setProjects(updatedProjects);
 
         toast({
+          variant: "success" as const,
           title: "Datei ausgecheckt",
           description: "Die Datei wurde erfolgreich ausgecheckt.",
         });
@@ -1197,6 +1181,7 @@ export default function AnlagenProjektManagement({
         setProjects(updatedProjects);
 
         toast({
+          variant: "success" as const,
           title: "Datei eingecheckt",
           description: "Die Datei wurde erfolgreich eingecheckt.",
         });
@@ -1466,311 +1451,316 @@ export default function AnlagenProjektManagement({
       {/* Main Content */}
       {!isLoading && (
         <>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">
-                Anlagen-Projekt-Management
-              </h1>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Verwalten Sie Projekte, Aufgaben und Dateien für alle Anlagen
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={loadData}
-                variant="outline"
-                size="default"
-                className="flex-1 sm:flex-none"
-              >
-                <RefreshCw className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                <span className="hidden sm:inline">Aktualisieren</span>
-              </Button>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    onClick={handleCreate}
-                    className="flex-1 sm:flex-none"
-                  >
-                    <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                    Neues Projekt
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingProject
-                        ? "Projekt bearbeiten"
-                        : "Neues Projekt erstellen"}
-                    </DialogTitle>
-                    <DialogDescription>
-                      {editingProject
-                        ? "Ändern Sie die Projektdetails."
-                        : "Erstellen Sie ein neues Projekt."}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
-                    <div className="grid gap-2">
-                      <Label htmlFor="anlage">Anlage</Label>
-                      <div
-                        className="grid gap-2"
-                        style={{
-                          gridTemplateColumns: `repeat(${Math.min(availableRigs.length, 4)}, minmax(0, 1fr))`,
-                        }}
-                      >
-                        {availableRigs.map((rig) => (
+          <PageHeader
+            title="Anlagen-Projekt-Management"
+            subtitle="Verwalten Sie Projekte, Aufgaben und Dateien für alle Anlagen"
+            icon={<Workflow className="h-5 w-5" />}
+            actions={
+              <>
+                <Button
+                  onClick={loadData}
+                  variant="outline"
+                  size="default"
+                  className="flex-1 sm:flex-none"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="hidden sm:inline">Aktualisieren</span>
+                </Button>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      onClick={handleCreate}
+                      className="flex-1 sm:flex-none"
+                    >
+                      <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                      Neues Projekt
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingProject
+                          ? "Projekt bearbeiten"
+                          : "Neues Projekt erstellen"}
+                      </DialogTitle>
+                      <DialogDescription>
+                        {editingProject
+                          ? "Ändern Sie die Projektdetails."
+                          : "Erstellen Sie ein neues Projekt."}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+                      <div className="grid gap-2">
+                        <Label htmlFor="anlage">Anlage</Label>
+                        <div
+                          className="grid gap-2"
+                          style={{
+                            gridTemplateColumns: `repeat(${Math.min(availableRigs.length, 4)}, minmax(0, 1fr))`,
+                          }}
+                        >
+                          {availableRigs.map((rig) => (
+                            <Button
+                              key={rig.id}
+                              type="button"
+                              variant={
+                                formData.anlage === rig.name
+                                  ? "default"
+                                  : "outline"
+                              }
+                              onClick={() =>
+                                setFormData({
+                                  ...formData,
+                                  anlage: rig.name as Anlage,
+                                })
+                              }
+                              className="w-full"
+                            >
+                              {rig.name}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="category">Kategorie</Label>
+                        <div className="grid grid-cols-3 gap-2">
                           <Button
-                            key={rig.id}
                             type="button"
                             variant={
-                              formData.anlage === rig.name
+                              formData.category === "Mechanisch"
                                 ? "default"
                                 : "outline"
                             }
                             onClick={() =>
                               setFormData({
                                 ...formData,
-                                anlage: rig.name as Anlage,
+                                category: "Mechanisch",
                               })
                             }
                             className="w-full"
                           >
-                            {rig.name}
+                            Mechanisch
                           </Button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="category">Kategorie</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <Button
-                          type="button"
-                          variant={
-                            formData.category === "Mechanisch"
-                              ? "default"
-                              : "outline"
-                          }
-                          onClick={() =>
-                            setFormData({ ...formData, category: "Mechanisch" })
-                          }
-                          className="w-full"
-                        >
-                          Mechanisch
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={
-                            formData.category === "Elektrisch"
-                              ? "default"
-                              : "outline"
-                          }
-                          onClick={() =>
-                            setFormData({ ...formData, category: "Elektrisch" })
-                          }
-                          className="w-full"
-                        >
-                          Elektrisch
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={
-                            formData.category === "Anlage"
-                              ? "default"
-                              : "outline"
-                          }
-                          onClick={() =>
-                            setFormData({ ...formData, category: "Anlage" })
-                          }
-                          className="w-full"
-                        >
-                          Anlage
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Projektname</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        placeholder="z.B. Produktentwicklung Phase 1"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="status">Status</Label>
-                        <Select
-                          value={formData.status}
-                          onValueChange={(
-                            value: "Aktiv" | "Abgeschlossen" | "Geplant",
-                          ) => setFormData({ ...formData, status: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Status wählen" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Geplant">Geplant</SelectItem>
-                            <SelectItem value="Aktiv">Aktiv</SelectItem>
-                            <SelectItem value="Abgeschlossen">
-                              Abgeschlossen
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="assignedUser">Zugewiesener User</Label>
-                        <Select
-                          value={selectedUserId}
-                          onValueChange={(value: string) => {
-                            setSelectedUserId(value);
-                            const user = users.find((u) => u.id === value);
-                            if (user) {
+                          <Button
+                            type="button"
+                            variant={
+                              formData.category === "Elektrisch"
+                                ? "default"
+                                : "outline"
+                            }
+                            onClick={() =>
                               setFormData({
                                 ...formData,
-                                assignedUser: `${user.firstName} ${user.lastName}`,
-                              });
-                            }
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="User wählen" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {users
-                              .filter((user) => {
-                                // Admins und Manager können immer ausgewählt werden
-                                if (!user.assignedPlant) return true;
-                                // User muss zur ausgewählten Anlage gehören
-                                return user.assignedPlant === formData.anlage;
+                                category: "Elektrisch",
                               })
-                              .map((user) => (
-                                <SelectItem key={user.id} value={user.id}>
-                                  {user.firstName} {user.lastName}
-                                  {user.assignedPlant &&
-                                    ` (${user.assignedPlant})`}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="startDate">Startdatum</Label>
-                        <DatePicker
-                          date={
-                            formData.startDate
-                              ? new Date(formData.startDate)
-                              : undefined
-                          }
-                          onSelect={(date) =>
-                            setFormData({
-                              ...formData,
-                              startDate: date ? formatDateForInput(date) : "",
-                            })
-                          }
-                          placeholder="Startdatum wählen"
-                        />
+                            }
+                            className="w-full"
+                          >
+                            Elektrisch
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={
+                              formData.category === "Anlage"
+                                ? "default"
+                                : "outline"
+                            }
+                            onClick={() =>
+                              setFormData({ ...formData, category: "Anlage" })
+                            }
+                            className="w-full"
+                          >
+                            Anlage
+                          </Button>
+                        </div>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="endDate">Enddatum</Label>
-                        <DatePicker
-                          date={
-                            formData.endDate
-                              ? new Date(formData.endDate)
-                              : undefined
-                          }
-                          onSelect={(date) =>
-                            setFormData({
-                              ...formData,
-                              endDate: date ? formatDateForInput(date) : "",
-                            })
-                          }
-                          placeholder="Enddatum wählen"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="budget">Budget (€)</Label>
+                        <Label htmlFor="name">Projektname</Label>
                         <Input
-                          id="budget"
-                          type="number"
-                          value={formData.budget}
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) =>
+                            setFormData({ ...formData, name: e.target.value })
+                          }
+                          placeholder="z.B. Produktentwicklung Phase 1"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="status">Status</Label>
+                          <Select
+                            value={formData.status}
+                            onValueChange={(
+                              value: "Aktiv" | "Abgeschlossen" | "Geplant",
+                            ) => setFormData({ ...formData, status: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Status wählen" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Geplant">Geplant</SelectItem>
+                              <SelectItem value="Aktiv">Aktiv</SelectItem>
+                              <SelectItem value="Abgeschlossen">
+                                Abgeschlossen
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="assignedUser">
+                            Zugewiesener User
+                          </Label>
+                          <Select
+                            value={selectedUserId}
+                            onValueChange={(value: string) => {
+                              setSelectedUserId(value);
+                              const user = users.find((u) => u.id === value);
+                              if (user) {
+                                setFormData({
+                                  ...formData,
+                                  assignedUser: `${user.firstName} ${user.lastName}`,
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="User wählen" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {users
+                                .filter((user) => {
+                                  // Admins und Manager können immer ausgewählt werden
+                                  if (!user.assignedPlant) return true;
+                                  // User muss zur ausgewählten Anlage gehören
+                                  return user.assignedPlant === formData.anlage;
+                                })
+                                .map((user) => (
+                                  <SelectItem key={user.id} value={user.id}>
+                                    {user.firstName} {user.lastName}
+                                    {user.assignedPlant &&
+                                      ` (${user.assignedPlant})`}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="startDate">Startdatum</Label>
+                          <DatePicker
+                            date={
+                              formData.startDate
+                                ? new Date(formData.startDate)
+                                : undefined
+                            }
+                            onSelect={(date) =>
+                              setFormData({
+                                ...formData,
+                                startDate: date ? formatDateForInput(date) : "",
+                              })
+                            }
+                            placeholder="Startdatum wählen"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="endDate">Enddatum</Label>
+                          <DatePicker
+                            date={
+                              formData.endDate
+                                ? new Date(formData.endDate)
+                                : undefined
+                            }
+                            onSelect={(date) =>
+                              setFormData({
+                                ...formData,
+                                endDate: date ? formatDateForInput(date) : "",
+                              })
+                            }
+                            placeholder="Enddatum wählen"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="budget">Budget (€)</Label>
+                          <Input
+                            id="budget"
+                            type="number"
+                            value={formData.budget}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                budget: Number(e.target.value),
+                              })
+                            }
+                            placeholder="z.B. 150000"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="progress">Fortschritt (%)</Label>
+                          <Input
+                            id="progress"
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={formData.progress}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                progress: Number(e.target.value),
+                              })
+                            }
+                            placeholder="0-100"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="description">Beschreibung</Label>
+                        <Textarea
+                          id="description"
+                          value={formData.description}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              budget: Number(e.target.value),
+                              description: e.target.value,
                             })
                           }
-                          placeholder="z.B. 150000"
+                          placeholder="Kurze Projektbeschreibung"
+                          rows={3}
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="progress">Fortschritt (%)</Label>
-                        <Input
-                          id="progress"
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={formData.progress}
+                        <Label htmlFor="notes">Notizen</Label>
+                        <Textarea
+                          id="notes"
+                          value={formData.notes}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              progress: Number(e.target.value),
+                              notes: e.target.value,
                             })
                           }
-                          placeholder="0-100"
+                          placeholder="Zusätzliche Informationen"
+                          rows={3}
                         />
                       </div>
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="description">Beschreibung</Label>
-                      <Textarea
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            description: e.target.value,
-                          })
-                        }
-                        placeholder="Kurze Projektbeschreibung"
-                        rows={3}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="notes">Notizen</Label>
-                      <Textarea
-                        id="notes"
-                        value={formData.notes}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            notes: e.target.value,
-                          })
-                        }
-                        placeholder="Zusätzliche Informationen"
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsDialogOpen(false)}
-                    >
-                      Abbrechen
-                    </Button>
-                    <Button onClick={handleSubmit}>
-                      {editingProject ? "Speichern" : "Erstellen"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsDialogOpen(false)}
+                      >
+                        Abbrechen
+                      </Button>
+                      <Button onClick={handleSubmit}>
+                        {editingProject ? "Speichern" : "Erstellen"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </>
+            }
+          />
 
           {/* Task Dialog */}
           <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>

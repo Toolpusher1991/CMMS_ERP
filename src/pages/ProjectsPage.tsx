@@ -407,14 +407,14 @@ function TaskFlowNode({
                       type="text"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      className="w-full px-2 py-1 text-sm font-semibold rounded border bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full px-2 py-1 text-sm font-semibold rounded border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                       placeholder="Aufgabentitel..."
                       autoFocus
                     />
                     <textarea
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
-                      className="w-full px-2 py-1 text-xs rounded border bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      className="w-full px-2 py-1 text-xs rounded border bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                       placeholder="Beschreibung..."
                       rows={3}
                     />
@@ -551,7 +551,7 @@ function TaskFlowNode({
                         onChange={(e) =>
                           handleMaterialChange("materialNumber", e.target.value)
                         }
-                        className="w-full px-2 py-1 text-xs rounded border bg-white dark:bg-gray-900"
+                        className="w-full px-2 py-1 text-xs rounded border bg-background"
                         placeholder="12345"
                       />
                     </div>
@@ -568,7 +568,7 @@ function TaskFlowNode({
                             e.target.value,
                           )
                         }
-                        className="w-full px-2 py-1 text-xs rounded border bg-white dark:bg-gray-900"
+                        className="w-full px-2 py-1 text-xs rounded border bg-background"
                         placeholder="5 Stk."
                       />
                     </div>
@@ -587,7 +587,7 @@ function TaskFlowNode({
                             e.target.value,
                           )
                         }
-                        className="w-full px-2 py-1 text-xs rounded border bg-white dark:bg-gray-900"
+                        className="w-full px-2 py-1 text-xs rounded border bg-background"
                         placeholder="PR-001"
                       />
                     </div>
@@ -604,7 +604,7 @@ function TaskFlowNode({
                             e.target.value,
                           )
                         }
-                        className="w-full px-2 py-1 text-xs rounded border bg-white dark:bg-gray-900"
+                        className="w-full px-2 py-1 text-xs rounded border bg-background"
                         placeholder="PO-001"
                       />
                     </div>
@@ -622,7 +622,7 @@ function TaskFlowNode({
                           e.target.value,
                         )
                       }
-                      className="w-full px-2 py-1 text-xs rounded border bg-white dark:bg-gray-900"
+                      className="w-full px-2 py-1 text-xs rounded border bg-background"
                       placeholder="Material Beschreibung..."
                     />
                   </div>
@@ -839,13 +839,7 @@ function GroupNode({
         lineClassName="!border-indigo-500"
         handleClassName="!w-3 !h-3 !bg-indigo-500 !border-indigo-600"
       />
-      <div
-        className="rounded-lg h-full"
-        style={{
-          border: "2px solid #6366f1",
-          backgroundColor: "rgba(99, 102, 241, 0.05)",
-        }}
-      >
+      <div className="rounded-lg h-full border-2 border-indigo-500 bg-indigo-500/5">
         <Handle
           type="target"
           position={Position.Left}
@@ -854,8 +848,7 @@ function GroupNode({
         />
         {/* Header - Doppelklick zum Umbenennen */}
         <div
-          className="px-3 py-1 rounded-t-md text-xs font-semibold text-white flex items-center justify-between gap-2 cursor-pointer"
-          style={{ backgroundColor: "#6366f1" }}
+          className="px-3 py-1 rounded-t-md text-xs font-semibold text-white flex items-center justify-between gap-2 cursor-pointer bg-indigo-500"
           onDoubleClick={handleDoubleClick}
           title="Doppelklick zum Umbenennen"
         >
@@ -3481,9 +3474,6 @@ export default function ProjectsPage() {
                   return colors[data?.status] || "#9ca3af";
                 }}
                 maskColor="rgba(0, 0, 0, 0.6)"
-                style={{
-                  backgroundColor: "rgba(30, 41, 59, 0.95)",
-                }}
               />
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
               {/* Top-Left Panel: Add Buttons */}

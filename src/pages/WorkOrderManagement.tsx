@@ -13,7 +13,18 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Upload, FileSpreadsheet, Filter, X, Trash2, Plus } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { useToast } from "@/components/ui/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -32,6 +43,7 @@ interface WorkOrder {
 
 const WorkOrderManagement = () => {
   const { toast } = useToast();
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<WorkOrder[]>([]);
   const [mainWorkCtrFilter, setMainWorkCtrFilter] = useState<string>("all");
@@ -63,7 +75,7 @@ const WorkOrderManagement = () => {
               {
                 header: 1,
                 defval: "",
-              }
+              },
             );
 
             console.log("Excel Data:", jsonData.slice(0, 3)); // Erste 3 Zeilen zur Kontrolle
@@ -110,7 +122,7 @@ const WorkOrderManagement = () => {
             if (processedOrders.length === 0) {
               toast({
                 variant: "destructive",
-                title: "❌ Keine Daten gefunden",
+                title: "Keine Daten gefunden",
                 description:
                   "Die Excel-Datei enthält keine gültigen Work Orders.",
               });
@@ -124,17 +136,18 @@ const WorkOrderManagement = () => {
             // Verfügbare Work Centers extrahieren
             const uniqueWorkCtrs = Array.from(
               new Set(
-                processedOrders.map((wo) => wo.mainWorkCtr).filter(Boolean)
-              )
+                processedOrders.map((wo) => wo.mainWorkCtr).filter(Boolean),
+              ),
             ).sort();
             setAvailableWorkCtrs(uniqueWorkCtrs);
 
             setImportStatus(
-              `✅ Erfolgreich ${processedOrders.length} Work Orders importiert!`
+              `✅ Erfolgreich ${processedOrders.length} Work Orders importiert!`,
             );
 
             toast({
-              title: "✅ Import erfolgreich!",
+              variant: "success" as const,
+              title: "Import erfolgreich!",
               description: `${processedOrders.length} Work Orders wurden importiert. ${uniqueWorkCtrs.length} Work Centers gefunden.`,
             });
 
@@ -144,7 +157,7 @@ const WorkOrderManagement = () => {
             console.error("Excel parse error:", error);
             toast({
               variant: "destructive",
-              title: "❌ Excel-Fehler",
+              title: "Excel-Fehler",
               description: `Die Excel-Datei konnte nicht gelesen werden: ${error}`,
             });
             setImportStatus("");
@@ -154,7 +167,7 @@ const WorkOrderManagement = () => {
         reader.onerror = () => {
           toast({
             variant: "destructive",
-            title: "❌ Datei-Fehler",
+            title: "Datei-Fehler",
             description: "Die Datei konnte nicht gelesen werden.",
           });
           setImportStatus("");
@@ -165,7 +178,7 @@ const WorkOrderManagement = () => {
         console.error("File upload error:", error);
         toast({
           variant: "destructive",
-          title: "❌ Upload-Fehler",
+          title: "Upload-Fehler",
           description: `Beim Hochladen ist ein Fehler aufgetreten: ${error}`,
         });
         setImportStatus("");
@@ -174,13 +187,13 @@ const WorkOrderManagement = () => {
       // Input zurücksetzen für erneuten Upload
       event.target.value = "";
     },
-    [toast]
+    [toast],
   );
 
   // Priorität bestimmen
   const determinePriority = (
     orderType: string,
-    description: string
+    description: string,
   ): string => {
     const text = description.toLowerCase();
 
@@ -223,24 +236,20 @@ const WorkOrderManagement = () => {
 
   // Alle Work Orders löschen
   const deleteAllWorkOrders = () => {
-    if (
-      window.confirm(
-        `Möchten Sie wirklich alle ${workOrders.length} Work Orders löschen?`
-      )
-    ) {
-      setWorkOrders([]);
-      setFilteredOrders([]);
-      setAvailableWorkCtrs([]);
-      setMainWorkCtrFilter("all");
-      setImportStatus("");
-      setSelectedOrders(new Set());
+    setWorkOrders([]);
+    setFilteredOrders([]);
+    setAvailableWorkCtrs([]);
+    setMainWorkCtrFilter("all");
+    setImportStatus("");
+    setSelectedOrders(new Set());
+    setShowDeleteAllDialog(false);
 
-      toast({
-        title: "✅ Liste gelöscht",
-        description: `Alle Work Orders wurden erfolgreich entfernt.`,
-        duration: 3000,
-      });
-    }
+    toast({
+      variant: "success" as const,
+      title: "Liste gelöscht",
+      description: `Alle Work Orders wurden erfolgreich entfernt.`,
+      duration: 3000,
+    });
   };
 
   // Auswahl-Funktionen
@@ -265,7 +274,7 @@ const WorkOrderManagement = () => {
   const addSelectedToActionTracker = async () => {
     if (selectedOrders.size === 0) {
       toast({
-        title: "⚠️ Keine Auswahl",
+        title: "Keine Auswahl",
         description: "Bitte wählen Sie mindestens einen Work Order aus.",
         variant: "destructive",
         duration: 3000,
@@ -274,7 +283,7 @@ const WorkOrderManagement = () => {
     }
 
     const selectedWorkOrders = workOrders.filter((wo) =>
-      selectedOrders.has(wo.id)
+      selectedOrders.has(wo.id),
     );
 
     try {
@@ -293,7 +302,7 @@ const WorkOrderManagement = () => {
 
         // Plant aus MainWorkCtr intelligent ableiten
         const detectPlant = (
-          workCtr: string
+          workCtr: string,
         ): "T208" | "T207" | "T700" | "T46" => {
           const wc = workCtr.toUpperCase();
 
@@ -378,7 +387,8 @@ const WorkOrderManagement = () => {
       await Promise.all(createPromises);
 
       toast({
-        title: "✅ Erfolgreich importiert",
+        variant: "success" as const,
+        title: "Erfolgreich importiert",
         description: `${selectedOrders.size} Work Order(s) wurden als Actions erstellt.`,
         duration: 3000,
       });
@@ -388,7 +398,7 @@ const WorkOrderManagement = () => {
     } catch (error) {
       console.error("Fehler beim Import:", error);
       toast({
-        title: "❌ Import fehlgeschlagen",
+        title: "Import fehlgeschlagen",
         description:
           "Actions konnten nicht erstellt werden. Bitte versuchen Sie es erneut.",
         variant: "destructive",
@@ -417,10 +427,13 @@ const WorkOrderManagement = () => {
   const stats = {
     total: workOrders.length,
     filtered: filteredOrders.length,
-    byWorkCtr: availableWorkCtrs.reduce((acc, wc) => {
-      acc[wc] = workOrders.filter((wo) => wo.mainWorkCtr === wc).length;
-      return acc;
-    }, {} as Record<string, number>),
+    byWorkCtr: availableWorkCtrs.reduce(
+      (acc, wc) => {
+        acc[wc] = workOrders.filter((wo) => wo.mainWorkCtr === wc).length;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ),
     byPriority: {
       URGENT: workOrders.filter((wo) => wo.priority === "URGENT").length,
       HIGH: workOrders.filter((wo) => wo.priority === "HIGH").length,
@@ -431,14 +444,11 @@ const WorkOrderManagement = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6">
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-          Work Order Management System
-        </h1>
-        <p className="text-sm sm:text-base text-muted-foreground">
-          Importieren und verwalten Sie SAP Work Orders nach Main WorkCenter
-        </p>
-      </div>
+      <PageHeader
+        title="Work Order Management System"
+        subtitle="Importieren und verwalten Sie SAP Work Orders nach Main WorkCenter"
+        icon={<FileSpreadsheet className="h-5 w-5" />}
+      />
 
       {/* Import Section */}
       <Card className="mb-6">
@@ -454,12 +464,12 @@ const WorkOrderManagement = () => {
         </CardHeader>
         <CardContent>
           <Label htmlFor="file-upload" className="cursor-pointer">
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors">
-              <Upload className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-blue-400 hover:bg-accent/10 transition-colors">
+              <Upload className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground">
                 Click to upload SAP Excel file (.xlsx, .xls)
               </span>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              <div className="text-xs text-muted-foreground mt-2">
                 Unterstützt: PM02, PM06, SUP, RM-INSP, TP-INSP, MECH, ELEC, TOP,
                 etc.
               </div>
@@ -479,8 +489,8 @@ const WorkOrderManagement = () => {
                 importStatus.includes("❌")
                   ? "border-red-200 bg-red-50 dark:bg-red-950"
                   : importStatus.includes("✅")
-                  ? "border-green-200 bg-green-50 dark:bg-green-950"
-                  : "border-blue-200 bg-blue-50 dark:bg-blue-950"
+                    ? "border-green-200 bg-green-50 dark:bg-green-950"
+                    : "border-blue-200 bg-blue-50 dark:bg-blue-950"
               }`}
             >
               <AlertDescription
@@ -488,8 +498,8 @@ const WorkOrderManagement = () => {
                   importStatus.includes("❌")
                     ? "text-red-700 dark:text-red-300"
                     : importStatus.includes("✅")
-                    ? "text-green-700 dark:text-green-300"
-                    : "text-blue-700 dark:text-blue-300"
+                      ? "text-green-700 dark:text-green-300"
+                      : "text-blue-700 dark:text-blue-300"
                 }
               >
                 {importStatus}
@@ -633,7 +643,7 @@ const WorkOrderManagement = () => {
                 <Button
                   variant="destructive"
                   size="sm"
-                  onClick={deleteAllWorkOrders}
+                  onClick={() => setShowDeleteAllDialog(true)}
                   className="flex items-center gap-2 w-full sm:w-auto"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -646,7 +656,7 @@ const WorkOrderManagement = () => {
             <div className="border rounded-lg overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 dark:bg-gray-800 border-b">
+                  <thead className="bg-muted border-b">
                     <tr>
                       <th className="px-3 py-2 text-left">
                         <Checkbox
@@ -658,37 +668,37 @@ const WorkOrderManagement = () => {
                           aria-label="Alle auswählen"
                         />
                       </th>
-                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider">
                         Order Type
                       </th>
-                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider">
                         Main WorkCtr
                       </th>
-                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider">
                         Order
                       </th>
-                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider">
                         Description
                       </th>
-                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider">
                         Priority
                       </th>
-                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider">
                         Category
                       </th>
-                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider">
                         Actual Release
                       </th>
-                      <th className="px-3 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider">
                         Start Date
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                  <tbody className="bg-card divide-y divide-border">
                     {filteredOrders.map((order) => (
                       <tr
                         key={order.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        className="hover:bg-muted transition-colors"
                       >
                         <td className="px-3 py-2">
                           <Checkbox
@@ -724,7 +734,7 @@ const WorkOrderManagement = () => {
                         <td className="px-3 py-3 whitespace-nowrap">
                           <Badge
                             className={`${getPriorityColor(
-                              order.priority
+                              order.priority,
                             )} text-sm`}
                           >
                             {order.priority}
@@ -735,10 +745,10 @@ const WorkOrderManagement = () => {
                             {order.category}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">
                           {order.actualRelease || "-"}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">
                           {order.basicStartDate || "-"}
                         </td>
                       </tr>
@@ -753,7 +763,7 @@ const WorkOrderManagement = () => {
         <Card>
           <CardContent className="py-12">
             <div className="text-center">
-              <Filter className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+              <Filter className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">
                 Keine Work Orders gefunden
               </h3>
@@ -771,7 +781,7 @@ const WorkOrderManagement = () => {
         <Card>
           <CardContent className="py-12">
             <div className="text-center">
-              <FileSpreadsheet className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+              <FileSpreadsheet className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">Keine Work Orders</h3>
               <p className="text-muted-foreground">
                 Importieren Sie eine Excel-Datei, um loszulegen
@@ -780,6 +790,30 @@ const WorkOrderManagement = () => {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog
+        open={showDeleteAllDialog}
+        onOpenChange={setShowDeleteAllDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alle Work Orders löschen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Möchten Sie wirklich alle {workOrders.length} Work Orders löschen?
+              Diese Aktion kann nicht rückgängig gemacht werden.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteAllWorkOrders}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Alle löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

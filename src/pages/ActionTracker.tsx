@@ -1,9 +1,10 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
-import { rigService } from "@/services/rig.service";
+import { useRigs } from "@/hooks/useRigs";
 import { isMobileDevice } from "@/lib/device-detection";
 import { getActiveLocations } from "@/config/locations";
+import { getUserListCache, setUserListCache } from "@/lib/constants";
 import {
   PhotoViewDialog,
   TaskDialog,
@@ -193,7 +194,7 @@ interface ActionTrackerProps {
   onNavigateBack?: () => void;
 }
 
-// Global cache for user list (outside component to persist across mounts)
+// User list item interface (cache shared via @/lib/constants)
 interface UserListItem {
   id: string;
   email: string;
@@ -202,16 +203,6 @@ interface UserListItem {
   role?: string;
   assignedPlant?: string;
 }
-
-const userListCache: {
-  data: UserListItem[] | null;
-  timestamp: number;
-  maxAge: number;
-} = {
-  data: null,
-  timestamp: 0,
-  maxAge: 5 * 60 * 1000, // 5 minutes
-};
 
 const ActionTracker = ({
   initialActionId,
@@ -289,6 +280,7 @@ const ActionTracker = ({
   const [availableRigs, setAvailableRigs] = useState<
     Array<{ id: string; name: string }>
   >([]);
+  const { rigs: loadedRigs } = useRigs();
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -366,7 +358,6 @@ const ActionTracker = ({
     setIsMounted(true);
     loadActions();
     loadUsers();
-    loadRigs();
 
     // Set user filter to current user if showOnlyMyActions is true
     if (showOnlyMyActions) {
@@ -391,16 +382,17 @@ const ActionTracker = ({
       }
     };
 
-    // Also check periodically for changes (in case storage event doesn't fire)
-    const intervalId = setInterval(() => {
+    // Listen for same-tab location updates (custom event dispatched when locations change)
+    const handleLocalUpdate = () => {
       setAvailableLocations(getActiveLocations());
-    }, 2000);
+    };
 
     window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("locationsUpdated", handleLocalUpdate);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      clearInterval(intervalId);
+      window.removeEventListener("locationsUpdated", handleLocalUpdate);
     };
   }, []);
 
@@ -428,17 +420,14 @@ const ActionTracker = ({
   const loadUsers = async () => {
     try {
       // Check cache first
-      const now = Date.now();
-      if (
-        userListCache.data &&
-        now - userListCache.timestamp < userListCache.maxAge
-      ) {
-        console.log("Using cached user list");
-        setUsers(userListCache.data);
+      const cached = getUserListCache();
+      if (cached) {
+        const cachedUsers = cached.users as UserListItem[];
+        setUsers(cachedUsers);
 
         // Process cached data
         const currentUser = authService.getCurrentUser();
-        const allUsers = userListCache.data.map((user) => ({
+        const allUsers = cachedUsers.map((user) => ({
           id: user.id,
           firstName: user.firstName,
           lastName: user.lastName,
@@ -471,8 +460,7 @@ const ActionTracker = ({
       >("/users/list");
 
       // Update cache
-      userListCache.data = response;
-      userListCache.timestamp = Date.now();
+      setUserListCache(response as UserListItem[]);
 
       setUsers(response);
 
@@ -499,38 +487,24 @@ const ActionTracker = ({
             )
           : allUsers; // Show all users for admins/managers
 
-      console.log("Loaded users:", filteredUsers); // Debug log
       setAvailableUsers(filteredUsers);
     } catch (error) {
       console.error("Fehler beim Laden der User:", error);
     }
   };
 
-  const loadRigs = async () => {
-    try {
-      const response = await rigService.getAllRigs();
-      if (response.success && response.data) {
-        const rigs = response.data.map((rig) => ({
-          id: rig.id,
-          name: rig.name,
-        }));
-        setAvailableRigs(rigs);
-
-        // Set default active tab to first rig if available
-        if (rigs.length > 0) {
-          setActiveTab(rigs[0].name);
-          // Initialize category tabs for each rig
-          const categoryDefaults: Record<string, string> = {};
-          rigs.forEach((r) => {
-            categoryDefaults[r.name] = "alle";
-          });
-          setActiveCategoryTab(categoryDefaults);
-        }
-      }
-    } catch (error) {
-      console.error("Fehler beim Laden der Rigs:", error);
+  // Initialize rig data and category tabs when rigs load
+  useEffect(() => {
+    if (loadedRigs.length > 0) {
+      setAvailableRigs(loadedRigs);
+      setActiveTab(loadedRigs[0].name);
+      const categoryDefaults: Record<string, string> = {};
+      loadedRigs.forEach((r) => {
+        categoryDefaults[r.name] = "alle";
+      });
+      setActiveCategoryTab(categoryDefaults);
     }
-  };
+  }, [loadedRigs]);
 
   const loadActions = async () => {
     try {
@@ -576,6 +550,7 @@ const ActionTracker = ({
       setActions(loadedActions);
       if (isMounted) {
         toast({
+          variant: "success" as const,
           title: "Actions geladen",
           description: `${loadedActions.length} Actions erfolgreich geladen.`,
         });
@@ -740,6 +715,7 @@ const ActionTracker = ({
 
         if (isMounted) {
           toast({
+            variant: "success" as const,
             title: "Action aktualisiert",
             description: `${currentAction.title} wurde erfolgreich aktualisiert.`,
           });
@@ -767,6 +743,7 @@ const ActionTracker = ({
 
         if (isMounted) {
           toast({
+            variant: "success" as const,
             title: "Action erstellt",
             description: `${currentAction.title} wurde erfolgreich erstellt.`,
           });
@@ -793,6 +770,7 @@ const ActionTracker = ({
 
           if (isMounted) {
             toast({
+              variant: "success" as const,
               title: "Dateien hochgeladen",
               description: `${filesToUpload.length} Datei(en) erfolgreich hochgeladen.`,
             });
@@ -870,6 +848,7 @@ const ActionTracker = ({
       }
 
       toast({
+        variant: "success" as const,
         title:
           newStatus === "COMPLETED"
             ? "Action abgeschlossen"
@@ -918,6 +897,7 @@ const ActionTracker = ({
         }
 
         toast({
+          variant: "success" as const,
           title: "Action abgeschlossen",
           description: `${action?.title} wurde als abgeschlossen markiert.`,
         });
@@ -946,6 +926,7 @@ const ActionTracker = ({
         });
 
         toast({
+          variant: "success" as const,
           title: "Action gelöscht",
           description: `${action?.title} wurde erfolgreich gelöscht.`,
         });
@@ -1014,6 +995,7 @@ const ActionTracker = ({
       );
 
       toast({
+        variant: "success" as const,
         title: "Aufgabe aktualisiert",
         description: "Die Aufgabe wurde erfolgreich geändert.",
       });
@@ -1038,6 +1020,7 @@ const ActionTracker = ({
       );
 
       toast({
+        variant: "success" as const,
         title: "Aufgabe erstellt",
         description: "Die Aufgabe wurde erfolgreich hinzugefügt.",
       });
@@ -1083,6 +1066,7 @@ const ActionTracker = ({
     );
 
     toast({
+      variant: "success" as const,
       title: "Aufgabe gelöscht",
       description: "Die Aufgabe wurde erfolgreich entfernt.",
     });
@@ -2717,10 +2701,6 @@ const ActionTracker = ({
                                                                 size="sm"
                                                                 onClick={async () => {
                                                                   try {
-                                                                    console.log(
-                                                                      "📷 Loading photo via API:",
-                                                                      photoFilename,
-                                                                    );
                                                                     const blob =
                                                                       await apiClient.request<Blob>(
                                                                         `/failure-reports/photo/${photoFilename}`,

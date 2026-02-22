@@ -1,10 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
-import { rigService } from "@/services/rig.service";
+import { useRigs } from "@/hooks/useRigs";
 import { isMobileDevice } from "@/lib/device-detection";
 import { getActiveLocations } from "@/config/locations";
 import { cn } from "@/lib/utils";
+import {
+  getUserListCache,
+  setUserListCache,
+  SEVERITY_CONFIG,
+  FAILURE_STATUS_CONFIG,
+} from "@/lib/constants";
 import "./FailureReporting.mobile.css";
 import {
   Card,
@@ -66,8 +72,9 @@ import {
   Clock,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Global cache for user list (shared with ActionTracker)
+// User list item interface (cache shared via @/lib/constants)
 interface UserListItem {
   id: string;
   email: string;
@@ -75,16 +82,6 @@ interface UserListItem {
   lastName: string;
   assignedPlant?: string;
 }
-
-const userListCache: {
-  data: UserListItem[] | null;
-  timestamp: number;
-  maxAge: number;
-} = {
-  data: null,
-  timestamp: 0,
-  maxAge: 5 * 60 * 1000, // 5 minutes
-};
 
 interface FailureReport {
   id: string;
@@ -125,7 +122,7 @@ const FailureReportingPage = ({
   const [reportToConvert, setReportToConvert] = useState<FailureReport | null>(
     null,
   );
-  const [_isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoViewDialogOpen, setPhotoViewDialogOpen] = useState(false);
@@ -177,15 +174,12 @@ const FailureReportingPage = ({
       assignedPlant?: string;
     }>
   >([]);
-  const [availableRigs, setAvailableRigs] = useState<
-    Array<{ id: string; name: string }>
-  >([]);
+  const { rigs: availableRigs } = useRigs();
 
   useEffect(() => {
     setIsMounted(true);
     loadReports();
     loadUsers();
-    loadRigs();
 
     // Set initial active tab to user's first available plant
     const availablePlants = getAvailablePlants();
@@ -226,6 +220,7 @@ const FailureReportingPage = ({
 
       if (isMounted) {
         toast({
+          variant: "success" as const,
           title: "Failure Reports geladen",
           description: `${response.length} Berichte erfolgreich geladen.`,
         });
@@ -246,36 +241,12 @@ const FailureReportingPage = ({
     }
   };
 
-  const loadRigs = async () => {
-    try {
-      const response = await rigService.getAllRigs();
-      if (response.success && response.data) {
-        const rigs = response.data.map((rig) => ({
-          id: rig.id,
-          name: rig.name,
-        }));
-        setAvailableRigs(rigs);
-
-        // Set default active tab to first rig if available
-        if (rigs.length > 0) {
-          setActiveTab(rigs[0].name);
-        }
-      }
-    } catch (error) {
-      console.error("Fehler beim Laden der Rigs:", error);
-    }
-  };
-
   const loadUsers = async () => {
     try {
       // Check cache first
-      const now = Date.now();
-      if (
-        userListCache.data &&
-        now - userListCache.timestamp < userListCache.maxAge
-      ) {
-        console.log("Using cached user list");
-        setUsers(userListCache.data);
+      const cached = getUserListCache();
+      if (cached) {
+        setUsers(cached.users as UserListItem[]);
         return;
       }
 
@@ -291,8 +262,7 @@ const FailureReportingPage = ({
       >("/users/list");
 
       // Update cache
-      userListCache.data = response;
-      userListCache.timestamp = Date.now();
+      setUserListCache(response as UserListItem[]);
 
       setUsers(response);
     } catch (error) {
@@ -365,17 +335,12 @@ const FailureReportingPage = ({
         formData.append("photo", photoFile);
       }
 
-      // Dynamische API URL - funktioniert auf Desktop und Mobile
-      console.log("📡 Sende Failure Report");
-      console.log("📷 Mit Foto:", !!photoFile);
-
       // Don't set Content-Type header - browser will set it automatically with boundary
       const newReport = (await apiClient.post(
         "/failure-reports",
         formData,
       )) as FailureReport;
 
-      console.log("✅ Report erstellt:", newReport);
       setReports([newReport, ...reports]);
 
       setIsDialogOpen(false);
@@ -390,6 +355,7 @@ const FailureReportingPage = ({
       setPhotoPreview(null);
 
       toast({
+        variant: "success" as const,
         title: "Erfolg",
         description: "Failure Report wurde erstellt.",
       });
@@ -416,6 +382,7 @@ const FailureReportingPage = ({
       setReports(reports.filter((r) => r.id !== reportToDelete));
 
       toast({
+        variant: "success" as const,
         title: "Erfolg",
         description: "Failure Report wurde gelöscht.",
       });
@@ -469,6 +436,7 @@ const FailureReportingPage = ({
       );
 
       toast({
+        variant: "success" as const,
         title: "Erfolg",
         description: "Failure Report wurde in Action umgewandelt.",
       });
@@ -491,42 +459,48 @@ const FailureReportingPage = ({
   };
 
   const getSeverityBadge = (severity: string) => {
-    const colors = {
-      LOW: "bg-blue-500",
-      MEDIUM: "bg-yellow-500",
-      HIGH: "bg-orange-500",
-      CRITICAL: "bg-red-500",
-    };
+    const key = severity.toUpperCase();
+    const config = (
+      SEVERITY_CONFIG as Record<string, { dotColor: string; label: string }>
+    )[key];
     return (
-      <Badge
-        className={colors[severity as keyof typeof colors] || "bg-gray-500"}
-      >
-        {severity}
+      <Badge className={config?.dotColor ?? "bg-gray-500"}>
+        {config?.label ?? severity}
       </Badge>
     );
   };
 
   const getStatusBadge = (status: string) => {
-    const colors = {
-      REPORTED: "bg-blue-500",
-      IN_REVIEW: "bg-yellow-500",
-      CONVERTED_TO_ACTION: "bg-green-500",
-      RESOLVED: "bg-gray-500",
-    };
-    const labels = {
-      REPORTED: "Gemeldet",
-      IN_REVIEW: "In Prüfung",
-      CONVERTED_TO_ACTION: "→ Action",
-      RESOLVED: "Gelöst",
-    };
+    const key = status.toUpperCase();
+    const config = (
+      FAILURE_STATUS_CONFIG as Record<
+        string,
+        { dotColor: string; label: string }
+      >
+    )[key];
     return (
-      <Badge className={colors[status as keyof typeof colors] || "bg-gray-500"}>
-        {labels[status as keyof typeof labels] || status}
+      <Badge className={config?.dotColor ?? "bg-gray-500"}>
+        {config?.label ?? status}
       </Badge>
     );
   };
 
   const filteredReports = reports.filter((r) => r.plant === activeTab);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24 rounded-lg" />
+          ))}
+        </div>
+        <Skeleton className="h-64 rounded-lg" />
+      </div>
+    );
+  }
 
   // Mobile View: Simplified - only creation, no table
   if (isMobile) {
@@ -1036,10 +1010,6 @@ const FailureReportingPage = ({
                                       (report.photoPath.startsWith("http://") ||
                                         report.photoPath.startsWith("https://"))
                                     ) {
-                                      console.log(
-                                        "📷 Using Cloudinary URL:",
-                                        report.photoPath,
-                                      );
                                       setSelectedPhoto(report.photoPath);
                                       setPhotoViewDialogOpen(true);
                                       return;
@@ -1047,10 +1017,6 @@ const FailureReportingPage = ({
 
                                     // Otherwise, try to load via API (old local files)
                                     try {
-                                      console.log(
-                                        "📷 Loading photo via API:",
-                                        report.photoFilename,
-                                      );
                                       // Use API client with blob response type
                                       const blob =
                                         await apiClient.request<Blob>(
@@ -1062,9 +1028,6 @@ const FailureReportingPage = ({
                                       const photoUrl =
                                         URL.createObjectURL(blob);
 
-                                      console.log(
-                                        "✅ Photo loaded successfully via API",
-                                      );
                                       setSelectedPhoto(photoUrl);
                                       setPhotoViewDialogOpen(true);
 

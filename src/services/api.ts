@@ -35,6 +35,7 @@ class ApiClient {
   private baseUrl: string;
   private isRefreshing = false;
   private refreshSubscribers: ((token: string) => void)[] = [];
+  private defaultTimeout = 30000; // 30 seconds
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -113,10 +114,17 @@ class ApiClient {
     };
 
     try {
+      // Add timeout via AbortController
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.defaultTimeout);
+
       const response = await fetch(url, {
         ...fetchOptions,
         headers,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       // Handle 401 Unauthorized - try to refresh token
       if (response.status === 401 && !isRetry) {
@@ -174,6 +182,9 @@ class ApiClient {
           return await response.json();
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error(`Zeitüberschreitung: Server antwortet nicht (${this.defaultTimeout / 1000}s)`);
+      }
       console.error('API Request failed:', error);
       throw error;
     }

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { apiClient } from "@/services/api";
 import { authService } from "@/services/auth.service";
-import { rigService } from "@/services/rig.service";
+import { useRigs } from "@/hooks/useRigs";
 import { useToast } from "@/components/ui/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -65,6 +65,7 @@ import {
   X,
   Camera,
 } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 interface InspectionItem {
   id: string;
@@ -124,13 +125,8 @@ interface InspectionReport {
 const InspectionReports = () => {
   const { toast } = useToast();
   const [reports, setReports] = useState<InspectionReport[]>([]);
-  const [filteredReports, setFilteredReports] = useState<InspectionReport[]>(
-    [],
-  );
   const [isLoading, setIsLoading] = useState(true);
-  const [availableRigs, setAvailableRigs] = useState<
-    Array<{ id: string; name: string }>
-  >([]);
+  const { rigs: availableRigs } = useRigs();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isPDFUploadDialogOpen, setIsPDFUploadDialogOpen] = useState(false);
@@ -174,11 +170,34 @@ const InspectionReports = () => {
 
   useEffect(() => {
     loadReports();
-    loadRigs();
   }, []);
 
-  useEffect(() => {
-    applyFilters();
+  const filteredReports = useMemo(() => {
+    let filtered = [...reports];
+
+    if (filterPlant !== "all") {
+      filtered = filtered.filter((r) => r.plant === filterPlant);
+    }
+
+    if (filterType !== "all") {
+      filtered = filtered.filter((r) => r.type === filterType);
+    }
+
+    if (filterStatus !== "all") {
+      filtered = filtered.filter((r) => r.status === filterStatus);
+    }
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (r) =>
+          r.reportNumber.toLowerCase().includes(term) ||
+          r.title.toLowerCase().includes(term) ||
+          r.equipment.toLowerCase().includes(term),
+      );
+    }
+
+    return filtered;
   }, [reports, filterPlant, filterType, filterStatus, searchTerm]);
 
   const loadReports = async () => {
@@ -202,48 +221,6 @@ const InspectionReports = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const loadRigs = async () => {
-    try {
-      const response = await rigService.getAllRigs();
-      if (response.success && response.data) {
-        const rigs = response.data.map((rig) => ({
-          id: rig.id,
-          name: rig.name,
-        }));
-        setAvailableRigs(rigs);
-      }
-    } catch (error) {
-      console.error("Fehler beim Laden der Rigs:", error);
-    }
-  };
-
-  const applyFilters = () => {
-    let filtered = [...reports];
-
-    if (filterPlant !== "all") {
-      filtered = filtered.filter((r) => r.plant === filterPlant);
-    }
-
-    if (filterType !== "all") {
-      filtered = filtered.filter((r) => r.type === filterType);
-    }
-
-    if (filterStatus !== "all") {
-      filtered = filtered.filter((r) => r.status === filterStatus);
-    }
-
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (r) =>
-          r.reportNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          r.equipment.toLowerCase().includes(searchTerm.toLowerCase()),
-      );
-    }
-
-    setFilteredReports(filtered);
   };
 
   const handleCreateReport = async () => {
@@ -286,6 +263,7 @@ const InspectionReports = () => {
         });
 
         toast({
+          variant: "success" as const,
           title: "Erfolgreich",
           description: "Inspektionsbericht wurde erstellt.",
         });
@@ -396,6 +374,7 @@ const InspectionReports = () => {
                   );
 
                   toast({
+                    variant: "success" as const,
                     title: "Action mit Fotos erstellt",
                     description: `Aufgabe erstellt und ${notOkPhotos.length} Foto(s) angehängt.`,
                   });
@@ -413,6 +392,7 @@ const InspectionReports = () => {
                 }
               } else {
                 toast({
+                  variant: "success" as const,
                   title: "Action erstellt",
                   description: "Eine neue Aufgabe wurde automatisch erstellt.",
                 });
@@ -450,6 +430,7 @@ const InspectionReports = () => {
               );
 
               toast({
+                variant: "success" as const,
                 title: "Fotos hochgeladen",
                 description: `${notOkPhotos.length} Foto(s) zum Bericht hinzugefügt.`,
               });
@@ -518,6 +499,7 @@ const InspectionReports = () => {
         );
 
         toast({
+          variant: "success" as const,
           title: "Erfolgreich",
           description: "Inspektionsbericht wurde aktualisiert.",
         });
@@ -541,6 +523,7 @@ const InspectionReports = () => {
       setReports(reports.filter((r) => r.id !== reportId));
 
       toast({
+        variant: "success" as const,
         title: "Erfolgreich",
         description: "Inspektionsbericht wurde gelöscht.",
       });
@@ -744,6 +727,7 @@ const InspectionReports = () => {
     doc.save(`${report.reportNumber}.pdf`);
 
     toast({
+      variant: "success" as const,
       title: "Erfolgreich",
       description: "PDF wurde heruntergeladen.",
     });
@@ -782,6 +766,7 @@ const InspectionReports = () => {
         );
 
         toast({
+          variant: "success" as const,
           title: "Erfolgreich",
           description: `${files.length} Datei(en) hochgeladen.`,
         });
@@ -820,6 +805,7 @@ const InspectionReports = () => {
       );
 
       toast({
+        variant: "success" as const,
         title: "Erfolgreich",
         description: "Anhang wurde gelöscht.",
       });
@@ -1020,27 +1006,27 @@ const InspectionReports = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Inspektionsberichte</h1>
-          <p className="text-muted-foreground">
-            CAT III Crown Block und weitere Inspektionen
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setIsPDFUploadDialogOpen(true)}
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Aus PDF erstellen
-          </Button>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Neuer Bericht
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Inspektionsberichte"
+        subtitle="CAT III Crown Block und weitere Inspektionen"
+        icon={<FileText className="h-5 w-5" />}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => setIsPDFUploadDialogOpen(true)}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Aus PDF erstellen
+            </Button>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Neuer Bericht
+            </Button>
+          </>
+        }
+        className="mb-0"
+      />
 
       {/* Filters */}
       <Card>

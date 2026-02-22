@@ -4,3 +4,4 @@ export { useActions } from './useActions';
 export { useProjects } from './useProjects';
 export { useFailureReports } from './useFailureReports';
 export { useCountUp } from './useCountUp';
+export { useDebounce, useDebouncedCallback } from './useDebounce';

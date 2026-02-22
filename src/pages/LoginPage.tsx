@@ -15,6 +15,7 @@ import { authService, type User } from "@/services/auth.service";
 import { QrCode } from "lucide-react";
 import { isMobileDevice } from "@/lib/device-detection";
 import QRScanner from "@/components/QRScanner";
+import { useToast } from "@/components/ui/use-toast";
 
 interface LoginPageProps {
   onLogin?: (user: User) => void;
@@ -28,6 +29,7 @@ export function LoginPage({
   onForgotPassword,
 }: LoginPageProps = {}) {
   const [email, setEmail] = useState("");
+  const { toast } = useToast();
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -49,7 +51,7 @@ export function LoginPage({
     } catch (err: unknown) {
       const error = err as { message?: string };
       setError(
-        error.message || "Login fehlgeschlagen. Bitte versuchen Sie es erneut."
+        error.message || "Login fehlgeschlagen. Bitte versuchen Sie es erneut.",
       );
       console.error("Login error:", err);
     } finally {
@@ -66,10 +68,6 @@ export function LoginPage({
     setShowQRScanner(false);
 
     try {
-      console.log(
-        "[QR-LOGIN] Attempting login with token:",
-        qrToken.substring(0, 20) + "..."
-      );
       const response = await authService.qrLogin(qrToken);
 
       if (response.success && onLogin) {
@@ -79,7 +77,7 @@ export function LoginPage({
       const error = err as { message?: string };
       setError(
         error.message ||
-          "QR-Login fehlgeschlagen. Bitte versuchen Sie es erneut."
+          "QR-Login fehlgeschlagen. Bitte versuchen Sie es erneut.",
       );
       console.error("QR-Login error:", err);
     } finally {
@@ -251,7 +249,13 @@ export function LoginPage({
                 type="button"
                 variant="outline"
                 disabled={isLoading}
-                onClick={() => alert("Google Login - Feature kommt bald!")}
+                onClick={() =>
+                  toast({
+                    title: "Google Login",
+                    description: "Dieses Feature ist noch in Entwicklung.",
+                    duration: 3000,
+                  })
+                }
               >
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                   <path
@@ -277,7 +281,13 @@ export function LoginPage({
                 type="button"
                 variant="outline"
                 disabled={isLoading}
-                onClick={() => alert("GitHub Login - Feature kommt bald!")}
+                onClick={() =>
+                  toast({
+                    title: "GitHub Login",
+                    description: "Dieses Feature ist noch in Entwicklung.",
+                    duration: 3000,
+                  })
+                }
               >
                 <svg
                   className="mr-2 h-4 w-4"

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -8,9 +8,31 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Terminal, Users, MapPin } from "lucide-react";
-import SystemDebug from "@/pages/SystemDebug";
-import { EnhancedUserAdminPage } from "@/pages/EnhancedUserAdminPage";
-import { LocationManagement } from "@/components/LocationManagement";
+import { PageErrorBoundary } from "@/components/ErrorBoundary";
+
+// Lazy load heavy sub-panels - only load when the tab is active
+const SystemDebug = lazy(() => import("@/pages/SystemDebug"));
+const EnhancedUserAdminPage = lazy(() =>
+  import("@/pages/EnhancedUserAdminPage").then((m) => ({
+    default: m.EnhancedUserAdminPage,
+  })),
+);
+const LocationManagement = lazy(() =>
+  import("@/components/LocationManagement").then((m) => ({
+    default: m.LocationManagement,
+  })),
+);
+
+function TabLoadingFallback() {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+        <p className="mt-3 text-sm text-muted-foreground">Laden...</p>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState("debug");
@@ -58,15 +80,27 @@ export default function AdminPanel() {
             </TabsList>
 
             <TabsContent value="debug" className="mt-6">
-              <SystemDebug />
+              <PageErrorBoundary>
+                <Suspense fallback={<TabLoadingFallback />}>
+                  {activeTab === "debug" && <SystemDebug />}
+                </Suspense>
+              </PageErrorBoundary>
             </TabsContent>
 
             <TabsContent value="users" className="mt-6">
-              <EnhancedUserAdminPage />
+              <PageErrorBoundary>
+                <Suspense fallback={<TabLoadingFallback />}>
+                  {activeTab === "users" && <EnhancedUserAdminPage />}
+                </Suspense>
+              </PageErrorBoundary>
             </TabsContent>
 
             <TabsContent value="locations" className="mt-6">
-              <LocationManagement />
+              <PageErrorBoundary>
+                <Suspense fallback={<TabLoadingFallback />}>
+                  {activeTab === "locations" && <LocationManagement />}
+                </Suspense>
+              </PageErrorBoundary>
             </TabsContent>
           </Tabs>
         </CardContent>

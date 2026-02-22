@@ -3,6 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { actionService, type Action } from "@/services/action.service";
 import { projectService, type Project } from "@/services/project.service";
 import { apiClient } from "@/services/api";
+import {
+  PRIORITY_CONFIG,
+  ACTION_STATUS_CONFIG,
+  PROJECT_STATUS_CONFIG,
+  TASK_STATUS_CONFIG,
+  getRelativeDateDE,
+} from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import {
   CheckCircle2,
@@ -15,6 +22,7 @@ import {
   Clock,
   ArrowRight,
   Building2,
+  RefreshCw,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -23,6 +31,7 @@ import {
   DashboardStatsSkeleton,
   QuickAccessSkeleton,
 } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
 import type { FailureReport, DashboardStats, QuickAccessItem } from "@/types";
 
 interface DashboardProps {
@@ -30,15 +39,17 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
+  const { toast } = useToast();
   const [actions, setActions] = useState<Action[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [failureReports, setFailureReports] = useState<FailureReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [quickAccessFilter, setQuickAccessFilter] = useState<
     "all" | "projects" | "actions" | "failures"
   >("all");
   const [lastNavigatedPage, setLastNavigatedPage] = useState<string | null>(
-    null
+    null,
   );
   const [currentUser, setCurrentUser] = useState<{
     id: string;
@@ -54,6 +65,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const loadData = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
 
       const userStr = localStorage.getItem("user");
       if (userStr) {
@@ -66,14 +78,21 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           actionService.getAll(),
           projectService.getProjects(),
           apiClient.request<FailureReport[]>("/failure-reports"),
-        ]
+        ],
       );
 
       setActions(actionsData);
       setProjects(projectsData.projects);
       setFailureReports(failureReportsData);
     } catch (error) {
-      console.error("Failed to load data:", error);
+      const message =
+        error instanceof Error ? error.message : "Unbekannter Fehler";
+      setLoadError(message);
+      toast({
+        variant: "destructive",
+        title: "Fehler beim Laden",
+        description: `Dashboard-Daten konnten nicht geladen werden: ${message}`,
+      });
     } finally {
       setLoading(false);
     }
@@ -103,22 +122,23 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
     // Count open failure reports (not converted to action and not resolved)
     const openFailureReports = failureReports.filter(
-      (report) => report.status === "REPORTED" || report.status === "IN_REVIEW"
+      (report) => report.status === "REPORTED" || report.status === "IN_REVIEW",
     ).length;
 
     const myProjects = projects
       .filter(
         (project) =>
           project.manager?.email === currentUser.email ||
-          project.members?.some((m) => m.user.email === currentUser.email)
+          project.members?.some((m) => m.user.email === currentUser.email),
       )
       .filter(
-        (p) => p.status !== "COMPLETED" && p.status !== "CANCELLED"
+        (p) => p.status !== "COMPLETED" && p.status !== "CANCELLED",
       ).length;
 
     const myActions = actions.filter(
       (action) =>
-        action.assignedTo === currentUser.email && action.status !== "COMPLETED"
+        action.assignedTo === currentUser.email &&
+        action.status !== "COMPLETED",
     ).length;
 
     const weekAgo = new Date();
@@ -131,7 +151,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         action.assignedTo === currentUser.email &&
         action.status === "COMPLETED" &&
         action.completedAt &&
-        new Date(action.completedAt) >= weekAgo
+        new Date(action.completedAt) >= weekAgo,
     ).length;
 
     projects.forEach((project) => {
@@ -141,7 +161,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             task.assignedTo === currentUser.email &&
             task.status === "DONE" &&
             task.completedAt &&
-            new Date(task.completedAt) >= weekAgo
+            new Date(task.completedAt) >= weekAgo,
         ).length;
       }
     });
@@ -179,7 +199,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         .filter(
           (action) =>
             action.assignedTo === currentUser.email &&
-            action.status !== "COMPLETED"
+            action.status !== "COMPLETED",
         )
         .forEach((action) => {
           items.push({
@@ -203,10 +223,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           (project) =>
             (project.manager?.email === currentUser.email ||
               project.members?.some(
-                (m) => m.user.email === currentUser.email
+                (m) => m.user.email === currentUser.email,
               )) &&
             project.status !== "COMPLETED" &&
-            project.status !== "CANCELLED"
+            project.status !== "CANCELLED",
         )
         .forEach((project) => {
           items.push({
@@ -230,7 +250,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           project.tasks
             .filter(
               (task) =>
-                task.assignedTo === currentUser.email && task.status !== "DONE"
+                task.assignedTo === currentUser.email && task.status !== "DONE",
             )
             .forEach((task) => {
               items.push({
@@ -254,7 +274,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       failureReports
         .filter(
           (report) =>
-            report.status === "REPORTED" || report.status === "IN_REVIEW"
+            report.status === "REPORTED" || report.status === "IN_REVIEW",
         )
         .forEach((report) => {
           items.push({
@@ -318,42 +338,35 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   };
 
   const getStatusColor = (status: string, type: string) => {
+    const key = status.toUpperCase();
+    const fallback = "bg-gray-500/10 text-gray-700 border-gray-500/20";
     if (type === "action") {
-      if (status === "COMPLETED")
-        return "bg-green-500/10 text-green-700 border-green-500/20";
-      if (status === "IN_PROGRESS")
-        return "bg-blue-500/10 text-blue-700 border-blue-500/20";
-      return "bg-gray-500/10 text-gray-700 border-gray-500/20";
+      return (
+        (ACTION_STATUS_CONFIG as Record<string, { color: string }>)[key]
+          ?.color ?? fallback
+      );
     }
     if (type === "project") {
-      if (status === "COMPLETED")
-        return "bg-green-500/10 text-green-700 border-green-500/20";
-      if (status === "IN_PROGRESS")
-        return "bg-blue-500/10 text-blue-700 border-blue-500/20";
-      if (status === "ON_HOLD")
-        return "bg-yellow-500/10 text-yellow-700 border-yellow-500/20";
-      return "bg-gray-500/10 text-gray-700 border-gray-500/20";
+      return (
+        (PROJECT_STATUS_CONFIG as Record<string, { color: string }>)[key]
+          ?.color ?? fallback
+      );
     }
     if (type === "task") {
-      if (status === "DONE")
-        return "bg-green-500/10 text-green-700 border-green-500/20";
-      if (status === "IN_PROGRESS")
-        return "bg-blue-500/10 text-blue-700 border-blue-500/20";
-      if (status === "REVIEW")
-        return "bg-purple-500/10 text-purple-700 border-purple-500/20";
-      return "bg-gray-500/10 text-gray-700 border-gray-500/20";
+      return (
+        (TASK_STATUS_CONFIG as Record<string, { color: string }>)[key]?.color ??
+        fallback
+      );
     }
-    return "bg-gray-500/10 text-gray-700 border-gray-500/20";
+    return fallback;
   };
 
   const getPriorityColor = (priority: string) => {
-    if (priority === "URGENT")
-      return "bg-red-500/10 text-red-700 border-red-500/20";
-    if (priority === "HIGH")
-      return "bg-orange-500/10 text-orange-700 border-orange-500/20";
-    if (priority === "NORMAL")
-      return "bg-blue-500/10 text-blue-700 border-blue-500/20";
-    return "bg-gray-500/10 text-gray-700 border-gray-500/20";
+    const key = priority.toUpperCase();
+    return (
+      (PRIORITY_CONFIG as Record<string, { color: string }>)[key]?.color ??
+      "bg-gray-500/10 text-gray-700 border-gray-500/20"
+    );
   };
 
   const getTypeIcon = (type: string) => {
@@ -363,24 +376,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     return <CheckCircle2 className="h-4 w-4" />;
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    const today = new Date();
-    const diffTime = date.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return `${Math.abs(diffDays)} Tage überfällig`;
-    if (diffDays === 0) return "Heute fällig";
-    if (diffDays === 1) return "Morgen fällig";
-    if (diffDays <= 7) return `In ${diffDays} Tagen`;
-
-    return date.toLocaleDateString("de-DE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  };
+  const formatDate = (dateStr?: string) => getRelativeDateDE(dateStr);
 
   if (loading) {
     return (
@@ -407,6 +403,32 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Error Banner */}
+      {loadError && (
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-destructive">
+                Fehler beim Laden der Dashboard-Daten
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {loadError}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadData}
+            className="shrink-0"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Erneut versuchen
+          </Button>
+        </div>
+      )}
+
       {/* Welcome Banner with Gradient */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 dark:from-slate-900 dark:via-slate-800 dark:to-black p-8 shadow-xl border border-slate-700/50">
         {/* Decorative Background Pattern */}
@@ -433,10 +455,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               {lastNavigatedPage === "projects"
                 ? "Hier sind deine offenen Projekte"
                 : lastNavigatedPage === "actions"
-                ? "Hier sind deine offenen Actions"
-                : lastNavigatedPage === "failures"
-                ? "Hier sind die offenen Störmeldungen"
-                : "Deine persönliche Übersicht für heute"}
+                  ? "Hier sind deine offenen Actions"
+                  : lastNavigatedPage === "failures"
+                    ? "Hier sind die offenen Störmeldungen"
+                    : "Deine persönliche Übersicht für heute"}
             </p>
           </div>
 
@@ -459,18 +481,27 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card
-          className={`bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer ${
+          className={`hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer ${
             quickAccessFilter === "failures"
               ? "ring-2 ring-red-500 shadow-xl"
               : ""
           }`}
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setQuickAccessFilter("failures");
             setLastNavigatedPage("failures");
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setQuickAccessFilter("failures");
+              setLastNavigatedPage("failures");
+            }
+          }}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Offene Störmeldungen
             </CardTitle>
             <div className="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center">
@@ -478,28 +509,37 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+            <div className="text-3xl font-bold text-foreground">
               {animatedFailures}
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
+            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
               Noch nicht bearbeitet
             </p>
           </CardContent>
         </Card>
         <Card
-          className={`bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer ${
+          className={`hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer ${
             quickAccessFilter === "projects"
               ? "ring-2 ring-blue-500 shadow-xl"
               : ""
           }`}
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setQuickAccessFilter("projects");
             setLastNavigatedPage("projects");
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setQuickAccessFilter("projects");
+              setLastNavigatedPage("projects");
+            }
+          }}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Meine Projekte
             </CardTitle>
             <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
@@ -507,28 +547,37 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+            <div className="text-3xl font-bold text-foreground">
               {animatedProjects}
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
+            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
               <TrendingUp className="h-3 w-3" />
               Aktive Projekte
             </p>
           </CardContent>
         </Card>
         <Card
-          className={`bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer ${
+          className={`hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer ${
             quickAccessFilter === "actions"
               ? "ring-2 ring-orange-500 shadow-xl"
               : ""
           }`}
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setQuickAccessFilter("actions");
             setLastNavigatedPage("actions");
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setQuickAccessFilter("actions");
+              setLastNavigatedPage("actions");
+            }
+          }}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Meine Actions
             </CardTitle>
             <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
@@ -536,18 +585,18 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+            <div className="text-3xl font-bold text-foreground">
               {animatedActions}
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
+            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
               Zu bearbeiten
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-200">
+        <Card className="hover:shadow-xl hover:scale-[1.02] transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Diese Woche erledigt
             </CardTitle>
             <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
@@ -555,12 +604,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+            <div className="text-3xl font-bold text-foreground">
               {animatedCompleted}
             </div>
             <div className="mt-3">
               <Progress value={animatedCompletionRate} className="h-2" />
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {animatedCompletionRate}% Erledigungsrate
               </p>
             </div>
@@ -622,12 +671,20 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                   item.isOverdue
                     ? "border-l-red-500 bg-red-50/50 dark:bg-red-950/20"
                     : item.priority === "URGENT"
-                    ? "border-l-orange-500"
-                    : item.priority === "HIGH"
-                    ? "border-l-yellow-500"
-                    : "border-l-blue-500"
+                      ? "border-l-orange-500"
+                      : item.priority === "HIGH"
+                        ? "border-l-yellow-500"
+                        : "border-l-blue-500"
                 }`}
+                role="button"
+                tabIndex={0}
                 onClick={() => handleItemClick(item)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleItemClick(item);
+                  }
+                }}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
@@ -661,16 +718,16 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                             {item.type === "task"
                               ? "Task"
                               : item.type === "project"
-                              ? "Projekt"
-                              : item.type === "failure"
-                              ? "Störmeldung"
-                              : "Action"}
+                                ? "Projekt"
+                                : item.type === "failure"
+                                  ? "Störmeldung"
+                                  : "Action"}
                           </Badge>
                           <Badge
                             variant="outline"
                             className={`text-xs ${getStatusColor(
                               item.status,
-                              item.type
+                              item.type,
                             )}`}
                           >
                             {item.status.replace(/_/g, " ")}
@@ -678,16 +735,16 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                           <Badge
                             variant="outline"
                             className={`text-xs ${getPriorityColor(
-                              item.priority
+                              item.priority,
                             )}`}
                           >
-                            {item.priority === "URGENT"
-                              ? "Dringend"
-                              : item.priority === "HIGH"
-                              ? "Hoch"
-                              : item.priority === "NORMAL"
-                              ? "Normal"
-                              : "Niedrig"}
+                            {(
+                              PRIORITY_CONFIG as Record<
+                                string,
+                                { label: string }
+                              >
+                            )[item.priority.toUpperCase()]?.label ??
+                              item.priority}
                           </Badge>
                           {item.dueDate && (
                             <Badge

@@ -1,17 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegistrationPage } from "@/pages/RegistrationPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
-import AdminPanel from "@/pages/AdminPanel";
 import Dashboard from "@/pages/Dashboard";
-import ProjectsPage from "@/pages/ProjectsPage";
-import WorkOrderManagement from "@/pages/WorkOrderManagement";
-import ActionTracker from "@/pages/ActionTracker";
-import RigConfigurator from "@/pages/RigConfigurator";
-import FailureReporting from "@/pages/FailureReporting";
-import InspectionReports from "@/pages/InspectionReports";
-import ShiftPlanner from "@/pages/ShiftPlanner";
-import AssetIntegrityManagement from "@/pages/AssetIntegrityManagement";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -24,6 +15,19 @@ import { Toaster } from "@/components/ui/toaster";
 import { authService } from "@/services/auth.service";
 import { isMobileDevice } from "@/lib/device-detection";
 import type { User } from "@/services/auth.service";
+
+// Lazy-loaded pages for code splitting
+const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
+const ProjectsPage = lazy(() => import("@/pages/ProjectsPage"));
+const WorkOrderManagement = lazy(() => import("@/pages/WorkOrderManagement"));
+const ActionTracker = lazy(() => import("@/pages/ActionTracker"));
+const RigConfigurator = lazy(() => import("@/pages/RigConfigurator"));
+const FailureReporting = lazy(() => import("@/pages/FailureReporting"));
+const InspectionReports = lazy(() => import("@/pages/InspectionReports"));
+const ShiftPlanner = lazy(() => import("@/pages/ShiftPlanner"));
+const AssetIntegrityManagement = lazy(
+  () => import("@/pages/AssetIntegrityManagement"),
+);
 
 type AuthView = "login" | "register" | "forgot-password";
 type AppPage =
@@ -161,15 +165,23 @@ function App() {
           onLogout={handleLogout}
           onNavigate={handleMobileNavigate}
         >
-          {currentPage === "failures" ? (
-            <FailureReporting
-              onNavigateBack={() => handleMobileNavigate("home")}
-            />
-          ) : currentPage === "actions" ? (
-            <ActionTracker
-              onNavigateBack={() => handleMobileNavigate("home")}
-            />
-          ) : null}
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              </div>
+            }
+          >
+            {currentPage === "failures" ? (
+              <FailureReporting
+                onNavigateBack={() => handleMobileNavigate("home")}
+              />
+            ) : currentPage === "actions" ? (
+              <ActionTracker
+                onNavigateBack={() => handleMobileNavigate("home")}
+              />
+            ) : null}
+          </Suspense>
         </MobileLayout>
       ) : (
         // Desktop View: Full app with Sidebar
@@ -199,59 +211,67 @@ function App() {
             <main className="flex-1 overflow-y-auto bg-background">
               <div className="container mx-auto max-w-full p-4 sm:p-6 lg:p-8">
                 <ErrorBoundary>
-                  {currentPage === "dashboard" && (
-                    <PageErrorBoundary>
-                      <Dashboard onNavigate={handleNavigate} />
-                    </PageErrorBoundary>
-                  )}
-                  {currentPage === "projects" && (
-                    <PageErrorBoundary>
-                      <ProjectsPage />
-                    </PageErrorBoundary>
-                  )}
-                  {currentPage === "workorders" && (
-                    <PageErrorBoundary>
-                      <WorkOrderManagement />
-                    </PageErrorBoundary>
-                  )}
-                  {currentPage === "actions" && (
-                    <PageErrorBoundary>
-                      <ActionTracker
-                        initialActionId={initialActionId}
-                        showOnlyMyActions={showOnlyMyActions}
-                      />
-                    </PageErrorBoundary>
-                  )}
-                  {currentPage === "failures" && (
-                    <PageErrorBoundary>
-                      <FailureReporting initialReportId={initialReportId} />
-                    </PageErrorBoundary>
-                  )}
-                  {currentPage === "inspections" && (
-                    <PageErrorBoundary>
-                      <InspectionReports />
-                    </PageErrorBoundary>
-                  )}
-                  {currentPage === "shifts" && (
-                    <PageErrorBoundary>
-                      <ShiftPlanner />
-                    </PageErrorBoundary>
-                  )}
-                  {currentPage === "tender" && (
-                    <PageErrorBoundary>
-                      <RigConfigurator />
-                    </PageErrorBoundary>
-                  )}
-                  {currentPage === "integrity" && (
-                    <PageErrorBoundary>
-                      <AssetIntegrityManagement />
-                    </PageErrorBoundary>
-                  )}
-                  {currentPage === "admin" && user.role === "ADMIN" && (
-                    <PageErrorBoundary>
-                      <AdminPanel />
-                    </PageErrorBoundary>
-                  )}
+                  <Suspense
+                    fallback={
+                      <div className="flex items-center justify-center h-64">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                      </div>
+                    }
+                  >
+                    {currentPage === "dashboard" && (
+                      <PageErrorBoundary>
+                        <Dashboard onNavigate={handleNavigate} />
+                      </PageErrorBoundary>
+                    )}
+                    {currentPage === "projects" && (
+                      <PageErrorBoundary>
+                        <ProjectsPage />
+                      </PageErrorBoundary>
+                    )}
+                    {currentPage === "workorders" && (
+                      <PageErrorBoundary>
+                        <WorkOrderManagement />
+                      </PageErrorBoundary>
+                    )}
+                    {currentPage === "actions" && (
+                      <PageErrorBoundary>
+                        <ActionTracker
+                          initialActionId={initialActionId}
+                          showOnlyMyActions={showOnlyMyActions}
+                        />
+                      </PageErrorBoundary>
+                    )}
+                    {currentPage === "failures" && (
+                      <PageErrorBoundary>
+                        <FailureReporting initialReportId={initialReportId} />
+                      </PageErrorBoundary>
+                    )}
+                    {currentPage === "inspections" && (
+                      <PageErrorBoundary>
+                        <InspectionReports />
+                      </PageErrorBoundary>
+                    )}
+                    {currentPage === "shifts" && (
+                      <PageErrorBoundary>
+                        <ShiftPlanner />
+                      </PageErrorBoundary>
+                    )}
+                    {currentPage === "tender" && (
+                      <PageErrorBoundary>
+                        <RigConfigurator />
+                      </PageErrorBoundary>
+                    )}
+                    {currentPage === "integrity" && (
+                      <PageErrorBoundary>
+                        <AssetIntegrityManagement />
+                      </PageErrorBoundary>
+                    )}
+                    {currentPage === "admin" && user.role === "ADMIN" && (
+                      <PageErrorBoundary>
+                        <AdminPanel />
+                      </PageErrorBoundary>
+                    )}
+                  </Suspense>
                 </ErrorBoundary>
               </div>
             </main>

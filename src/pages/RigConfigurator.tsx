@@ -66,6 +66,7 @@ import { rigService } from "@/services/rig.service";
 import { authService } from "@/services/auth.service";
 import { apiClient } from "@/services/api";
 import { rigQuoteExportService } from "@/services/rig-quote-export.service";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 // Types
 interface ProjectRequirements {
@@ -163,7 +164,7 @@ const RigConfigurator = () => {
   // Equipment Management
   const [equipmentDialogOpen, setEquipmentDialogOpen] = useState(false);
   const [equipmentFormMode, setEquipmentFormMode] = useState<"add" | "edit">(
-    "add"
+    "add",
   );
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [equipmentForm, setEquipmentForm] = useState<Record<string, string>>({
@@ -195,11 +196,10 @@ const RigConfigurator = () => {
   const [savedConfigurations, setSavedConfigurations] = useState<
     TenderConfiguration[]
   >([]);
-  const [, setTenderDetailDialogOpen] = useState(false);
-  const [, setSelectedTenderConfig] = useState<TenderConfiguration | null>(
-    null
-  );
-  const [, setLoadingTenders] = useState(false);
+  const [tenderDetailDialogOpen, setTenderDetailDialogOpen] = useState(false);
+  const [selectedTenderConfig, setSelectedTenderConfig] =
+    useState<TenderConfiguration | null>(null);
+  const [loadingTenders, setLoadingTenders] = useState(false);
 
   // Equipment Management for Tenders
   const [equipmentManagementDialogOpen, setEquipmentManagementDialogOpen] =
@@ -218,7 +218,7 @@ const RigConfigurator = () => {
   const [pendingContractConfig, setPendingContractConfig] =
     useState<TenderConfiguration | null>(null);
   const [contractStartDate, setContractStartDate] = useState<Date | undefined>(
-    undefined
+    undefined,
   );
   const [isSubmittingContract, setIsSubmittingContract] = useState(false);
 
@@ -589,6 +589,7 @@ const RigConfigurator = () => {
         const parsed = JSON.parse(savedEquipment);
         setEquipmentCategories(parsed);
         toast({
+          variant: "success" as const,
           title: "Daten geladen",
           description: "Gespeicherte Equipment-Daten wurden wiederhergestellt.",
         });
@@ -608,6 +609,7 @@ const RigConfigurator = () => {
         if (result.success && result.data.length > 0) {
           setRigs(result.data);
           toast({
+            variant: "success" as const,
             title: "Rigs geladen",
             description: `${result.data.length} Bohranlagen vom Backend geladen.`,
           });
@@ -782,7 +784,7 @@ const RigConfigurator = () => {
     if (Object.keys(equipmentCategories).length > 0) {
       localStorage.setItem(
         "rigConfigurator_equipment",
-        JSON.stringify(equipmentCategories)
+        JSON.stringify(equipmentCategories),
       );
     }
   }, [equipmentCategories]);
@@ -831,7 +833,7 @@ const RigConfigurator = () => {
             : (category as { items: EquipmentItem[] }).items.map((item) =>
                 item.id === equipmentForm.id
                   ? (equipmentForm as EquipmentItem)
-                  : item
+                  : item,
               ),
       };
 
@@ -842,6 +844,7 @@ const RigConfigurator = () => {
     });
 
     toast({
+      variant: "success" as const,
       title:
         equipmentFormMode === "add"
           ? "Equipment hinzugefügt"
@@ -866,13 +869,14 @@ const RigConfigurator = () => {
         [category]: {
           ...cat,
           items: (cat as { items: EquipmentItem[] }).items.filter(
-            (item) => item.id !== itemId
+            (item) => item.id !== itemId,
           ),
         },
       };
     });
 
     toast({
+      variant: "success" as const,
       title: "Equipment gelöscht",
       description: "Das Equipment wurde erfolgreich entfernt.",
     });
@@ -887,7 +891,7 @@ const RigConfigurator = () => {
   // Quick Action Functions
   const openQuickActionDialog = (
     categoryKey: string,
-    equipmentItem: EquipmentItem
+    equipmentItem: EquipmentItem,
   ) => {
     const categoryName =
       equipmentCategories[categoryKey as keyof typeof equipmentCategories]
@@ -931,6 +935,7 @@ const RigConfigurator = () => {
       });
 
       toast({
+        variant: "success" as const,
         title: "Action erstellt",
         description: `Tender-Aufgabe für ${quickActionEquipment.equipmentName} wurde erstellt.`,
       });
@@ -959,8 +964,8 @@ const RigConfigurator = () => {
       // Rig-Preis aktualisieren
       setRigs((prevRigs) =>
         prevRigs.map((r) =>
-          r.id === editingRig.id ? { ...r, dayRate: tempPrice } : r
-        )
+          r.id === editingRig.id ? { ...r, dayRate: tempPrice } : r,
+        ),
       );
 
       // Wenn das bearbeitete Rig ausgewählt ist, auch selectedRig aktualisieren
@@ -971,7 +976,7 @@ const RigConfigurator = () => {
       toast({
         title: "Preis aktualisiert",
         description: `Tagesrate für ${editingRig.name} wurde auf €${parseFloat(
-          tempPrice
+          tempPrice,
         ).toLocaleString("de-DE")} gesetzt.`,
       });
     } else if (editingEquipmentCategory && editingEquipmentItem) {
@@ -987,12 +992,13 @@ const RigConfigurator = () => {
           ).items.map((item) =>
             item.id === editingEquipmentItem.id
               ? { ...item, price: tempPrice }
-              : item
+              : item,
           ),
         },
       }));
 
       toast({
+        variant: "success" as const,
         title: "Preis aktualisiert",
         description: `Preis für ${
           editingEquipmentItem.name
@@ -1048,7 +1054,7 @@ const RigConfigurator = () => {
       if (result.success) {
         // Update local state
         setRigs((prevRigs) =>
-          prevRigs.map((r) => (r.id === editingRigData.id ? result.data : r))
+          prevRigs.map((r) => (r.id === editingRigData.id ? result.data : r)),
         );
 
         // Update selected rig if necessary
@@ -1057,6 +1063,7 @@ const RigConfigurator = () => {
         }
 
         toast({
+          variant: "success" as const,
           title: "Erfolgreich gespeichert",
           description: `Änderungen an ${editingRigData.name} wurden im Backend gespeichert.`,
         });
@@ -1241,6 +1248,7 @@ const RigConfigurator = () => {
 
       setSavedConfigurations((prev) => [...prev, newTender]);
       toast({
+        variant: "success" as const,
         title: "✅ Konfiguration gespeichert",
         description: `Tender-Konfiguration für "${requirements.projectName}" wurde gespeichert.`,
       });
@@ -1282,9 +1290,10 @@ const RigConfigurator = () => {
           contractStartDate: "",
         });
         setSavedConfigurations((prev) =>
-          prev.map((c) => (c.id === configId ? updatedTender : c))
+          prev.map((c) => (c.id === configId ? updatedTender : c)),
         );
         toast({
+          variant: "success" as const,
           title: "✅ Status geändert",
           description: "Anlage ist nicht mehr unter Vertrag.",
         });
@@ -1325,21 +1334,21 @@ const RigConfigurator = () => {
         {
           isUnderContract: true,
           contractStartDate: contractStartDate.toISOString(),
-        }
+        },
       );
 
       console.log("✅ Update successful:", updatedTender);
 
       setSavedConfigurations((prev) =>
         prev.map((config) =>
-          config.id === pendingContractConfig.id ? updatedTender : config
-        )
+          config.id === pendingContractConfig.id ? updatedTender : config,
+        ),
       );
 
       toast({
         title: "✅ Vertrag gestartet",
         description: `Anlage ist ab ${contractStartDate.toLocaleDateString(
-          "de-DE"
+          "de-DE",
         )} unter Vertrag.`,
       });
 
@@ -1367,9 +1376,10 @@ const RigConfigurator = () => {
     try {
       await tenderService.deleteTender(configId);
       setSavedConfigurations((prev) =>
-        prev.filter((config) => config.id !== configId)
+        prev.filter((config) => config.id !== configId),
       );
       toast({
+        variant: "success" as const,
         title: "🗑️ Konfiguration gelöscht",
         description: "Die Tender-Konfiguration wurde erfolgreich entfernt.",
       });
@@ -1404,8 +1414,8 @@ const RigConfigurator = () => {
 
       setSavedConfigurations((prev) =>
         prev.map((config) =>
-          config.id === editingTenderConfig.id ? updatedConfig : config
-        )
+          config.id === editingTenderConfig.id ? updatedConfig : config,
+        ),
       );
 
       toast({
@@ -1474,7 +1484,7 @@ const RigConfigurator = () => {
           },
           additionalNotes: requirements.additionalNotes,
         },
-        filename
+        filename,
       );
 
       toast({
@@ -1497,15 +1507,12 @@ const RigConfigurator = () => {
       <div className="border-b bg-card">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-3">
-                <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-                Bohranlagen Konfigurator
-              </h1>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Professionelle Anlagenkonfiguration für Commerce
-              </p>
-            </div>
+            <PageHeader
+              title="Bohranlagen Konfigurator"
+              subtitle="Professionelle Anlagenkonfiguration für Commerce"
+              icon={<Building2 className="h-5 w-5" />}
+              className="mb-0"
+            />
             <Card className="px-4 sm:px-6 py-3 sm:py-4 w-full lg:w-auto">
               <div className="text-center lg:text-right">
                 <p className="text-xs sm:text-sm text-muted-foreground">
@@ -2058,7 +2065,7 @@ const RigConfigurator = () => {
                             <div className="space-y-1.5">
                               {category.items.map((item) => {
                                 const isSelected = selected.some(
-                                  (s) => s.id === item.id
+                                  (s) => s.id === item.id,
                                 );
                                 return (
                                   <div
@@ -2084,7 +2091,7 @@ const RigConfigurator = () => {
                                             ([key]) =>
                                               key !== "id" &&
                                               key !== "name" &&
-                                              key !== "price"
+                                              key !== "price",
                                           )
                                           .map(([, value]) => value)
                                           .join(" • ")}
@@ -2096,7 +2103,7 @@ const RigConfigurator = () => {
                                           <p className="font-bold text-green-600 text-sm">
                                             €{" "}
                                             {parseFloat(
-                                              item.price
+                                              item.price,
                                             ).toLocaleString("de-DE")}
                                           </p>
                                           <p className="text-[10px] text-muted-foreground">
@@ -2123,7 +2130,7 @@ const RigConfigurator = () => {
                                               e.stopPropagation();
                                               openEditEquipmentDialog(
                                                 key,
-                                                item
+                                                item,
                                               );
                                             }}
                                             className="h-7 w-7 p-0"
@@ -2153,7 +2160,7 @@ const RigConfigurator = () => {
                             <Separator className="mt-3" />
                           </div>
                         );
-                      }
+                      },
                     )}
                   </div>
                 </ScrollArea>
@@ -2234,7 +2241,7 @@ const RigConfigurator = () => {
                           €{" "}
                           {selectedRig
                             ? parseFloat(selectedRig.dayRate).toLocaleString(
-                                "de-DE"
+                                "de-DE",
                               )
                             : "0"}
                           /Tag
@@ -2282,7 +2289,7 @@ const RigConfigurator = () => {
                     Ausgewählte Zusatzausrüstung
                   </h3>
                   {Object.entries(selectedEquipment).filter(
-                    ([, items]) => items.length > 0
+                    ([, items]) => items.length > 0,
                   ).length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                       Keine Zusatzausrüstung ausgewählt
@@ -2311,7 +2318,7 @@ const RigConfigurator = () => {
                                     <span className="font-semibold text-green-600">
                                       €{" "}
                                       {parseFloat(item.price).toLocaleString(
-                                        "de-DE"
+                                        "de-DE",
                                       )}
                                     </span>
                                   </div>
@@ -2338,7 +2345,7 @@ const RigConfigurator = () => {
                         <span className="font-semibold">
                           €{" "}
                           {parseFloat(selectedRig.dayRate).toLocaleString(
-                            "de-DE"
+                            "de-DE",
                           )}
                         </span>
                       </div>
@@ -2356,7 +2363,7 @@ const RigConfigurator = () => {
                             .flat()
                             .reduce(
                               (sum, item) => sum + parseFloat(item.price),
-                              0
+                              0,
                             )
                             .toLocaleString("de-DE")}
                         </span>
@@ -2382,7 +2389,7 @@ const RigConfigurator = () => {
                             calculateTotal() *
                             parseInt(
                               requirements.projectDuration.replace(/\D/g, "") ||
-                                "0"
+                                "0",
                             )
                           ).toLocaleString("de-DE")}
                         </span>
@@ -2414,7 +2421,7 @@ const RigConfigurator = () => {
                     </div>
                   </div>
                   {savedConfigurations.length > 0 && (
-                    <div className="flex items-center gap-4 text-sm bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border shadow-sm">
+                    <div className="flex items-center gap-4 text-sm bg-card px-4 py-2 rounded-lg border shadow-sm">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-green-500 rounded-full shadow-sm"></div>
                         <span className="font-medium">
@@ -2431,7 +2438,7 @@ const RigConfigurator = () => {
                           Ausstehend:{" "}
                           {
                             savedConfigurations.filter(
-                              (c) => !c.isUnderContract
+                              (c) => !c.isUnderContract,
                             ).length
                           }
                         </span>
@@ -2489,7 +2496,7 @@ const RigConfigurator = () => {
                           <div className="space-y-3">
                             {savedConfigurations
                               .filter(
-                                (c) => c.isUnderContract && c.contractStartDate
+                                (c) => c.isUnderContract && c.contractStartDate,
                               )
                               .map((config) => {
                                 const duration =
@@ -2537,16 +2544,16 @@ const RigConfigurator = () => {
                                       <span>
                                         Start:{" "}
                                         {new Date(
-                                          config.contractStartDate!
+                                          config.contractStartDate!,
                                         ).toLocaleDateString("de-DE")}
                                       </span>
                                       <span>
                                         Ende:{" "}
                                         {new Date(
                                           new Date(
-                                            config.contractStartDate!
+                                            config.contractStartDate!,
                                           ).getTime() +
-                                            duration * 24 * 60 * 60 * 1000
+                                            duration * 24 * 60 * 60 * 1000,
                                         ).toLocaleDateString("de-DE")}
                                       </span>
                                     </div>
@@ -2603,7 +2610,7 @@ const RigConfigurator = () => {
                                   </div>
                                 </td>
                                 <td className="p-3">
-                                  <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border shadow-sm space-y-2">
+                                  <div className="bg-card p-3 rounded-lg border shadow-sm space-y-2">
                                     <div className="flex justify-between items-center text-sm">
                                       <span className="text-slate-600 dark:text-slate-400 font-medium">
                                         Rig Basis:
@@ -2611,7 +2618,7 @@ const RigConfigurator = () => {
                                       <span className="font-semibold text-blue-600 dark:text-blue-400">
                                         €
                                         {parseFloat(
-                                          selectedRig.dayRate
+                                          selectedRig.dayRate,
                                         ).toLocaleString("de-DE")}
                                         /Tag
                                       </span>
@@ -2623,7 +2630,7 @@ const RigConfigurator = () => {
                                           Equipment (
                                           {
                                             Object.values(
-                                              selectedEquipment
+                                              selectedEquipment,
                                             ).flat().length
                                           }
                                           ):
@@ -2635,7 +2642,7 @@ const RigConfigurator = () => {
                                             .reduce(
                                               (sum, eq) =>
                                                 sum + parseFloat(eq.price),
-                                              0
+                                              0,
                                             )
                                             .toLocaleString("de-DE")}
                                           /Tag
@@ -2650,7 +2657,7 @@ const RigConfigurator = () => {
                                         <span className="text-lg font-bold text-green-600 dark:text-green-400">
                                           €
                                           {calculateTotal().toLocaleString(
-                                            "de-DE"
+                                            "de-DE",
                                           )}
                                           /Tag
                                         </span>
@@ -2706,7 +2713,7 @@ const RigConfigurator = () => {
                                     </div>
                                   </td>
                                   <td className="p-3">
-                                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border shadow-sm space-y-2">
+                                    <div className="bg-card p-3 rounded-lg border shadow-sm space-y-2">
                                       <div className="flex justify-between items-center text-sm">
                                         <span className="text-slate-600 dark:text-slate-400 font-medium">
                                           Rig Basis:
@@ -2714,21 +2721,21 @@ const RigConfigurator = () => {
                                         <span className="font-semibold text-blue-600 dark:text-blue-400">
                                           €
                                           {parseFloat(
-                                            config.selectedRig.dayRate
+                                            config.selectedRig.dayRate,
                                           ).toLocaleString("de-DE")}
                                           /Tag
                                         </span>
                                       </div>
                                       {config.selectedEquipment &&
                                         Object.values(
-                                          config.selectedEquipment
+                                          config.selectedEquipment,
                                         ).flat().length > 0 && (
                                           <div className="flex justify-between items-center text-sm">
                                             <span className="text-slate-600 dark:text-slate-400 font-medium">
                                               Equipment (
                                               {
                                                 Object.values(
-                                                  config.selectedEquipment
+                                                  config.selectedEquipment,
                                                 ).flat().length
                                               }
                                               ):
@@ -2736,13 +2743,13 @@ const RigConfigurator = () => {
                                             <span className="font-semibold text-orange-600 dark:text-orange-400">
                                               €
                                               {Object.values(
-                                                config.selectedEquipment
+                                                config.selectedEquipment,
                                               )
                                                 .flat()
                                                 .reduce(
                                                   (sum, eq) =>
                                                     sum + parseFloat(eq.price),
-                                                  0
+                                                  0,
                                                 )
                                                 .toLocaleString("de-DE")}
                                               /Tag
@@ -2758,18 +2765,18 @@ const RigConfigurator = () => {
                                             €
                                             {(
                                               parseFloat(
-                                                config.selectedRig.dayRate
+                                                config.selectedRig.dayRate,
                                               ) +
                                               (config.selectedEquipment
                                                 ? Object.values(
-                                                    config.selectedEquipment
+                                                    config.selectedEquipment,
                                                   )
                                                     .flat()
                                                     .reduce(
                                                       (sum, eq) =>
                                                         sum +
                                                         parseFloat(eq.price),
-                                                      0
+                                                      0,
                                                     )
                                                 : 0)
                                             ).toLocaleString("de-DE")}
@@ -2838,7 +2845,7 @@ const RigConfigurator = () => {
 
                             {/* Section Header for Contracts - Green highlight */}
                             {savedConfigurations.some(
-                              (config) => config.isUnderContract
+                              (config) => config.isUnderContract,
                             ) && (
                               <tr className="bg-green-50 dark:bg-green-950/20">
                                 <td colSpan={5} className="p-4">
@@ -2882,7 +2889,7 @@ const RigConfigurator = () => {
                                     </div>
                                   </td>
                                   <td className="p-3">
-                                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-green-200 shadow-sm space-y-2">
+                                    <div className="bg-card p-3 rounded-lg border border-green-200 shadow-sm space-y-2">
                                       <div className="flex justify-between items-center text-sm">
                                         <span className="text-slate-600 dark:text-slate-400 font-medium">
                                           Rig Basis:
@@ -2890,21 +2897,21 @@ const RigConfigurator = () => {
                                         <span className="font-semibold text-blue-600 dark:text-blue-400">
                                           €
                                           {parseFloat(
-                                            config.selectedRig.dayRate
+                                            config.selectedRig.dayRate,
                                           ).toLocaleString("de-DE")}
                                           /Tag
                                         </span>
                                       </div>
                                       {config.selectedEquipment &&
                                         Object.values(
-                                          config.selectedEquipment
+                                          config.selectedEquipment,
                                         ).flat().length > 0 && (
                                           <div className="flex justify-between items-center text-sm">
                                             <span className="text-slate-600 dark:text-slate-400 font-medium">
                                               Equipment (
                                               {
                                                 Object.values(
-                                                  config.selectedEquipment
+                                                  config.selectedEquipment,
                                                 ).flat().length
                                               }
                                               ):
@@ -2912,13 +2919,13 @@ const RigConfigurator = () => {
                                             <span className="font-semibold text-orange-600 dark:text-orange-400">
                                               €
                                               {Object.values(
-                                                config.selectedEquipment
+                                                config.selectedEquipment,
                                               )
                                                 .flat()
                                                 .reduce(
                                                   (sum, eq) =>
                                                     sum + parseFloat(eq.price),
-                                                  0
+                                                  0,
                                                 )
                                                 .toLocaleString("de-DE")}
                                               /Tag
@@ -2934,18 +2941,18 @@ const RigConfigurator = () => {
                                             €
                                             {(
                                               parseFloat(
-                                                config.selectedRig.dayRate
+                                                config.selectedRig.dayRate,
                                               ) +
                                               (config.selectedEquipment
                                                 ? Object.values(
-                                                    config.selectedEquipment
+                                                    config.selectedEquipment,
                                                   )
                                                     .flat()
                                                     .reduce(
                                                       (sum, eq) =>
                                                         sum +
                                                         parseFloat(eq.price),
-                                                      0
+                                                      0,
                                                     )
                                                 : 0)
                                             ).toLocaleString("de-DE")}
@@ -3012,8 +3019,20 @@ const RigConfigurator = () => {
                                 </tr>
                               ))}
 
-                            {/* Empty State */}
-                            {savedConfigurations.length === 0 &&
+                            {/* Empty / Loading State */}
+                            {loadingTenders &&
+                              savedConfigurations.length === 0 && (
+                                <tr className="border-b">
+                                  <td
+                                    colSpan={5}
+                                    className="p-8 text-center text-muted-foreground"
+                                  >
+                                    Tender werden geladen...
+                                  </td>
+                                </tr>
+                              )}
+                            {!loadingTenders &&
+                              savedConfigurations.length === 0 &&
                               (!selectedRig || !requirements.projectName) && (
                                 <tr className="border-b">
                                   <td
@@ -3158,7 +3177,7 @@ const RigConfigurator = () => {
 
               {Object.entries(equipmentForm)
                 .filter(
-                  ([key]) => key !== "id" && key !== "name" && key !== "price"
+                  ([key]) => key !== "id" && key !== "name" && key !== "price",
                 )
                 .map(([key, value], index) => (
                   <div key={index} className="flex gap-2">
@@ -3663,7 +3682,7 @@ const RigConfigurator = () => {
                         <div className="space-y-2">
                           {items.map((item: EquipmentItem) => {
                             const isSelected = selectedItems.some(
-                              (sel) => sel.id === item.id
+                              (sel) => sel.id === item.id,
                             );
                             return (
                               <div
@@ -3672,7 +3691,7 @@ const RigConfigurator = () => {
                                   "flex items-center justify-between p-3 rounded-lg border-2 transition-all",
                                   isSelected
                                     ? "border-primary bg-primary/5"
-                                    : "border-border hover:border-primary/50"
+                                    : "border-border hover:border-primary/50",
                                 )}
                               >
                                 <div className="flex items-center gap-3">
@@ -3690,7 +3709,7 @@ const RigConfigurator = () => {
                                           return {
                                             ...prev,
                                             [category]: current.filter(
-                                              (i) => i.id !== item.id
+                                              (i) => i.id !== item.id,
                                             ),
                                           };
                                         }
@@ -3704,7 +3723,7 @@ const RigConfigurator = () => {
                                     <div className="text-sm text-muted-foreground">
                                       €
                                       {parseFloat(item.price).toLocaleString(
-                                        "de-DE"
+                                        "de-DE",
                                       )}
                                       /Tag
                                     </div>
@@ -3722,7 +3741,7 @@ const RigConfigurator = () => {
                       </CardContent>
                     </Card>
                   );
-                }
+                },
               )}
           </div>
 
@@ -3791,7 +3810,7 @@ const RigConfigurator = () => {
                       <span className="font-medium text-primary">
                         €
                         {pendingContractConfig.totalPrice.toLocaleString(
-                          "de-DE"
+                          "de-DE",
                         )}
                       </span>
                     </div>
@@ -3819,6 +3838,83 @@ const RigConfigurator = () => {
               className="bg-green-600 hover:bg-green-700"
             >
               {isSubmittingContract ? "Wird gespeichert..." : "Vertrag starten"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tender Detail Dialog */}
+      <Dialog
+        open={tenderDetailDialogOpen}
+        onOpenChange={setTenderDetailDialogOpen}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedTenderConfig?.projectName || "Tender Details"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedTenderConfig?.clientName || "Konfigurationsdetails"}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedTenderConfig && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Erstellt am</p>
+                  <p>
+                    {new Date(
+                      selectedTenderConfig.createdAt,
+                    ).toLocaleDateString("de-DE")}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Standort</p>
+                  <p>{selectedTenderConfig.location || "–"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Projektdauer</p>
+                  <p>{selectedTenderConfig.projectDuration || "–"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Gesamtpreis</p>
+                  <p>
+                    {selectedTenderConfig.totalPrice.toLocaleString("de-DE")} €
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Vertragsstatus</p>
+                  <p>
+                    {selectedTenderConfig.isUnderContract
+                      ? "Unter Vertrag"
+                      : "Offen"}
+                  </p>
+                </div>
+                {selectedTenderConfig.contractStartDate && (
+                  <div>
+                    <p className="text-muted-foreground">Vertragsbeginn</p>
+                    <p>
+                      {new Date(
+                        selectedTenderConfig.contractStartDate,
+                      ).toLocaleDateString("de-DE")}
+                    </p>
+                  </div>
+                )}
+              </div>
+              {selectedTenderConfig.notes && (
+                <div>
+                  <p className="text-muted-foreground text-sm mb-1">Notizen</p>
+                  <p className="text-sm">{selectedTenderConfig.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setTenderDetailDialogOpen(false)}
+            >
+              Schließen
             </Button>
           </DialogFooter>
         </DialogContent>

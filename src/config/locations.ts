@@ -45,6 +45,7 @@ export const getLocations = (): Location[] => {
 export const saveLocations = (locations: Location[]): void => {
   try {
     localStorage.setItem('customLocations', JSON.stringify(locations));
+    window.dispatchEvent(new Event('locationsUpdated'));
   } catch (error) {
     console.error('Fehler beim Speichern der Standorte:', error);
   }
@@ -55,6 +56,7 @@ export const saveLocations = (locations: Location[]): void => {
  */
 export const resetLocations = (): void => {
   localStorage.removeItem('customLocations');
+  window.dispatchEvent(new Event('locationsUpdated'));
 };
 
 /**

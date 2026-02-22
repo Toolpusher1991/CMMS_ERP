@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Shield,
   Building2,
@@ -35,6 +35,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +56,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useDebouncedCallback } from "@/hooks/useDebounce";
 import * as assetIntegrityApi from "@/services/assetIntegrityApi";
 
 // Enhanced Interfaces
@@ -312,13 +323,22 @@ export default function AssetIntegrityManagement() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hoveredRigId, setHoveredRigId] = useState<string | null>(null);
-  const autoSaveTimerRef = useRef<number | null>(null);
+
+  // Debounced auto-save
+  const debouncedSave = useDebouncedCallback(() => {
+    saveData();
+  }, 3000);
 
   // Add Dialog States
   const [isAddInspectionOpen, setIsAddInspectionOpen] = useState(false);
   const [isAddIssueOpen, setIsAddIssueOpen] = useState(false);
   const [isAddImprovementOpen, setIsAddImprovementOpen] = useState(false);
   const [isAddRigOpen, setIsAddRigOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    type: string;
+    id: string;
+    label: string;
+  } | null>(null);
 
   // Edit Mode State
   const [isEditingGeneral, setIsEditingGeneral] = useState(false);
@@ -377,7 +397,8 @@ export default function AssetIntegrityManagement() {
 
   // Helper: Calculate days until date
   const getDaysUntil = (dateStr: string): number => {
-    const today = new Date("2026-02-15"); // Current date from context
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const target = new Date(dateStr);
     const diffTime = target.getTime() - today.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -429,7 +450,7 @@ export default function AssetIntegrityManagement() {
       case "overdue":
         return "border-red-500/50 bg-red-500/20";
       default:
-        return "border-slate-700";
+        return "border-border";
     }
   };
 
@@ -447,11 +468,12 @@ export default function AssetIntegrityManagement() {
       setHasUnsavedChanges(false);
 
       toast({
+        variant: "success" as const,
         title: "Gespeichert ✓",
         description: `Änderungen um ${new Date().toLocaleTimeString("de-DE")} gespeichert`,
         duration: 2000,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Fehler beim Speichern",
         description: "Änderungen konnten nicht gespeichert werden",
@@ -470,21 +492,8 @@ export default function AssetIntegrityManagement() {
   // Auto-Save on changes (debounced)
   useEffect(() => {
     if (!hasUnsavedChanges) return;
-
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
-    }
-
-    autoSaveTimerRef.current = setTimeout(() => {
-      saveData();
-    }, 3000);
-
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current);
-      }
-    };
-  }, [hasUnsavedChanges, saveData]);
+    debouncedSave();
+  }, [hasUnsavedChanges, debouncedSave]);
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -593,7 +602,7 @@ export default function AssetIntegrityManagement() {
       case "maintenance":
         return "bg-orange-500/20 text-orange-400 border-orange-500/50";
       default:
-        return "bg-slate-500/20 text-slate-400 border-slate-500/50";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -608,7 +617,7 @@ export default function AssetIntegrityManagement() {
       case "overdue":
         return "bg-red-500/20 text-red-400 border-red-500/50";
       default:
-        return "bg-slate-500/20 text-slate-400 border-slate-500/50";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -623,7 +632,7 @@ export default function AssetIntegrityManagement() {
       case "critical":
         return "bg-red-500/20 text-red-400 border-red-500/50";
       default:
-        return "bg-slate-500/20 text-slate-400 border-slate-500/50";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -636,7 +645,7 @@ export default function AssetIntegrityManagement() {
       case "high":
         return "bg-orange-500/20 text-orange-400 border-orange-500/50";
       default:
-        return "bg-slate-500/20 text-slate-400 border-slate-500/50";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -683,6 +692,7 @@ export default function AssetIntegrityManagement() {
 
     setRigs(updatedRigs);
     setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+    setHasUnsavedChanges(true);
   };
 
   const handleAddIssue = () => {
@@ -723,6 +733,7 @@ export default function AssetIntegrityManagement() {
 
     setRigs(updatedRigs);
     setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+    setHasUnsavedChanges(true);
   };
 
   const handleSaveGeneralInfo = () => {
@@ -831,6 +842,7 @@ export default function AssetIntegrityManagement() {
       setLastSaved(new Date());
 
       toast({
+        variant: "success" as const,
         title: "Erfolgreich gespeichert",
         description: "Die Notiz wurde erfolgreich aktualisiert.",
       });
@@ -850,7 +862,7 @@ export default function AssetIntegrityManagement() {
   // Generate Meeting Overview Text
   const generateMeetingOverview = (rigsToInclude: Rig[]) => {
     let overview = "=== MEETING-ÜBERSICHT ===\n";
-    overview += `Datum: ${new Date("2026-02-15").toLocaleDateString("de-DE")}\n\n`;
+    overview += `Datum: ${new Date().toLocaleDateString("de-DE")}\n\n`;
 
     rigsToInclude.forEach((rig) => {
       overview += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
@@ -863,8 +875,7 @@ export default function AssetIntegrityManagement() {
       if (rig.operator) overview += `   Operator: ${rig.operator}\n`;
       if (rig.contractEndDate) {
         const daysToEnd = Math.ceil(
-          (new Date(rig.contractEndDate).getTime() -
-            new Date("2026-02-15").getTime()) /
+          (new Date(rig.contractEndDate).getTime() - Date.now()) /
             (1000 * 60 * 60 * 24),
         );
         overview += `   Vertragsende: ${new Date(rig.contractEndDate).toLocaleDateString("de-DE")} (noch ${daysToEnd} Tage)\n`;
@@ -892,8 +903,7 @@ export default function AssetIntegrityManagement() {
           )
           .forEach((info) => {
             const daysUntil = Math.ceil(
-              (new Date(info.deadline!).getTime() -
-                new Date("2026-02-15").getTime()) /
+              (new Date(info.deadline!).getTime() - Date.now()) /
                 (1000 * 60 * 60 * 24),
             );
             const urgency =
@@ -930,8 +940,7 @@ export default function AssetIntegrityManagement() {
           )
           .forEach((inspection) => {
             const daysUntil = Math.ceil(
-              (new Date(inspection.dueDate).getTime() -
-                new Date("2026-02-15").getTime()) /
+              (new Date(inspection.dueDate).getTime() - Date.now()) /
                 (1000 * 60 * 60 * 24),
             );
             const status =
@@ -964,8 +973,7 @@ export default function AssetIntegrityManagement() {
           overview += `   ${severity} ${issue.description}\n`;
           if (issue.dueDate) {
             const daysUntil = Math.ceil(
-              (new Date(issue.dueDate).getTime() -
-                new Date("2026-02-15").getTime()) /
+              (new Date(issue.dueDate).getTime() - Date.now()) /
                 (1000 * 60 * 60 * 24),
             );
             overview += `      → Fällig: ${new Date(issue.dueDate).toLocaleDateString("de-DE")} (noch ${daysUntil} Tage)\n`;
@@ -1062,12 +1070,13 @@ export default function AssetIntegrityManagement() {
 
     setRigs(updatedRigs);
     setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+    setHasUnsavedChanges(true);
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-slate-800 border-b border-slate-700 shadow-lg">
+      <div className="bg-card border-b border-border shadow-lg">
         <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -1075,10 +1084,10 @@ export default function AssetIntegrityManagement() {
                 <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
                   Asset Integrity Management
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                   Vertrags-, Inspektions- & Risikomanagement für Ihre
                   Bohranlagen
                 </p>
@@ -1086,11 +1095,13 @@ export default function AssetIntegrityManagement() {
             </div>
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               {/* Save Status Indicator */}
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-700">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-background/50 rounded-lg border border-border">
                 {isSaving ? (
                   <>
                     <Loader2 className="h-3 w-3 animate-spin text-blue-400" />
-                    <span className="text-xs text-slate-400">Speichert...</span>
+                    <span className="text-xs text-muted-foreground">
+                      Speichert...
+                    </span>
                   </>
                 ) : hasUnsavedChanges ? (
                   <>
@@ -1102,7 +1113,7 @@ export default function AssetIntegrityManagement() {
                 ) : lastSaved ? (
                   <>
                     <CheckCircle className="h-3 w-3 text-green-400" />
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-muted-foreground">
                       {new Date(lastSaved).toLocaleTimeString("de-DE")}
                     </span>
                   </>
@@ -1151,37 +1162,39 @@ export default function AssetIntegrityManagement() {
       <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Statistics Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="bg-slate-800 border-slate-700 hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
+          <Card className="bg-card border-border hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-300">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 Gesamt Anlagen
               </CardTitle>
               <Building2 className="h-4 w-4 text-blue-400 group-hover:scale-110 transition-transform" />
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2">
-                <div className="text-2xl font-bold text-white">{totalRigs}</div>
+                <div className="text-2xl font-bold text-foreground">
+                  {totalRigs}
+                </div>
                 <div className="flex items-center gap-1 text-xs text-green-400">
                   <ArrowUp className="h-3 w-3" />
                   <span>2</span>
                 </div>
               </div>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {activeRigs} unter Vertrag
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-700 hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
+          <Card className="bg-card border-border hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-300">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 Im Vertrag
               </CardTitle>
               <CheckCircle className="h-4 w-4 text-green-400 group-hover:scale-110 transition-transform" />
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2">
-                <div className="text-2xl font-bold text-white">
+                <div className="text-2xl font-bold text-foreground">
                   {activeRigs}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-green-400">
@@ -1189,20 +1202,22 @@ export default function AssetIntegrityManagement() {
                   <span>+12%</span>
                 </div>
               </div>
-              <p className="text-xs text-slate-400 mt-1">Aktive Contracts</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Aktive Contracts
+              </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-700 hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
+          <Card className="bg-card border-border hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-300">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 Overdue Inspektionen
               </CardTitle>
               <Clock className="h-4 w-4 text-red-400 group-hover:scale-110 transition-transform" />
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2">
-                <div className="text-2xl font-bold text-white">
+                <div className="text-2xl font-bold text-foreground">
                   {overdueInspections}
                 </div>
                 {overdueInspections > 0 && (
@@ -1212,30 +1227,32 @@ export default function AssetIntegrityManagement() {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-slate-400 mt-1">Sofortige Maßnahmen</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Sofortige Maßnahmen
+              </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-700 hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
+          <Card className="bg-card border-border hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-300">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 Kritische Issues
               </CardTitle>
               <AlertCircle className="h-4 w-4 text-red-400 group-hover:scale-110 transition-transform" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">
+              <div className="text-2xl font-bold text-foreground">
                 {criticalIssues}
               </div>
-              <p className="text-xs text-slate-400">Hohe Priorität</p>
+              <p className="text-xs text-muted-foreground">Hohe Priorität</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Region Filter */}
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               <MapPin className="h-5 w-5" />
               Region auswählen
             </CardTitle>
@@ -1266,7 +1283,7 @@ export default function AssetIntegrityManagement() {
             return (
               <Card
                 key={rig.id}
-                className={`group relative border bg-slate-800/80 hover:bg-slate-800 transition-all cursor-pointer hover:shadow-2xl hover:scale-[1.02] backdrop-blur-sm ${priorityColor}`}
+                className={`group relative border bg-card/80 hover:bg-card transition-all cursor-pointer hover:shadow-2xl hover:scale-[1.02] backdrop-blur-sm ${priorityColor}`}
                 onClick={() => setSelectedRig(rig)}
                 onMouseEnter={() => setHoveredRigId(rig.id)}
                 onMouseLeave={() => setHoveredRigId(null)}
@@ -1341,12 +1358,12 @@ export default function AssetIntegrityManagement() {
                       <Building2 className="h-6 w-6 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-xl font-bold text-white truncate">
+                      <CardTitle className="text-xl font-bold text-foreground truncate">
                         {rig.name}
                       </CardTitle>
                       <Badge
                         variant="outline"
-                        className="text-xs border-slate-600 text-slate-300 mt-1.5"
+                        className="text-xs border-border text-muted-foreground mt-1.5"
                       >
                         <MapPin className="h-3 w-3 mr-1" />
                         {rig.region}
@@ -1361,23 +1378,23 @@ export default function AssetIntegrityManagement() {
                     <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-xs text-slate-400 mb-0.5">
+                          <p className="text-xs text-muted-foreground mb-0.5">
                             Day Rate
                           </p>
-                          <p className="text-2xl font-bold text-white flex items-baseline gap-1">
+                          <p className="text-2xl font-bold text-foreground flex items-baseline gap-1">
                             <DollarSign className="h-5 w-5 text-green-400" />
                             {rig.dayRate.toLocaleString()}
-                            <span className="text-sm font-normal text-slate-400">
+                            <span className="text-sm font-normal text-muted-foreground">
                               /Tag
                             </span>
                           </p>
                         </div>
                         {rig.contractEndDate && (
                           <div className="text-right">
-                            <p className="text-xs text-slate-400">
+                            <p className="text-xs text-muted-foreground">
                               Vertragsende
                             </p>
-                            <p className="text-sm font-medium text-white">
+                            <p className="text-sm font-medium text-foreground">
                               {new Date(rig.contractEndDate).toLocaleDateString(
                                 "de-DE",
                                 {
@@ -1396,15 +1413,19 @@ export default function AssetIntegrityManagement() {
                   {/* Location & Operator */}
                   <div className="space-y-2.5">
                     <div>
-                      <p className="text-xs text-slate-400 mb-1">Standort</p>
-                      <p className="text-sm text-white font-medium">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Standort
+                      </p>
+                      <p className="text-sm text-foreground font-medium">
                         {rig.location}
                       </p>
                     </div>
                     {rig.operator && (
                       <div>
-                        <p className="text-xs text-slate-400 mb-1">Operator</p>
-                        <p className="text-sm text-white font-medium">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Operator
+                        </p>
+                        <p className="text-sm text-foreground font-medium">
                           {rig.operator}
                         </p>
                       </div>
@@ -1412,23 +1433,25 @@ export default function AssetIntegrityManagement() {
                   </div>
 
                   {/* Quick Stats */}
-                  <div className="grid grid-cols-3 gap-3 pt-3 border-t border-slate-700/50">
+                  <div className="grid grid-cols-3 gap-3 pt-3 border-t border-border/50">
                     <div className="text-center">
-                      <p className="text-xs text-slate-400 mb-1">
+                      <p className="text-xs text-muted-foreground mb-1">
                         Inspektionen
                       </p>
                       <div className="flex items-center justify-center gap-1">
                         <Calendar className="h-3.5 w-3.5 text-blue-400" />
-                        <p className="text-lg font-bold text-white">
+                        <p className="text-lg font-bold text-foreground">
                           {rig.inspections.length}
                         </p>
                       </div>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-slate-400 mb-1">Issues</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Issues
+                      </p>
                       <div className="flex items-center justify-center gap-1">
                         <AlertCircle className="h-3.5 w-3.5 text-orange-400" />
-                        <p className="text-lg font-bold text-white">
+                        <p className="text-lg font-bold text-foreground">
                           {
                             rig.issues.filter((i) => i.status !== "closed")
                               .length
@@ -1437,10 +1460,12 @@ export default function AssetIntegrityManagement() {
                       </div>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-slate-400 mb-1">Upgrades</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Upgrades
+                      </p>
                       <div className="flex items-center justify-center gap-1">
                         <TrendingUp className="h-3.5 w-3.5 text-green-400" />
-                        <p className="text-lg font-bold text-white">
+                        <p className="text-lg font-bold text-foreground">
                           {rig.improvements.length}
                         </p>
                       </div>
@@ -1475,7 +1500,7 @@ export default function AssetIntegrityManagement() {
         </div>
 
         {/* Legende */}
-        <Card className="border-blue-500/50 bg-slate-800">
+        <Card className="border-blue-500/50 bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-blue-400">
               <Flag className="h-5 w-5" />
@@ -1486,21 +1511,25 @@ export default function AssetIntegrityManagement() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded border-2 border-green-500/50 bg-green-500/10" />
-                <span className="text-sm text-slate-300">OK - Alles gut</span>
+                <span className="text-sm text-muted-foreground">
+                  OK - Alles gut
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded border-2 border-yellow-500/50 bg-yellow-500/10" />
-                <span className="text-sm text-slate-300">
+                <span className="text-sm text-muted-foreground">
                   Upcoming (30 Tage)
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded border-2 border-orange-500/50 bg-orange-500/10" />
-                <span className="text-sm text-slate-300">Fällig (7 Tage)</span>
+                <span className="text-sm text-muted-foreground">
+                  Fällig (7 Tage)
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded border-2 border-red-500/50 bg-red-500/20" />
-                <span className="text-sm text-slate-300">OVERDUE!</span>
+                <span className="text-sm text-muted-foreground">OVERDUE!</span>
               </div>
             </div>
           </CardContent>
@@ -1510,23 +1539,20 @@ export default function AssetIntegrityManagement() {
       {/* Detail Dialog */}
       {selectedRig && (
         <Dialog open={!!selectedRig} onOpenChange={() => setSelectedRig(null)}>
-          <DialogContent
-            className="min-w-[1200px] w-[min(1400px,95vw)] max-h-[90vh] overflow-hidden !bg-slate-800 border-slate-700"
-            style={{ backgroundColor: "#1e293b" }}
-          >
+          <DialogContent className="min-w-[1200px] w-[min(1400px,95vw)] max-h-[90vh] overflow-hidden bg-card border-border">
             <DialogHeader>
               <div className="flex items-center justify-between gap-3 overflow-hidden">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <Building2 className="h-6 w-6 text-blue-400 flex-shrink-0" />
-                  <DialogTitle className="text-xl text-white font-semibold truncate">
+                  <DialogTitle className="text-xl text-foreground font-semibold truncate">
                     {selectedRig.name}
                   </DialogTitle>
-                  <span className="text-slate-400 flex-shrink-0">•</span>
-                  <span className="text-sm text-slate-400 truncate">
+                  <span className="text-muted-foreground flex-shrink-0">•</span>
+                  <span className="text-sm text-muted-foreground truncate">
                     {selectedRig.location}
                   </span>
-                  <span className="text-slate-400 flex-shrink-0">•</span>
-                  <span className="text-sm text-slate-400 flex-shrink-0">
+                  <span className="text-muted-foreground flex-shrink-0">•</span>
+                  <span className="text-sm text-muted-foreground flex-shrink-0">
                     {selectedRig.region}
                   </span>
                   <Badge
@@ -1595,7 +1621,7 @@ export default function AssetIntegrityManagement() {
                         setIsEditingGeneral(false);
                         setEditedRig({});
                       }}
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                      className="border-border text-muted-foreground hover:bg-muted"
                     >
                       Abbrechen
                     </Button>
@@ -1615,9 +1641,9 @@ export default function AssetIntegrityManagement() {
                   {/* === LINKE SPALTE (60%) === */}
                   <div className="flex flex-col gap-4 overflow-hidden min-w-0">
                     {/* Vertragsinformationen als 2x2 Grid */}
-                    <Card className="bg-slate-900 border-slate-700">
+                    <Card className="bg-background border-border">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-base text-white flex items-center gap-2">
+                        <CardTitle className="text-base text-foreground flex items-center gap-2">
                           <User className="h-4 w-4" />
                           Vertragsinformationen
                         </CardTitle>
@@ -1626,7 +1652,7 @@ export default function AssetIntegrityManagement() {
                         <div className="grid grid-cols-2 gap-4">
                           {/* Row 1, Col 1: Status */}
                           <div>
-                            <p className="text-xs text-slate-400 mb-1">
+                            <p className="text-xs text-muted-foreground mb-1">
                               Status
                             </p>
                             <Badge
@@ -1642,7 +1668,7 @@ export default function AssetIntegrityManagement() {
                           {(selectedRig.contractEndDate ||
                             isEditingGeneral) && (
                             <div>
-                              <Label className="text-xs text-slate-400 mb-1 block">
+                              <Label className="text-xs text-muted-foreground mb-1 block">
                                 Vertragsende
                               </Label>
                               {isEditingGeneral ? (
@@ -1655,16 +1681,10 @@ export default function AssetIntegrityManagement() {
                                       contractEndDate: e.target.value,
                                     })
                                   }
-                                  className="!bg-slate-900 !border-slate-700 !text-white h-8"
-                                  style={{
-                                    backgroundColor: "#0f172a",
-                                    borderColor: "#334155",
-                                    color: "#ffffff",
-                                    colorScheme: "dark",
-                                  }}
+                                  className="bg-background border-border text-foreground h-8"
                                 />
                               ) : (
-                                <p className="text-sm text-white font-medium">
+                                <p className="text-sm text-foreground font-medium">
                                   {selectedRig.contractEndDate
                                     ? new Date(
                                         selectedRig.contractEndDate,
@@ -1677,7 +1697,7 @@ export default function AssetIntegrityManagement() {
 
                           {/* Row 2, Col 1: Operator */}
                           <div>
-                            <Label className="text-xs text-slate-400 mb-1 block">
+                            <Label className="text-xs text-muted-foreground mb-1 block">
                               Operator
                             </Label>
                             {isEditingGeneral ? (
@@ -1689,16 +1709,11 @@ export default function AssetIntegrityManagement() {
                                     operator: e.target.value,
                                   })
                                 }
-                                className="!bg-slate-900 !border-slate-700 !text-white h-8"
+                                className="bg-background border-border text-foreground h-8"
                                 placeholder="z.B. PDO"
-                                style={{
-                                  backgroundColor: "#0f172a",
-                                  borderColor: "#334155",
-                                  color: "#ffffff",
-                                }}
                               />
                             ) : (
-                              <p className="text-sm text-white font-medium truncate">
+                              <p className="text-sm text-foreground font-medium truncate">
                                 {selectedRig.operator || "N/A"}
                               </p>
                             )}
@@ -1706,7 +1721,7 @@ export default function AssetIntegrityManagement() {
 
                           {/* Row 2, Col 2: Day Rate */}
                           <div>
-                            <Label className="text-xs text-slate-400 mb-1 block">
+                            <Label className="text-xs text-muted-foreground mb-1 block">
                               Day Rate
                             </Label>
                             {isEditingGeneral ? (
@@ -1719,17 +1734,12 @@ export default function AssetIntegrityManagement() {
                                     dayRate: Number(e.target.value),
                                   })
                                 }
-                                className="!bg-slate-900 !border-slate-700 !text-white h-8"
+                                className="bg-background border-border text-foreground h-8"
                                 placeholder="28000"
-                                style={{
-                                  backgroundColor: "#0f172a",
-                                  borderColor: "#334155",
-                                  color: "#ffffff",
-                                }}
                               />
                             ) : (
                               selectedRig.dayRate && (
-                                <p className="text-sm text-white font-medium flex items-center gap-1">
+                                <p className="text-sm text-foreground font-medium flex items-center gap-1">
                                   <DollarSign className="h-3 w-3" />$
                                   {selectedRig.dayRate.toLocaleString()}/Tag
                                 </p>
@@ -1739,7 +1749,7 @@ export default function AssetIntegrityManagement() {
 
                           {/* Row 3: Standort (full width) */}
                           <div className="col-span-2">
-                            <Label className="text-xs text-slate-400 mb-1 block">
+                            <Label className="text-xs text-muted-foreground mb-1 block">
                               Standort
                             </Label>
                             {isEditingGeneral ? (
@@ -1751,16 +1761,11 @@ export default function AssetIntegrityManagement() {
                                     location: e.target.value,
                                   })
                                 }
-                                className="!bg-slate-900 !border-slate-700 !text-white h-8"
+                                className="bg-background border-border text-foreground h-8"
                                 placeholder="z.B. Fahud Field"
-                                style={{
-                                  backgroundColor: "#0f172a",
-                                  borderColor: "#334155",
-                                  color: "#ffffff",
-                                }}
                               />
                             ) : (
-                              <p className="text-sm text-white font-medium flex items-center gap-1">
+                              <p className="text-sm text-foreground font-medium flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
                                 {selectedRig.location}
                               </p>
@@ -1771,9 +1776,9 @@ export default function AssetIntegrityManagement() {
                     </Card>
 
                     {/* Notizen-Liste (scrollable) */}
-                    <Card className="bg-slate-900 border-slate-700 flex-1 overflow-hidden flex flex-col">
+                    <Card className="bg-background border-border flex-1 overflow-hidden flex flex-col">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-base text-white flex items-center justify-between">
+                        <CardTitle className="text-base text-foreground flex items-center justify-between">
                           <span className="flex items-center gap-2">
                             <FileText className="h-4 w-4" />
                             Notizen ({selectedRig.generalInfo?.length || 0})
@@ -1804,15 +1809,15 @@ export default function AssetIntegrityManagement() {
                                 const daysUntil = hasDeadline
                                   ? Math.ceil(
                                       (new Date(info.deadline!).getTime() -
-                                        new Date("2026-02-17").getTime()) /
+                                        new Date().getTime()) /
                                         (1000 * 60 * 60 * 24),
                                     )
                                   : null;
 
                                 // Farbcodierung nach Dringlichkeit
-                                let borderColor = "border-slate-700";
-                                let bgColor = "bg-slate-800/50";
-                                let colorIndicator = "bg-slate-600"; // Default: Grau
+                                let borderColor = "border-border";
+                                let bgColor = "bg-muted";
+                                let colorIndicator = "bg-muted-foreground"; // Default: Grau
 
                                 if (daysUntil !== null) {
                                   if (daysUntil < 0) {
@@ -1861,12 +1866,7 @@ export default function AssetIntegrityManagement() {
                                                 description: e.target.value,
                                               })
                                             }
-                                            className="!bg-slate-900 !border-slate-700 !text-white resize-none text-sm"
-                                            style={{
-                                              backgroundColor: "#0f172a",
-                                              borderColor: "#334155",
-                                              color: "#ffffff",
-                                            }}
+                                            className="bg-background border-border text-foreground resize-none text-sm"
                                             rows={2}
                                           />
                                           <Input
@@ -1878,13 +1878,7 @@ export default function AssetIntegrityManagement() {
                                                 deadline: e.target.value,
                                               })
                                             }
-                                            className="!bg-slate-900 !border-slate-700 !text-white h-8"
-                                            style={{
-                                              backgroundColor: "#0f172a",
-                                              borderColor: "#334155",
-                                              color: "#ffffff",
-                                              colorScheme: "dark",
-                                            }}
+                                            className="bg-background border-border text-foreground h-8"
                                           />
                                           <div className="flex gap-2 justify-end">
                                             <Button
@@ -1895,7 +1889,7 @@ export default function AssetIntegrityManagement() {
                                                 setEditedInfo({});
                                               }}
                                               disabled={isSaving}
-                                              className="border-slate-700 h-8"
+                                              className="border-border h-8"
                                             >
                                               Abbrechen
                                             </Button>
@@ -1922,7 +1916,7 @@ export default function AssetIntegrityManagement() {
                                       ) : (
                                         <div className="flex items-start justify-between gap-2">
                                           <div className="flex-1 min-w-0">
-                                            <p className="text-white text-sm leading-relaxed mb-2">
+                                            <p className="text-foreground text-sm leading-relaxed mb-2">
                                               {info.description}
                                             </p>
                                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
@@ -1956,7 +1950,7 @@ export default function AssetIntegrityManagement() {
                                                   )}
                                                 </span>
                                               )}
-                                              <span className="flex items-center gap-1 text-slate-400">
+                                              <span className="flex items-center gap-1 text-muted-foreground">
                                                 <Clock className="h-3 w-3" />
                                                 {new Date(
                                                   info.createdDate,
@@ -1996,7 +1990,7 @@ export default function AssetIntegrityManagement() {
                               })}
                           </div>
                         ) : (
-                          <p className="text-center text-slate-400 text-sm py-4">
+                          <p className="text-center text-muted-foreground text-sm py-4">
                             Keine Notizen vorhanden
                           </p>
                         )}
@@ -2007,9 +2001,9 @@ export default function AssetIntegrityManagement() {
                   {/* === RECHTE SPALTE (40%) === */}
                   <div className="flex flex-col gap-4 self-start min-w-0">
                     {/* Zertifizierungen - kompakte Liste */}
-                    <Card className="bg-slate-900 border-slate-700">
+                    <Card className="bg-background border-border">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-base text-white flex items-center justify-between">
+                        <CardTitle className="text-base text-foreground flex items-center justify-between">
                           <span className="flex items-center gap-2">
                             <Award className="h-4 w-4 text-blue-400" />
                             Zertifizierungen
@@ -2029,11 +2023,11 @@ export default function AssetIntegrityManagement() {
                             {selectedRig.certifications.map((cert, idx) => (
                               <div
                                 key={idx}
-                                className="flex items-center justify-between px-3 py-2 bg-slate-800/50 rounded border border-slate-700/50 hover:border-blue-500/30 transition-colors"
+                                className="flex items-center justify-between px-3 py-2 bg-muted rounded border border-border/50 hover:border-blue-500/30 transition-colors"
                               >
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
                                   <CheckCircle className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
-                                  <span className="text-sm text-white truncate">
+                                  <span className="text-sm text-foreground truncate">
                                     {cert}
                                   </span>
                                 </div>
@@ -2044,7 +2038,7 @@ export default function AssetIntegrityManagement() {
                             ))}
                           </div>
                         ) : (
-                          <p className="text-center text-slate-400 text-sm py-3">
+                          <p className="text-center text-muted-foreground text-sm py-3">
                             Keine Zertifizierungen
                           </p>
                         )}
@@ -2052,9 +2046,9 @@ export default function AssetIntegrityManagement() {
                     </Card>
 
                     {/* Neue Notiz hinzufügen - kompakt */}
-                    <Card className="bg-slate-900 border-slate-700">
+                    <Card className="bg-background border-border">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-base text-white flex items-center gap-2">
+                        <CardTitle className="text-base text-foreground flex items-center gap-2">
                           <Plus className="h-4 w-4 text-blue-400" />
                           Neue Notiz
                         </CardTitle>
@@ -2069,12 +2063,7 @@ export default function AssetIntegrityManagement() {
                               description: e.target.value,
                             })
                           }
-                          className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400 resize-none text-sm"
-                          style={{
-                            backgroundColor: "#0f172a",
-                            borderColor: "#334155",
-                            color: "#ffffff",
-                          }}
+                          className="bg-background border-border text-foreground placeholder:text-muted-foreground resize-none text-sm"
                           rows={2}
                         />
                         <div className="flex gap-2">
@@ -2088,13 +2077,7 @@ export default function AssetIntegrityManagement() {
                               })
                             }
                             placeholder="Deadline (optional)"
-                            className="!bg-slate-900 !border-slate-700 !text-white flex-1 h-9"
-                            style={{
-                              backgroundColor: "#0f172a",
-                              borderColor: "#334155",
-                              color: "#ffffff",
-                              colorScheme: "dark",
-                            }}
+                            className="bg-background border-border text-foreground flex-1 h-9"
                           />
                           <Button
                             onClick={handleAddGeneralInfo}
@@ -2124,7 +2107,7 @@ export default function AssetIntegrityManagement() {
                   </Button>
                 </div>
                 {selectedRig.inspections.length === 0 ? (
-                  <p className="text-center text-slate-400 py-8">
+                  <p className="text-center text-muted-foreground py-8">
                     Keine Inspektionen geplant
                   </p>
                 ) : (
@@ -2133,16 +2116,16 @@ export default function AssetIntegrityManagement() {
                     return (
                       <Card
                         key={inspection.id}
-                        className={`bg-slate-900 border-2 ${
+                        className={`bg-background border-2 ${
                           inspection.status === "overdue"
                             ? "border-red-500/50"
-                            : "border-slate-700"
+                            : "border-border"
                         }`}
                       >
                         <CardContent className="pt-4">
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex-1">
-                              <h3 className="text-white font-medium">
+                              <h3 className="text-foreground font-medium">
                                 {inspection.description}
                               </h3>
                             </div>
@@ -2158,7 +2141,11 @@ export default function AssetIntegrityManagement() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() =>
-                                  handleDeleteInspection(inspection.id)
+                                  setDeleteConfirm({
+                                    type: "inspection",
+                                    id: inspection.id,
+                                    label: inspection.description,
+                                  })
                                 }
                                 className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                               >
@@ -2166,7 +2153,7 @@ export default function AssetIntegrityManagement() {
                               </Button>
                             </div>
                           </div>
-                          <div className="text-sm text-slate-400 space-y-1">
+                          <div className="text-sm text-muted-foreground space-y-1">
                             <p>Typ: {inspection.type}</p>
                             <p>
                               Fällig:{" "}
@@ -2205,7 +2192,7 @@ export default function AssetIntegrityManagement() {
                 </div>
                 {selectedRig.issues.filter((i) => i.status !== "closed")
                   .length === 0 ? (
-                  <p className="text-center text-slate-400 py-8">
+                  <p className="text-center text-muted-foreground py-8">
                     Keine offenen Issues
                   </p>
                 ) : (
@@ -2214,16 +2201,16 @@ export default function AssetIntegrityManagement() {
                     .map((issue) => (
                       <Card
                         key={issue.id}
-                        className={`bg-slate-900 border-2 ${
+                        className={`bg-background border-2 ${
                           issue.severity === "critical"
                             ? "border-red-500/50"
-                            : "border-slate-700"
+                            : "border-border"
                         }`}
                       >
                         <CardContent className="pt-4">
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex-1">
-                              <p className="text-white font-medium">
+                              <p className="text-foreground font-medium">
                                 {issue.description}
                               </p>
                             </div>
@@ -2236,14 +2223,20 @@ export default function AssetIntegrityManagement() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => handleDeleteIssue(issue.id)}
+                                onClick={() =>
+                                  setDeleteConfirm({
+                                    type: "issue",
+                                    id: issue.id,
+                                    label: issue.description,
+                                  })
+                                }
                                 className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
-                          <div className="text-sm text-slate-400 space-y-1">
+                          <div className="text-sm text-muted-foreground space-y-1">
                             <p>Kategorie: {issue.category}</p>
                             <p>Severity: {issue.severity}</p>
                             <p>Status: {issue.status}</p>
@@ -2275,19 +2268,19 @@ export default function AssetIntegrityManagement() {
                   </Button>
                 </div>
                 {selectedRig.improvements.length === 0 ? (
-                  <p className="text-center text-slate-400 py-8">
+                  <p className="text-center text-muted-foreground py-8">
                     Keine Verbesserungen geplant
                   </p>
                 ) : (
                   selectedRig.improvements.map((improvement) => (
                     <Card
                       key={improvement.id}
-                      className="bg-slate-900 border-slate-700"
+                      className="bg-background border-border"
                     >
                       <CardContent className="pt-4">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            <h3 className="text-white font-medium">
+                            <h3 className="text-foreground font-medium">
                               {improvement.description}
                             </h3>
                           </div>
@@ -2303,7 +2296,11 @@ export default function AssetIntegrityManagement() {
                               size="sm"
                               variant="ghost"
                               onClick={() =>
-                                handleDeleteImprovement(improvement.id)
+                                setDeleteConfirm({
+                                  type: "improvement",
+                                  id: improvement.id,
+                                  label: improvement.description,
+                                })
                               }
                               className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                             >
@@ -2313,21 +2310,27 @@ export default function AssetIntegrityManagement() {
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm mt-3">
                           <div>
-                            <p className="text-slate-400">Kategorie</p>
-                            <p className="text-white">{improvement.category}</p>
+                            <p className="text-muted-foreground">Kategorie</p>
+                            <p className="text-foreground">
+                              {improvement.category}
+                            </p>
                           </div>
                           <div>
-                            <p className="text-slate-400">Status</p>
-                            <p className="text-white">{improvement.status}</p>
+                            <p className="text-muted-foreground">Status</p>
+                            <p className="text-foreground">
+                              {improvement.status}
+                            </p>
                           </div>
                           <div>
-                            <p className="text-slate-400">Kosten</p>
-                            <p className="text-white">
+                            <p className="text-muted-foreground">Kosten</p>
+                            <p className="text-foreground">
                               ${improvement.estimatedCost.toLocaleString()}
                             </p>
                           </div>
                           <div>
-                            <p className="text-slate-400">Revenue Impact</p>
+                            <p className="text-muted-foreground">
+                              Revenue Impact
+                            </p>
                             <p className="text-green-400 text-xs">
                               {improvement.potentialRevenue}
                             </p>
@@ -2341,19 +2344,19 @@ export default function AssetIntegrityManagement() {
 
               {/* Tab: Meeting-Übersicht */}
               <TabsContent value="meeting" className="space-y-3 mt-4">
-                <Card className="bg-slate-900 border-slate-700">
+                <Card className="bg-background border-border">
                   <CardHeader>
-                    <CardTitle className="text-lg text-white flex items-center gap-2">
+                    <CardTitle className="text-lg text-foreground flex items-center gap-2">
                       <Presentation className="h-5 w-5 text-purple-400" />
                       Meeting-Übersicht für {selectedRig.name}
                     </CardTitle>
-                    <p className="text-sm text-slate-400 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       Zusammenfassung für Management-Meeting (
-                      {new Date("2026-02-17").toLocaleDateString("de-DE")})
+                      {new Date().toLocaleDateString("de-DE")})
                     </p>
                   </CardHeader>
                   <CardContent>
-                    <pre className="whitespace-pre-wrap text-sm text-slate-200 font-mono p-4 bg-slate-950/50 rounded-lg border border-slate-700/50 max-h-[600px] overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-mono p-4 bg-muted rounded-lg border border-border/50 max-h-[600px] overflow-y-auto">
                       {generateMeetingOverview([selectedRig])}
                     </pre>
                     <div className="flex justify-end gap-2 mt-4">
@@ -2365,12 +2368,13 @@ export default function AssetIntegrityManagement() {
                             generateMeetingOverview([selectedRig]),
                           );
                           toast({
+                            variant: "success" as const,
                             title: "Kopiert",
                             description:
                               "Meeting-Übersicht wurde in die Zwischenablage kopiert",
                           });
                         }}
-                        className="border-slate-600"
+                        className="border-border"
                       >
                         <FileText className="h-4 w-4 mr-2" />
                         In Zwischenablage kopieren
@@ -2386,21 +2390,18 @@ export default function AssetIntegrityManagement() {
 
       {/* Add Inspection Dialog */}
       <Dialog open={isAddInspectionOpen} onOpenChange={setIsAddInspectionOpen}>
-        <DialogContent
-          className="!bg-slate-800 border-slate-700"
-          style={{ backgroundColor: "#1e293b" }}
-        >
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               Neue Inspektion hinzufügen
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Fügen Sie eine neue Inspektion für {selectedRig?.name} hinzu
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="insp-type" className="text-white">
+              <Label htmlFor="insp-type" className="text-foreground">
                 Typ
               </Label>
               <Select
@@ -2416,10 +2417,10 @@ export default function AssetIntegrityManagement() {
                   })
                 }
               >
-                <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                <SelectTrigger className="bg-background border-border text-foreground">
                   <SelectValue placeholder="Typ auswählen" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-slate-700">
+                <SelectContent className="bg-background border-border">
                   <SelectItem value="statutory">Statutory</SelectItem>
                   <SelectItem value="internal">Internal</SelectItem>
                   <SelectItem value="client">Client</SelectItem>
@@ -2428,7 +2429,7 @@ export default function AssetIntegrityManagement() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="insp-desc" className="text-white">
+              <Label htmlFor="insp-desc" className="text-foreground">
                 Beschreibung
               </Label>
               <Textarea
@@ -2440,17 +2441,12 @@ export default function AssetIntegrityManagement() {
                     description: e.target.value,
                   })
                 }
-                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                 placeholder="z.B. BOP Stack 5-Year Inspection"
-                style={{
-                  backgroundColor: "#0f172a",
-                  borderColor: "#334155",
-                  color: "#ffffff",
-                }}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="insp-date" className="text-white">
+              <Label htmlFor="insp-date" className="text-foreground">
                 Due Date
               </Label>
               <Input
@@ -2463,17 +2459,11 @@ export default function AssetIntegrityManagement() {
                     dueDate: e.target.value,
                   })
                 }
-                className="!bg-slate-900 !border-slate-700 !text-white"
-                style={{
-                  backgroundColor: "#0f172a",
-                  borderColor: "#334155",
-                  color: "#ffffff",
-                  colorScheme: "dark",
-                }}
+                className="bg-background border-border text-foreground"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="insp-resp" className="text-white">
+              <Label htmlFor="insp-resp" className="text-foreground">
                 Verantwortlich
               </Label>
               <Input
@@ -2485,13 +2475,8 @@ export default function AssetIntegrityManagement() {
                     responsible: e.target.value,
                   })
                 }
-                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                 placeholder="z.B. Rig Mechanic"
-                style={{
-                  backgroundColor: "#0f172a",
-                  borderColor: "#334155",
-                  color: "#ffffff",
-                }}
               />
             </div>
           </div>
@@ -2499,7 +2484,7 @@ export default function AssetIntegrityManagement() {
             <Button
               variant="outline"
               onClick={() => setIsAddInspectionOpen(false)}
-              className="border-slate-700"
+              className="border-border"
             >
               Abbrechen
             </Button>
@@ -2515,22 +2500,19 @@ export default function AssetIntegrityManagement() {
 
       {/* Add Issue Dialog */}
       <Dialog open={isAddIssueOpen} onOpenChange={setIsAddIssueOpen}>
-        <DialogContent
-          className="!bg-slate-800 border-slate-700"
-          style={{ backgroundColor: "#1e293b" }}
-        >
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               Neues Issue hinzufügen
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Fügen Sie ein neues Risiko/Issue für {selectedRig?.name} hinzu
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="issue-cat" className="text-white">
+                <Label htmlFor="issue-cat" className="text-foreground">
                   Kategorie
                 </Label>
                 <Select
@@ -2546,10 +2528,10 @@ export default function AssetIntegrityManagement() {
                     })
                   }
                 >
-                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                  <SelectTrigger className="bg-background border-border text-foreground">
                     <SelectValue placeholder="Kategorie auswählen" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-slate-700">
+                  <SelectContent className="bg-background border-border">
                     <SelectItem value="safety">Safety</SelectItem>
                     <SelectItem value="technical">Technical</SelectItem>
                     <SelectItem value="compliance">Compliance</SelectItem>
@@ -2558,7 +2540,7 @@ export default function AssetIntegrityManagement() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="issue-sev" className="text-white">
+                <Label htmlFor="issue-sev" className="text-foreground">
                   Severity
                 </Label>
                 <Select
@@ -2570,10 +2552,10 @@ export default function AssetIntegrityManagement() {
                     })
                   }
                 >
-                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                  <SelectTrigger className="bg-background border-border text-foreground">
                     <SelectValue placeholder="Severity auswählen" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-slate-700">
+                  <SelectContent className="bg-background border-border">
                     <SelectItem value="low">Low</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="high">High</SelectItem>
@@ -2583,7 +2565,7 @@ export default function AssetIntegrityManagement() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="issue-desc" className="text-white">
+              <Label htmlFor="issue-desc" className="text-foreground">
                 Beschreibung
               </Label>
               <Textarea
@@ -2592,17 +2574,12 @@ export default function AssetIntegrityManagement() {
                 onChange={(e) =>
                   setNewIssue({ ...newIssue, description: e.target.value })
                 }
-                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                 placeholder="Beschreiben Sie das Issue..."
-                style={{
-                  backgroundColor: "#0f172a",
-                  borderColor: "#334155",
-                  color: "#ffffff",
-                }}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="issue-date" className="text-white">
+              <Label htmlFor="issue-date" className="text-foreground">
                 Due Date (optional)
               </Label>
               <Input
@@ -2612,13 +2589,7 @@ export default function AssetIntegrityManagement() {
                 onChange={(e) =>
                   setNewIssue({ ...newIssue, dueDate: e.target.value })
                 }
-                className="!bg-slate-900 !border-slate-700 !text-white"
-                style={{
-                  backgroundColor: "#0f172a",
-                  borderColor: "#334155",
-                  color: "#ffffff",
-                  colorScheme: "dark",
-                }}
+                className="bg-background border-border text-foreground"
               />
             </div>
           </div>
@@ -2626,7 +2597,7 @@ export default function AssetIntegrityManagement() {
             <Button
               variant="outline"
               onClick={() => setIsAddIssueOpen(false)}
-              className="border-slate-700"
+              className="border-border"
             >
               Abbrechen
             </Button>
@@ -2645,21 +2616,18 @@ export default function AssetIntegrityManagement() {
         open={isAddImprovementOpen}
         onOpenChange={setIsAddImprovementOpen}
       >
-        <DialogContent
-          className="!bg-slate-800 border-slate-700"
-          style={{ backgroundColor: "#1e293b" }}
-        >
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               Neues Upgrade hinzufügen
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Fügen Sie eine neue Verbesserung für {selectedRig?.name} hinzu
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="imp-desc" className="text-white">
+              <Label htmlFor="imp-desc" className="text-foreground">
                 Beschreibung
               </Label>
               <Textarea
@@ -2671,18 +2639,13 @@ export default function AssetIntegrityManagement() {
                     description: e.target.value,
                   })
                 }
-                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                 placeholder="z.B. Install BOP Stack Upgrade"
-                style={{
-                  backgroundColor: "#0f172a",
-                  borderColor: "#334155",
-                  color: "#ffffff",
-                }}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="imp-cat" className="text-white">
+                <Label htmlFor="imp-cat" className="text-foreground">
                   Kategorie
                 </Label>
                 <Select
@@ -2698,10 +2661,10 @@ export default function AssetIntegrityManagement() {
                     })
                   }
                 >
-                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                  <SelectTrigger className="bg-background border-border text-foreground">
                     <SelectValue placeholder="Kategorie auswählen" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-slate-700">
+                  <SelectContent className="bg-background border-border">
                     <SelectItem value="equipment">Equipment</SelectItem>
                     <SelectItem value="certification">Certification</SelectItem>
                     <SelectItem value="compliance">Compliance</SelectItem>
@@ -2710,7 +2673,7 @@ export default function AssetIntegrityManagement() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="imp-prio" className="text-white">
+                <Label htmlFor="imp-prio" className="text-foreground">
                   Priorität
                 </Label>
                 <Select
@@ -2722,10 +2685,10 @@ export default function AssetIntegrityManagement() {
                     })
                   }
                 >
-                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                  <SelectTrigger className="bg-background border-border text-foreground">
                     <SelectValue placeholder="Priorität auswählen" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-slate-700">
+                  <SelectContent className="bg-background border-border">
                     <SelectItem value="low">Low</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="high">High</SelectItem>
@@ -2734,7 +2697,7 @@ export default function AssetIntegrityManagement() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="imp-cost" className="text-white">
+              <Label htmlFor="imp-cost" className="text-foreground">
                 Geschätzte Kosten ($)
               </Label>
               <Input
@@ -2747,17 +2710,12 @@ export default function AssetIntegrityManagement() {
                     estimatedCost: Number(e.target.value),
                   })
                 }
-                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                 placeholder="500000"
-                style={{
-                  backgroundColor: "#0f172a",
-                  borderColor: "#334155",
-                  color: "#ffffff",
-                }}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="imp-rev" className="text-white">
+              <Label htmlFor="imp-rev" className="text-foreground">
                 Revenue Impact
               </Label>
               <Input
@@ -2769,13 +2727,8 @@ export default function AssetIntegrityManagement() {
                     potentialRevenue: e.target.value,
                   })
                 }
-                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                 placeholder="z.B. +$5k day rate"
-                style={{
-                  backgroundColor: "#0f172a",
-                  borderColor: "#334155",
-                  color: "#ffffff",
-                }}
               />
             </div>
           </div>
@@ -2783,7 +2736,7 @@ export default function AssetIntegrityManagement() {
             <Button
               variant="outline"
               onClick={() => setIsAddImprovementOpen(false)}
-              className="border-slate-700"
+              className="border-border"
             >
               Abbrechen
             </Button>
@@ -2799,16 +2752,13 @@ export default function AssetIntegrityManagement() {
 
       {/* Meeting-Übersicht Dialog */}
       <Dialog open={showMeetingOverview} onOpenChange={setShowMeetingOverview}>
-        <DialogContent
-          className="w-[95vw] sm:w-[90vw] md:max-w-3xl lg:max-w-4xl max-h-[90vh] !bg-slate-800 border-slate-700"
-          style={{ backgroundColor: "#1e293b" }}
-        >
+        <DialogContent className="w-[95vw] sm:w-[90vw] md:max-w-3xl lg:max-w-4xl max-h-[90vh] bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-2xl text-white flex items-center gap-2">
+            <DialogTitle className="text-2xl text-foreground flex items-center gap-2">
               <Presentation className="h-6 w-6 text-purple-400" />
               Meeting-Übersicht
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               {overviewForAll
                 ? `Übersicht aller ${filteredRigs.length} Anlagen`
                 : `Übersicht für ${selectedRig?.name}`}
@@ -2816,8 +2766,8 @@ export default function AssetIntegrityManagement() {
           </DialogHeader>
 
           <div className="max-h-[60vh] overflow-y-auto">
-            <div className="bg-slate-900 rounded-lg p-6 border border-slate-700">
-              <pre className="text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
+            <div className="bg-background rounded-lg p-6 border border-border">
+              <pre className="text-xs text-muted-foreground font-mono whitespace-pre-wrap leading-relaxed">
                 {overviewForAll
                   ? generateMeetingOverview(filteredRigs)
                   : selectedRig
@@ -2838,7 +2788,7 @@ export default function AssetIntegrityManagement() {
                     : "";
                 navigator.clipboard.writeText(text);
               }}
-              className="border-slate-700"
+              className="border-border"
             >
               📋 In Zwischenablage kopieren
             </Button>
@@ -2854,13 +2804,13 @@ export default function AssetIntegrityManagement() {
 
       {/* Anlage hinzufügen Dialog */}
       <Dialog open={isAddRigOpen} onOpenChange={setIsAddRigOpen}>
-        <DialogContent className="w-[95vw] sm:w-[90vw] md:max-w-2xl max-h-[90vh] overflow-y-auto !bg-slate-800 border-slate-700">
+        <DialogContent className="w-[95vw] sm:w-[90vw] md:max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-xl text-white flex items-center gap-2">
+            <DialogTitle className="text-xl text-foreground flex items-center gap-2">
               <Building2 className="h-6 w-6 text-green-400" />
               Neue Anlage hinzufügen
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Fügen Sie eine neue Bohranlage zum System hinzu. Felder mit * sind
               Pflichtfelder.
             </DialogDescription>
@@ -2870,8 +2820,8 @@ export default function AssetIntegrityManagement() {
             {/* Name & Region */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label className="text-white font-medium flex items-center gap-1.5 mb-2">
-                  <Building2 className="h-4 w-4 text-blue-400" />
+                <Label className="text-foreground font-medium flex items-center gap-1.5 mb-2">
+                  <Building2 className="h-4 w-4 text-primary" />
                   Anlagenname *
                 </Label>
                 <Input
@@ -2879,19 +2829,13 @@ export default function AssetIntegrityManagement() {
                   onChange={(e) =>
                     setNewRig({ ...newRig, name: e.target.value })
                   }
-                  className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
                   placeholder="z.B. T700"
-                  style={{
-                    backgroundColor: "#0f172a",
-                    borderColor: "#334155",
-                    color: "#ffffff",
-                  }}
                 />
               </div>
 
               <div>
-                <Label className="text-white font-medium flex items-center gap-1.5 mb-2">
-                  <MapPin className="h-4 w-4 text-blue-400" />
+                <Label className="text-foreground font-medium flex items-center gap-1.5 mb-2">
+                  <MapPin className="h-4 w-4 text-primary" />
                   Region *
                 </Label>
                 <Select
@@ -2900,7 +2844,7 @@ export default function AssetIntegrityManagement() {
                     setNewRig({ ...newRig, region: value })
                   }
                 >
-                  <SelectTrigger className="!bg-slate-900 !border-slate-700 !text-white">
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -2913,8 +2857,8 @@ export default function AssetIntegrityManagement() {
 
             {/* Standort */}
             <div>
-              <Label className="text-white font-medium flex items-center gap-1.5 mb-2">
-                <MapPin className="h-4 w-4 text-blue-400" />
+              <Label className="text-foreground font-medium flex items-center gap-1.5 mb-2">
+                <MapPin className="h-4 w-4 text-primary" />
                 Standort *
               </Label>
               <Input
@@ -2922,21 +2866,15 @@ export default function AssetIntegrityManagement() {
                 onChange={(e) =>
                   setNewRig({ ...newRig, location: e.target.value })
                 }
-                className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
                 placeholder="z.B. Fahud Field, Muscat Yard"
-                style={{
-                  backgroundColor: "#0f172a",
-                  borderColor: "#334155",
-                  color: "#ffffff",
-                }}
               />
             </div>
 
             {/* Vertragsstatus & Operator */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label className="text-white font-medium flex items-center gap-1.5 mb-2">
-                  <CheckCircle className="h-4 w-4 text-blue-400" />
+                <Label className="text-foreground font-medium flex items-center gap-1.5 mb-2">
+                  <CheckCircle className="h-4 w-4 text-primary" />
                   Vertragsstatus
                 </Label>
                 <Select
@@ -2945,7 +2883,7 @@ export default function AssetIntegrityManagement() {
                     value: "active" | "idle" | "standby" | "maintenance",
                   ) => setNewRig({ ...newRig, contractStatus: value })}
                 >
-                  <SelectTrigger className="!bg-slate-900 !border-slate-700 !text-white">
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -2958,8 +2896,8 @@ export default function AssetIntegrityManagement() {
               </div>
 
               <div>
-                <Label className="text-white font-medium flex items-center gap-1.5 mb-2">
-                  <User className="h-4 w-4 text-blue-400" />
+                <Label className="text-foreground font-medium flex items-center gap-1.5 mb-2">
+                  <User className="h-4 w-4 text-primary" />
                   Operator
                 </Label>
                 <Input
@@ -2967,13 +2905,7 @@ export default function AssetIntegrityManagement() {
                   onChange={(e) =>
                     setNewRig({ ...newRig, operator: e.target.value })
                   }
-                  className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
                   placeholder="z.B. PDO, OGDCL"
-                  style={{
-                    backgroundColor: "#0f172a",
-                    borderColor: "#334155",
-                    color: "#ffffff",
-                  }}
                 />
               </div>
             </div>
@@ -2981,8 +2913,8 @@ export default function AssetIntegrityManagement() {
             {/* Day Rate & Vertragsende */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label className="text-white font-medium flex items-center gap-1.5 mb-2">
-                  <DollarSign className="h-4 w-4 text-green-400" />
+                <Label className="text-foreground font-medium flex items-center gap-1.5 mb-2">
+                  <DollarSign className="h-4 w-4 text-green-500" />
                   Day Rate ($)
                 </Label>
                 <Input
@@ -2991,19 +2923,13 @@ export default function AssetIntegrityManagement() {
                   onChange={(e) =>
                     setNewRig({ ...newRig, dayRate: Number(e.target.value) })
                   }
-                  className="!bg-slate-900 !border-slate-700 !text-white placeholder:!text-slate-400"
                   placeholder="z.B. 28000"
-                  style={{
-                    backgroundColor: "#0f172a",
-                    borderColor: "#334155",
-                    color: "#ffffff",
-                  }}
                 />
               </div>
 
               <div>
-                <Label className="text-white font-medium flex items-center gap-1.5 mb-2">
-                  <Calendar className="h-4 w-4 text-blue-400" />
+                <Label className="text-foreground font-medium flex items-center gap-1.5 mb-2">
+                  <Calendar className="h-4 w-4 text-primary" />
                   Vertragsende
                 </Label>
                 <Input
@@ -3012,24 +2938,13 @@ export default function AssetIntegrityManagement() {
                   onChange={(e) =>
                     setNewRig({ ...newRig, contractEndDate: e.target.value })
                   }
-                  className="!bg-slate-900 !border-slate-700 !text-white"
-                  style={{
-                    backgroundColor: "#0f172a",
-                    borderColor: "#334155",
-                    color: "#ffffff",
-                    colorScheme: "dark",
-                  }}
                 />
               </div>
             </div>
           </div>
 
           <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsAddRigOpen(false)}
-              className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-            >
+            <Button variant="outline" onClick={() => setIsAddRigOpen(false)}>
               Abbrechen
             </Button>
             <Button
@@ -3043,6 +2958,52 @@ export default function AssetIntegrityManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!deleteConfirm}
+        onOpenChange={(open) => !open && setDeleteConfirm(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Löschen bestätigen</AlertDialogTitle>
+            <AlertDialogDescription>
+              Möchten Sie{" "}
+              {deleteConfirm?.type === "inspection"
+                ? "diese Inspektion"
+                : deleteConfirm?.type === "issue"
+                  ? "dieses Problem"
+                  : "diese Verbesserung"}{" "}
+              wirklich löschen?
+              {deleteConfirm?.label && (
+                <span className="block mt-1 font-medium text-foreground">
+                  „{deleteConfirm.label}"
+                </span>
+              )}
+              Diese Aktion kann nicht rückgängig gemacht werden.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirm(null)}>
+              Abbrechen
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (!deleteConfirm) return;
+                if (deleteConfirm.type === "inspection")
+                  handleDeleteInspection(deleteConfirm.id);
+                else if (deleteConfirm.type === "issue")
+                  handleDeleteIssue(deleteConfirm.id);
+                else handleDeleteImprovement(deleteConfirm.id);
+                setDeleteConfirm(null);
+              }}
+            >
+              Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

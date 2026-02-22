@@ -133,7 +133,8 @@ interface EditingAssignment extends Assignment {
 
 const ShiftPlanner: React.FC = () => {
   const { toast } = useToast();
-  // Setze aktuellen Monat (Februar 2026 = Index 1)
+  // Dynamisch aktuelles Jahr verwenden
+  const [currentYear] = useState(() => new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return now.getMonth(); // 0-11, wobei 0 = Januar
@@ -210,49 +211,62 @@ const ShiftPlanner: React.FC = () => {
   const [newPersonnelName, setNewPersonnelName] = useState("");
 
   const months = useMemo(
-    () => [
-      "Januar 2026",
-      "Februar 2026",
-      "März 2026",
-      "April 2026",
-      "Mai 2026",
-      "Juni 2026",
-      "Juli 2026",
-      "August 2026",
-      "September 2026",
-      "Oktober 2026",
-      "November 2026",
-      "Dezember 2026",
-    ],
-    [],
+    () =>
+      [
+        "Januar",
+        "Februar",
+        "März",
+        "April",
+        "Mai",
+        "Juni",
+        "Juli",
+        "August",
+        "September",
+        "Oktober",
+        "November",
+        "Dezember",
+      ].map((m) => `${m} ${currentYear}`),
+    [currentYear],
   );
 
-  const getDaysInMonth = useCallback((monthIndex: number): number => {
-    return new Date(2026, monthIndex + 1, 0).getDate();
-  }, []);
+  const getDaysInMonth = useCallback(
+    (monthIndex: number): number => {
+      return new Date(currentYear, monthIndex + 1, 0).getDate();
+    },
+    [currentYear],
+  );
 
-  const getWeekday = useCallback((monthIndex: number, day: number): string => {
-    const date = new Date(2026, monthIndex, day);
-    const days = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
-    return days[date.getDay()];
-  }, []);
+  const getWeekday = useCallback(
+    (monthIndex: number, day: number): string => {
+      const date = new Date(currentYear, monthIndex, day);
+      const days = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+      return days[date.getDay()];
+    },
+    [currentYear],
+  );
 
-  const isWeekend = useCallback((monthIndex: number, day: number): boolean => {
-    const date = new Date(2026, monthIndex, day);
-    const dayOfWeek = date.getDay();
-    return dayOfWeek === 0 || dayOfWeek === 6;
-  }, []);
+  const isWeekend = useCallback(
+    (monthIndex: number, day: number): boolean => {
+      const date = new Date(currentYear, monthIndex, day);
+      const dayOfWeek = date.getDay();
+      return dayOfWeek === 0 || dayOfWeek === 6;
+    },
+    [currentYear],
+  );
 
   // Prüft ob ein Tag der heutige Tag ist
-  const isToday = useCallback((monthIndex: number, day: number): boolean => {
-    const today = new Date();
-    const checkDate = new Date(2026, monthIndex, day);
-    return (
-      checkDate.getDate() === today.getDate() &&
-      checkDate.getMonth() === today.getMonth() &&
-      checkDate.getFullYear() === today.getFullYear()
-    );
-  }, []);
+  const isToday = useCallback(
+    (monthIndex: number, day: number): boolean => {
+      const today = new Date();
+      const checkDate = new Date(currentYear, monthIndex, day);
+      return (
+        checkDate.getDate() === today.getDate() &&
+        checkDate.getMonth() === today.getMonth() &&
+        checkDate.getFullYear() === today.getFullYear()
+      );
+    },
+    [currentYear],
+  );
 
   const days = useMemo(
     () => Array.from({ length: getDaysInMonth(currentMonth) }, (_, i) => i + 1),
@@ -260,7 +274,7 @@ const ShiftPlanner: React.FC = () => {
   );
 
   const generateUniqueId = useCallback((): string => {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return crypto.randomUUID();
   }, []);
 
   const handleDragStart = useCallback((e: React.DragEvent, item: DragItem) => {
@@ -588,6 +602,7 @@ const ShiftPlanner: React.FC = () => {
     const typeLabel =
       ABSENCE_TYPES.find((t) => t.value === absenceType)?.label || absenceType;
     toast({
+      variant: "success" as const,
       title: "Abwesenheit eingetragen",
       description: `${typeLabel} für ${person}: Tag ${startDay}-${endDay}`,
     });
@@ -713,6 +728,7 @@ const ShiftPlanner: React.FC = () => {
       // Toast mit Feedback
       const cycleText = cycles > 1 ? ` (${cycles} Zyklen)` : "";
       toast({
+        variant: "success" as const,
         title: isMove ? "Schicht verschoben" : "Schicht zugewiesen",
         description: sendEmail
           ? `${person} wurde zu ${position} zugewiesen${cycleText}. E-Mail Benachrichtigung wird gesendet.`
@@ -721,9 +737,6 @@ const ShiftPlanner: React.FC = () => {
 
       // Hier könnte die echte E-Mail-Logik implementiert werden
       if (sendEmail) {
-        console.log(
-          `[EMAIL] Benachrichtigung an ${person} für Position ${position}, Start: Tag ${startDay}`,
-        );
         // TODO: API-Call für E-Mail-Versand
       }
 
@@ -754,6 +767,7 @@ const ShiftPlanner: React.FC = () => {
       );
       setAssignments(newAssignments);
       toast({
+        variant: "success" as const,
         title: "Schicht entfernt",
         description: `${assignment.person} wurde von ${assignment.position} entfernt.`,
       });
@@ -824,6 +838,7 @@ const ShiftPlanner: React.FC = () => {
     setShowEditModal(false);
     setEditingAssignment(null);
     toast({
+      variant: "success" as const,
       title: "Schicht aktualisiert",
       description: `${workDays ?? 15} Arbeitstage, ${offDays ?? 13} freie Tage.`,
     });
@@ -888,6 +903,7 @@ const ShiftPlanner: React.FC = () => {
       setShowEditModal(false);
       setEditingAssignment(null);
       toast({
+        variant: "success" as const,
         title: "Gespeichert",
         description: "Die Schichtdetails wurden aktualisiert.",
       });
@@ -931,6 +947,7 @@ const ShiftPlanner: React.FC = () => {
       setNewPositionName("");
       setShowAddPosition(false);
       toast({
+        variant: "success" as const,
         title: "Position hinzugefügt",
         description: `"${newPositionName.trim()}" wurde hinzugefügt.`,
       });
@@ -949,6 +966,7 @@ const ShiftPlanner: React.FC = () => {
       setAssignments(newAssignments);
       setDeleteConfirm(null);
       toast({
+        variant: "success" as const,
         title: "Position entfernt",
         description: `"${position}" wurde entfernt.`,
       });
@@ -970,6 +988,7 @@ const ShiftPlanner: React.FC = () => {
       setNewPersonnelName("");
       setShowAddPersonnel(false);
       toast({
+        variant: "success" as const,
         title: "Mitarbeiter hinzugefügt",
         description: `"${newPersonnelName.trim()}" wurde hinzugefügt.`,
       });
@@ -989,6 +1008,7 @@ const ShiftPlanner: React.FC = () => {
       setAssignments(newAssignments);
       setDeleteConfirm(null);
       toast({
+        variant: "success" as const,
         title: "Mitarbeiter entfernt",
         description: `"${person}" wurde entfernt.`,
       });
@@ -1010,6 +1030,7 @@ const ShiftPlanner: React.FC = () => {
     linkElement.setAttribute("download", exportFileDefaultName);
     linkElement.click();
     toast({
+      variant: "success" as const,
       title: "Export erfolgreich",
       description: "Der Schichtplan wurde exportiert.",
     });
@@ -1025,6 +1046,7 @@ const ShiftPlanner: React.FC = () => {
     };
     localStorage.setItem("shiftPlannerData", JSON.stringify(data));
     toast({
+      variant: "success" as const,
       title: "Gespeichert",
       description: "Der Schichtplan wurde erfolgreich gespeichert.",
     });
@@ -1041,7 +1063,6 @@ const ShiftPlanner: React.FC = () => {
         // availablePersonnel NICHT laden - verwende Standard-Namen
         // if (data.availablePersonnel)
         //   setAvailablePersonnel(data.availablePersonnel);
-        console.log("Schichtplan geladen:", data.savedAt);
       } catch (error) {
         console.error("Fehler beim Laden des Schichtplans:", error);
       }
@@ -1061,6 +1082,7 @@ const ShiftPlanner: React.FC = () => {
             if (data.availablePersonnel)
               setAvailablePersonnel(data.availablePersonnel);
             toast({
+              variant: "success" as const,
               title: "Import erfolgreich",
               description: "Der Schichtplan wurde importiert.",
             });
@@ -1316,19 +1338,23 @@ const ShiftPlanner: React.FC = () => {
           {shiftData &&
             (() => {
               const { segments, blockWidth } = shiftData;
-            
+
               // Gruppiere Segmente nach Farbe für Label-Platzierung
-              const nightSegments = segments.filter(s => s.color === "#1d4ed8");
-              const handoverSegments = segments.filter(s => s.color === "#f97316");
-              const daySegments = segments.filter(s => s.color === "#fbbf24");
-              
+              const nightSegments = segments.filter(
+                (s) => s.color === "#1d4ed8",
+              );
+              const handoverSegments = segments.filter(
+                (s) => s.color === "#f97316",
+              );
+              const daySegments = segments.filter((s) => s.color === "#fbbf24");
+
               const getSegmentCenter = (segs: typeof segments) => {
                 if (segs.length === 0) return null;
                 const totalStart = segs[0].start;
                 const totalEnd = segs[segs.length - 1].end;
                 return ((totalStart + totalEnd) / 2 / blockWidth) * 100;
               };
-              
+
               const nightCenter = getSegmentCenter(nightSegments);
               const handoverCenter = getSegmentCenter(handoverSegments);
               const dayCenter = getSegmentCenter(daySegments);
@@ -2236,7 +2262,7 @@ const ShiftPlanner: React.FC = () => {
                 value={newPersonnelName}
                 onChange={(e) => setNewPersonnelName(e.target.value)}
                 placeholder="Name des Mitarbeiters..."
-                onKeyPress={(e) => e.key === "Enter" && handleAddPersonnel()}
+                onKeyDown={(e) => e.key === "Enter" && handleAddPersonnel()}
               />
               <Button onClick={handleAddPersonnel} size="sm">
                 OK
@@ -2319,7 +2345,7 @@ const ShiftPlanner: React.FC = () => {
                 value={newPositionName}
                 onChange={(e) => setNewPositionName(e.target.value)}
                 placeholder="Neue Position..."
-                onKeyPress={(e) => e.key === "Enter" && handleAddPosition()}
+                onKeyDown={(e) => e.key === "Enter" && handleAddPosition()}
               />
               <Button onClick={handleAddPosition} size="sm">
                 OK
