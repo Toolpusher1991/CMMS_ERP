@@ -23,6 +23,7 @@ import tenderRoutes from './routes/tender.routes';
 import inspectionReportRoutes from './routes/inspection-report.routes';
 import { errorHandler } from './middleware/error.middleware';
 import { apiLimiter, authLimiter } from './middleware/rate-limit.middleware';
+import { syncFleetOnStartup } from './startup/fleet-sync';
 
 dotenv.config();
 
@@ -214,10 +215,13 @@ app.use('/api/inspection-reports', inspectionReportRoutes); // Inspection Report
 app.use(errorHandler);
 
 // Listen on all network interfaces (0.0.0.0) für Netzwerk-Zugriff
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
   console.log(`🌐 Network: http://0.0.0.0:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+
+  // Sync fleet data on startup (replaces old rigs with Equipment Master Database fleet)
+  await syncFleetOnStartup();
 });
 
 // Error handling for server startup

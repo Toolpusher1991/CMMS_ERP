@@ -306,7 +306,7 @@ const WorkOrderManagement = () => {
 
           // Versuche Rig-Bezeichnung aus dem WorkCenter zu extrahieren (z.B. "T-91", "T-144", etc.)
           const rigMatch = wc.match(/T-?\d+/);
-          if (rigMatch) return rigMatch[0].replace(/^T(\d)/, 'T-$1');
+          if (rigMatch) return rigMatch[0].replace(/^T(\d)/, "T-$1");
 
           // Default fallback
           return "T-51";

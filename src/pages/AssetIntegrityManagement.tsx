@@ -453,40 +453,64 @@ export default function AssetIntegrityManagement() {
   const { data: rigsData } = useQuery({
     queryKey: queryKeys.assetRigs.list(),
     queryFn: async () => {
+      // Clear stale localStorage backup that might contain old rigs (T700, T46, etc.)
+      const backup = localStorage.getItem("asset-integrity-backup");
+      if (backup) {
+        try {
+          const parsed = JSON.parse(backup);
+          if (Array.isArray(parsed) && parsed.some((r: { name?: string }) => 
+            ['T700', 'T46', 'T203', 'T208', 'T207', 'T92', 'T350'].includes(r.name || '')
+          )) {
+            localStorage.removeItem("asset-integrity-backup");
+          }
+        } catch { /* ignore parse errors */ }
+      }
+
       try {
         const apiRigs = await assetIntegrityApi.getAllRigs();
         if (Array.isArray(apiRigs) && apiRigs.length > 0) {
           const normalizedRigs = apiRigs.map(
-            (rig: Partial<Rig> & { id: string; name: string }) => ({
-              id: rig.id,
-              name: rig.name,
-              region: (rig.region as Rig["region"]) || "Oman",
-              contractStatus:
-                (rig.contractStatus as Rig["contractStatus"]) || "idle",
-              contractEndDate: rig.contractEndDate,
-              operator: rig.operator,
-              location: rig.location || "",
-              dayRate:
-                typeof rig.dayRate === "string"
-                  ? Number(rig.dayRate) || undefined
-                  : rig.dayRate,
-              certifications: Array.isArray(rig.certifications)
-                ? rig.certifications
-                : [],
-              generalInfo: Array.isArray(rig.generalInfo)
-                ? rig.generalInfo
-                : [],
-              documents: Array.isArray((rig as Rig).documents)
-                ? (rig as Rig).documents
-                : [],
-              inspections: Array.isArray(rig.inspections)
-                ? rig.inspections
-                : [],
-              issues: Array.isArray(rig.issues) ? rig.issues : [],
-              improvements: Array.isArray(rig.improvements)
-                ? rig.improvements
-                : [],
-            }),
+            (rig: Partial<Rig> & { id: string; name: string; technicalSpecs?: string }) => {
+              // Extract rigType/hpRating/year from technicalSpecs if available
+              let techSpecs: { rigType?: string; hpRating?: string; year?: number } = {};
+              if (typeof rig.technicalSpecs === 'string' && rig.technicalSpecs.startsWith('{')) {
+                try { techSpecs = JSON.parse(rig.technicalSpecs); } catch { /* ignore */ }
+              }
+
+              return {
+                id: rig.id,
+                name: rig.name,
+                region: (rig.region as Rig["region"]) || "Oman",
+                contractStatus:
+                  (rig.contractStatus as Rig["contractStatus"]) || "idle",
+                contractEndDate: rig.contractEndDate,
+                operator: rig.operator,
+                location: rig.location || "",
+                dayRate:
+                  typeof rig.dayRate === "string"
+                    ? Number(rig.dayRate) || undefined
+                    : rig.dayRate,
+                rigType: rig.rigType || techSpecs.rigType,
+                hpRating: rig.hpRating || techSpecs.hpRating,
+                year: rig.year || techSpecs.year,
+                certifications: Array.isArray(rig.certifications)
+                  ? rig.certifications
+                  : [],
+                generalInfo: Array.isArray(rig.generalInfo)
+                  ? rig.generalInfo
+                  : [],
+                documents: Array.isArray((rig as Rig).documents)
+                  ? (rig as Rig).documents
+                  : [],
+                inspections: Array.isArray(rig.inspections)
+                  ? rig.inspections
+                  : [],
+                issues: Array.isArray(rig.issues) ? rig.issues : [],
+                improvements: Array.isArray(rig.improvements)
+                  ? rig.improvements
+                  : [],
+              };
+            },
           ) as Rig[];
           localStorage.setItem(
             "asset-integrity-backup",
@@ -497,10 +521,10 @@ export default function AssetIntegrityManagement() {
       } catch (err) {
         console.warn("API nicht erreichbar, nutze localStorage-Fallback:", err);
       }
-      // Fallback: localStorage
-      const backup = localStorage.getItem("asset-integrity-backup");
-      if (backup) {
-        return JSON.parse(backup) as Rig[];
+      // Fallback: localStorage, then initialRigs
+      const cachedBackup = localStorage.getItem("asset-integrity-backup");
+      if (cachedBackup) {
+        return JSON.parse(cachedBackup) as Rig[];
       }
       return initialRigs;
     },
