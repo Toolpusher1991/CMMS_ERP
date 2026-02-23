@@ -1,6 +1,6 @@
 import { apiClient } from './api';
 
-export type Plant = "T208" | "T207" | "T700" | "T46";
+export type Plant = string;
 export type ActionStatus = "OPEN" | "IN_PROGRESS" | "COMPLETED";
 export type ActionPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 export type ActionCategory = "ALLGEMEIN" | "RIGMOVE";

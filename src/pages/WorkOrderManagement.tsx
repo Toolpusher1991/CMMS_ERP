@@ -301,31 +301,15 @@ const WorkOrderManagement = () => {
         };
 
         // Plant aus MainWorkCtr intelligent ableiten
-        const detectPlant = (
-          workCtr: string,
-        ): "T208" | "T207" | "T700" | "T46" => {
+        const detectPlant = (workCtr: string): string => {
           const wc = workCtr.toUpperCase();
 
-          // Direkte Matches (wenn WorkCtr genau T208, T207, etc. ist)
-          if (wc === "T208") return "T208";
-          if (wc === "T207") return "T207";
-          if (wc === "T700") return "T700";
-          if (wc === "T46") return "T46";
-
-          // WorkCtr enthält Plant-Code (z.B. "T208-MECH", "TP-INSP" für TopSide)
-          if (wc.includes("T208") || wc.includes("208")) return "T208";
-          if (wc.includes("T207") || wc.includes("207")) return "T207";
-          if (wc.includes("T700") || wc.includes("700")) return "T700";
-          if (wc.includes("T46") || wc.includes("46")) return "T46";
-
-          // Spezielle WorkCenter-Typen
-          if (wc.includes("TP-") || wc.startsWith("TP")) return "T208"; // TopSide Inspection → T208
-          if (wc.includes("RM-") || wc.startsWith("RM")) return "T208"; // Rig Maintenance → T208
-          if (wc.includes("ELEC")) return "T208"; // Electrical
-          if (wc.includes("MECH")) return "T208"; // Mechanical
+          // Versuche Rig-Bezeichnung aus dem WorkCenter zu extrahieren (z.B. "T-91", "T-144", etc.)
+          const rigMatch = wc.match(/T-?\d+/);
+          if (rigMatch) return rigMatch[0].replace(/^T(\d)/, 'T-$1');
 
           // Default fallback
-          return "T700";
+          return "T-51";
         };
 
         const plant = detectPlant(wo.mainWorkCtr);

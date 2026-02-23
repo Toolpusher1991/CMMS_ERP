@@ -112,8 +112,8 @@ export const createFailureReport = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Plant, title, and description are required' });
     }
 
-    const validPlants = ['T208', 'T207', 'T700', 'T46'];
-    if (!validPlants.includes(plant)) {
+    // Plant validation is now dynamic — any non-empty string is accepted
+    if (typeof plant !== 'string' || plant.trim().length === 0) {
       return res.status(400).json({ error: 'Invalid plant' });
     }
 

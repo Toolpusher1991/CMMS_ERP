@@ -1,6 +1,6 @@
 import { apiClient } from './api';
 
-export type Plant = "T208" | "T207" | "T700" | "T46";
+export type Plant = string;
 export type FailureReportStatus = "REPORTED" | "IN_REVIEW" | "CONVERTED_TO_ACTION" | "RESOLVED";
 export type FailureReportSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 

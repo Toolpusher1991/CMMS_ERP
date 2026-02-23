@@ -376,7 +376,11 @@ class PDFExportService {
     doc.setTextColor(0);
     doc.text('🏭 Anlagen-Übersicht', 14, (doc as any).lastAutoTable.finalY + 15);
 
-    const plants = ['T208', 'T207', 'T700', 'T46'];
+    // Dynamisch Anlagen aus den vorhandenen Actions/Reports ableiten
+    const plantSet = new Set<string>();
+    actions.forEach(a => plantSet.add(a.plant));
+    reports.forEach(r => plantSet.add(r.plant));
+    const plants = Array.from(plantSet).sort();
     const plantData = plants.map(plant => [
       plant,
       actions.filter(a => a.plant === plant).length.toString(),

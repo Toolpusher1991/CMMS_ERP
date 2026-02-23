@@ -1,11 +1,9 @@
 import { z } from 'zod';
 
-const VALID_PLANTS = ['T208', 'T207', 'T700', 'T46'] as const;
-
 // ── Actions ───────────────────────────────────────────────
 
 export const createActionSchema = z.object({
-  plant: z.enum(VALID_PLANTS, { errorMap: () => ({ message: 'Ungültige Anlage' }) }),
+  plant: z.string().min(1, 'Anlage ist erforderlich'),
   location: z.string().optional(),
   category: z.string().optional(),
   discipline: z.string().optional(),

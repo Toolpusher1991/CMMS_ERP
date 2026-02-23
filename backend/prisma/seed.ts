@@ -68,10 +68,12 @@ async function main() {
     console.log('✅ Regular user already exists');
   }
 
-  // Create Rig Personnel (Elektriker, Mechaniker, Toolpusher, Rig Manager, Supply Coordinator)
-  // For each rig: T208, T207, T700, T46
+  // Create Rig Personnel
+  // For each rig: dynamically based on new fleet
   
-  const rigs = ['T208', 'T207', 'T700', 'T46'];
+  const rigs = ['T-51', 'T-91', 'T-92', 'T-93', 'T-94', 'T-95', 'T-144', 'T-145', 'T-146', 'T-147',
+    'T-801', 'T-826', 'T-849', 'T-853', 'T-858', 'T-859', 'T-867', 'T-872', 'T-889',
+    'T-895', 'T-896', 'T-897', 'T-898', 'T-899'];
   const roles = [
     { role: 'Elektriker', email: 'EL' },      // EL = Elektriker
     { role: 'Mechaniker', email: 'ME' },      // ME = Mechaniker
@@ -112,21 +114,21 @@ async function main() {
   }
 
   if (newUsersCount > 0) {
-    console.log(`✅ Created ${newUsersCount} rig crew members across 4 rigs`);
+    console.log(`✅ Created ${newUsersCount} rig crew members across ${rigs.length} rigs`);
     console.log('   - Per Rig: Elektriker, Mechaniker, Toolpusher, Rig Manager, Supply Coordinator');
   } else {
     console.log('✅ Rig crew members already exist');
   }
 
-  // Seed Projects (T208, T700, T207, T46)
+  // Seed Projects
   const existingProjects = await prisma.project.count();
   
   if (existingProjects === 0) {
     await prisma.project.createMany({
       data: [
         {
-          projectNumber: 'T208',
-          name: 'Sicherheitsupdate Q4',
+          projectNumber: 'T-51',
+          name: 'Sicherheitsupdate Q1',
           description: 'Update der Sicherheitssysteme und Protokolle',
           status: 'IN_PROGRESS',
           priority: 'URGENT',
@@ -134,28 +136,28 @@ async function main() {
           totalBudget: 75000,
           spentBudget: 48750,
           startDate: new Date('2025-09-01'),
-          endDate: new Date('2025-12-31'),
+          endDate: new Date('2026-03-31'),
           managerId: admin.id,
           createdBy: admin.id,
-          plant: 'T208',
+          plant: 'T-51',
         },
         {
-          projectNumber: 'T700',
-          name: 'Komplett-Überholung 2025',
+          projectNumber: 'T-91',
+          name: 'Komplett-Überholung 2026',
           description: 'Vollständige Überholung und Modernisierung',
           status: 'IN_PROGRESS',
           priority: 'HIGH',
           progress: 45,
           totalBudget: 200000,
           spentBudget: 90000,
-          startDate: new Date('2025-01-15'),
-          endDate: new Date('2025-06-30'),
+          startDate: new Date('2026-01-15'),
+          endDate: new Date('2026-06-30'),
           managerId: admin.id,
           createdBy: admin.id,
-          plant: 'T700',
+          plant: 'T-91',
         },
         {
-          projectNumber: 'T207',
+          projectNumber: 'T-144',
           name: 'Digitalisierung Infrastruktur',
           description: 'Implementierung digitaler Wartungssysteme',
           status: 'PLANNED',
@@ -163,145 +165,98 @@ async function main() {
           progress: 10,
           totalBudget: 150000,
           spentBudget: 5000,
-          startDate: new Date('2025-11-01'),
-          endDate: new Date('2026-03-31'),
+          startDate: new Date('2026-03-01'),
+          endDate: new Date('2026-08-31'),
           managerId: admin.id,
           createdBy: admin.id,
-          plant: 'T207',
+          plant: 'T-144',
         },
         {
-          projectNumber: 'T46',
+          projectNumber: 'T-867',
           name: 'Energieeffizienz Optimierung',
           description: 'Verbesserung der Energieeffizienz der Anlagen',
-          status: 'COMPLETED',
-          priority: 'LOW',
-          progress: 100,
+          status: 'PLANNED',
+          priority: 'NORMAL',
+          progress: 0,
           totalBudget: 50000,
-          spentBudget: 47500,
-          startDate: new Date('2025-04-01'),
-          endDate: new Date('2025-08-31'),
+          spentBudget: 0,
+          startDate: new Date('2026-04-01'),
+          endDate: new Date('2026-08-31'),
           managerId: user!.id,
           createdBy: admin.id,
-          plant: 'T46',
+          plant: 'T-867',
         },
       ],
     });
 
-    console.log('✅ Created 4 projects: T208, T700, T207, T46');
+    console.log('✅ Created 4 projects: T-51, T-91, T-144, T-867');
   } else {
     console.log(`✅ Projects already exist (${existingProjects} projects found)`);
   }
 
-  // Seed Rigs (Bohranlagen)
+  // Seed Rigs (Equipment Master Database – Komplette Flotte)
   const existingRigs = await prisma.rig.count();
   
   if (existingRigs === 0) {
+    const rigFleet = [
+      { id: 't51',  name: 'T-51',  rigType: 'EMSCO C-3 III',      hp: 3000, year: 1980, category: 'Schwerlast' },
+      { id: 't91',  name: 'T-91',  rigType: '2000 HP Stationary',  hp: 2000, year: 2014, category: 'Schwerlast' },
+      { id: 't92',  name: 'T-92',  rigType: '2000 HP Stationary',  hp: 2000, year: 2014, category: 'Schwerlast' },
+      { id: 't93',  name: 'T-93',  rigType: '2000 HP Stationary',  hp: 2000, year: 2015, category: 'Schwerlast' },
+      { id: 't94',  name: 'T-94',  rigType: '2000 HP Stationary',  hp: 2000, year: 2015, category: 'Schwerlast' },
+      { id: 't95',  name: 'T-95',  rigType: '2000 HP Stationary',  hp: 2000, year: 2015, category: 'Schwerlast' },
+      { id: 't144', name: 'T-144', rigType: '1250 HP Mobile',      hp: 1250, year: 2023, category: 'Mittlere Leistung' },
+      { id: 't145', name: 'T-145', rigType: '1250 HP Mobile',      hp: 1250, year: 2023, category: 'Mittlere Leistung' },
+      { id: 't146', name: 'T-146', rigType: '1250 HP Mobile',      hp: 1250, year: 2024, category: 'Mittlere Leistung' },
+      { id: 't147', name: 'T-147', rigType: '1250 HP Mobile',      hp: 1250, year: 2024, category: 'Mittlere Leistung' },
+      { id: 't801', name: 'T-801', rigType: '800 HP Highly Mobile', hp: 800,  year: 1992, category: 'Kompakt' },
+      { id: 't826', name: 'T-826', rigType: '800 HP CARDWELL',     hp: 800,  year: 1988, category: 'Kompakt' },
+      { id: 't849', name: 'T-849', rigType: '1500 HP Mobile',      hp: 1500, year: 2010, category: 'Mittlere Leistung' },
+      { id: 't853', name: 'T-853', rigType: '800 HP Highly Mobile', hp: 800,  year: 1995, category: 'Kompakt' },
+      { id: 't858', name: 'T-858', rigType: '1500 HP Mobile',      hp: 1500, year: 2010, category: 'Mittlere Leistung' },
+      { id: 't859', name: 'T-859', rigType: '1500 HP Mobile',      hp: 1500, year: 2010, category: 'Mittlere Leistung' },
+      { id: 't867', name: 'T-867', rigType: '2000 HP Land Rig',    hp: 2000, year: 2014, category: 'Schwerlast' },
+      { id: 't872', name: 'T-872', rigType: '800 HP Highly Mobile', hp: 800,  year: 1992, category: 'Kompakt' },
+      { id: 't889', name: 'T-889', rigType: '2000 HP Land Rig',    hp: 2000, year: 2006, category: 'Schwerlast' },
+      { id: 't895', name: 'T-895', rigType: '1000 HP Mobile',      hp: 1000, year: 2015, category: 'Kompakt' },
+      { id: 't896', name: 'T-896', rigType: '1000 HP Mobile',      hp: 1000, year: 2015, category: 'Kompakt' },
+      { id: 't897', name: 'T-897', rigType: '1000 HP Mobile',      hp: 1000, year: 2015, category: 'Kompakt' },
+      { id: 't898', name: 'T-898', rigType: '1000 HP Mobile',      hp: 1000, year: 2015, category: 'Kompakt' },
+      { id: 't899', name: 'T-899', rigType: '1000 HP Mobile',      hp: 1000, year: 2015, category: 'Kompakt' },
+    ];
+
     await prisma.rig.createMany({
-      data: [
-        {
-          id: 't700',
-          name: 'T700',
-          category: 'Schwerlast',
-          maxDepth: 7000,
-          maxHookLoad: 700,
-          footprint: 'Groß',
-          rotaryTorque: 85000,
-          pumpPressure: 7500,
-          drawworks: '2000 HP',
-          mudPumps: '2x 2200 HP Triplex',
-          topDrive: '1000 HP',
-          derrickCapacity: '1000 t',
-          crewSize: '45-50',
-          mobilizationTime: '30-45 Tage',
-          dayRate: '85000',
-          description: 'Hochleistungs-Bohranlage für Tiefbohrungen und extreme Lasten',
-          applications: JSON.stringify(['Tiefbohrungen', 'Offshore', 'Hochdruck-Formationen']),
-          technicalSpecs: 'API 4F Zertifizierung, DNV-GL Standard, vollautomatisches Pipe Handling',
-        },
-        {
-          id: 't46',
-          name: 'T46',
-          category: 'Schwerlast',
-          maxDepth: 6000,
-          maxHookLoad: 460,
-          footprint: 'Groß',
-          rotaryTorque: 65000,
-          pumpPressure: 7000,
-          drawworks: '1500 HP',
-          mudPumps: '2x 1600 HP Triplex',
-          topDrive: '750 HP',
-          derrickCapacity: '650 t',
-          crewSize: '40-45',
-          mobilizationTime: '25-35 Tage',
-          dayRate: '65000',
-          description: 'Vielseitige Schwerlast-Bohranlage für mittlere bis tiefe Bohrungen',
-          applications: JSON.stringify(['Mittlere Tiefbohrungen', 'Onshore', 'Standardformationen']),
-          technicalSpecs: 'API 8C Zertifizierung, automatisches Roughneck System',
-        },
-        {
-          id: 't203',
-          name: 'T203',
-          category: 'Mittlere Leistung',
-          maxDepth: 4500,
-          maxHookLoad: 350,
-          footprint: 'Mittel',
-          rotaryTorque: 45000,
-          pumpPressure: 5500,
-          drawworks: '1200 HP',
-          mudPumps: '2x 1200 HP Triplex',
-          topDrive: '500 HP',
-          derrickCapacity: '450 t',
-          crewSize: '30-35',
-          mobilizationTime: '20-25 Tage',
-          dayRate: '48000',
-          description: 'Ausgewogene Lösung für mittlere Bohrtiefen',
-          applications: JSON.stringify(['Mittlere Bohrungen', 'Onshore', 'Vielseitig einsetzbar']),
-          technicalSpecs: 'Kompaktes Design, modularer Aufbau',
-        },
-        {
-          id: 't208',
-          name: 'T208',
-          category: 'Kompakt',
-          maxDepth: 3000,
-          maxHookLoad: 208,
-          footprint: 'Klein',
-          rotaryTorque: 28000,
-          pumpPressure: 4500,
-          drawworks: '750 HP',
-          mudPumps: '1x 1000 HP Triplex',
-          topDrive: '350 HP',
-          derrickCapacity: '250 t',
-          crewSize: '20-25',
-          mobilizationTime: '10-15 Tage',
-          dayRate: '32000',
-          description: 'Kompakte Bohranlage für begrenzte Platzverhältnisse',
-          applications: JSON.stringify(['Flache Bohrungen', 'Platzbeschränkte Standorte', 'Workover']),
-          technicalSpecs: 'Schnelle Mobilisierung, minimaler Footprint',
-        },
-        {
-          id: 't207',
-          name: 'T207',
-          category: 'Kompakt',
-          maxDepth: 2800,
-          maxHookLoad: 207,
-          footprint: 'Klein',
-          rotaryTorque: 25000,
-          pumpPressure: 4200,
-          drawworks: '700 HP',
-          mudPumps: '1x 900 HP Triplex',
-          topDrive: '300 HP',
-          derrickCapacity: '230 t',
-          crewSize: '18-22',
-          mobilizationTime: '8-12 Tage',
-          dayRate: '28000',
-          description: 'Platzsparende Lösung für flache bis mittlere Bohrungen',
-          applications: JSON.stringify(['Flache Bohrungen', 'Enge Standorte', 'Wartungsarbeiten']),
-          technicalSpecs: 'Containerbasiert, schneller Auf-/Abbau',
-        },
-      ],
+      data: rigFleet.map(r => ({
+        id: r.id,
+        name: r.name,
+        category: r.category,
+        maxDepth: r.hp >= 2000 ? 7000 : r.hp >= 1250 ? 5000 : 3000,
+        maxHookLoad: Math.round(r.hp * 0.35),
+        footprint: r.hp >= 2000 ? 'Groß' : r.hp >= 1250 ? 'Mittel' : 'Klein',
+        rotaryTorque: r.hp * 35,
+        pumpPressure: r.hp >= 2000 ? 7500 : r.hp >= 1250 ? 5500 : 4500,
+        drawworks: `${r.hp} HP`,
+        mudPumps: r.hp >= 2000 ? '2x Triplex' : '1x Triplex',
+        topDrive: r.hp >= 2000 ? '1000 HP' : r.hp >= 1250 ? '500 HP' : '350 HP',
+        derrickCapacity: `${Math.round(r.hp * 0.5)} t`,
+        crewSize: r.hp >= 2000 ? '40-50' : r.hp >= 1250 ? '30-35' : '20-25',
+        mobilizationTime: r.hp >= 2000 ? '30-45 Tage' : r.hp >= 1250 ? '15-20 Tage' : '7-12 Tage',
+        dayRate: '0',
+        description: `${r.rigType} Drilling Rig (${r.year})`,
+        applications: JSON.stringify([]),
+        technicalSpecs: JSON.stringify({ rigType: r.rigType, hpRating: `${r.hp} HP`, year: r.year }),
+        region: 'Oman',
+        contractStatus: 'idle',
+        location: '',
+        certifications: JSON.stringify([]),
+        generalInfo: JSON.stringify([]),
+        inspections: JSON.stringify([]),
+        issues: JSON.stringify([]),
+        improvements: JSON.stringify([]),
+      })),
     });
 
-    console.log('✅ Created 5 rigs: T700, T46, T203, T208, T207');
+    console.log(`✅ Created ${rigFleet.length} rigs from Equipment Master Database`);
   } else {
     console.log(`✅ Rigs already exist (${existingRigs} rigs found)`);
   }
@@ -312,31 +267,9 @@ async function main() {
   console.log('Manager:   thomas@maintain.com / manager123');
   console.log('User:      nils@maintain.com / nils123');
   console.log('\n👷 Rig Crew Login (all rigs):');
-  console.log('Password for all crew: rig123 (or T208Elektriker! format)');
-  console.log('\nT208 Crew:');
-  console.log('  - T208.EL@maintain.com   (Elektriker)');
-  console.log('  - T208.ME@maintain.com   (Mechaniker)');
-  console.log('  - T208.TP@maintain.com   (Toolpusher)');
-  console.log('  - T208.RM@maintain.com   (Rig Manager)');
-  console.log('  - T208.RSC@maintain.com  (Supply Coordinator)');
-  console.log('\nT207 Crew:');
-  console.log('  - T207.EL@maintain.com   (Elektriker)');
-  console.log('  - T207.ME@maintain.com   (Mechaniker)');
-  console.log('  - T207.TP@maintain.com   (Toolpusher)');
-  console.log('  - T207.RM@maintain.com   (Rig Manager)');
-  console.log('  - T207.RSC@maintain.com  (Supply Coordinator)');
-  console.log('\nT700 Crew:');
-  console.log('  - T700.EL@maintain.com   (Elektriker)');
-  console.log('  - T700.ME@maintain.com   (Mechaniker)');
-  console.log('  - T700.TP@maintain.com   (Toolpusher)');
-  console.log('  - T700.RM@maintain.com   (Rig Manager)');
-  console.log('  - T700.RSC@maintain.com  (Supply Coordinator)');
-  console.log('\nT46 Crew:');
-  console.log('  - T46.EL@maintain.com    (Elektriker)');
-  console.log('  - T46.ME@maintain.com    (Mechaniker)');
-  console.log('  - T46.TP@maintain.com    (Toolpusher)');
-  console.log('  - T46.RM@maintain.com    (Rig Manager)');
-  console.log('  - T46.RSC@maintain.com   (Supply Coordinator)');
+  console.log('Password for all crew: rig123');
+  console.log(`\nRigs: ${rigs.join(', ')}`);
+  console.log('Email pattern: <RIG>.<ROLE>@maintain.com (e.g. T-51.EL@maintain.com)');
 }
 
 main()

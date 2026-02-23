@@ -5,7 +5,7 @@ import { AppError } from '../middleware/error.middleware';
 
 const prisma = new PrismaClient();
 
-// Generate unique ticket number: ANLAGE-YYYYMM-NR (e.g., T208-202510-001)
+// Generate unique ticket number: ANLAGE-YYYYMM-NR (e.g., T-91-202602-001)
 async function generateTicketNumber(plant: string): Promise<string> {
   const now = new Date();
   const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -64,7 +64,7 @@ Deine Aufgabe ist es, Benutzern bei folgenden Tätigkeiten zu helfen:
 7. **Tender-Konfigurationen** verwalten
 8. **Status-Requests** für Manager-Abfragen
 
-**Verfügbare Anlagen:** T208, T207, T700, T46
+**Verfügbare Anlagen:** Dynamisch aus Datenbank (z.B. T-51, T-91, T-92, T-93, T-94, T-95, T-144 bis T-147, T-801, T-826, T-849, T-853, T-858, T-859, T-867, T-872, T-889, T-895 bis T-899)
 
 **Action Features:**
 - **Multi-User Assignment**: Actions können mehreren Usern zugewiesen werden
@@ -78,15 +78,15 @@ Deine Aufgabe ist es, Benutzern bei folgenden Tätigkeiten zu helfen:
 **Material Status:** NICHT_BESTELLT, BESTELLT, UNTERWEGS, GELIEFERT
 
 **WICHTIG für Projekt-Suche:**
-- Wenn ein Benutzer nach einem Projekt für eine bestimmte Anlage fragt (z.B. "Projekt für T208" oder "Netzcontainer"), nutze den projectNumber Filter!
-- Anlagen-Namen (T208, T207, T700, T46) sind Projekt-Nummern (projectNumber)
-- Beispiel: "Projekte für T208" → get_user_projects mit projectNumber: "T208"
+- Wenn ein Benutzer nach einem Projekt für eine bestimmte Anlage fragt (z.B. "Projekt für T-91" oder "Netzcontainer"), nutze den projectNumber Filter!
+- Anlagen-Namen (z.B. T-51, T-91, T-92, ..., T-899) sind Projekt-Nummern (projectNumber)
+- Beispiel: "Projekte für T-91" → get_user_projects mit projectNumber: "T-91"
 
 **Multi-User Beispiele:**
-- "Erstelle Action für T208 und weise sie Tom, Lisa und dem Admin zu"
-- "Füge Max zur Action T208-001 hinzu"
-- "Frage den Status von Action T208-001 ab"
-- "Wer ist alles für Action T208-001 zuständig?"
+- "Erstelle Action für T-91 und weise sie Tom, Lisa und dem Admin zu"
+- "Füge Max zur Action T-91-001 hinzu"
+- "Frage den Status von Action T-91-001 ab"
+- "Wer ist alles für Action T-91-001 zuständig?"
 
 Du antwortest immer auf Deutsch und bist freundlich, präzise und hilfreich.
 Wenn du eine Aktion ausführen sollst (z.B. "Erstelle eine Action"), nutze die verfügbaren Funktionen.
@@ -194,8 +194,7 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
         properties: {
           plant: {
             type: 'string',
-            enum: ['T208', 'T207', 'T700', 'T46'],
-            description: 'Filtere nach Anlage',
+            description: 'Filtere nach Anlage (z.B. T-51, T-91, T-92, etc.)',
           },
           status: {
             type: 'string',
@@ -220,8 +219,7 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
           },
           plant: {
             type: 'string',
-            enum: ['T208', 'T207', 'T700', 'T46'],
-            description: 'Anlage',
+            description: 'Anlage (z.B. T-51, T-91, etc.)',
           },
           description: {
             type: 'string',
@@ -276,8 +274,7 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
           },
           plant: {
             type: 'string',
-            enum: ['T208', 'T207', 'T700', 'T46'],
-            description: 'Anlage',
+            description: 'Anlage (z.B. T-51, T-91, T-92, etc.)',
           },
           severity: {
             type: 'string',
@@ -303,7 +300,7 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
         properties: {
           projectNumber: {
             type: 'string',
-            description: 'Filtere nach Projekt-Nummer/Anlage (z.B. T208, T207, T700, T46)',
+            description: 'Filtere nach Projekt-Nummer/Anlage (z.B. T-51, T-91, T-867)',
           },
           status: {
             type: 'string',
@@ -388,8 +385,7 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
           },
           plant: {
             type: 'string',
-            enum: ['T208', 'T207', 'T700', 'T46'],
-            description: 'Anlage',
+            description: 'Anlage (z.B. T-51, T-91, etc.)',
           },
           description: {
             type: 'string',
@@ -492,8 +488,7 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
         properties: {
           plant: {
             type: 'string',
-            enum: ['T208', 'T207', 'T700', 'T46'],
-            description: 'Filtere nach Anlage',
+            description: 'Filtere nach Anlage (z.B. T-51, T-91, etc.)',
           },
           contractStatus: {
             type: 'boolean',
@@ -513,8 +508,7 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
         properties: {
           plant: {
             type: 'string',
-            enum: ['T208', 'T207', 'T700', 'T46'],
-            description: 'Filtere User nach Anlage (inkl. Admins und Manager)',
+            description: 'Filtere User nach Anlage (z.B. T-51, T-91, etc. — inkl. Admins und Manager)',
           },
           role: {
             type: 'string',
