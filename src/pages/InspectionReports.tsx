@@ -1105,69 +1105,69 @@ const InspectionReports = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Berichtnummer</TableHead>
-                  <TableHead>Titel</TableHead>
-                  <TableHead>Typ</TableHead>
-                  <TableHead>Anlage</TableHead>
-                  <TableHead>Equipment</TableHead>
-                  <TableHead>Datum</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ergebnis</TableHead>
-                  <TableHead>Aktionen</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReports.map((report) => (
-                  <TableRow key={report.id}>
-                    <TableCell className="font-mono">
-                      {report.reportNumber}
-                    </TableCell>
-                    <TableCell>{report.title}</TableCell>
-                    <TableCell>
-                      {report.type === "CAT_III_CROWN_BLOCK" &&
-                        "CAT III Crown Block"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{report.plant}</Badge>
-                    </TableCell>
-                    <TableCell>{report.equipment}</TableCell>
-                    <TableCell>
-                      {new Date(report.inspectionDate).toLocaleDateString(
-                        "de-DE",
-                      )}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(report.status)}</TableCell>
-                    <TableCell>
-                      {getResultBadge(report.overallResult)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedReport(report);
-                            setIsViewDialogOpen(true);
-                          }}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteReport(report.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Berichtnummer</TableHead>
+                    <TableHead>Titel</TableHead>
+                    <TableHead>Typ</TableHead>
+                    <TableHead>Anlage</TableHead>
+                    <TableHead>Equipment</TableHead>
+                    <TableHead>Datum</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Ergebnis</TableHead>
+                    <TableHead>Aktionen</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredReports.map((report) => (
+                    <TableRow key={report.id}>
+                      <TableCell className="font-mono">
+                        {report.reportNumber}
+                      </TableCell>
+                      <TableCell>{report.title}</TableCell>
+                      <TableCell>
+                        {report.type === "CAT_III_CROWN_BLOCK" &&
+                          "CAT III Crown Block"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{report.plant}</Badge>
+                      </TableCell>
+                      <TableCell>{report.equipment}</TableCell>
+                      <TableCell>
+                        {new Date(report.inspectionDate).toLocaleDateString(
+                          "de-DE",
+                        )}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(report.status)}</TableCell>
+                      <TableCell>
+                        {getResultBadge(report.overallResult)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedReport(report);
+                              setIsViewDialogOpen(true);
+                            }}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteReport(report.id)}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>

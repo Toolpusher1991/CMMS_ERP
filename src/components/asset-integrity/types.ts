@@ -57,6 +57,9 @@ export interface AssetRig {
   operator?: string;
   location: string;
   dayRate?: number;
+  rigType?: string;
+  hpRating?: string;
+  year?: number;
   certifications: string[];
   generalInfo?: GeneralInfo[];
   documents?: AssetDocument[];

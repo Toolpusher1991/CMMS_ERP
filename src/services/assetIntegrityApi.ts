@@ -53,6 +53,9 @@ export interface Rig {
   operator?: string;
   location: string;
   dayRate?: number;
+  rigType?: string;
+  hpRating?: string;
+  year?: number;
   certifications: string[];
   generalInfo?: GeneralInfo[];
   inspections: Inspection[];

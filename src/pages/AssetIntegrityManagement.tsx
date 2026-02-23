@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-client";
 import {
@@ -27,6 +27,15 @@ import {
   LayoutGrid,
   List,
   Search,
+  MoreVertical,
+  Download,
+  Upload,
+  CheckSquare,
+  Square,
+  X,
+  Filter,
+  ArrowUpDown,
+  Wrench,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +59,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -69,8 +85,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 import * as assetIntegrityApi from "@/services/assetIntegrityApi";
+import * as XLSX from "xlsx";
 import type {
   Inspection,
   Issue,
@@ -81,7 +99,6 @@ import type {
 import {
   getDaysUntil,
   getRigPriorityStatus,
-  getPriorityColor,
   getContractStatusColor,
   getInspectionStatusColor,
   getSeverityColor,
@@ -347,6 +364,31 @@ export default function AssetIntegrityManagement() {
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [rigSearchQuery, setRigSearchQuery] = useState("");
 
+  // Bulk Selection
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedRigIds, setSelectedRigIds] = useState<Set<string>>(new Set());
+
+  // Extended Filters
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("name-asc");
+
+  // Delete Rig
+  const [rigToDelete, setRigToDelete] = useState<Rig | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+  // Excel Import
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importPreview, setImportPreview] = useState<{
+    newRigs: Partial<Rig>[];
+    duplicates: string[];
+    errors: string[];
+  } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+
+
   // Debounced auto-save
   const debouncedSave = useDebouncedCallback(() => {
     saveData();
@@ -416,6 +458,9 @@ export default function AssetIntegrityManagement() {
     location: "",
     dayRate: 0,
     contractEndDate: "",
+    rigType: "",
+    hpRating: "",
+    year: 0,
   });
 
   // Auto-Save Logic
@@ -540,16 +585,55 @@ export default function AssetIntegrityManagement() {
       ? rigs
       : rigs.filter((rig) => rig.region === selectedRegion);
 
+  // Filter by status
+  const statusFilteredRigs =
+    statusFilter === "all"
+      ? regionFilteredRigs
+      : regionFilteredRigs.filter((rig) => rig.contractStatus === statusFilter);
+
+  // Filter by type
+  const typeFilteredRigs =
+    typeFilter === "all"
+      ? statusFilteredRigs
+      : statusFilteredRigs.filter((rig) => rig.rigType === typeFilter);
+
   // Filter by search query
-  const filteredRigs = rigSearchQuery
-    ? regionFilteredRigs.filter(
+  const searchFilteredRigs = rigSearchQuery
+    ? typeFilteredRigs.filter(
         (rig) =>
           rig.name.toLowerCase().includes(rigSearchQuery.toLowerCase()) ||
           rig.location.toLowerCase().includes(rigSearchQuery.toLowerCase()) ||
           (rig.operator?.toLowerCase().includes(rigSearchQuery.toLowerCase()) ??
+            false) ||
+          (rig.rigType?.toLowerCase().includes(rigSearchQuery.toLowerCase()) ??
             false),
       )
-    : regionFilteredRigs;
+    : typeFilteredRigs;
+
+  // Sort
+  const filteredRigs = [...searchFilteredRigs].sort((a, b) => {
+    switch (sortBy) {
+      case "name-asc":
+        return a.name.localeCompare(b.name);
+      case "name-desc":
+        return b.name.localeCompare(a.name);
+      case "dayrate-desc":
+        return (b.dayRate || 0) - (a.dayRate || 0);
+      case "dayrate-asc":
+        return (a.dayRate || 0) - (b.dayRate || 0);
+      case "year-desc":
+        return (b.year || 0) - (a.year || 0);
+      case "year-asc":
+        return (a.year || 0) - (b.year || 0);
+      case "status":
+        return a.contractStatus.localeCompare(b.contractStatus);
+      default:
+        return 0;
+    }
+  });
+
+  // Get unique rig types for filter dropdown
+  const rigTypes = [...new Set(rigs.map((r) => r.rigType).filter(Boolean))];
 
   // Calculate statistics
   const totalRigs = filteredRigs.length;
@@ -929,6 +1013,9 @@ export default function AssetIntegrityManagement() {
         location: newRig.location,
         dayRate: newRig.dayRate > 0 ? newRig.dayRate : undefined,
         contractEndDate: newRig.contractEndDate || undefined,
+        rigType: newRig.rigType || undefined,
+        hpRating: newRig.hpRating || undefined,
+        year: newRig.year > 0 ? newRig.year : undefined,
         certifications: [],
         inspections: [],
         issues: [],
@@ -944,6 +1031,9 @@ export default function AssetIntegrityManagement() {
         location: newRig.location,
         dayRate: newRig.dayRate > 0 ? newRig.dayRate : undefined,
         contractEndDate: newRig.contractEndDate || undefined,
+        rigType: newRig.rigType || undefined,
+        hpRating: newRig.hpRating || undefined,
+        year: newRig.year > 0 ? newRig.year : undefined,
         certifications: [],
         generalInfo: [],
         inspections: [],
@@ -965,6 +1055,9 @@ export default function AssetIntegrityManagement() {
         location: newRig.location,
         dayRate: newRig.dayRate > 0 ? newRig.dayRate : undefined,
         contractEndDate: newRig.contractEndDate || undefined,
+        rigType: newRig.rigType || undefined,
+        hpRating: newRig.hpRating || undefined,
+        year: newRig.year > 0 ? newRig.year : undefined,
         certifications: [],
         generalInfo: [],
         inspections: [],
@@ -984,8 +1077,17 @@ export default function AssetIntegrityManagement() {
       location: "",
       dayRate: 0,
       contractEndDate: "",
+      rigType: "",
+      hpRating: "",
+      year: 0,
     });
     setIsAddRigOpen(false);
+    toast({
+      variant: "success" as const,
+      title: "Anlage erstellt",
+      description: `${newRig.name} wurde erfolgreich hinzugefügt`,
+      duration: 3000,
+    });
   };
 
   const handleAddImprovement = () => {
@@ -1032,6 +1134,253 @@ export default function AssetIntegrityManagement() {
     setRigs(updatedRigs);
     setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
     setHasUnsavedChanges(true);
+  };
+
+  // Delete a single rig
+  const handleDeleteRig = async (rig: Rig) => {
+    try {
+      await assetIntegrityApi.deleteRig(rig.id);
+    } catch (err) {
+      console.warn("API-Löschung fehlgeschlagen:", err);
+    }
+    const updated = rigs.filter((r) => r.id !== rig.id);
+    setRigs(updated);
+    setRigToDelete(null);
+    setHasUnsavedChanges(true);
+    if (selectedRig?.id === rig.id) setSelectedRig(null);
+    toast({
+      variant: "success" as const,
+      title: "Anlage gelöscht",
+      description: `${rig.name} wurde entfernt`,
+      duration: 3000,
+    });
+  };
+
+  // Bulk delete selected rigs
+  const handleBulkDelete = async () => {
+    const idsToDelete = Array.from(selectedRigIds);
+    const names = rigs
+      .filter((r) => idsToDelete.includes(r.id))
+      .map((r) => r.name);
+
+    for (const id of idsToDelete) {
+      try {
+        await assetIntegrityApi.deleteRig(id);
+      } catch (err) {
+        console.warn(`API-Löschung für ${id} fehlgeschlagen:`, err);
+      }
+    }
+
+    const updated = rigs.filter((r) => !idsToDelete.includes(r.id));
+    setRigs(updated);
+    setSelectedRigIds(new Set());
+    setBulkMode(false);
+    setBulkDeleteOpen(false);
+    setHasUnsavedChanges(true);
+    if (selectedRig && idsToDelete.includes(selectedRig.id))
+      setSelectedRig(null);
+    toast({
+      variant: "success" as const,
+      title: `${names.length} Anlagen gelöscht`,
+      description: names.join(", "),
+      duration: 4000,
+    });
+  };
+
+  // Toggle rig selection for bulk operations
+  const toggleRigSelection = (rigId: string) => {
+    setSelectedRigIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(rigId)) next.delete(rigId);
+      else next.add(rigId);
+      return next;
+    });
+  };
+
+  // Excel Import handler
+  const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+
+        const newRigsData: Partial<Rig>[] = [];
+        const duplicates: string[] = [];
+        const errors: string[] = [];
+
+        rows.forEach((row, idx) => {
+          const name = String(
+            row["Name"] || row["name"] || row["Rig"] || row["rig"] || "",
+          ).trim();
+          if (!name) {
+            errors.push(`Zeile ${idx + 2}: Kein Name`);
+            return;
+          }
+          if (rigs.some((r) => r.name.toLowerCase() === name.toLowerCase())) {
+            duplicates.push(name);
+            return;
+          }
+
+          const region = String(row["Region"] || row["region"] || "Oman");
+          const status = String(
+            row["Status"] || row["contractStatus"] || "idle",
+          ).toLowerCase();
+          const location = String(
+            row["Standort"] || row["Location"] || row["location"] || "",
+          );
+          const operator = String(row["Operator"] || row["operator"] || "");
+          const dayRate = Number(
+            row["Day Rate"] || row["dayRate"] || row["DayRate"] || 0,
+          );
+          const rigTypeVal = String(
+            row["Typ"] || row["Type"] || row["rigType"] || "",
+          );
+          const hpRatingVal = String(
+            row["HP"] || row["hpRating"] || row["HP Rating"] || "",
+          );
+          const yearVal = Number(row["Jahr"] || row["Year"] || row["year"] || 0);
+
+          newRigsData.push({
+            name,
+            region: region.includes("Pakistan") ? "Pakistan" : "Oman",
+            contractStatus: (
+              ["active", "idle", "standby", "maintenance"].includes(status)
+                ? status
+                : "idle"
+            ) as Rig["contractStatus"],
+            location,
+            operator: operator || undefined,
+            dayRate: dayRate > 0 ? dayRate : undefined,
+            rigType: rigTypeVal || undefined,
+            hpRating: hpRatingVal || undefined,
+            year: yearVal > 0 ? yearVal : undefined,
+          });
+        });
+
+        setImportPreview({ newRigs: newRigsData, duplicates, errors });
+        setIsImportOpen(true);
+      } catch {
+        toast({
+          title: "Import-Fehler",
+          description: "Die Datei konnte nicht gelesen werden",
+          variant: "destructive",
+        });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // Confirm Excel import
+  const confirmImport = async () => {
+    if (!importPreview) return;
+    setIsImporting(true);
+
+    const createdRigs: Rig[] = [];
+    for (const partial of importPreview.newRigs) {
+      const rig: Rig = {
+        id: Date.now().toString() + Math.random().toString(36).slice(2),
+        name: partial.name || "Unbenannt",
+        region: partial.region || "Oman",
+        contractStatus: partial.contractStatus || "idle",
+        location: partial.location || "",
+        operator: partial.operator,
+        dayRate: partial.dayRate,
+        contractEndDate: partial.contractEndDate,
+        rigType: partial.rigType,
+        hpRating: partial.hpRating,
+        year: partial.year,
+        certifications: [],
+        generalInfo: [],
+        inspections: [],
+        issues: [],
+        improvements: [],
+      };
+
+      try {
+        const apiRig = await assetIntegrityApi.createRig(rig);
+        rig.id = apiRig.id || rig.id;
+      } catch {
+        // use local id
+      }
+
+      createdRigs.push(rig);
+    }
+
+    setRigs((prev) => [...prev, ...createdRigs]);
+    setHasUnsavedChanges(true);
+    setIsImporting(false);
+    setIsImportOpen(false);
+    setImportPreview(null);
+    toast({
+      variant: "success" as const,
+      title: "Import erfolgreich",
+      description: `${createdRigs.length} Anlagen importiert`,
+      duration: 4000,
+    });
+  };
+
+  // Export handler
+  const handleExport = (format: "xlsx" | "csv") => {
+    const exportData = filteredRigs.map((rig) => ({
+      Name: rig.name,
+      Region: rig.region,
+      Status: rig.contractStatus,
+      Standort: rig.location || "",
+      Operator: rig.operator || "",
+      "Day Rate": rig.dayRate || "",
+      Typ: rig.rigType || "",
+      HP: rig.hpRating || "",
+      Jahr: rig.year || "",
+      Vertragsende: rig.contractEndDate || "",
+      Inspektionen: rig.inspections.length,
+      "Offene Issues": rig.issues.filter((i) => i.status !== "closed").length,
+      Upgrades: rig.improvements.length,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Anlagen");
+
+    if (format === "xlsx") {
+      XLSX.writeFile(
+        wb,
+        `Asset_Integrity_Export_${new Date().toISOString().slice(0, 10)}.xlsx`,
+      );
+    } else {
+      XLSX.writeFile(
+        wb,
+        `Asset_Integrity_Export_${new Date().toISOString().slice(0, 10)}.csv`,
+        { bookType: "csv" },
+      );
+    }
+
+    toast({
+      variant: "success" as const,
+      title: "Export erfolgreich",
+      description: `${exportData.length} Anlagen als ${format.toUpperCase()} exportiert`,
+      duration: 3000,
+    });
+  };
+
+  // Get color for left card border based on status
+  const getCardBorderColor = (rig: Rig) => {
+    const priorityStatus = getRigPriorityStatus(rig);
+    if (
+      priorityStatus === "overdue" ||
+      rig.issues.some((i) => i.severity === "critical" && i.status !== "closed")
+    )
+      return "border-l-red-500";
+    if (rig.contractStatus === "maintenance") return "border-l-yellow-500";
+    if (rig.contractStatus === "active") return "border-l-cyan-500";
+    if (rig.contractStatus === "standby") return "border-l-blue-400";
+    return "border-l-gray-500";
   };
 
   return (
@@ -1212,7 +1561,8 @@ export default function AssetIntegrityManagement() {
 
         {/* Filter & View Controls */}
         <Card className="bg-card border-border">
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 space-y-4">
+            {/* Row 1: Region + Search + View + Actions */}
             <div className="flex flex-col sm:flex-row gap-4">
               {/* Region Filter */}
               <div className="flex-1">
@@ -1244,7 +1594,7 @@ export default function AssetIntegrityManagement() {
                 <Button
                   size="sm"
                   variant={viewMode === "cards" ? "default" : "ghost"}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 touch-manipulation"
                   onClick={() => setViewMode("cards")}
                   title="Kartenansicht"
                   aria-label="Kartenansicht"
@@ -1254,7 +1604,7 @@ export default function AssetIntegrityManagement() {
                 <Button
                   size="sm"
                   variant={viewMode === "table" ? "default" : "ghost"}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 touch-manipulation"
                   onClick={() => setViewMode("table")}
                   title="Tabellenansicht"
                   aria-label="Tabellenansicht"
@@ -1263,6 +1613,143 @@ export default function AssetIntegrityManagement() {
                 </Button>
               </div>
             </div>
+
+            {/* Row 2: Extended Filters + Bulk + Import/Export */}
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-center">
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-40">
+                  <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle Status</SelectItem>
+                  <SelectItem value="active">✅ Active</SelectItem>
+                  <SelectItem value="idle">⏸️ Idle</SelectItem>
+                  <SelectItem value="standby">⏳ Standby</SelectItem>
+                  <SelectItem value="maintenance">🔧 Wartung</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Type Filter */}
+              {rigTypes.length > 0 && (
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <Wrench className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                    <SelectValue placeholder="Typ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle Typen</SelectItem>
+                    {rigTypes.map((t) => (
+                      <SelectItem key={t} value={t!}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Sort */}
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-full sm:w-44">
+                  <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                  <SelectValue placeholder="Sortierung" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name-asc">Name A → Z</SelectItem>
+                  <SelectItem value="name-desc">Name Z → A</SelectItem>
+                  <SelectItem value="dayrate-desc">Day Rate ↓</SelectItem>
+                  <SelectItem value="dayrate-asc">Day Rate ↑</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="flex-1" />
+
+              {/* Bulk Select Toggle */}
+              <Button
+                variant={bulkMode ? "default" : "outline"}
+                size="sm"
+                className="touch-manipulation"
+                onClick={() => {
+                  setBulkMode(!bulkMode);
+                  if (bulkMode) setSelectedRigIds(new Set());
+                }}
+              >
+                {bulkMode ? (
+                  <CheckSquare className="h-4 w-4 mr-1.5" />
+                ) : (
+                  <Square className="h-4 w-4 mr-1.5" />
+                )}
+                Auswahl
+              </Button>
+
+              {/* Import */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="touch-manipulation"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-4 w-4 mr-1.5" />
+                Import
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={handleExcelImport}
+              />
+
+              {/* Export */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="touch-manipulation"
+                  >
+                    <Download className="h-4 w-4 mr-1.5" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExport("xlsx")}>
+                    📊 Als Excel (.xlsx)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport("csv")}>
+                    📄 Als CSV (.csv)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Bulk Action Bar */}
+            {bulkMode && selectedRigIds.size > 0 && (
+              <div className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <span className="text-sm font-medium text-foreground">
+                  {selectedRigIds.size} ausgewählt
+                </span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="touch-manipulation"
+                  onClick={() => setBulkDeleteOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  Ausgewählte löschen
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedRigIds(new Set())}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Auswahl aufheben
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -1347,7 +1834,7 @@ export default function AssetIntegrityManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-foreground">
-                        {rig.location}
+                        {rig.location || "Nicht zugewiesen"}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {rig.operator || "—"}
@@ -1425,20 +1912,38 @@ export default function AssetIntegrityManagement() {
           </Card>
         )}
 
-        {/* Rigs Card Grid with Priority Coloring */}
+        {/* Rigs Card Grid with Color-Coded Left Border */}
         {viewMode === "cards" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredRigs.map((rig) => {
               const priorityStatus = getRigPriorityStatus(rig);
-              const priorityColor = getPriorityColor(priorityStatus);
+              const openIssues = rig.issues.filter(
+                (i) => i.status !== "closed",
+              ).length;
+              const totalActions =
+                rig.inspections.length + openIssues + rig.improvements.length;
               return (
                 <Card
                   key={rig.id}
-                  className={`group relative border bg-card/80 hover:bg-card transition-all cursor-pointer hover:shadow-2xl hover:scale-[1.02] backdrop-blur-sm ${priorityColor}`}
-                  onClick={() => setSelectedRig(rig)}
+                  className={`group relative border-l-4 bg-card/80 hover:bg-card transition-all cursor-pointer hover:shadow-2xl hover:scale-[1.02] backdrop-blur-sm ${getCardBorderColor(rig)}`}
+                  onClick={() => !bulkMode && setSelectedRig(rig)}
                 >
-                  {/* Status Badge - Top Right Corner */}
-                  <div className="absolute top-3 right-3 z-10">
+                  {/* Bulk select checkbox */}
+                  {bulkMode && (
+                    <div
+                      className="absolute top-3 left-3 z-20"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Checkbox
+                        checked={selectedRigIds.has(rig.id)}
+                        onCheckedChange={() => toggleRigSelection(rig.id)}
+                        className="h-5 w-5"
+                      />
+                    </div>
+                  )}
+
+                  {/* Top Right: Status Badge + 3-dot menu */}
+                  <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
                     <Badge
                       className={`text-xs font-medium ${getContractStatusColor(rig.contractStatus)}`}
                     >
@@ -1450,190 +1955,215 @@ export default function AssetIntegrityManagement() {
                             ? "Standby"
                             : "Wartung"}
                     </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity touch-manipulation"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRig(rig);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Details ansehen
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRig(rig);
+                            setIsAddInspectionOpen(true);
+                          }}
+                        >
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Inspektion planen
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRig(rig);
+                            setIsAddIssueOpen(true);
+                          }}
+                        >
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          Issue melden
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRig(rig);
+                            setShowMeetingOverview(true);
+                            setOverviewForAll(false);
+                          }}
+                        >
+                          <Presentation className="h-4 w-4 mr-2" />
+                          Meeting-Übersicht
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-red-500 focus:text-red-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRigToDelete(rig);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Löschen
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
 
-                  {/* Quick Action Buttons - visible on hover (desktop) / always visible (touch via CSS) */}
-                  <div
-                    className="absolute -top-3 -right-3 flex gap-1.5 z-20 transition-opacity opacity-0 group-hover:opacity-100"
-                  >
-                    <Button
-                      size="sm"
-                      className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 bg-blue-600 hover:bg-blue-700 shadow-lg rounded-full touch-manipulation"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedRig(rig);
-                      }}
-                      title="Details ansehen"
-                      aria-label="Details ansehen"
-                    >
-                      <Eye className="h-6 w-6" strokeWidth={2} />
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 bg-green-600 hover:bg-green-700 shadow-lg rounded-full touch-manipulation"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedRig(rig);
-                        setIsAddInspectionOpen(true);
-                      }}
-                      title="Inspektion planen"
-                      aria-label="Inspektion planen"
-                    >
-                      <Calendar className="h-6 w-6" strokeWidth={2} />
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 bg-orange-600 hover:bg-orange-700 shadow-lg rounded-full touch-manipulation"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedRig(rig);
-                        setIsAddIssueOpen(true);
-                      }}
-                      title="Issue melden"
-                      aria-label="Issue melden"
-                    >
-                      <AlertCircle className="h-6 w-6" strokeWidth={2} />
-                    </Button>
-                  </div>
-
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start gap-3 pr-20">
-                      <div className="p-2.5 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg shadow-lg flex-shrink-0">
-                        <Building2 className="h-6 w-6 text-white" />
+                  <CardHeader className="pb-2">
+                    <div className={`flex items-start gap-3 ${bulkMode ? "pl-8" : ""} pr-24`}>
+                      <div className="p-2 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg shadow-lg flex-shrink-0">
+                        <Building2 className="h-5 w-5 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-xl font-bold text-foreground truncate">
+                        <CardTitle className="text-lg font-bold text-foreground truncate">
                           {rig.name}
                         </CardTitle>
-                        <Badge
-                          variant="outline"
-                          className="text-xs border-border text-muted-foreground mt-1.5"
-                        >
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {rig.region}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          <Badge
+                            variant="outline"
+                            className="text-xs border-border text-muted-foreground"
+                          >
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {rig.region}
+                          </Badge>
+                          {rig.rigType && (
+                            <Badge
+                              variant="outline"
+                              className="text-xs border-blue-500/30 text-blue-400"
+                            >
+                              <Wrench className="h-3 w-3 mr-1" />
+                              {rig.rigType}
+                            </Badge>
+                          )}
+                          {rig.year && (
+                            <span className="text-xs text-muted-foreground">
+                              ({rig.year})
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-4">
-                    {/* Day Rate - Prominent Display */}
-                    {rig.dayRate && (
-                      <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-0.5">
-                              Day Rate
-                            </p>
-                            <p className="text-2xl font-bold text-foreground flex items-baseline gap-1">
-                              <DollarSign className="h-5 w-5 text-green-400" />
-                              {rig.dayRate.toLocaleString()}
-                              <span className="text-sm font-normal text-muted-foreground">
-                                /Tag
-                              </span>
-                            </p>
+                  <CardContent className="space-y-3 pt-0">
+                    {/* Day Rate compact */}
+                    {rig.dayRate ? (
+                      <div className="flex items-center justify-between bg-gradient-to-r from-green-500/10 to-emerald-500/5 border border-green-500/20 rounded-lg px-3 py-2">
+                        <div className="flex items-baseline gap-1">
+                          <DollarSign className="h-4 w-4 text-green-400" />
+                          <span className="text-xl font-bold text-foreground">
+                            {rig.dayRate.toLocaleString()}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            /Tag
+                          </span>
+                        </div>
+                        {rig.contractEndDate && (
+                          <span className="text-xs text-muted-foreground">
+                            bis{" "}
+                            {new Date(rig.contractEndDate).toLocaleDateString(
+                              "de-DE",
+                              { day: "2-digit", month: "short", year: "numeric" },
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    ) : null}
+
+                    {/* Location & Operator - compact */}
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Standort</p>
+                        <p className="font-medium text-foreground truncate">
+                          {rig.location || "Nicht zugewiesen"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Operator</p>
+                        <p className="font-medium text-foreground truncate">
+                          {rig.operator || "—"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Quick Stats or "No Actions" */}
+                    {totalActions > 0 ? (
+                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50">
+                        <div className="text-center">
+                          <p className="text-[10px] text-muted-foreground">
+                            Inspektionen
+                          </p>
+                          <div className="flex items-center justify-center gap-1">
+                            <Calendar className="h-3 w-3 text-blue-400" />
+                            <span className="text-base font-bold text-foreground">
+                              {rig.inspections.length}
+                            </span>
                           </div>
-                          {rig.contractEndDate && (
-                            <div className="text-right">
-                              <p className="text-xs text-muted-foreground">
-                                Vertragsende
-                              </p>
-                              <p className="text-sm font-medium text-foreground">
-                                {new Date(
-                                  rig.contractEndDate,
-                                ).toLocaleDateString("de-DE", {
-                                  day: "2-digit",
-                                  month: "short",
-                                  year: "numeric",
-                                })}
-                              </p>
-                            </div>
-                          )}
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[10px] text-muted-foreground">
+                            Issues
+                          </p>
+                          <div className="flex items-center justify-center gap-1">
+                            <AlertCircle className="h-3 w-3 text-orange-400" />
+                            <span
+                              className={`text-base font-bold ${openIssues > 0 ? "text-orange-400" : "text-foreground"}`}
+                            >
+                              {openIssues}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[10px] text-muted-foreground">
+                            Upgrades
+                          </p>
+                          <div className="flex items-center justify-center gap-1">
+                            <TrendingUp className="h-3 w-3 text-green-400" />
+                            <span className="text-base font-bold text-foreground">
+                              {rig.improvements.length}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="pt-2 border-t border-border/50">
+                        <div className="flex items-center justify-center gap-1.5 py-1 text-green-400">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          <span className="text-xs font-medium">
+                            Keine Aktionen erforderlich
+                          </span>
                         </div>
                       </div>
                     )}
 
-                    {/* Location & Operator */}
-                    <div className="space-y-2.5">
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">
-                          Standort
-                        </p>
-                        <p className="text-sm text-foreground font-medium">
-                          {rig.location}
-                        </p>
-                      </div>
-                      {rig.operator && (
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">
-                            Operator
-                          </p>
-                          <p className="text-sm text-foreground font-medium">
-                            {rig.operator}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Quick Stats */}
-                    <div className="grid grid-cols-3 gap-3 pt-3 border-t border-border/50">
-                      <div className="text-center">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          Inspektionen
-                        </p>
-                        <div className="flex items-center justify-center gap-1">
-                          <Calendar className="h-3.5 w-3.5 text-blue-400" />
-                          <p className="text-lg font-bold text-foreground">
-                            {rig.inspections.length}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          Issues
-                        </p>
-                        <div className="flex items-center justify-center gap-1">
-                          <AlertCircle className="h-3.5 w-3.5 text-orange-400" />
-                          <p className="text-lg font-bold text-foreground">
-                            {
-                              rig.issues.filter((i) => i.status !== "closed")
-                                .length
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          Upgrades
-                        </p>
-                        <div className="flex items-center justify-center gap-1">
-                          <TrendingUp className="h-3.5 w-3.5 text-green-400" />
-                          <p className="text-lg font-bold text-foreground">
-                            {rig.improvements.length}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Priority Alert */}
+                    {/* Priority Alert - compact */}
                     {priorityStatus === "overdue" && (
-                      <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-2">
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 text-red-400" />
-                          <span className="text-xs text-red-400 font-medium">
-                            OVERDUE ITEMS - Sofortige Maßnahmen erforderlich!
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-2 bg-red-500/20 border border-red-500/50 rounded-lg px-3 py-1.5">
+                        <AlertCircle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+                        <span className="text-xs text-red-400 font-medium">
+                          OVERDUE — Sofortige Maßnahmen!
+                        </span>
                       </div>
                     )}
                     {priorityStatus === "due-soon" && (
-                      <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-2">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-orange-400" />
-                          <span className="text-xs text-orange-400 font-medium">
-                            Items fällig innerhalb 7 Tagen
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-2 bg-orange-500/20 border border-orange-500/50 rounded-lg px-3 py-1.5">
+                        <Clock className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
+                        <span className="text-xs text-orange-400 font-medium">
+                          Fällig innerhalb 7 Tagen
+                        </span>
                       </div>
                     )}
                   </CardContent>
@@ -3100,6 +3630,48 @@ export default function AssetIntegrityManagement() {
                 />
               </div>
             </div>
+
+            {/* Rig Type, HP, Year */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-foreground font-medium flex items-center gap-1.5 mb-2">
+                  <Wrench className="h-4 w-4 text-primary" />
+                  Rig Typ
+                </Label>
+                <Input
+                  value={newRig.rigType}
+                  onChange={(e) =>
+                    setNewRig({ ...newRig, rigType: e.target.value })
+                  }
+                  placeholder="z.B. 2000 HP Land Rig"
+                />
+              </div>
+              <div>
+                <Label className="text-foreground font-medium flex items-center gap-1.5 mb-2">
+                  HP Rating
+                </Label>
+                <Input
+                  value={newRig.hpRating}
+                  onChange={(e) =>
+                    setNewRig({ ...newRig, hpRating: e.target.value })
+                  }
+                  placeholder="z.B. 2000 HP"
+                />
+              </div>
+              <div>
+                <Label className="text-foreground font-medium flex items-center gap-1.5 mb-2">
+                  Baujahr
+                </Label>
+                <Input
+                  type="number"
+                  value={newRig.year || ""}
+                  onChange={(e) =>
+                    setNewRig({ ...newRig, year: Number(e.target.value) })
+                  }
+                  placeholder="z.B. 2014"
+                />
+              </div>
+            </div>
           </div>
 
           <DialogFooter className="gap-2">
@@ -3118,7 +3690,7 @@ export default function AssetIntegrityManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation Dialog (for sub-items) */}
       <AlertDialog
         open={!!deleteConfirm}
         onOpenChange={(open) => !open && setDeleteConfirm(null)}
@@ -3163,6 +3735,177 @@ export default function AssetIntegrityManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete Rig Confirmation */}
+      <AlertDialog
+        open={!!rigToDelete}
+        onOpenChange={(open) => !open && setRigToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-500">
+              <Trash2 className="h-5 w-5" />
+              Anlage löschen
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Möchten Sie <strong>{rigToDelete?.name}</strong> wirklich
+              unwiderruflich löschen?
+              <br />
+              Alle zugehörigen Inspektionen, Issues und Verbesserungen werden
+              ebenfalls gelöscht.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRigToDelete(null)}>
+              Abbrechen
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => rigToDelete && handleDeleteRig(rigToDelete)}
+            >
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              Endgültig löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-500">
+              <Trash2 className="h-5 w-5" />
+              {selectedRigIds.size} Anlagen löschen
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Folgende Anlagen werden unwiderruflich gelöscht:
+              <span className="block mt-2 font-medium text-foreground">
+                {rigs
+                  .filter((r) => selectedRigIds.has(r.id))
+                  .map((r) => r.name)
+                  .join(", ")}
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBulkDeleteOpen(false)}>
+              Abbrechen
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={handleBulkDelete}
+            >
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              Alle löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Excel Import Preview Dialog */}
+      <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-xl max-h-[80vh] overflow-y-auto bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Upload className="h-5 w-5 text-green-500" />
+              Excel Import — Vorschau
+            </DialogTitle>
+            <DialogDescription>
+              Überprüfen Sie die importierten Daten vor dem Hinzufügen.
+            </DialogDescription>
+          </DialogHeader>
+
+          {importPreview && (
+            <div className="space-y-4 py-2">
+              {/* New rigs */}
+              {importPreview.newRigs.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-green-400 mb-2">
+                    ✅ {importPreview.newRigs.length} neue Anlagen
+                  </h4>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {importPreview.newRigs.map((r, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between text-sm bg-green-500/10 border border-green-500/20 rounded px-3 py-1.5"
+                      >
+                        <span className="font-medium text-foreground">
+                          {r.name}
+                        </span>
+                        <span className="text-muted-foreground text-xs">
+                          {r.region} · {r.contractStatus}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Duplicates */}
+              {importPreview.duplicates.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-orange-400 mb-2">
+                    ⚠️ {importPreview.duplicates.length} Duplikate (werden
+                    übersprungen)
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    {importPreview.duplicates.join(", ")}
+                  </p>
+                </div>
+              )}
+
+              {/* Errors */}
+              {importPreview.errors.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-red-400 mb-2">
+                    ❌ {importPreview.errors.length} Fehler
+                  </h4>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    {importPreview.errors.map((err, i) => (
+                      <p key={i}>{err}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsImportOpen(false);
+                setImportPreview(null);
+              }}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={confirmImport}
+              disabled={
+                isImporting || !importPreview?.newRigs.length
+              }
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            >
+              {isImporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Importiere...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  {importPreview?.newRigs.length || 0} Anlagen importieren
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
