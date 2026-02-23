@@ -387,8 +387,6 @@ export default function AssetIntegrityManagement() {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-
-
   // Debounced auto-save
   const debouncedSave = useDebouncedCallback(() => {
     saveData();
@@ -1244,16 +1242,21 @@ export default function AssetIntegrityManagement() {
           const hpRatingVal = String(
             row["HP"] || row["hpRating"] || row["HP Rating"] || "",
           );
-          const yearVal = Number(row["Jahr"] || row["Year"] || row["year"] || 0);
+          const yearVal = Number(
+            row["Jahr"] || row["Year"] || row["year"] || 0,
+          );
 
           newRigsData.push({
             name,
             region: region.includes("Pakistan") ? "Pakistan" : "Oman",
-            contractStatus: (
-              ["active", "idle", "standby", "maintenance"].includes(status)
-                ? status
-                : "idle"
-            ) as Rig["contractStatus"],
+            contractStatus: ([
+              "active",
+              "idle",
+              "standby",
+              "maintenance",
+            ].includes(status)
+              ? status
+              : "idle") as Rig["contractStatus"],
             location,
             operator: operator || undefined,
             dayRate: dayRate > 0 ? dayRate : undefined,
@@ -2023,7 +2026,9 @@ export default function AssetIntegrityManagement() {
                   </div>
 
                   <CardHeader className="pb-2">
-                    <div className={`flex items-start gap-3 ${bulkMode ? "pl-8" : ""} pr-24`}>
+                    <div
+                      className={`flex items-start gap-3 ${bulkMode ? "pl-8" : ""} pr-24`}
+                    >
                       <div className="p-2 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg shadow-lg flex-shrink-0">
                         <Building2 className="h-5 w-5 text-white" />
                       </div>
@@ -2076,7 +2081,11 @@ export default function AssetIntegrityManagement() {
                             bis{" "}
                             {new Date(rig.contractEndDate).toLocaleDateString(
                               "de-DE",
-                              { day: "2-digit", month: "short", year: "numeric" },
+                              {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              },
                             )}
                           </span>
                         )}
@@ -2086,13 +2095,17 @@ export default function AssetIntegrityManagement() {
                     {/* Location & Operator - compact */}
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
-                        <p className="text-xs text-muted-foreground">Standort</p>
+                        <p className="text-xs text-muted-foreground">
+                          Standort
+                        </p>
                         <p className="font-medium text-foreground truncate">
                           {rig.location || "Nicht zugewiesen"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Operator</p>
+                        <p className="text-xs text-muted-foreground">
+                          Operator
+                        </p>
                         <p className="font-medium text-foreground truncate">
                           {rig.operator || "—"}
                         </p>
@@ -3771,10 +3784,7 @@ export default function AssetIntegrityManagement() {
       </AlertDialog>
 
       {/* Bulk Delete Confirmation */}
-      <AlertDialog
-        open={bulkDeleteOpen}
-        onOpenChange={setBulkDeleteOpen}
-      >
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-red-500">
@@ -3886,9 +3896,7 @@ export default function AssetIntegrityManagement() {
             </Button>
             <Button
               onClick={confirmImport}
-              disabled={
-                isImporting || !importPreview?.newRigs.length
-              }
+              disabled={isImporting || !importPreview?.newRigs.length}
               className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
             >
               {isImporting ? (

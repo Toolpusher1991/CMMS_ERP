@@ -72,14 +72,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// User list item interface (cache shared via @/lib/constants)
-interface UserListItem {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  assignedPlant?: string;
-}
+
 
 interface FailureReport {
   id: string;

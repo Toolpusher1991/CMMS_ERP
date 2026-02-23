@@ -173,13 +173,13 @@ export function useTenderMutations() {
 
   const createTender = useMutation({
     mutationFn: (data: Record<string, unknown>) =>
-      tenderService.createTender(data),
+      tenderService.createTender(data as unknown as Parameters<typeof tenderService.createTender>[0]),
     onSuccess: () => invalidateTenders(),
   });
 
   const updateTender = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
-      tenderService.updateTender(id, data),
+      tenderService.updateTender(id, data as unknown as Parameters<typeof tenderService.updateTender>[1]),
     onSuccess: () => invalidateTenders(),
   });
 

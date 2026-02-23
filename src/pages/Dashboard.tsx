@@ -1,7 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Action } from "@/services/action.service";
-import type { Project } from "@/services/project.service";
 import {
   PRIORITY_CONFIG,
   ACTION_STATUS_CONFIG,
@@ -32,14 +30,14 @@ import {
 } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { useDashboardData } from "@/hooks/useQueryHooks";
-import type { FailureReport, DashboardStats, QuickAccessItem } from "@/types";
+import type { DashboardStats, QuickAccessItem } from "@/types";
 
 interface DashboardProps {
   onNavigate?: (page: string, itemId?: string) => void;
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
-  const { toast } = useToast();
+  const { toast: _toast } = useToast(); void _toast;
   const {
     actions,
     projects,
@@ -54,7 +52,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const [lastNavigatedPage, setLastNavigatedPage] = useState<string | null>(
     null,
   );
-  const [currentUser, setCurrentUser] = useState<{
+  const [currentUser] = useState<{
     id: string;
     firstName: string;
     lastName: string;

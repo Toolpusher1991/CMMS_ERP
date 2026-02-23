@@ -550,7 +550,7 @@ const RigConfigurator = () => {
   }, []);
 
   // React Query: Rigs
-  const { data: rigsResult, isLoading: loadingRigs } = useQuery({
+  const { data: rigsResult } = useQuery({
     queryKey: queryKeys.rigs.list(),
     queryFn: () => rigService.getAllRigs(),
     staleTime: 5 * 60 * 1000,
@@ -1030,7 +1030,7 @@ const RigConfigurator = () => {
     }
 
     try {
-      const newTender = await tenderService.createTender({
+      await tenderService.createTender({
         projectName: requirements.projectName,
         clientName: requirements.clientName,
         location: requirements.location,
@@ -1081,7 +1081,7 @@ const RigConfigurator = () => {
     } else {
       // Wenn von "Unter Vertrag" zu "Ausstehend" gewechselt wird
       try {
-        const updatedTender = await tenderService.updateTender(configId, {
+        await tenderService.updateTender(configId, {
           isUnderContract: false,
           contractStartDate: "",
         });

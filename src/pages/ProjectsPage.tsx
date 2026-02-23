@@ -236,7 +236,7 @@ function TaskFlowNode({
     new Date(data.dueDate) < new Date() &&
     data.status !== "DONE";
   const hasMaterial = localMaterial.needsMaterial;
-  const [isHovered, setIsHovered] = useState(false);
+  const [isHovered] = useState(false);
 
   return (
     <>
