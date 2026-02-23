@@ -8,14 +8,6 @@ export interface Inspection {
   completedDate?: string;
   status: "upcoming" | "due" | "overdue" | "completed";
   responsible: string;
-  // SAP Import fields
-  sapImported?: boolean;
-  equipNo?: string;
-  fLoc?: string;
-  workCenter?: string;
-  cycle?: string;
-  orderNo?: string;
-  monitorDays?: number;
 }
 
 export interface Issue {

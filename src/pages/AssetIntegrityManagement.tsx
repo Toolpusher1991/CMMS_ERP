@@ -595,7 +595,6 @@ export default function AssetIntegrityManagement() {
   } | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const sapFileInputRef = useRef<HTMLInputElement>(null);
 
   // Debounced auto-save
   const debouncedSave = useDebouncedCallback(() => {
@@ -1539,186 +1538,6 @@ export default function AssetIntegrityManagement() {
     });
   };
 
-  // SAP Inspection Import handler
-  const handleSapInspectionImport = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
-
-        // Filter for -INSP work centers only
-        const inspRows = rows.filter((row) => {
-          const wc = String(
-            row["Work Ctr."] || row["Work Ctr"] || row["WorkCtr"] || "",
-          );
-          return wc.includes("-INSP");
-        });
-
-        if (inspRows.length === 0) {
-          toast({
-            title: "Keine Inspektionen gefunden",
-            description:
-              'Es wurden keine Zeilen mit "-INSP" Work Center gefunden.',
-            variant: "destructive",
-          });
-          return;
-        }
-
-        // Group by rig (from FLoc)
-        const rigInspections = new Map<string, Inspection[]>();
-
-        for (const row of inspRows) {
-          const fLoc = String(
-            row["FLoc"] || row["Floc"] || row["FLOC"] || row["FLoc "] || "",
-          ).trim();
-          const rigMatch = fLoc.match(/^T(\d+)/);
-          if (!rigMatch) continue;
-
-          const rigNum = parseInt(rigMatch[1], 10);
-          const rigName = `T-${rigNum}`;
-
-          // Find matching rig
-          const rig = rigs.find((r) => r.name === rigName);
-          if (!rig) continue;
-
-          const workCenter = String(
-            row["Work Ctr."] || row["Work Ctr"] || "",
-          ).trim();
-          const equipDesc = String(row["Equipment Description"] || "").trim();
-          const woDesc = String(
-            row["WO operation\nDescription"] ||
-              row["WO operation Description"] ||
-              row["WO operation\r\nDescription"] ||
-              "",
-          ).trim();
-          const cycle = String(row["Cycle"] || "").trim();
-          const equipNo = String(
-            row["Equip. No."] || row["Equip.No."] || row["Equip. No"] || "",
-          ).trim();
-          const orderNo = String(row["Order"] || "").trim();
-          const basicStartDate =
-            row["Basic start date"] ||
-            row["Basic\nstart date"] ||
-            row["Basic\r\nstart date"] ||
-            "";
-          const monitor = Number(row["Monitor"] || row["Monitor "] || 0);
-
-          // Parse date (DD.MM.YYYY or Excel serial)
-          let dueDate = "";
-          if (basicStartDate) {
-            const dateStr = String(basicStartDate);
-            const match = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-            if (match) {
-              dueDate = `${match[3]}-${match[2]}-${match[1]}`;
-            } else if (!isNaN(Number(dateStr))) {
-              // Excel serial date
-              const excelDate = new Date(
-                (Number(dateStr) - 25569) * 86400 * 1000,
-              );
-              dueDate = excelDate.toISOString().slice(0, 10);
-            }
-          }
-
-          // Map work center to inspection type
-          let type: Inspection["type"] = "internal";
-          if (workCenter.startsWith("TP")) type = "statutory";
-          else if (workCenter.startsWith("SP")) type = "certification";
-
-          // Determine status from monitor days
-          let status: Inspection["status"] = "upcoming";
-          if (monitor < 0) status = "overdue";
-          else if (monitor <= 30) status = "due";
-
-          // Build description: prefer WO description, fallback to equipment desc
-          const description = woDesc || equipDesc || fLoc;
-
-          const inspection: Inspection = {
-            id: `sap-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            type,
-            description,
-            dueDate,
-            status,
-            responsible: workCenter,
-            sapImported: true,
-            equipNo: equipNo || undefined,
-            fLoc: fLoc || undefined,
-            workCenter: workCenter || undefined,
-            cycle: cycle || undefined,
-            orderNo: orderNo || undefined,
-            monitorDays: monitor,
-          };
-
-          const existing = rigInspections.get(rig.id) || [];
-          existing.push(inspection);
-          rigInspections.set(rig.id, existing);
-        }
-
-        if (rigInspections.size === 0) {
-          toast({
-            title: "Keine passenden Anlagen",
-            description:
-              "Die FLoc-Nummern konnten keiner Anlage zugeordnet werden.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        // Update rigs: overwrite SAP-imported inspections, keep manual ones
-        const updatedRigs = rigs.map((rig) => {
-          const newInspections = rigInspections.get(rig.id);
-          if (!newInspections) return rig;
-
-          // Keep manually added inspections, replace SAP ones
-          const manualInspections = rig.inspections.filter(
-            (i) => !i.sapImported,
-          );
-          return {
-            ...rig,
-            inspections: [...manualInspections, ...newInspections],
-          };
-        });
-
-        setRigs(updatedRigs);
-        if (selectedRig) {
-          const updated = updatedRigs.find((r) => r.id === selectedRig.id);
-          if (updated) setSelectedRig(updated);
-        }
-        setHasUnsavedChanges(true);
-
-        let totalImported = 0;
-        let rigsAffected = 0;
-        rigInspections.forEach((inspections) => {
-          totalImported += inspections.length;
-          rigsAffected++;
-        });
-
-        toast({
-          variant: "success" as const,
-          title: "SAP Import erfolgreich",
-          description: `${totalImported} Inspektionen für ${rigsAffected} Anlage(n) importiert`,
-          duration: 5000,
-        });
-      } catch (err) {
-        console.error("SAP Import error:", err);
-        toast({
-          title: "Import-Fehler",
-          description: "Die SAP-Datei konnte nicht gelesen werden",
-          variant: "destructive",
-        });
-      }
-    };
-    reader.readAsArrayBuffer(file);
-    if (sapFileInputRef.current) sapFileInputRef.current.value = "";
-  };
-
   // Export handler
   const handleExport = (format: "xlsx" | "csv") => {
     const exportData = filteredRigs.map((rig) => ({
@@ -2093,24 +1912,6 @@ export default function AssetIntegrityManagement() {
                 accept=".xlsx,.xls,.csv"
                 className="hidden"
                 onChange={handleExcelImport}
-              />
-
-              {/* SAP Inspection Import */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="touch-manipulation border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
-                onClick={() => sapFileInputRef.current?.click()}
-              >
-                <Upload className="h-4 w-4 mr-1.5" />
-                SAP Inspektionen
-              </Button>
-              <input
-                ref={sapFileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                className="hidden"
-                onChange={handleSapInspectionImport}
               />
 
               {/* Export */}
@@ -3197,7 +2998,7 @@ export default function AssetIntegrityManagement() {
                 value="inspections"
                 className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0"
               >
-                <div className="flex justify-end gap-2 mb-3">
+                <div className="flex justify-end mb-3">
                   <Button
                     size="sm"
                     onClick={() => setIsAddInspectionOpen(true)}
@@ -3212,201 +3013,70 @@ export default function AssetIntegrityManagement() {
                     Keine Inspektionen geplant
                   </p>
                 ) : (
-                  <>
-                    {/* SAP imported inspections as table */}
-                    {selectedRig.inspections.some((i) => i.sapImported) && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-medium text-muted-foreground">
-                            SAP Inspektionen (
-                            {
-                              selectedRig.inspections.filter(
-                                (i) => i.sapImported,
-                              ).length
-                            }
-                            )
-                          </h3>
-                          <Badge
-                            variant="outline"
-                            className="text-orange-400 border-orange-500/30 text-xs"
-                          >
-                            SAP Import
-                          </Badge>
-                        </div>
-                        <div className="border border-border rounded-lg overflow-hidden">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="border-border hover:bg-transparent">
-                                <TableHead className="text-muted-foreground text-xs">
-                                  Beschreibung
-                                </TableHead>
-                                <TableHead className="text-muted-foreground text-xs">
-                                  Work Center
-                                </TableHead>
-                                <TableHead className="text-muted-foreground text-xs">
-                                  Zyklus
-                                </TableHead>
-                                <TableHead className="text-muted-foreground text-xs">
-                                  Fällig
-                                </TableHead>
-                                <TableHead className="text-muted-foreground text-xs text-right">
-                                  Monitor
-                                </TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {selectedRig.inspections
-                                .filter((i) => i.sapImported)
-                                .sort(
-                                  (a, b) =>
-                                    (a.monitorDays ?? 999) -
-                                    (b.monitorDays ?? 999),
-                                )
-                                .map((inspection) => (
-                                  <TableRow
-                                    key={inspection.id}
-                                    className="border-border"
-                                  >
-                                    <TableCell className="text-foreground text-xs max-w-[250px]">
-                                      <div className="truncate">
-                                        {inspection.description}
-                                      </div>
-                                      {inspection.fLoc && (
-                                        <div className="text-[10px] text-muted-foreground truncate">
-                                          {inspection.fLoc}
-                                        </div>
-                                      )}
-                                    </TableCell>
-                                    <TableCell>
-                                      <Badge
-                                        variant="outline"
-                                        className={`text-[10px] ${
-                                          inspection.workCenter?.startsWith(
-                                            "TP",
-                                          )
-                                            ? "text-purple-400 border-purple-500/30"
-                                            : inspection.workCenter?.startsWith(
-                                                  "SP",
-                                                )
-                                              ? "text-cyan-400 border-cyan-500/30"
-                                              : inspection.workCenter?.startsWith(
-                                                    "MM",
-                                                  )
-                                                ? "text-yellow-400 border-yellow-500/30"
-                                                : inspection.workCenter?.startsWith(
-                                                      "ESP",
-                                                    )
-                                                  ? "text-green-400 border-green-500/30"
-                                                  : "text-blue-400 border-blue-500/30"
-                                        }`}
-                                      >
-                                        {inspection.workCenter}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">
-                                      {inspection.cycle || "—"}
-                                    </TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">
-                                      {inspection.dueDate
-                                        ? new Date(
-                                            inspection.dueDate,
-                                          ).toLocaleDateString("de-DE")
-                                        : "—"}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      <span
-                                        className={`text-xs font-semibold ${
-                                          (inspection.monitorDays ?? 0) < 0
-                                            ? "text-red-400"
-                                            : (inspection.monitorDays ?? 0) <=
-                                                30
-                                              ? "text-yellow-400"
-                                              : "text-green-400"
-                                        }`}
-                                      >
-                                        {inspection.monitorDays != null
-                                          ? inspection.monitorDays < 0
-                                            ? `${Math.abs(inspection.monitorDays)}d überfällig`
-                                            : `${inspection.monitorDays}d`
-                                          : "—"}
-                                      </span>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Manual inspections as cards */}
-                    {selectedRig.inspections
-                      .filter((i) => !i.sapImported)
-                      .map((inspection) => {
-                        const daysUntil = getDaysUntil(inspection.dueDate);
-                        return (
-                          <Card
-                            key={inspection.id}
-                            className={`bg-background border-2 ${
-                              inspection.status === "overdue"
-                                ? "border-red-500/50"
-                                : "border-border"
-                            }`}
-                          >
-                            <CardContent className="pt-4">
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="flex-1">
-                                  <h3 className="text-foreground font-medium">
-                                    {inspection.description}
-                                  </h3>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge
-                                    className={getInspectionStatusColor(
-                                      inspection.status,
-                                    )}
-                                  >
-                                    {inspection.status}
-                                  </Badge>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() =>
-                                      setDeleteConfirm({
-                                        type: "inspection",
-                                        id: inspection.id,
-                                        label: inspection.description,
-                                      })
-                                    }
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                              <div className="text-sm text-muted-foreground space-y-1">
-                                <p>Typ: {inspection.type}</p>
-                                <p>
-                                  Fällig:{" "}
-                                  {new Date(
-                                    inspection.dueDate,
-                                  ).toLocaleDateString("de-DE")}
+                  selectedRig.inspections.map((inspection) => {
+                    const daysUntil = getDaysUntil(inspection.dueDate);
+                    return (
+                      <Card
+                        key={inspection.id}
+                        className={`bg-background border-2 ${
+                          inspection.status === "overdue"
+                            ? "border-red-500/50"
+                            : "border-border"
+                        }`}
+                      >
+                        <CardContent className="pt-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h3 className="text-foreground font-medium">
+                                {inspection.description}
+                              </h3>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                className={getInspectionStatusColor(
+                                  inspection.status,
+                                )}
+                              >
+                                {inspection.status}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  setDeleteConfirm({
+                                    type: "inspection",
+                                    id: inspection.id,
+                                    label: inspection.description,
+                                  })
+                                }
+                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="text-sm text-muted-foreground space-y-1">
+                            <p>Typ: {inspection.type}</p>
+                            <p>
+                              Fällig:{" "}
+                              {new Date(inspection.dueDate).toLocaleDateString(
+                                "de-DE",
+                              )}
+                            </p>
+                            <p>Verantwortlich: {inspection.responsible}</p>
+                            {daysUntil !== null &&
+                              inspection.status !== "completed" && (
+                                <p className="text-xs text-yellow-400 font-medium mt-1">
+                                  {daysUntil < 0
+                                    ? `${Math.abs(daysUntil)} Tage überfällig`
+                                    : `Noch ${daysUntil} Tage`}
                                 </p>
-                                <p>Verantwortlich: {inspection.responsible}</p>
-                                {daysUntil !== null &&
-                                  inspection.status !== "completed" && (
-                                    <p className="text-xs text-yellow-400 font-medium mt-1">
-                                      {daysUntil < 0
-                                        ? `${Math.abs(daysUntil)} Tage überfällig`
-                                        : `Noch ${daysUntil} Tage`}
-                                    </p>
-                                  )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                  </>
+                              )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })
                 )}
               </TabsContent>
 
