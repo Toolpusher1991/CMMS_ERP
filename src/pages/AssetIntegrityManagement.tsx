@@ -596,6 +596,15 @@ export default function AssetIntegrityManagement() {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Inspection Excel Import
+  const [isInspectionImportOpen, setIsInspectionImportOpen] = useState(false);
+  const [inspectionImportPreview, setInspectionImportPreview] = useState<{
+    inspections: Omit<Inspection, 'id'>[];
+    errors: string[];
+  } | null>(null);
+  const [isInspectionImporting, setIsInspectionImporting] = useState(false);
+  const inspectionFileInputRef = useRef<HTMLInputElement>(null);
+
   // Debounced auto-save
   const debouncedSave = useDebouncedCallback(() => {
     saveData();
@@ -1536,6 +1545,177 @@ export default function AssetIntegrityManagement() {
       description: `${createdRigs.length} Anlagen importiert`,
       duration: 4000,
     });
+  };
+
+  // Inspection Excel Import handler
+  const handleInspectionExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedRig) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+
+        const parsedInspections: Omit<Inspection, 'id'>[] = [];
+        const errors: string[] = [];
+
+        rows.forEach((row, idx) => {
+          const description = String(
+            row['Beschreibung'] || row['Description'] || row['description'] || row['Inspektion'] || row['Item'] || row['item'] || ''
+          ).trim();
+          if (!description) {
+            errors.push(`Zeile ${idx + 2}: Keine Beschreibung`);
+            return;
+          }
+
+          // Type mapping
+          const rawType = String(row['Typ'] || row['Type'] || row['type'] || row['Category'] || row['category'] || 'internal').toLowerCase().trim();
+          let type: Inspection['type'] = 'internal';
+          if (rawType.includes('statutory') || rawType.includes('gesetzlich') || rawType.includes('behördlich')) type = 'statutory';
+          else if (rawType.includes('client') || rawType.includes('kunde') || rawType.includes('kundeninsp')) type = 'client';
+          else if (rawType.includes('cert') || rawType.includes('zertifiz')) type = 'certification';
+          else if (rawType.includes('intern')) type = 'internal';
+
+          // Due date parsing
+          let dueDate = '';
+          const rawDate = row['Fällig'] || row['Due Date'] || row['Due'] || row['Datum'] || row['Date'] || row['due_date'] || row['dueDate'] || row['Fälligkeitsdatum'] || '';
+          if (rawDate) {
+            if (typeof rawDate === 'number') {
+              // Excel serial date number
+              const excelDate = new Date((rawDate - 25569) * 86400 * 1000);
+              dueDate = excelDate.toISOString().split('T')[0];
+            } else {
+              const dateStr = String(rawDate).trim();
+              // Try ISO format
+              const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+              if (isoMatch) {
+                dueDate = dateStr.slice(0, 10);
+              } else {
+                // Try DD.MM.YYYY or DD/MM/YYYY
+                const euMatch = dateStr.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+                if (euMatch) {
+                  dueDate = `${euMatch[3]}-${euMatch[2].padStart(2, '0')}-${euMatch[1].padStart(2, '0')}`;
+                }
+              }
+            }
+          }
+          if (!dueDate) {
+            // Default: 30 days from now
+            const d = new Date();
+            d.setDate(d.getDate() + 30);
+            dueDate = d.toISOString().split('T')[0];
+          }
+
+          // Status mapping
+          const rawStatus = String(row['Status'] || row['status'] || '').toLowerCase().trim();
+          let status: Inspection['status'] = 'upcoming';
+          if (rawStatus.includes('overdue') || rawStatus.includes('überfällig')) status = 'overdue';
+          else if (rawStatus.includes('completed') || rawStatus.includes('erledigt') || rawStatus.includes('done') || rawStatus.includes('abgeschlossen')) status = 'completed';
+          else if (rawStatus.includes('due') || rawStatus.includes('fällig')) status = 'due';
+
+          // Auto-detect overdue based on date if no status given
+          if (!rawStatus && new Date(dueDate) < new Date()) {
+            status = 'overdue';
+          }
+
+          const responsible = String(
+            row['Verantwortlich'] || row['Responsible'] || row['responsible'] || row['Zuständig'] || row['Assigned'] || row['assigned'] || ''
+          ).trim();
+
+          const completedDate = row['Abgeschlossen'] || row['Completed Date'] || row['completedDate'] || '';
+          let completedDateStr: string | undefined;
+          if (completedDate) {
+            if (typeof completedDate === 'number') {
+              completedDateStr = new Date((completedDate - 25569) * 86400 * 1000).toISOString().split('T')[0];
+            } else {
+              completedDateStr = String(completedDate).trim();
+            }
+          }
+
+          parsedInspections.push({
+            type,
+            description,
+            dueDate,
+            status,
+            responsible,
+            ...(completedDateStr ? { completedDate: completedDateStr } : {}),
+          });
+        });
+
+        if (parsedInspections.length === 0 && errors.length === 0) {
+          errors.push('Keine gültigen Inspektionen in der Datei gefunden');
+        }
+
+        setInspectionImportPreview({ inspections: parsedInspections, errors });
+        setIsInspectionImportOpen(true);
+      } catch {
+        toast({
+          title: 'Import-Fehler',
+          description: 'Die Excel-Datei konnte nicht gelesen werden',
+          variant: 'destructive',
+        });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    if (inspectionFileInputRef.current) inspectionFileInputRef.current.value = '';
+  };
+
+  // Confirm inspection Excel import
+  const confirmInspectionImport = () => {
+    if (!inspectionImportPreview || !selectedRig) return;
+    setIsInspectionImporting(true);
+
+    const newInspections: Inspection[] = inspectionImportPreview.inspections.map((insp) => ({
+      id: Date.now().toString() + Math.random().toString(36).slice(2),
+      ...insp,
+    }));
+
+    const updatedRigs = rigs.map((rig) =>
+      rig.id === selectedRig.id
+        ? { ...rig, inspections: [...rig.inspections, ...newInspections] }
+        : rig
+    );
+
+    setRigs(updatedRigs);
+    setSelectedRig(updatedRigs.find((r) => r.id === selectedRig.id) || null);
+    setHasUnsavedChanges(true);
+    setIsInspectionImporting(false);
+    setIsInspectionImportOpen(false);
+    setInspectionImportPreview(null);
+    toast({
+      variant: 'success' as const,
+      title: 'Import erfolgreich',
+      description: `${newInspections.length} Inspektionen für ${selectedRig.name} importiert`,
+      duration: 4000,
+    });
+  };
+
+  // Download inspection template
+  const downloadInspectionTemplate = () => {
+    const templateData = [
+      {
+        Beschreibung: 'BOP Stack 5-Year Inspection',
+        Typ: 'statutory',
+        'Fällig': '2026-06-15',
+        Status: 'upcoming',
+        Verantwortlich: 'Rig Mechanic',
+      },
+      {
+        Beschreibung: 'Crown Block Inspection',
+        Typ: 'internal',
+        'Fällig': '2026-04-01',
+        Status: '',
+        Verantwortlich: 'Derrickman',
+      },
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Inspektionen');
+    XLSX.writeFile(wb, 'Inspektionen_Vorlage.xlsx');
   };
 
   // Export handler
@@ -2998,7 +3178,35 @@ export default function AssetIntegrityManagement() {
                 value="inspections"
                 className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0"
               >
-                <div className="flex justify-end mb-3">
+                <div className="flex justify-end gap-2 mb-3">
+                  <input
+                    ref={inspectionFileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    className="hidden"
+                    onChange={handleInspectionExcelImport}
+                  />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-border"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Excel Import
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-background border-border">
+                      <DropdownMenuItem onClick={() => inspectionFileInputRef.current?.click()}>
+                        📥 Excel-Datei importieren
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={downloadInspectionTemplate}>
+                        📄 Vorlage herunterladen
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button
                     size="sm"
                     onClick={() => setIsAddInspectionOpen(true)}
@@ -3404,6 +3612,123 @@ export default function AssetIntegrityManagement() {
               className="bg-blue-600 hover:bg-blue-700"
             >
               Hinzufügen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Inspection Excel Import Preview Dialog */}
+      <Dialog open={isInspectionImportOpen} onOpenChange={setIsInspectionImportOpen}>
+        <DialogContent className="bg-card border-border max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              Inspektionen importieren — {selectedRig?.name}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Vorschau der zu importierenden Inspektionen
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {inspectionImportPreview?.errors && inspectionImportPreview.errors.length > 0 && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-md p-3">
+                <p className="text-red-400 font-medium text-sm mb-1">
+                  ⚠️ {inspectionImportPreview.errors.length} Fehler
+                </p>
+                <ul className="text-xs text-red-300 space-y-0.5">
+                  {inspectionImportPreview.errors.slice(0, 10).map((err, i) => (
+                    <li key={i}>• {err}</li>
+                  ))}
+                  {inspectionImportPreview.errors.length > 10 && (
+                    <li>... und {inspectionImportPreview.errors.length - 10} weitere</li>
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {inspectionImportPreview?.inspections && inspectionImportPreview.inspections.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm text-foreground font-medium">
+                  ✅ {inspectionImportPreview.inspections.length} Inspektionen erkannt:
+                </p>
+                <div className="border border-border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border">
+                        <TableHead className="text-muted-foreground text-xs">Beschreibung</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Typ</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Fällig</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Status</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Verantwortlich</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {inspectionImportPreview.inspections.slice(0, 20).map((insp, i) => (
+                        <TableRow key={i} className="border-border">
+                          <TableCell className="text-foreground text-xs max-w-[200px] truncate">
+                            {insp.description}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {insp.type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs">
+                            {new Date(insp.dueDate).toLocaleDateString('de-DE')}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`text-xs ${getInspectionStatusColor(insp.status)}`}>
+                              {insp.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs">
+                            {insp.responsible || '—'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {inspectionImportPreview.inspections.length > 20 && (
+                    <p className="text-xs text-muted-foreground p-2 text-center">
+                      ... und {inspectionImportPreview.inspections.length - 20} weitere
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {inspectionImportPreview?.inspections.length === 0 && inspectionImportPreview?.errors.length === 0 && (
+              <p className="text-center text-muted-foreground py-4">
+                Keine Inspektionen in der Datei gefunden
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsInspectionImportOpen(false);
+                setInspectionImportPreview(null);
+              }}
+              className="border-border"
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={confirmInspectionImport}
+              disabled={!inspectionImportPreview?.inspections.length || isInspectionImporting}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isInspectionImporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Importiere...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  {inspectionImportPreview?.inspections.length || 0} Inspektionen importieren
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
