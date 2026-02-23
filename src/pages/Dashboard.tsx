@@ -37,7 +37,8 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
-  const { toast: _toast } = useToast(); void _toast;
+  const { toast: _toast } = useToast();
+  void _toast;
   const {
     actions,
     projects,

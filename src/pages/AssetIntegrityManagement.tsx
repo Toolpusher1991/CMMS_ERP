@@ -105,187 +105,8 @@ import {
   getImprovementPriorityColor,
 } from "@/components/asset-integrity/utils";
 
-// Mock Data mit realistischen Beispielen
+// Equipment Master Database – Komplette Flotte
 const initialRigs: Rig[] = [
-  {
-    id: "1",
-    name: "T700",
-    region: "Oman",
-    contractStatus: "active",
-    contractEndDate: "2026-08-15",
-    operator: "PDO (Petroleum Development Oman)",
-    location: "Fahud Field",
-    dayRate: 28000,
-    rigType: "2000 HP Land Rig",
-    hpRating: "2000 HP",
-    year: 2014,
-    certifications: ["API Spec 7K", "ISO 9001:2015", "Well Control"],
-    generalInfo: [
-      {
-        id: "g1",
-        description: "Anlage steht noch bis Ende Q3 auf Vertrag",
-        deadline: "2026-08-15",
-        createdDate: "2026-02-10",
-      },
-      {
-        id: "g2",
-        description: "Rig Move nach Lekhwair geplant",
-        deadline: "2026-08-20",
-        createdDate: "2026-02-11",
-      },
-      {
-        id: "g3",
-        description: "Supervisor Mohammed Al-Balushi vor Ort",
-        createdDate: "2026-02-14",
-      },
-      {
-        id: "g4",
-        description: "API Spec 7K Re-Audit steht an",
-        deadline: "2026-03-15",
-        createdDate: "2026-02-01",
-      },
-    ],
-    inspections: [
-      {
-        id: "i1",
-        type: "statutory",
-        description: "Annual BOP Stack Inspection",
-        dueDate: "2026-03-01",
-        status: "upcoming",
-        responsible: "Third Party Inspector",
-      },
-      {
-        id: "i2",
-        type: "internal",
-        description: "Drawworks Preventive Maintenance",
-        dueDate: "2026-02-20",
-        status: "due",
-        responsible: "Rig Mechanic",
-      },
-    ],
-    issues: [
-      {
-        id: "is1",
-        category: "technical",
-        severity: "medium",
-        description: "Mud pump #2 showing vibration - requires monitoring",
-        status: "in-progress",
-        createdDate: "2026-02-10",
-      },
-    ],
-    improvements: [
-      {
-        id: "im1",
-        description: "Install advanced drilling automation system",
-        category: "equipment",
-        priority: "high",
-        estimatedCost: 450000,
-        potentialRevenue: "Enables premium contracts (+$5k day rate)",
-        status: "planned",
-      },
-    ],
-  },
-  {
-    id: "2",
-    name: "T46",
-    region: "Oman",
-    contractStatus: "idle",
-    location: "Muscat Yard",
-    certifications: ["API Spec 4F", "ISO 9001:2015"],
-    inspections: [
-      {
-        id: "i3",
-        type: "certification",
-        description: "Well Control Equipment Certification Renewal",
-        dueDate: "2026-01-30", // OVERDUE!
-        status: "overdue",
-        responsible: "Certification Body",
-      },
-      {
-        id: "i4",
-        type: "statutory",
-        description: "5-Year Crown Block Inspection",
-        dueDate: "2026-02-25",
-        status: "due",
-        responsible: "Structural Engineer",
-      },
-    ],
-    issues: [
-      {
-        id: "is2",
-        category: "compliance",
-        severity: "critical",
-        description: "Well Control Certificate expired - rig cannot operate",
-        dueDate: "2026-02-18",
-        status: "open",
-        createdDate: "2026-01-31",
-      },
-      {
-        id: "is3",
-        category: "commercial",
-        severity: "high",
-        description:
-          "Marketing materials outdated - need updated capability matrix",
-        status: "open",
-        createdDate: "2026-02-01",
-      },
-    ],
-    improvements: [
-      {
-        id: "im2",
-        description: "Upgrade to 7500 PSI BOP stack (currently 5000 PSI)",
-        category: "equipment",
-        priority: "high",
-        estimatedCost: 850000,
-        potentialRevenue: "Access to HPHT wells market",
-        status: "planned",
-      },
-      {
-        id: "im3",
-        description: "Obtain ISO 14001 Environmental Certification",
-        category: "certification",
-        priority: "medium",
-        estimatedCost: 35000,
-        potentialRevenue: "Required for major IOC tenders",
-        status: "planned",
-      },
-    ],
-  },
-  {
-    id: "3",
-    name: "T350",
-    region: "Pakistan",
-    contractStatus: "standby",
-    contractEndDate: "2026-03-30",
-    operator: "OGDCL",
-    location: "Dhodak Field",
-    dayRate: 18000,
-    certifications: ["API Spec 8C", "IADC"],
-    inspections: [
-      {
-        id: "i5",
-        type: "client",
-        description: "Client Pre-Spud Inspection",
-        dueDate: "2026-02-22",
-        status: "upcoming",
-        responsible: "Client QHSE Team",
-      },
-    ],
-    issues: [],
-    improvements: [
-      {
-        id: "im4",
-        description: "Install Real-Time Data Monitoring System",
-        category: "efficiency",
-        priority: "medium",
-        estimatedCost: 180000,
-        potentialRevenue:
-          "Competitive advantage for performance-based contracts",
-        status: "in-progress",
-      },
-    ],
-  },
-  // ── Equipment Master Database – Komplette Flotte ──
   {
     id: "t51",
     name: "T-51",
@@ -429,7 +250,7 @@ const initialRigs: Rig[] = [
   {
     id: "t801",
     name: "T-801",
-    region: "Pakistan",
+    region: "Oman",
     contractStatus: "idle",
     location: "",
     rigType: "800 HP Highly Mobile",
@@ -443,7 +264,7 @@ const initialRigs: Rig[] = [
   {
     id: "t826",
     name: "T-826",
-    region: "Pakistan",
+    region: "Oman",
     contractStatus: "idle",
     location: "",
     rigType: "800 HP CARDWELL",
@@ -457,7 +278,7 @@ const initialRigs: Rig[] = [
   {
     id: "t849",
     name: "T-849",
-    region: "Pakistan",
+    region: "Oman",
     contractStatus: "idle",
     location: "",
     rigType: "1500 HP Mobile",
@@ -471,7 +292,7 @@ const initialRigs: Rig[] = [
   {
     id: "t853",
     name: "T-853",
-    region: "Pakistan",
+    region: "Oman",
     contractStatus: "idle",
     location: "",
     rigType: "800 HP Highly Mobile",
@@ -485,7 +306,7 @@ const initialRigs: Rig[] = [
   {
     id: "t858",
     name: "T-858",
-    region: "Pakistan",
+    region: "Oman",
     contractStatus: "idle",
     location: "",
     rigType: "1500 HP Mobile",
@@ -499,7 +320,7 @@ const initialRigs: Rig[] = [
   {
     id: "t859",
     name: "T-859",
-    region: "Pakistan",
+    region: "Oman",
     contractStatus: "idle",
     location: "",
     rigType: "1500 HP Mobile",
@@ -527,7 +348,7 @@ const initialRigs: Rig[] = [
   {
     id: "t872",
     name: "T-872",
-    region: "Pakistan",
+    region: "Oman",
     contractStatus: "idle",
     location: "",
     rigType: "800 HP Highly Mobile",
@@ -555,7 +376,7 @@ const initialRigs: Rig[] = [
   {
     id: "t895",
     name: "T-895",
-    region: "Pakistan",
+    region: "Oman",
     contractStatus: "idle",
     location: "",
     rigType: "1000 HP Mobile",
@@ -569,7 +390,7 @@ const initialRigs: Rig[] = [
   {
     id: "t896",
     name: "T-896",
-    region: "Pakistan",
+    region: "Oman",
     contractStatus: "idle",
     location: "",
     rigType: "1000 HP Mobile",
@@ -583,7 +404,7 @@ const initialRigs: Rig[] = [
   {
     id: "t897",
     name: "T-897",
-    region: "Pakistan",
+    region: "Oman",
     contractStatus: "idle",
     location: "",
     rigType: "1000 HP Mobile",
@@ -597,7 +418,7 @@ const initialRigs: Rig[] = [
   {
     id: "t898",
     name: "T-898",
-    region: "Pakistan",
+    region: "Oman",
     contractStatus: "idle",
     location: "",
     rigType: "1000 HP Mobile",
@@ -611,7 +432,7 @@ const initialRigs: Rig[] = [
   {
     id: "t899",
     name: "T-899",
-    region: "Pakistan",
+    region: "Oman",
     contractStatus: "idle",
     location: "",
     rigType: "1000 HP Mobile",

@@ -72,8 +72,6 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
-
-
 interface FailureReport {
   id: string;
   ticketNumber: string; // Format: T208-202510-001
