@@ -1,4 +1,13 @@
-import { useState, useMemo, useCallback } from "react";
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+  createElement,
+} from "react";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PRIORITY_CONFIG,
@@ -20,6 +29,12 @@ import {
   ArrowRight,
   Building2,
   RefreshCw,
+  Shield,
+  CheckCircle,
+  Wrench,
+  FileText,
+  Eye,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -29,16 +44,31 @@ import {
   QuickAccessSkeleton,
 } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { useDashboardData } from "@/hooks/useQueryHooks";
 import type { DashboardStats, QuickAccessItem } from "@/types";
+import * as assetIntegrityApi from "@/services/assetIntegrityApi";
+import {
+  isNoteOverdue,
+  getDaysOverdue,
+  calculateOverdueNotes,
+} from "@/components/asset-integrity/utils";
+import type { AssetRig } from "@/components/asset-integrity/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface DashboardProps {
   onNavigate?: (page: string, itemId?: string) => void;
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
-  const { toast: _toast } = useToast();
-  void _toast;
+  const { toast } = useToast();
   const {
     actions,
     projects,
@@ -47,6 +77,67 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     error: loadError,
     refetch: loadData,
   } = useDashboardData();
+
+  // Asset Integrity Data
+  const { data: assetRigs = [] } = useQuery<AssetRig[]>({
+    queryKey: queryKeys.assetRigs.list(),
+    queryFn: async () => {
+      try {
+        const rigs = await assetIntegrityApi.getAllRigs();
+        return Array.isArray(rigs) ? rigs : [];
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Asset Integrity metrics
+  const assetMetrics = useMemo(() => {
+    const operational = assetRigs.filter(
+      (r) => r.contractStatus === "operational",
+    ).length;
+    const stacked = assetRigs.filter(
+      (r) => r.contractStatus === "stacked",
+    ).length;
+    const overhaul = assetRigs.filter(
+      (r) => r.contractStatus === "overhaul",
+    ).length;
+    const overdueInspections = assetRigs.reduce(
+      (sum, rig) =>
+        sum +
+        (rig.inspections?.filter((i) => i.status === "overdue").length ?? 0),
+      0,
+    );
+    const overdueNotes = calculateOverdueNotes(assetRigs);
+    return { operational, stacked, overhaul, overdueInspections, overdueNotes };
+  }, [assetRigs]);
+
+  const [showOverdueNotesModal, setShowOverdueNotesModal] = useState(false);
+
+  // Toast notification for overdue notes
+  const overdueToastShown = useRef(false);
+  useEffect(() => {
+    if (assetRigs.length > 0 && !overdueToastShown.current) {
+      const count = assetMetrics.overdueNotes;
+      if (count > 0) {
+        overdueToastShown.current = true;
+        toast({
+          title: `⚠️ ${count} Notiz${count > 1 ? "en" : ""} ${count > 1 ? "sind" : "ist"} überfällig`,
+          description:
+            "Klicken Sie auf 'Details', um alle überfälligen Notizen anzuzeigen.",
+          action: createElement(
+            ToastAction,
+            {
+              altText: "Details anzeigen",
+              onClick: () => setShowOverdueNotesModal(true),
+            } as React.ComponentProps<typeof ToastAction>,
+            "Details anzeigen",
+          ) as unknown as React.ReactElement<typeof ToastAction>,
+        });
+      }
+    }
+  }, [assetRigs, assetMetrics.overdueNotes, toast]);
   const [quickAccessFilter, setQuickAccessFilter] = useState<
     "all" | "projects" | "actions" | "failures"
   >("all");
@@ -583,6 +674,178 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Asset Integrity Overview */}
+      {assetRigs.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-blue-500" />
+            <h2 className="text-lg font-semibold tracking-tight">
+              Asset Integrity
+            </h2>
+            <Badge variant="outline" className="text-xs ml-1">
+              {assetRigs.length} Anlagen
+            </Badge>
+          </div>
+
+          {/* Row 1: Rig Status */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <Card
+              className="relative overflow-hidden hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer"
+              onClick={() => onNavigate?.("asset-integrity")}
+            >
+              <div className="absolute top-0 left-0 right-0 h-1 bg-[#00d9ff]" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Operational
+                </CardTitle>
+                <div className="w-8 h-8 rounded-lg bg-[rgba(0,217,255,0.15)] flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-[#00d9ff]" />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-2xl font-bold">
+                  {assetMetrics.operational}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Im Einsatz
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="relative overflow-hidden hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer"
+              onClick={() => onNavigate?.("asset-integrity")}
+            >
+              <div className="absolute top-0 left-0 right-0 h-1 bg-[#64748b]" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Stacked
+                </CardTitle>
+                <div className="w-8 h-8 rounded-lg bg-[rgba(100,116,139,0.15)] flex items-center justify-center">
+                  <Building2 className="h-4 w-4 text-[#94a3b8]" />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-2xl font-bold">{assetMetrics.stacked}</div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Verfügbar
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="relative overflow-hidden hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer"
+              onClick={() => onNavigate?.("asset-integrity")}
+            >
+              <div className="absolute top-0 left-0 right-0 h-1 bg-[#f59e0b]" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Overhaul
+                </CardTitle>
+                <div className="w-8 h-8 rounded-lg bg-[rgba(245,158,11,0.15)] flex items-center justify-center">
+                  <Wrench className="h-4 w-4 text-[#f59e0b]" />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-2xl font-bold">
+                  {assetMetrics.overhaul}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  In Wartung
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="relative overflow-hidden hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer"
+              onClick={() => onNavigate?.("asset-integrity")}
+            >
+              <div className="absolute top-0 left-0 right-0 h-1 bg-[#ef4444]" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Overdue Insp.
+                </CardTitle>
+                <div className="w-8 h-8 rounded-lg bg-[rgba(239,68,68,0.15)] flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-[#ef4444]" />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-2xl font-bold">
+                  {assetMetrics.overdueInspections}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Sofortige Maßnahmen
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="relative overflow-hidden hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer"
+              onClick={() =>
+                assetMetrics.overdueNotes > 0 && setShowOverdueNotesModal(true)
+              }
+            >
+              <div className="absolute top-0 left-0 right-0 h-1 bg-[#ef4444]" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Überf. Notizen
+                </CardTitle>
+                <div className="w-8 h-8 rounded-lg bg-[rgba(239,68,68,0.15)] flex items-center justify-center">
+                  <FileText className="h-4 w-4 text-[#ef4444]" />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex items-baseline gap-1.5">
+                  <div className="text-2xl font-bold">
+                    {assetMetrics.overdueNotes}
+                  </div>
+                  {assetMetrics.overdueNotes > 0 && (
+                    <span className="text-[10px] text-red-400 font-medium">
+                      Aktion nötig
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Zu bearbeiten
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="relative overflow-hidden hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer"
+              onClick={() => onNavigate?.("asset-integrity")}
+            >
+              <div className="absolute top-0 left-0 right-0 h-1 bg-[#ef4444]" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Krit. Issues
+                </CardTitle>
+                <div className="w-8 h-8 rounded-lg bg-[rgba(239,68,68,0.15)] flex items-center justify-center">
+                  <AlertCircle className="h-4 w-4 text-[#ef4444]" />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-2xl font-bold">
+                  {assetRigs.reduce(
+                    (sum, rig) =>
+                      sum +
+                      (rig.issues?.filter(
+                        (i) =>
+                          i.severity === "critical" && i.status !== "closed",
+                      ).length ?? 0),
+                    0,
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Hohe Priorität
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -753,6 +1016,136 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Overdue Notes Modal */}
+      <Dialog
+        open={showOverdueNotesModal}
+        onOpenChange={setShowOverdueNotesModal}
+      >
+        <DialogContent className="w-[95vw] max-w-[700px] max-h-[85vh] flex flex-col overflow-hidden">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-red-400" />
+              📝 Überfällige Notizen ({assetMetrics.overdueNotes})
+            </DialogTitle>
+            <DialogDescription>
+              Alle Notizen mit überschrittener Deadline, sortiert nach
+              Dringlichkeit
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+            {(() => {
+              const allOverdueNotes: Array<{
+                noteId: string;
+                rigId: string;
+                rigName: string;
+                description: string;
+                deadline: string;
+                createdDate: string;
+                daysOverdue: number;
+              }> = [];
+
+              assetRigs.forEach((rig) => {
+                rig.generalInfo?.forEach((note) => {
+                  if (isNoteOverdue(note)) {
+                    allOverdueNotes.push({
+                      noteId: note.id,
+                      rigId: rig.id,
+                      rigName: rig.name,
+                      description: note.description,
+                      deadline: note.deadline!,
+                      createdDate: note.createdDate,
+                      daysOverdue: getDaysOverdue(note),
+                    });
+                  }
+                });
+              });
+
+              allOverdueNotes.sort((a, b) => b.daysOverdue - a.daysOverdue);
+
+              if (allOverdueNotes.length === 0) {
+                return (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-400" />
+                    <p className="text-lg font-medium">
+                      Keine überfälligen Notizen
+                    </p>
+                    <p className="text-sm mt-1">
+                      Alle Deadlines sind im Zeitplan.
+                    </p>
+                  </div>
+                );
+              }
+
+              return allOverdueNotes.map((note) => (
+                <div
+                  key={`${note.rigId}-${note.noteId}`}
+                  className="border border-red-500/30 bg-red-500/5 rounded-lg overflow-hidden"
+                >
+                  <div className="relative pl-4 pr-4 py-4">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500" />
+
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <Badge
+                        variant="outline"
+                        className="text-xs border-blue-500/30 text-blue-400"
+                      >
+                        {note.rigName}
+                      </Badge>
+                      <span className="text-xs font-semibold text-red-400">
+                        🔴 vor {note.daysOverdue} Tag
+                        {note.daysOverdue !== 1 ? "en" : ""} überfällig
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-foreground mb-2 leading-relaxed">
+                      {note.description}
+                    </p>
+
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+                      <span className="flex items-center gap-1 text-red-400 font-medium">
+                        <Calendar className="h-3 w-3" />
+                        Deadline:{" "}
+                        {new Date(note.deadline).toLocaleDateString("de-DE")}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Erstellt:{" "}
+                        {new Date(note.createdDate).toLocaleDateString("de-DE")}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          setShowOverdueNotesModal(false);
+                          onNavigate?.("asset-integrity");
+                        }}
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        Zur Anlage
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+
+          <DialogFooter className="flex-shrink-0 pt-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowOverdueNotesModal(false)}
+            >
+              Schließen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
