@@ -5,5 +5,4 @@ dist
 .env.local
 *.db
 *.db-journal
-prisma/migrations
 uploads/

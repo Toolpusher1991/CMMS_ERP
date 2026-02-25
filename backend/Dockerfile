@@ -21,8 +21,8 @@ RUN npx prisma generate
 # Build TypeScript
 RUN npm run build
 
-# Expose port
-EXPOSE 5137
+# Expose port (actual port is set via PORT env var)
+EXPOSE 10000
 
 # Start command
 CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]

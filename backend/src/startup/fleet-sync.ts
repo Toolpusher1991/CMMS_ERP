@@ -92,7 +92,7 @@ export async function syncFleetOnStartup(): Promise<void> {
         applications: JSON.stringify([]),
         technicalSpecs: JSON.stringify({ rigType: r.rigType, hpRating: `${r.hp} HP`, year: r.year }),
         region: 'Oman',
-        contractStatus: 'idle',
+        contractStatus: 'stacked',
         location: '',
         certifications: JSON.stringify([]),
         generalInfo: JSON.stringify([]),
