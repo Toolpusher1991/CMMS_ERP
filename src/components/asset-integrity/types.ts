@@ -52,7 +52,7 @@ export interface AssetRig {
   id: string;
   name: string;
   region: "Oman" | "Pakistan";
-  contractStatus: "active" | "idle" | "standby" | "maintenance";
+  contractStatus: "stacked" | "operational" | "overhaul";
   contractEndDate?: string;
   operator?: string;
   location: string;

@@ -5,7 +5,7 @@ import { z } from 'zod';
 export const createAssetRigSchema = z.object({
   name: z.string().min(1, 'Name ist erforderlich'),
   region: z.string().min(1, 'Region ist erforderlich'),
-  contractStatus: z.enum(['active', 'idle', 'standby', 'maintenance']).optional(),
+  contractStatus: z.enum(['stacked', 'operational', 'overhaul']).optional(),
   location: z.string().optional(),
   operator: z.string().optional(),
   dayRate: z.union([z.string(), z.number()]).optional(),
@@ -15,7 +15,7 @@ export const createAssetRigSchema = z.object({
 
 export const updateAssetRigSchema = z.object({
   region: z.string().optional(),
-  contractStatus: z.enum(['active', 'idle', 'standby', 'maintenance']).optional(),
+  contractStatus: z.enum(['stacked', 'operational', 'overhaul']).optional(),
   location: z.string().optional(),
   operator: z.string().nullable().optional(),
   dayRate: z.union([z.string(), z.number()]).optional(),

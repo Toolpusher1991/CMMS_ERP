@@ -10,9 +10,6 @@ import {
   MapPin,
   Calendar,
   FileText,
-  TrendingUp,
-  ShieldAlert,
-  DollarSign,
   User,
   Flag,
   Award,
@@ -23,7 +20,6 @@ import {
   Save,
   Loader2,
   Eye,
-  ArrowUp,
   LayoutGrid,
   List,
   Search,
@@ -111,7 +107,7 @@ const initialRigs: Rig[] = [
     id: "t51",
     name: "T-51",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "EMSCO C-3 III",
     hpRating: "3000 HP",
@@ -125,7 +121,7 @@ const initialRigs: Rig[] = [
     id: "t91",
     name: "T-91",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "2000 HP Stationary",
     hpRating: "2000 HP",
@@ -139,7 +135,7 @@ const initialRigs: Rig[] = [
     id: "t92",
     name: "T-92",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "2000 HP Stationary",
     hpRating: "2000 HP",
@@ -153,7 +149,7 @@ const initialRigs: Rig[] = [
     id: "t93",
     name: "T-93",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "2000 HP Stationary",
     hpRating: "2000 HP",
@@ -167,7 +163,7 @@ const initialRigs: Rig[] = [
     id: "t94",
     name: "T-94",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "2000 HP Stationary",
     hpRating: "2000 HP",
@@ -181,7 +177,7 @@ const initialRigs: Rig[] = [
     id: "t95",
     name: "T-95",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "2000 HP Stationary",
     hpRating: "2000 HP",
@@ -195,7 +191,7 @@ const initialRigs: Rig[] = [
     id: "t144",
     name: "T-144",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "1250 HP Mobile",
     hpRating: "1250 HP",
@@ -209,7 +205,7 @@ const initialRigs: Rig[] = [
     id: "t145",
     name: "T-145",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "1250 HP Mobile",
     hpRating: "1250 HP",
@@ -223,7 +219,7 @@ const initialRigs: Rig[] = [
     id: "t146",
     name: "T-146",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "1250 HP Mobile",
     hpRating: "1250 HP",
@@ -237,7 +233,7 @@ const initialRigs: Rig[] = [
     id: "t147",
     name: "T-147",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "1250 HP Mobile",
     hpRating: "1250 HP",
@@ -251,7 +247,7 @@ const initialRigs: Rig[] = [
     id: "t801",
     name: "T-801",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "800 HP Highly Mobile",
     hpRating: "800 HP",
@@ -265,7 +261,7 @@ const initialRigs: Rig[] = [
     id: "t826",
     name: "T-826",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "800 HP CARDWELL",
     hpRating: "800 HP",
@@ -279,7 +275,7 @@ const initialRigs: Rig[] = [
     id: "t849",
     name: "T-849",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "1500 HP Mobile",
     hpRating: "1500 HP",
@@ -293,7 +289,7 @@ const initialRigs: Rig[] = [
     id: "t853",
     name: "T-853",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "800 HP Highly Mobile",
     hpRating: "800 HP",
@@ -307,7 +303,7 @@ const initialRigs: Rig[] = [
     id: "t858",
     name: "T-858",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "1500 HP Mobile",
     hpRating: "1500 HP",
@@ -321,7 +317,7 @@ const initialRigs: Rig[] = [
     id: "t859",
     name: "T-859",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "1500 HP Mobile",
     hpRating: "1500 HP",
@@ -335,7 +331,7 @@ const initialRigs: Rig[] = [
     id: "t867",
     name: "T-867",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "2000 HP Land Rig",
     hpRating: "2000 HP",
@@ -349,7 +345,7 @@ const initialRigs: Rig[] = [
     id: "t872",
     name: "T-872",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "800 HP Highly Mobile",
     hpRating: "800 HP",
@@ -363,7 +359,7 @@ const initialRigs: Rig[] = [
     id: "t889",
     name: "T-889",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "2000 HP Land Rig",
     hpRating: "2000 HP",
@@ -377,7 +373,7 @@ const initialRigs: Rig[] = [
     id: "t895",
     name: "T-895",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "1000 HP Mobile",
     hpRating: "1000 HP",
@@ -391,7 +387,7 @@ const initialRigs: Rig[] = [
     id: "t896",
     name: "T-896",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "1000 HP Mobile",
     hpRating: "1000 HP",
@@ -405,7 +401,7 @@ const initialRigs: Rig[] = [
     id: "t897",
     name: "T-897",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "1000 HP Mobile",
     hpRating: "1000 HP",
@@ -419,7 +415,7 @@ const initialRigs: Rig[] = [
     id: "t898",
     name: "T-898",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "1000 HP Mobile",
     hpRating: "1000 HP",
@@ -433,7 +429,7 @@ const initialRigs: Rig[] = [
     id: "t899",
     name: "T-899",
     region: "Oman",
-    contractStatus: "idle",
+    contractStatus: "stacked",
     location: "",
     rigType: "1000 HP Mobile",
     hpRating: "1000 HP",
@@ -506,14 +502,10 @@ export default function AssetIntegrityManagement() {
                 name: rig.name,
                 region: (rig.region as Rig["region"]) || "Oman",
                 contractStatus:
-                  (rig.contractStatus as Rig["contractStatus"]) || "idle",
+                  (rig.contractStatus as Rig["contractStatus"]) || "stacked",
                 contractEndDate: rig.contractEndDate,
                 operator: rig.operator,
                 location: rig.location || "",
-                dayRate:
-                  typeof rig.dayRate === "string"
-                    ? Number(rig.dayRate) || undefined
-                    : rig.dayRate,
                 rigType: rig.rigType || techSpecs.rigType,
                 hpRating: rig.hpRating || techSpecs.hpRating,
                 year: rig.year || techSpecs.year,
@@ -599,7 +591,7 @@ export default function AssetIntegrityManagement() {
   // Inspection Excel Import
   const [isInspectionImportOpen, setIsInspectionImportOpen] = useState(false);
   const [inspectionImportPreview, setInspectionImportPreview] = useState<{
-    inspections: Omit<Inspection, 'id'>[];
+    inspections: Omit<Inspection, "id">[];
     errors: string[];
   } | null>(null);
   const [isInspectionImporting, setIsInspectionImporting] = useState(false);
@@ -669,10 +661,9 @@ export default function AssetIntegrityManagement() {
   const [newRig, setNewRig] = useState({
     name: "",
     region: "Oman" as "Oman" | "Pakistan",
-    contractStatus: "idle" as "active" | "idle" | "standby" | "maintenance",
+    contractStatus: "stacked" as "stacked" | "operational" | "overhaul",
     operator: "",
     location: "",
-    dayRate: 0,
     contractEndDate: "",
     rigType: "",
     hpRating: "",
@@ -691,7 +682,6 @@ export default function AssetIntegrityManagement() {
             contractStatus: rig.contractStatus,
             location: rig.location,
             operator: rig.operator,
-            dayRate: rig.dayRate,
             contractEndDate: rig.contractEndDate,
             certifications: rig.certifications,
             generalInfo: rig.generalInfo,
@@ -833,10 +823,6 @@ export default function AssetIntegrityManagement() {
         return a.name.localeCompare(b.name);
       case "name-desc":
         return b.name.localeCompare(a.name);
-      case "dayrate-desc":
-        return (b.dayRate || 0) - (a.dayRate || 0);
-      case "dayrate-asc":
-        return (a.dayRate || 0) - (b.dayRate || 0);
       case "year-desc":
         return (b.year || 0) - (a.year || 0);
       case "year-asc":
@@ -853,8 +839,14 @@ export default function AssetIntegrityManagement() {
 
   // Calculate statistics
   const totalRigs = filteredRigs.length;
-  const activeRigs = filteredRigs.filter(
-    (rig) => rig.contractStatus === "active",
+  const operationalRigs = filteredRigs.filter(
+    (rig) => rig.contractStatus === "operational",
+  ).length;
+  const stackedRigs = filteredRigs.filter(
+    (rig) => rig.contractStatus === "stacked",
+  ).length;
+  const overhaulRigs = filteredRigs.filter(
+    (rig) => rig.contractStatus === "overhaul",
   ).length;
   const overdueInspections = filteredRigs.reduce(
     (sum, rig) =>
@@ -1101,8 +1093,6 @@ export default function AssetIntegrityManagement() {
         );
         overview += `   Vertragsende: ${new Date(rig.contractEndDate).toLocaleDateString("de-DE")} (noch ${daysToEnd} Tage)\n`;
       }
-      if (rig.dayRate)
-        overview += `   Day Rate: $${rig.dayRate.toLocaleString()}/Tag\n`;
       overview += `\n`;
 
       // Important Notes with Deadlines
@@ -1227,7 +1217,6 @@ export default function AssetIntegrityManagement() {
         contractStatus: newRig.contractStatus,
         operator: newRig.operator || undefined,
         location: newRig.location,
-        dayRate: newRig.dayRate > 0 ? newRig.dayRate : undefined,
         contractEndDate: newRig.contractEndDate || undefined,
         rigType: newRig.rigType || undefined,
         hpRating: newRig.hpRating || undefined,
@@ -1245,7 +1234,6 @@ export default function AssetIntegrityManagement() {
         contractStatus: newRig.contractStatus,
         operator: newRig.operator || undefined,
         location: newRig.location,
-        dayRate: newRig.dayRate > 0 ? newRig.dayRate : undefined,
         contractEndDate: newRig.contractEndDate || undefined,
         rigType: newRig.rigType || undefined,
         hpRating: newRig.hpRating || undefined,
@@ -1269,7 +1257,6 @@ export default function AssetIntegrityManagement() {
         contractStatus: newRig.contractStatus,
         operator: newRig.operator || undefined,
         location: newRig.location,
-        dayRate: newRig.dayRate > 0 ? newRig.dayRate : undefined,
         contractEndDate: newRig.contractEndDate || undefined,
         rigType: newRig.rigType || undefined,
         hpRating: newRig.hpRating || undefined,
@@ -1288,10 +1275,9 @@ export default function AssetIntegrityManagement() {
     setNewRig({
       name: "",
       region: "Oman",
-      contractStatus: "idle",
+      contractStatus: "stacked",
       operator: "",
       location: "",
-      dayRate: 0,
       contractEndDate: "",
       rigType: "",
       hpRating: "",
@@ -1445,15 +1431,12 @@ export default function AssetIntegrityManagement() {
 
           const region = String(row["Region"] || row["region"] || "Oman");
           const status = String(
-            row["Status"] || row["contractStatus"] || "idle",
+            row["Status"] || row["contractStatus"] || "stacked",
           ).toLowerCase();
           const location = String(
             row["Standort"] || row["Location"] || row["location"] || "",
           );
           const operator = String(row["Operator"] || row["operator"] || "");
-          const dayRate = Number(
-            row["Day Rate"] || row["dayRate"] || row["DayRate"] || 0,
-          );
           const rigTypeVal = String(
             row["Typ"] || row["Type"] || row["rigType"] || "",
           );
@@ -1468,16 +1451,14 @@ export default function AssetIntegrityManagement() {
             name,
             region: region.includes("Pakistan") ? "Pakistan" : "Oman",
             contractStatus: ([
-              "active",
-              "idle",
-              "standby",
-              "maintenance",
+              "stacked",
+              "operational",
+              "overhaul",
             ].includes(status)
               ? status
-              : "idle") as Rig["contractStatus"],
+              : "stacked") as Rig["contractStatus"],
             location,
             operator: operator || undefined,
-            dayRate: dayRate > 0 ? dayRate : undefined,
             rigType: rigTypeVal || undefined,
             hpRating: hpRatingVal || undefined,
             year: yearVal > 0 ? yearVal : undefined,
@@ -1509,10 +1490,9 @@ export default function AssetIntegrityManagement() {
         id: Date.now().toString() + Math.random().toString(36).slice(2),
         name: partial.name || "Unbenannt",
         region: partial.region || "Oman",
-        contractStatus: partial.contractStatus || "idle",
+        contractStatus: partial.contractStatus || "stacked",
         location: partial.location || "",
         operator: partial.operator,
-        dayRate: partial.dayRate,
         contractEndDate: partial.contractEndDate,
         rigType: partial.rigType,
         hpRating: partial.hpRating,
@@ -1548,7 +1528,9 @@ export default function AssetIntegrityManagement() {
   };
 
   // Inspection Excel Import handler
-  const handleInspectionExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInspectionExcelImport = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (!file || !selectedRig) return;
 
@@ -1556,16 +1538,22 @@ export default function AssetIntegrityManagement() {
     reader.onload = (evt) => {
       try {
         const data = new Uint8Array(evt.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
 
-        const parsedInspections: Omit<Inspection, 'id'>[] = [];
+        const parsedInspections: Omit<Inspection, "id">[] = [];
         const errors: string[] = [];
 
         rows.forEach((row, idx) => {
           const description = String(
-            row['Beschreibung'] || row['Description'] || row['description'] || row['Inspektion'] || row['Item'] || row['item'] || ''
+            row["Beschreibung"] ||
+              row["Description"] ||
+              row["description"] ||
+              row["Inspektion"] ||
+              row["Item"] ||
+              row["item"] ||
+              "",
           ).trim();
           if (!description) {
             errors.push(`Zeile ${idx + 2}: Keine Beschreibung`);
@@ -1573,21 +1561,50 @@ export default function AssetIntegrityManagement() {
           }
 
           // Type mapping
-          const rawType = String(row['Typ'] || row['Type'] || row['type'] || row['Category'] || row['category'] || 'internal').toLowerCase().trim();
-          let type: Inspection['type'] = 'internal';
-          if (rawType.includes('statutory') || rawType.includes('gesetzlich') || rawType.includes('behördlich')) type = 'statutory';
-          else if (rawType.includes('client') || rawType.includes('kunde') || rawType.includes('kundeninsp')) type = 'client';
-          else if (rawType.includes('cert') || rawType.includes('zertifiz')) type = 'certification';
-          else if (rawType.includes('intern')) type = 'internal';
+          const rawType = String(
+            row["Typ"] ||
+              row["Type"] ||
+              row["type"] ||
+              row["Category"] ||
+              row["category"] ||
+              "internal",
+          )
+            .toLowerCase()
+            .trim();
+          let type: Inspection["type"] = "internal";
+          if (
+            rawType.includes("statutory") ||
+            rawType.includes("gesetzlich") ||
+            rawType.includes("behördlich")
+          )
+            type = "statutory";
+          else if (
+            rawType.includes("client") ||
+            rawType.includes("kunde") ||
+            rawType.includes("kundeninsp")
+          )
+            type = "client";
+          else if (rawType.includes("cert") || rawType.includes("zertifiz"))
+            type = "certification";
+          else if (rawType.includes("intern")) type = "internal";
 
           // Due date parsing
-          let dueDate = '';
-          const rawDate = row['Fällig'] || row['Due Date'] || row['Due'] || row['Datum'] || row['Date'] || row['due_date'] || row['dueDate'] || row['Fälligkeitsdatum'] || '';
+          let dueDate = "";
+          const rawDate =
+            row["Fällig"] ||
+            row["Due Date"] ||
+            row["Due"] ||
+            row["Datum"] ||
+            row["Date"] ||
+            row["due_date"] ||
+            row["dueDate"] ||
+            row["Fälligkeitsdatum"] ||
+            "";
           if (rawDate) {
-            if (typeof rawDate === 'number') {
+            if (typeof rawDate === "number") {
               // Excel serial date number
               const excelDate = new Date((rawDate - 25569) * 86400 * 1000);
-              dueDate = excelDate.toISOString().split('T')[0];
+              dueDate = excelDate.toISOString().split("T")[0];
             } else {
               const dateStr = String(rawDate).trim();
               // Try ISO format
@@ -1596,9 +1613,11 @@ export default function AssetIntegrityManagement() {
                 dueDate = dateStr.slice(0, 10);
               } else {
                 // Try DD.MM.YYYY or DD/MM/YYYY
-                const euMatch = dateStr.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+                const euMatch = dateStr.match(
+                  /^(\d{1,2})[./](\d{1,2})[./](\d{4})/,
+                );
                 if (euMatch) {
-                  dueDate = `${euMatch[3]}-${euMatch[2].padStart(2, '0')}-${euMatch[1].padStart(2, '0')}`;
+                  dueDate = `${euMatch[3]}-${euMatch[2].padStart(2, "0")}-${euMatch[1].padStart(2, "0")}`;
                 }
               }
             }
@@ -1607,30 +1626,54 @@ export default function AssetIntegrityManagement() {
             // Default: 30 days from now
             const d = new Date();
             d.setDate(d.getDate() + 30);
-            dueDate = d.toISOString().split('T')[0];
+            dueDate = d.toISOString().split("T")[0];
           }
 
           // Status mapping
-          const rawStatus = String(row['Status'] || row['status'] || '').toLowerCase().trim();
-          let status: Inspection['status'] = 'upcoming';
-          if (rawStatus.includes('overdue') || rawStatus.includes('überfällig')) status = 'overdue';
-          else if (rawStatus.includes('completed') || rawStatus.includes('erledigt') || rawStatus.includes('done') || rawStatus.includes('abgeschlossen')) status = 'completed';
-          else if (rawStatus.includes('due') || rawStatus.includes('fällig')) status = 'due';
+          const rawStatus = String(row["Status"] || row["status"] || "")
+            .toLowerCase()
+            .trim();
+          let status: Inspection["status"] = "upcoming";
+          if (rawStatus.includes("overdue") || rawStatus.includes("überfällig"))
+            status = "overdue";
+          else if (
+            rawStatus.includes("completed") ||
+            rawStatus.includes("erledigt") ||
+            rawStatus.includes("done") ||
+            rawStatus.includes("abgeschlossen")
+          )
+            status = "completed";
+          else if (rawStatus.includes("due") || rawStatus.includes("fällig"))
+            status = "due";
 
           // Auto-detect overdue based on date if no status given
           if (!rawStatus && new Date(dueDate) < new Date()) {
-            status = 'overdue';
+            status = "overdue";
           }
 
           const responsible = String(
-            row['Verantwortlich'] || row['Responsible'] || row['responsible'] || row['Zuständig'] || row['Assigned'] || row['assigned'] || ''
+            row["Verantwortlich"] ||
+              row["Responsible"] ||
+              row["responsible"] ||
+              row["Zuständig"] ||
+              row["Assigned"] ||
+              row["assigned"] ||
+              "",
           ).trim();
 
-          const completedDate = row['Abgeschlossen'] || row['Completed Date'] || row['completedDate'] || '';
+          const completedDate =
+            row["Abgeschlossen"] ||
+            row["Completed Date"] ||
+            row["completedDate"] ||
+            "";
           let completedDateStr: string | undefined;
           if (completedDate) {
-            if (typeof completedDate === 'number') {
-              completedDateStr = new Date((completedDate - 25569) * 86400 * 1000).toISOString().split('T')[0];
+            if (typeof completedDate === "number") {
+              completedDateStr = new Date(
+                (completedDate - 25569) * 86400 * 1000,
+              )
+                .toISOString()
+                .split("T")[0];
             } else {
               completedDateStr = String(completedDate).trim();
             }
@@ -1647,21 +1690,22 @@ export default function AssetIntegrityManagement() {
         });
 
         if (parsedInspections.length === 0 && errors.length === 0) {
-          errors.push('Keine gültigen Inspektionen in der Datei gefunden');
+          errors.push("Keine gültigen Inspektionen in der Datei gefunden");
         }
 
         setInspectionImportPreview({ inspections: parsedInspections, errors });
         setIsInspectionImportOpen(true);
       } catch {
         toast({
-          title: 'Import-Fehler',
-          description: 'Die Excel-Datei konnte nicht gelesen werden',
-          variant: 'destructive',
+          title: "Import-Fehler",
+          description: "Die Excel-Datei konnte nicht gelesen werden",
+          variant: "destructive",
         });
       }
     };
     reader.readAsArrayBuffer(file);
-    if (inspectionFileInputRef.current) inspectionFileInputRef.current.value = '';
+    if (inspectionFileInputRef.current)
+      inspectionFileInputRef.current.value = "";
   };
 
   // Confirm inspection Excel import
@@ -1669,15 +1713,16 @@ export default function AssetIntegrityManagement() {
     if (!inspectionImportPreview || !selectedRig) return;
     setIsInspectionImporting(true);
 
-    const newInspections: Inspection[] = inspectionImportPreview.inspections.map((insp) => ({
-      id: Date.now().toString() + Math.random().toString(36).slice(2),
-      ...insp,
-    }));
+    const newInspections: Inspection[] =
+      inspectionImportPreview.inspections.map((insp) => ({
+        id: Date.now().toString() + Math.random().toString(36).slice(2),
+        ...insp,
+      }));
 
     const updatedRigs = rigs.map((rig) =>
       rig.id === selectedRig.id
         ? { ...rig, inspections: [...rig.inspections, ...newInspections] }
-        : rig
+        : rig,
     );
 
     setRigs(updatedRigs);
@@ -1687,8 +1732,8 @@ export default function AssetIntegrityManagement() {
     setIsInspectionImportOpen(false);
     setInspectionImportPreview(null);
     toast({
-      variant: 'success' as const,
-      title: 'Import erfolgreich',
+      variant: "success" as const,
+      title: "Import erfolgreich",
       description: `${newInspections.length} Inspektionen für ${selectedRig.name} importiert`,
       duration: 4000,
     });
@@ -1698,24 +1743,24 @@ export default function AssetIntegrityManagement() {
   const downloadInspectionTemplate = () => {
     const templateData = [
       {
-        Beschreibung: 'BOP Stack 5-Year Inspection',
-        Typ: 'statutory',
-        'Fällig': '2026-06-15',
-        Status: 'upcoming',
-        Verantwortlich: 'Rig Mechanic',
+        Beschreibung: "BOP Stack 5-Year Inspection",
+        Typ: "statutory",
+        Fällig: "2026-06-15",
+        Status: "upcoming",
+        Verantwortlich: "Rig Mechanic",
       },
       {
-        Beschreibung: 'Crown Block Inspection',
-        Typ: 'internal',
-        'Fällig': '2026-04-01',
-        Status: '',
-        Verantwortlich: 'Derrickman',
+        Beschreibung: "Crown Block Inspection",
+        Typ: "internal",
+        Fällig: "2026-04-01",
+        Status: "",
+        Verantwortlich: "Derrickman",
       },
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Inspektionen');
-    XLSX.writeFile(wb, 'Inspektionen_Vorlage.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, "Inspektionen");
+    XLSX.writeFile(wb, "Inspektionen_Vorlage.xlsx");
   };
 
   // Export handler
@@ -1726,8 +1771,8 @@ export default function AssetIntegrityManagement() {
       Status: rig.contractStatus,
       Standort: rig.location || "",
       Operator: rig.operator || "",
-      "Day Rate": rig.dayRate || "",
       Typ: rig.rigType || "",
+
       HP: rig.hpRating || "",
       Jahr: rig.year || "",
       Vertragsende: rig.contractEndDate || "",
@@ -1769,9 +1814,8 @@ export default function AssetIntegrityManagement() {
       rig.issues.some((i) => i.severity === "critical" && i.status !== "closed")
     )
       return "border-l-red-500";
-    if (rig.contractStatus === "maintenance") return "border-l-yellow-500";
-    if (rig.contractStatus === "active") return "border-l-cyan-500";
-    if (rig.contractStatus === "standby") return "border-l-blue-400";
+    if (rig.contractStatus === "overhaul") return "border-l-orange-500";
+    if (rig.contractStatus === "operational") return "border-l-cyan-500";
     return "border-l-gray-500";
   };
 
@@ -1867,22 +1911,16 @@ export default function AssetIntegrityManagement() {
           <Card className="bg-card border-border hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Gesamt Anlagen
+                Operational
               </CardTitle>
-              <Building2 className="h-4 w-4 text-blue-400 group-hover:scale-110 transition-transform" />
+              <CheckCircle className="h-4 w-4 text-cyan-400 group-hover:scale-110 transition-transform" />
             </CardHeader>
             <CardContent>
-              <div className="flex items-baseline gap-2">
-                <div className="text-2xl font-bold text-foreground">
-                  {totalRigs}
-                </div>
-                <div className="flex items-center gap-1 text-xs text-green-400">
-                  <ArrowUp className="h-3 w-3" />
-                  <span>2</span>
-                </div>
+              <div className="text-2xl font-bold text-foreground">
+                {operationalRigs}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {activeRigs} unter Vertrag
+                Im Einsatz
               </p>
             </CardContent>
           </Card>
@@ -1890,22 +1928,33 @@ export default function AssetIntegrityManagement() {
           <Card className="bg-card border-border hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Im Vertrag
+                Stacked
               </CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-400 group-hover:scale-110 transition-transform" />
+              <Building2 className="h-4 w-4 text-gray-400 group-hover:scale-110 transition-transform" />
             </CardHeader>
             <CardContent>
-              <div className="flex items-baseline gap-2">
-                <div className="text-2xl font-bold text-foreground">
-                  {activeRigs}
-                </div>
-                <div className="flex items-center gap-1 text-xs text-green-400">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>+12%</span>
-                </div>
+              <div className="text-2xl font-bold text-foreground">
+                {stackedRigs}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Aktive Contracts
+                Verfügbar
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card border-border hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Overhaul
+              </CardTitle>
+              <Wrench className="h-4 w-4 text-orange-400 group-hover:scale-110 transition-transform" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {overhaulRigs}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                In Wartung
               </p>
             </CardContent>
           </Card>
@@ -2016,10 +2065,9 @@ export default function AssetIntegrityManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Alle Status</SelectItem>
-                  <SelectItem value="active">✅ Active</SelectItem>
-                  <SelectItem value="idle">⏸️ Idle</SelectItem>
-                  <SelectItem value="standby">⏳ Standby</SelectItem>
-                  <SelectItem value="maintenance">🔧 Wartung</SelectItem>
+                  <SelectItem value="stacked">⏸️ Stacked</SelectItem>
+                  <SelectItem value="operational">🟢 Operational</SelectItem>
+                  <SelectItem value="overhaul">🔧 Overhaul</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -2050,8 +2098,6 @@ export default function AssetIntegrityManagement() {
                 <SelectContent>
                   <SelectItem value="name-asc">Name A → Z</SelectItem>
                   <SelectItem value="name-desc">Name Z → A</SelectItem>
-                  <SelectItem value="dayrate-desc">Day Rate ↓</SelectItem>
-                  <SelectItem value="dayrate-asc">Day Rate ↑</SelectItem>
                   <SelectItem value="status">Status</SelectItem>
                 </SelectContent>
               </Select>
@@ -2166,17 +2212,8 @@ export default function AssetIntegrityManagement() {
                   <TableHead className="text-muted-foreground">
                     Operator
                   </TableHead>
-                  <TableHead className="text-muted-foreground text-right">
-                    Day Rate
-                  </TableHead>
                   <TableHead className="text-muted-foreground text-center">
                     Inspektionen
-                  </TableHead>
-                  <TableHead className="text-muted-foreground text-center">
-                    Issues
-                  </TableHead>
-                  <TableHead className="text-muted-foreground text-center">
-                    Upgrades
                   </TableHead>
                   <TableHead className="text-muted-foreground">
                     Priorität
@@ -2186,9 +2223,6 @@ export default function AssetIntegrityManagement() {
               <TableBody>
                 {filteredRigs.map((rig) => {
                   const priorityStatus = getRigPriorityStatus(rig);
-                  const openIssues = rig.issues.filter(
-                    (i) => i.status !== "closed",
-                  ).length;
                   return (
                     <TableRow
                       key={rig.id}
@@ -2216,13 +2250,11 @@ export default function AssetIntegrityManagement() {
                         <Badge
                           className={`text-xs font-medium ${getContractStatusColor(rig.contractStatus)}`}
                         >
-                          {rig.contractStatus === "active"
-                            ? "Im Vertrag"
-                            : rig.contractStatus === "idle"
-                              ? "Idle"
-                              : rig.contractStatus === "standby"
-                                ? "Standby"
-                                : "Wartung"}
+                          {rig.contractStatus === "operational"
+                            ? "Operational"
+                            : rig.contractStatus === "stacked"
+                              ? "Stacked"
+                              : "Overhaul"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-foreground">
@@ -2231,32 +2263,11 @@ export default function AssetIntegrityManagement() {
                       <TableCell className="text-sm text-muted-foreground">
                         {rig.operator || "—"}
                       </TableCell>
-                      <TableCell className="text-right font-medium text-foreground">
-                        {rig.dayRate ? `$${rig.dayRate.toLocaleString()}` : "—"}
-                      </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-1">
                           <Calendar className="h-3.5 w-3.5 text-blue-400" />
                           <span className="font-bold text-foreground">
                             {rig.inspections.length}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <AlertCircle className="h-3.5 w-3.5 text-orange-400" />
-                          <span
-                            className={`font-bold ${openIssues > 0 ? "text-orange-400" : "text-foreground"}`}
-                          >
-                            {openIssues}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <TrendingUp className="h-3.5 w-3.5 text-green-400" />
-                          <span className="font-bold text-foreground">
-                            {rig.improvements.length}
                           </span>
                         </div>
                       </TableCell>
@@ -2292,7 +2303,7 @@ export default function AssetIntegrityManagement() {
                 {filteredRigs.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={10}
+                      colSpan={7}
                       className="text-center py-8 text-muted-foreground"
                     >
                       Keine Anlagen gefunden
@@ -2339,13 +2350,11 @@ export default function AssetIntegrityManagement() {
                     <Badge
                       className={`text-xs font-medium ${getContractStatusColor(rig.contractStatus)}`}
                     >
-                      {rig.contractStatus === "active"
-                        ? "Im Vertrag"
-                        : rig.contractStatus === "idle"
-                          ? "Idle"
-                          : rig.contractStatus === "standby"
-                            ? "Standby"
-                            : "Wartung"}
+                      {rig.contractStatus === "operational"
+                        ? "Operational"
+                        : rig.contractStatus === "stacked"
+                          ? "Stacked"
+                          : "Overhaul"}
                     </Badge>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -2453,34 +2462,6 @@ export default function AssetIntegrityManagement() {
                   </CardHeader>
 
                   <CardContent className="space-y-3 pt-0">
-                    {/* Day Rate compact */}
-                    {rig.dayRate ? (
-                      <div className="flex items-center justify-between bg-gradient-to-r from-green-500/10 to-emerald-500/5 border border-green-500/20 rounded-lg px-3 py-2">
-                        <div className="flex items-baseline gap-1">
-                          <DollarSign className="h-4 w-4 text-green-400" />
-                          <span className="text-xl font-bold text-foreground">
-                            {rig.dayRate.toLocaleString()}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            /Tag
-                          </span>
-                        </div>
-                        {rig.contractEndDate && (
-                          <span className="text-xs text-muted-foreground">
-                            bis{" "}
-                            {new Date(rig.contractEndDate).toLocaleDateString(
-                              "de-DE",
-                              {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              },
-                            )}
-                          </span>
-                        )}
-                      </div>
-                    ) : null}
-
                     {/* Location & Operator - compact */}
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
@@ -2501,9 +2482,9 @@ export default function AssetIntegrityManagement() {
                       </div>
                     </div>
 
-                    {/* Quick Stats or "No Actions" */}
-                    {totalActions > 0 ? (
-                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50">
+                    {/* Quick Stats: Inspections only */}
+                    {rig.inspections.length > 0 ? (
+                      <div className="pt-2 border-t border-border/50">
                         <div className="text-center">
                           <p className="text-[10px] text-muted-foreground">
                             Inspektionen
@@ -2512,30 +2493,6 @@ export default function AssetIntegrityManagement() {
                             <Calendar className="h-3 w-3 text-blue-400" />
                             <span className="text-base font-bold text-foreground">
                               {rig.inspections.length}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-[10px] text-muted-foreground">
-                            Issues
-                          </p>
-                          <div className="flex items-center justify-center gap-1">
-                            <AlertCircle className="h-3 w-3 text-orange-400" />
-                            <span
-                              className={`text-base font-bold ${openIssues > 0 ? "text-orange-400" : "text-foreground"}`}
-                            >
-                              {openIssues}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-[10px] text-muted-foreground">
-                            Upgrades
-                          </p>
-                          <div className="flex items-center justify-center gap-1">
-                            <TrendingUp className="h-3 w-3 text-green-400" />
-                            <span className="text-base font-bold text-foreground">
-                              {rig.improvements.length}
                             </span>
                           </div>
                         </div>
@@ -2644,8 +2601,6 @@ export default function AssetIntegrityManagement() {
                       setIsEditingGeneral(true);
                       setEditedRig({
                         operator: selectedRig.operator,
-                        dayRate: selectedRig.dayRate,
-                        contractEndDate: selectedRig.contractEndDate,
                         location: selectedRig.location,
                       });
                     }}
@@ -2662,7 +2617,7 @@ export default function AssetIntegrityManagement() {
               defaultValue="info"
               className="w-full flex flex-col overflow-hidden flex-1 min-h-0"
             >
-              <TabsList className="grid w-full grid-cols-5 gap-1 flex-shrink-0">
+              <TabsList className="grid w-full grid-cols-2 gap-1 flex-shrink-0">
                 <TabsTrigger value="info" className="text-sm">
                   <FileText className="h-4 w-4 mr-2" />
                   Allgemein
@@ -2670,18 +2625,6 @@ export default function AssetIntegrityManagement() {
                 <TabsTrigger value="inspections" className="text-sm">
                   <Calendar className="h-4 w-4 mr-2" />
                   Inspektionen
-                </TabsTrigger>
-                <TabsTrigger value="issues" className="text-sm">
-                  <ShieldAlert className="h-4 w-4 mr-2" />
-                  Risiken
-                </TabsTrigger>
-                <TabsTrigger value="improvements" className="text-sm">
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Upgrades
-                </TabsTrigger>
-                <TabsTrigger value="meeting" className="text-sm">
-                  <Presentation className="h-4 w-4 mr-2" />
-                  Meeting
                 </TabsTrigger>
               </TabsList>
 
@@ -2729,52 +2672,59 @@ export default function AssetIntegrityManagement() {
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-2 gap-4">
-                          {/* Row 1, Col 1: Status */}
+                          {/* Row 1, Col 1: Status Dropdown */}
                           <div>
-                            <p className="text-xs text-muted-foreground mb-1">
-                              Status
-                            </p>
-                            <Badge
-                              className={getContractStatusColor(
-                                selectedRig.contractStatus,
-                              )}
+                            <Label className="text-xs text-muted-foreground mb-1 block">
+                              Status *
+                            </Label>
+                            <Select
+                              value={selectedRig.contractStatus}
+                              onValueChange={async (value: string) => {
+                                const newStatus = value as "stacked" | "operational" | "overhaul";
+                                // Optimistic update
+                                const updatedRigs = rigs.map((r) =>
+                                  r.id === selectedRig.id
+                                    ? { ...r, contractStatus: newStatus }
+                                    : r,
+                                );
+                                setRigs(updatedRigs);
+                                setSelectedRig({
+                                  ...selectedRig,
+                                  contractStatus: newStatus,
+                                });
+                                // API call
+                                try {
+                                  await assetIntegrityApi.updateRigStatus(
+                                    selectedRig.id,
+                                    newStatus,
+                                  );
+                                  toast({
+                                    variant: "success" as const,
+                                    title: "Status aktualisiert",
+                                    description: `Status auf "${newStatus}" geändert`,
+                                  });
+                                } catch {
+                                  toast({
+                                    variant: "destructive" as const,
+                                    title: "Fehler",
+                                    description:
+                                      "Status konnte nicht aktualisiert werden",
+                                  });
+                                }
+                              }}
                             >
-                              {selectedRig.contractStatus}
-                            </Badge>
+                              <SelectTrigger className="bg-background border-border text-foreground h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="stacked">⏸️ Stacked</SelectItem>
+                                <SelectItem value="operational">🟢 Operational</SelectItem>
+                                <SelectItem value="overhaul">🔧 Overhaul</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
 
-                          {/* Row 1, Col 2: Vertragsende */}
-                          {(selectedRig.contractEndDate ||
-                            isEditingGeneral) && (
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1 block">
-                                Vertragsende
-                              </Label>
-                              {isEditingGeneral ? (
-                                <Input
-                                  type="date"
-                                  value={editedRig.contractEndDate || ""}
-                                  onChange={(e) =>
-                                    setEditedRig({
-                                      ...editedRig,
-                                      contractEndDate: e.target.value,
-                                    })
-                                  }
-                                  className="bg-background border-border text-foreground h-8"
-                                />
-                              ) : (
-                                <p className="text-sm text-foreground font-medium">
-                                  {selectedRig.contractEndDate
-                                    ? new Date(
-                                        selectedRig.contractEndDate,
-                                      ).toLocaleDateString("de-DE")
-                                    : "-"}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Row 2, Col 1: Operator */}
+                          {/* Row 1, Col 2: Operator */}
                           <div>
                             <Label className="text-xs text-muted-foreground mb-1 block">
                               Operator
@@ -2798,35 +2748,7 @@ export default function AssetIntegrityManagement() {
                             )}
                           </div>
 
-                          {/* Row 2, Col 2: Day Rate */}
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1 block">
-                              Day Rate
-                            </Label>
-                            {isEditingGeneral ? (
-                              <Input
-                                type="number"
-                                value={editedRig.dayRate || 0}
-                                onChange={(e) =>
-                                  setEditedRig({
-                                    ...editedRig,
-                                    dayRate: Number(e.target.value),
-                                  })
-                                }
-                                className="bg-background border-border text-foreground h-8"
-                                placeholder="28000"
-                              />
-                            ) : (
-                              selectedRig.dayRate && (
-                                <p className="text-sm text-foreground font-medium flex items-center gap-1">
-                                  <DollarSign className="h-3 w-3" />$
-                                  {selectedRig.dayRate.toLocaleString()}/Tag
-                                </p>
-                              )
-                            )}
-                          </div>
-
-                          {/* Row 3: Standort (full width) */}
+                          {/* Row 2: Standort (full width) */}
                           <div className="col-span-2">
                             <Label className="text-xs text-muted-foreground mb-1 block">
                               Standort
@@ -3198,7 +3120,9 @@ export default function AssetIntegrityManagement() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="bg-background border-border">
-                      <DropdownMenuItem onClick={() => inspectionFileInputRef.current?.click()}>
+                      <DropdownMenuItem
+                        onClick={() => inspectionFileInputRef.current?.click()}
+                      >
                         📥 Excel-Datei importieren
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
@@ -3288,220 +3212,6 @@ export default function AssetIntegrityManagement() {
                 )}
               </TabsContent>
 
-              {/* Tab: Issues */}
-              <TabsContent
-                value="issues"
-                className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0"
-              >
-                <div className="flex justify-end mb-3">
-                  <Button
-                    size="sm"
-                    onClick={() => setIsAddIssueOpen(true)}
-                    className="bg-orange-600 hover:bg-orange-700"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Issue hinzufügen
-                  </Button>
-                </div>
-                {selectedRig.issues.filter((i) => i.status !== "closed")
-                  .length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    Keine offenen Issues
-                  </p>
-                ) : (
-                  selectedRig.issues
-                    .filter((i) => i.status !== "closed")
-                    .map((issue) => (
-                      <Card
-                        key={issue.id}
-                        className={`bg-background border-2 ${
-                          issue.severity === "critical"
-                            ? "border-red-500/50"
-                            : "border-border"
-                        }`}
-                      >
-                        <CardContent className="pt-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <p className="text-foreground font-medium">
-                                {issue.description}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge
-                                className={getSeverityColor(issue.severity)}
-                              >
-                                {issue.severity}
-                              </Badge>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() =>
-                                  setDeleteConfirm({
-                                    type: "issue",
-                                    id: issue.id,
-                                    label: issue.description,
-                                  })
-                                }
-                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="text-sm text-muted-foreground space-y-1">
-                            <p>Kategorie: {issue.category}</p>
-                            <p>Severity: {issue.severity}</p>
-                            <p>Status: {issue.status}</p>
-                            {issue.dueDate && (
-                              <p>
-                                Fällig:{" "}
-                                {new Date(issue.dueDate).toLocaleDateString(
-                                  "de-DE",
-                                )}
-                              </p>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))
-                )}
-              </TabsContent>
-
-              {/* Tab: Verbesserungen */}
-              <TabsContent
-                value="improvements"
-                className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0"
-              >
-                <div className="flex justify-end mb-3">
-                  <Button
-                    size="sm"
-                    onClick={() => setIsAddImprovementOpen(true)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Upgrade hinzufügen
-                  </Button>
-                </div>
-                {selectedRig.improvements.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    Keine Verbesserungen geplant
-                  </p>
-                ) : (
-                  selectedRig.improvements.map((improvement) => (
-                    <Card
-                      key={improvement.id}
-                      className="bg-background border-border"
-                    >
-                      <CardContent className="pt-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h3 className="text-foreground font-medium">
-                              {improvement.description}
-                            </h3>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              className={getImprovementPriorityColor(
-                                improvement.priority,
-                              )}
-                            >
-                              {improvement.priority}
-                            </Badge>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() =>
-                                setDeleteConfirm({
-                                  type: "improvement",
-                                  id: improvement.id,
-                                  label: improvement.description,
-                                })
-                              }
-                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 text-sm mt-3">
-                          <div>
-                            <p className="text-muted-foreground">Kategorie</p>
-                            <p className="text-foreground">
-                              {improvement.category}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Status</p>
-                            <p className="text-foreground">
-                              {improvement.status}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Kosten</p>
-                            <p className="text-foreground">
-                              ${improvement.estimatedCost.toLocaleString()}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">
-                              Revenue Impact
-                            </p>
-                            <p className="text-green-400 text-xs">
-                              {improvement.potentialRevenue}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </TabsContent>
-
-              {/* Tab: Meeting-Übersicht */}
-              <TabsContent
-                value="meeting"
-                className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0"
-              >
-                <Card className="bg-background border-border">
-                  <CardHeader>
-                    <CardTitle className="text-lg text-foreground flex items-center gap-2">
-                      <Presentation className="h-5 w-5 text-purple-400" />
-                      Meeting-Übersicht für {selectedRig.name}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Zusammenfassung für Management-Meeting (
-                      {new Date().toLocaleDateString("de-DE")})
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-mono p-4 bg-muted rounded-lg border border-border/50 max-h-[600px] overflow-y-auto">
-                      {generateMeetingOverview([selectedRig])}
-                    </pre>
-                    <div className="flex justify-end gap-2 mt-4">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          navigator.clipboard.writeText(
-                            generateMeetingOverview([selectedRig]),
-                          );
-                          toast({
-                            variant: "success" as const,
-                            title: "Kopiert",
-                            description:
-                              "Meeting-Übersicht wurde in die Zwischenablage kopiert",
-                          });
-                        }}
-                        className="border-border"
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        In Zwischenablage kopieren
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
             </Tabs>
           </DialogContent>
         </Dialog>
@@ -3618,7 +3328,10 @@ export default function AssetIntegrityManagement() {
       </Dialog>
 
       {/* Inspection Excel Import Preview Dialog */}
-      <Dialog open={isInspectionImportOpen} onOpenChange={setIsInspectionImportOpen}>
+      <Dialog
+        open={isInspectionImportOpen}
+        onOpenChange={setIsInspectionImportOpen}
+      >
         <DialogContent className="bg-card border-border max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-foreground">
@@ -3629,78 +3342,105 @@ export default function AssetIntegrityManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {inspectionImportPreview?.errors && inspectionImportPreview.errors.length > 0 && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-md p-3">
-                <p className="text-red-400 font-medium text-sm mb-1">
-                  ⚠️ {inspectionImportPreview.errors.length} Fehler
-                </p>
-                <ul className="text-xs text-red-300 space-y-0.5">
-                  {inspectionImportPreview.errors.slice(0, 10).map((err, i) => (
-                    <li key={i}>• {err}</li>
-                  ))}
-                  {inspectionImportPreview.errors.length > 10 && (
-                    <li>... und {inspectionImportPreview.errors.length - 10} weitere</li>
-                  )}
-                </ul>
-              </div>
-            )}
-
-            {inspectionImportPreview?.inspections && inspectionImportPreview.inspections.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm text-foreground font-medium">
-                  ✅ {inspectionImportPreview.inspections.length} Inspektionen erkannt:
-                </p>
-                <div className="border border-border rounded-md overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-border">
-                        <TableHead className="text-muted-foreground text-xs">Beschreibung</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Typ</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Fällig</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Status</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Verantwortlich</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {inspectionImportPreview.inspections.slice(0, 20).map((insp, i) => (
-                        <TableRow key={i} className="border-border">
-                          <TableCell className="text-foreground text-xs max-w-[200px] truncate">
-                            {insp.description}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {insp.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-xs">
-                            {new Date(insp.dueDate).toLocaleDateString('de-DE')}
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={`text-xs ${getInspectionStatusColor(insp.status)}`}>
-                              {insp.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-xs">
-                            {insp.responsible || '—'}
-                          </TableCell>
-                        </TableRow>
+            {inspectionImportPreview?.errors &&
+              inspectionImportPreview.errors.length > 0 && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-md p-3">
+                  <p className="text-red-400 font-medium text-sm mb-1">
+                    ⚠️ {inspectionImportPreview.errors.length} Fehler
+                  </p>
+                  <ul className="text-xs text-red-300 space-y-0.5">
+                    {inspectionImportPreview.errors
+                      .slice(0, 10)
+                      .map((err, i) => (
+                        <li key={i}>• {err}</li>
                       ))}
-                    </TableBody>
-                  </Table>
-                  {inspectionImportPreview.inspections.length > 20 && (
-                    <p className="text-xs text-muted-foreground p-2 text-center">
-                      ... und {inspectionImportPreview.inspections.length - 20} weitere
-                    </p>
-                  )}
+                    {inspectionImportPreview.errors.length > 10 && (
+                      <li>
+                        ... und {inspectionImportPreview.errors.length - 10}{" "}
+                        weitere
+                      </li>
+                    )}
+                  </ul>
                 </div>
-              </div>
-            )}
+              )}
 
-            {inspectionImportPreview?.inspections.length === 0 && inspectionImportPreview?.errors.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">
-                Keine Inspektionen in der Datei gefunden
-              </p>
-            )}
+            {inspectionImportPreview?.inspections &&
+              inspectionImportPreview.inspections.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm text-foreground font-medium">
+                    ✅ {inspectionImportPreview.inspections.length} Inspektionen
+                    erkannt:
+                  </p>
+                  <div className="border border-border rounded-md overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border">
+                          <TableHead className="text-muted-foreground text-xs">
+                            Beschreibung
+                          </TableHead>
+                          <TableHead className="text-muted-foreground text-xs">
+                            Typ
+                          </TableHead>
+                          <TableHead className="text-muted-foreground text-xs">
+                            Fällig
+                          </TableHead>
+                          <TableHead className="text-muted-foreground text-xs">
+                            Status
+                          </TableHead>
+                          <TableHead className="text-muted-foreground text-xs">
+                            Verantwortlich
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {inspectionImportPreview.inspections
+                          .slice(0, 20)
+                          .map((insp, i) => (
+                            <TableRow key={i} className="border-border">
+                              <TableCell className="text-foreground text-xs max-w-[200px] truncate">
+                                {insp.description}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">
+                                  {insp.type}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground text-xs">
+                                {new Date(insp.dueDate).toLocaleDateString(
+                                  "de-DE",
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  className={`text-xs ${getInspectionStatusColor(insp.status)}`}
+                                >
+                                  {insp.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground text-xs">
+                                {insp.responsible || "—"}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                    {inspectionImportPreview.inspections.length > 20 && (
+                      <p className="text-xs text-muted-foreground p-2 text-center">
+                        ... und{" "}
+                        {inspectionImportPreview.inspections.length - 20}{" "}
+                        weitere
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {inspectionImportPreview?.inspections.length === 0 &&
+              inspectionImportPreview?.errors.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">
+                  Keine Inspektionen in der Datei gefunden
+                </p>
+              )}
           </div>
           <DialogFooter>
             <Button
@@ -3715,7 +3455,10 @@ export default function AssetIntegrityManagement() {
             </Button>
             <Button
               onClick={confirmInspectionImport}
-              disabled={!inspectionImportPreview?.inspections.length || isInspectionImporting}
+              disabled={
+                !inspectionImportPreview?.inspections.length ||
+                isInspectionImporting
+              }
               className="bg-blue-600 hover:bg-blue-700"
             >
               {isInspectionImporting ? (
@@ -3726,7 +3469,8 @@ export default function AssetIntegrityManagement() {
               ) : (
                 <>
                   <Upload className="h-4 w-4 mr-2" />
-                  {inspectionImportPreview?.inspections.length || 0} Inspektionen importieren
+                  {inspectionImportPreview?.inspections.length || 0}{" "}
+                  Inspektionen importieren
                 </>
               )}
             </Button>
@@ -4111,22 +3855,21 @@ export default function AssetIntegrityManagement() {
               <div>
                 <Label className="text-foreground font-medium flex items-center gap-1.5 mb-2">
                   <CheckCircle className="h-4 w-4 text-primary" />
-                  Vertragsstatus
+                  Status *
                 </Label>
                 <Select
                   value={newRig.contractStatus}
                   onValueChange={(
-                    value: "active" | "idle" | "standby" | "maintenance",
+                    value: "stacked" | "operational" | "overhaul",
                   ) => setNewRig({ ...newRig, contractStatus: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">✅ Active</SelectItem>
-                    <SelectItem value="idle">⏸️ Idle</SelectItem>
-                    <SelectItem value="standby">⏳ Standby</SelectItem>
-                    <SelectItem value="maintenance">🔧 Maintenance</SelectItem>
+                    <SelectItem value="stacked">⏸️ Stacked</SelectItem>
+                    <SelectItem value="operational">🟢 Operational</SelectItem>
+                    <SelectItem value="overhaul">🔧 Overhaul</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -4142,38 +3885,6 @@ export default function AssetIntegrityManagement() {
                     setNewRig({ ...newRig, operator: e.target.value })
                   }
                   placeholder="z.B. PDO, OGDCL"
-                />
-              </div>
-            </div>
-
-            {/* Day Rate & Vertragsende */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-foreground font-medium flex items-center gap-1.5 mb-2">
-                  <DollarSign className="h-4 w-4 text-green-500" />
-                  Day Rate ($)
-                </Label>
-                <Input
-                  type="number"
-                  value={newRig.dayRate || ""}
-                  onChange={(e) =>
-                    setNewRig({ ...newRig, dayRate: Number(e.target.value) })
-                  }
-                  placeholder="z.B. 28000"
-                />
-              </div>
-
-              <div>
-                <Label className="text-foreground font-medium flex items-center gap-1.5 mb-2">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  Vertragsende
-                </Label>
-                <Input
-                  type="date"
-                  value={newRig.contractEndDate}
-                  onChange={(e) =>
-                    setNewRig({ ...newRig, contractEndDate: e.target.value })
-                  }
                 />
               </div>
             </div>

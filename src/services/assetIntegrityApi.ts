@@ -48,7 +48,7 @@ export interface Rig {
   id: string;
   name: string;
   region: "Oman" | "Pakistan";
-  contractStatus: "active" | "idle" | "standby" | "maintenance";
+  contractStatus: "stacked" | "operational" | "overhaul";
   contractEndDate?: string;
   operator?: string;
   location: string;
@@ -102,6 +102,14 @@ export async function createRig(rig: Omit<Rig, 'id'>): Promise<Rig> {
  */
 export async function updateRig(rigId: string, updates: Partial<Rig>): Promise<Rig> {
   const response = await apiClient.put<{ success: boolean; data: Rig }>(`/asset-integrity/rigs/${rigId}`, updates);
+  return unwrap(response);
+}
+
+/**
+ * Status einer Anlage aktualisieren
+ */
+export async function updateRigStatus(rigId: string, status: 'stacked' | 'operational' | 'overhaul'): Promise<Rig> {
+  const response = await apiClient.patch<{ success: boolean; data: Rig }>(`/asset-integrity/rigs/${rigId}/status`, { status });
   return unwrap(response);
 }
 
@@ -256,6 +264,7 @@ export default {
   getRigById,
   createRig,
   updateRig,
+  updateRigStatus,
   deleteRig,
   addGeneralInfo,
   updateGeneralInfo,

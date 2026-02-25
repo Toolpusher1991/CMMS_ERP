@@ -149,7 +149,7 @@ router.post('/rigs', authenticate, requireAdmin, validate(createAssetRigSchema),
       data: {
         name,
         region,
-        contractStatus: contractStatus || 'idle',
+        contractStatus: contractStatus || 'stacked',
         location: location || '',
         operator: operator || null,
         contractEndDate: contractEndDate || null,
@@ -267,6 +267,56 @@ router.put('/rigs/:id', authenticate, validate(updateAssetRigSchema), async (req
     res.status(500).json({
       success: false,
       message: 'Fehler beim Aktualisieren der Anlage'
+    });
+  }
+});
+
+// PATCH update rig status
+router.patch('/rigs/:id/status', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['stacked', 'operational', 'overhaul'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ungültiger Status. Erlaubt: stacked, operational, overhaul'
+      });
+    }
+
+    const existingRig = await prisma.rig.findUnique({ where: { id } });
+    if (!existingRig) {
+      return res.status(404).json({
+        success: false,
+        message: 'Anlage nicht gefunden'
+      });
+    }
+
+    const updatedRig = await prisma.rig.update({
+      where: { id },
+      data: {
+        contractStatus: status,
+        lastEditedBy: req.user?.id || 'system'
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Status erfolgreich aktualisiert',
+      data: {
+        ...updatedRig,
+        certifications: JSON.parse(updatedRig.certifications),
+        generalInfo: JSON.parse(updatedRig.generalInfo),
+        inspections: JSON.parse(updatedRig.inspections),
+        issues: JSON.parse(updatedRig.issues),
+        improvements: JSON.parse(updatedRig.improvements)
+      }
+    });
+  } catch (error) {
+    console.error('Error updating rig status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Aktualisieren des Status'
     });
   }
 });
@@ -496,7 +546,7 @@ router.post('/reset-fleet', authenticate, requireAdmin, async (req: AuthRequest,
         applications: JSON.stringify([]),
         technicalSpecs: JSON.stringify({ rigType: r.rigType, hpRating: `${r.hp} HP`, year: r.year }),
         region: 'Oman',
-        contractStatus: 'idle',
+        contractStatus: 'stacked',
         location: '',
         certifications: JSON.stringify([]),
         generalInfo: JSON.stringify([]),

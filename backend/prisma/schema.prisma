@@ -196,7 +196,7 @@ model Rig {
   applications     String
   technicalSpecs   String
   region           String?
-  contractStatus   String          @default("idle")
+  contractStatus   String          @default("stacked")
   location         String?
   operator         String?
   contractEndDate  String?
