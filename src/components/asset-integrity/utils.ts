@@ -1,4 +1,5 @@
 // Asset Integrity utility functions
+import type React from "react";
 import type { AssetRig } from "./types";
 
 // Calculate days until a date
@@ -58,15 +59,15 @@ export function getPriorityColor(
   }
 }
 
-// Contract status → badge color classes
+// Contract status → badge color classes (enhanced, more prominent)
 export function getContractStatusColor(status: string): string {
   switch (status) {
     case "operational":
-      return "bg-cyan-500/20 text-cyan-400 border-cyan-500/50";
+      return "bg-[rgba(0,217,255,0.15)] text-[#00d9ff] border border-[rgba(0,217,255,0.3)] px-3 py-1 text-xs font-semibold tracking-wide uppercase";
     case "stacked":
-      return "bg-gray-500/20 text-gray-400 border-gray-500/50";
+      return "bg-[rgba(100,116,139,0.15)] text-[#94a3b8] border border-[rgba(100,116,139,0.3)] px-3 py-1 text-xs font-semibold tracking-wide uppercase";
     case "overhaul":
-      return "bg-orange-500/20 text-orange-400 border-orange-500/50";
+      return "bg-[rgba(245,158,11,0.15)] text-[#f59e0b] border border-[rgba(245,158,11,0.3)] px-3 py-1 text-xs font-semibold tracking-wide uppercase";
     default:
       return "bg-muted text-muted-foreground border-border";
   }
@@ -115,5 +116,94 @@ export function getImprovementPriorityColor(priority: string): string {
       return "bg-orange-500/20 text-orange-400 border-orange-500/50";
     default:
       return "bg-muted text-muted-foreground border-border";
+  }
+}
+
+// Check if a generalInfo note is overdue
+export function isNoteOverdue(note: { deadline?: string }): boolean {
+  if (!note.deadline) return false;
+  const deadline = new Date(note.deadline);
+  deadline.setHours(23, 59, 59, 999);
+  const today = new Date();
+  return deadline < today;
+}
+
+// Get number of days a note is overdue
+export function getDaysOverdue(note: { deadline?: string }): number {
+  if (!note.deadline) return 0;
+  const deadline = new Date(note.deadline);
+  deadline.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = today.getTime() - deadline.getTime();
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+}
+
+// Calculate total overdue notes across all rigs
+export function calculateOverdueNotes(rigs: AssetRig[]): number {
+  let count = 0;
+  rigs.forEach((rig) => {
+    rig.generalInfo?.forEach((note) => {
+      if (isNoteOverdue(note)) count++;
+    });
+  });
+  return count;
+}
+
+// Get overdue notes from a single rig
+export function getOverdueNotesForRig(rig: AssetRig): NonNullable<AssetRig["generalInfo"]> {
+  return (rig.generalInfo || []).filter(isNoteOverdue);
+}
+
+// Contract status → card gradient style (inline)
+export function getContractStatusGradient(
+  status: string,
+): React.CSSProperties {
+  switch (status) {
+    case "operational":
+      return {
+        background:
+          "linear-gradient(135deg, rgba(0,217,255,0.08) 0%, rgba(0,217,255,0.02) 50%, transparent 100%)",
+      };
+    case "stacked":
+      return {
+        background:
+          "linear-gradient(135deg, rgba(100,116,139,0.06) 0%, rgba(100,116,139,0.01) 50%, transparent 100%)",
+      };
+    case "overhaul":
+      return {
+        background:
+          "linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.02) 50%, transparent 100%)",
+      };
+    default:
+      return {};
+  }
+}
+
+// Contract status → card hover shadow class
+export function getContractStatusHoverShadow(status: string): string {
+  switch (status) {
+    case "operational":
+      return "hover:shadow-[0_4px_20px_rgba(0,217,255,0.15)]";
+    case "stacked":
+      return "hover:shadow-[0_4px_20px_rgba(100,116,139,0.12)]";
+    case "overhaul":
+      return "hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]";
+    default:
+      return "hover:shadow-lg";
+  }
+}
+
+// Contract status → border-left color class
+export function getContractStatusBorderColor(status: string): string {
+  switch (status) {
+    case "operational":
+      return "border-l-[#00d9ff]";
+    case "stacked":
+      return "border-l-[#64748b]";
+    case "overhaul":
+      return "border-l-[#f59e0b]";
+    default:
+      return "border-l-gray-500";
   }
 }

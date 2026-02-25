@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, createElement } from "react";
+import type React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-client";
 import {
@@ -34,6 +35,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -97,6 +99,13 @@ import {
   getRigPriorityStatus,
   getContractStatusColor,
   getInspectionStatusColor,
+  isNoteOverdue,
+  getDaysOverdue,
+  calculateOverdueNotes,
+  getOverdueNotesForRig,
+  getContractStatusGradient,
+  getContractStatusHoverShadow,
+  getContractStatusBorderColor,
 } from "@/components/asset-integrity/utils";
 
 // Equipment Master Database – Komplette Flotte
@@ -551,6 +560,30 @@ export default function AssetIntegrityManagement() {
     if (rigsData) setRigs(rigsData);
   }, [rigsData]);
 
+  // Toast notification for overdue notes on load
+  const overdueToastShown = useRef(false);
+  useEffect(() => {
+    if (rigs.length > 0 && !overdueToastShown.current) {
+      const count = calculateOverdueNotes(rigs);
+      if (count > 0) {
+        overdueToastShown.current = true;
+        toast({
+          title: `⚠️ ${count} Notiz${count > 1 ? "en" : ""} ${count > 1 ? "sind" : "ist"} überfällig`,
+          description:
+            "Klicken Sie auf 'Details', um alle überfälligen Notizen anzuzeigen.",
+          action: createElement(
+            ToastAction,
+            {
+              altText: "Details anzeigen",
+              onClick: () => setShowOverdueNotesModal(true),
+            } as React.ComponentProps<typeof ToastAction>,
+            "Details anzeigen",
+          ) as unknown as React.ReactElement<typeof ToastAction>,
+        });
+      }
+    }
+  }, [rigs, toast]);
+
   const [selectedRegion, setSelectedRegion] = useState<
     "Oman" | "Pakistan" | "all"
   >("all");
@@ -655,6 +688,7 @@ export default function AssetIntegrityManagement() {
   const [editedInfo, setEditedInfo] = useState<Partial<GeneralInfo>>({});
   const [showMeetingOverview, setShowMeetingOverview] = useState(false);
   const [overviewForAll, setOverviewForAll] = useState(false);
+  const [showOverdueNotesModal, setShowOverdueNotesModal] = useState(false);
 
   const [newRig, setNewRig] = useState({
     name: "",
@@ -858,6 +892,8 @@ export default function AssetIntegrityManagement() {
       ).length,
     0,
   );
+
+  const overdueNotesCount = calculateOverdueNotes(filteredRigs);
 
   // CRUD Operations
   const handleAddInspection = () => {
@@ -1447,11 +1483,9 @@ export default function AssetIntegrityManagement() {
           newRigsData.push({
             name,
             region: region.includes("Pakistan") ? "Pakistan" : "Oman",
-            contractStatus: ([
-              "stacked",
-              "operational",
-              "overhaul",
-            ].includes(status)
+            contractStatus: (["stacked", "operational", "overhaul"].includes(
+              status,
+            )
               ? status
               : "stacked") as Rig["contractStatus"],
             location,
@@ -1545,16 +1579,15 @@ export default function AssetIntegrityManagement() {
         // Detect if this is a SAP PM export by checking column names
         const firstRow = rows[0] || {};
         const colNames = Object.keys(firstRow);
-        const isSapFormat =
-          colNames.some(
-            (c) =>
-              c.includes("FLoc") ||
-              c.includes("Functional Location") ||
-              c.includes("Equip") ||
-              c.includes("Work Ctr") ||
-              c.includes("Basic start") ||
-              c.includes("Monitor"),
-          );
+        const isSapFormat = colNames.some(
+          (c) =>
+            c.includes("FLoc") ||
+            c.includes("Functional Location") ||
+            c.includes("Equip") ||
+            c.includes("Work Ctr") ||
+            c.includes("Basic start") ||
+            c.includes("Monitor"),
+        );
 
         rows.forEach((row, idx) => {
           // --- SAP PM format ---
@@ -1586,10 +1619,7 @@ export default function AssetIntegrityManagement() {
                 "",
             ).trim();
             const workCenter = String(
-              row["Work Ctr."] ||
-                row["Work Center"] ||
-                row["WorkCenter"] ||
-                "",
+              row["Work Ctr."] || row["Work Center"] || row["WorkCenter"] || "",
             ).trim();
             const cycle = String(
               row["Cycle"] || row["Zyklus"] || row["Interval"] || "",
@@ -1954,17 +1984,9 @@ export default function AssetIntegrityManagement() {
     });
   };
 
-  // Get color for left card border based on status
+  // Get color for left card border based on contract status
   const getCardBorderColor = (rig: Rig) => {
-    const priorityStatus = getRigPriorityStatus(rig);
-    if (
-      priorityStatus === "overdue" ||
-      rig.issues.some((i) => i.severity === "critical" && i.status !== "closed")
-    )
-      return "border-l-red-500";
-    if (rig.contractStatus === "overhaul") return "border-l-orange-500";
-    if (rig.contractStatus === "operational") return "border-l-cyan-500";
-    return "border-l-gray-500";
+    return getContractStatusBorderColor(rig.contractStatus);
   };
 
   return (
@@ -2054,65 +2076,75 @@ export default function AssetIntegrityManagement() {
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="bg-card border-border hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
+        {/* Statistics Cards - Two Rows */}
+        {/* Row 1: Rig Status */}
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <Card className="relative overflow-hidden bg-card border-border hover:shadow-[0_4px_20px_rgba(0,217,255,0.15)] transition-all hover:scale-[1.02] cursor-pointer group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#00d9ff]" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Operational
               </CardTitle>
-              <CheckCircle className="h-4 w-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <div className="w-10 h-10 rounded-lg bg-[rgba(0,217,255,0.15)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                <CheckCircle className="h-5 w-5 text-[#00d9ff]" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
                 {operationalRigs}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Im Einsatz
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Im Einsatz</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
+          <Card className="relative overflow-hidden bg-card border-border hover:shadow-[0_4px_20px_rgba(100,116,139,0.12)] transition-all hover:scale-[1.02] cursor-pointer group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#64748b]" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Stacked
               </CardTitle>
-              <Building2 className="h-4 w-4 text-gray-400 group-hover:scale-110 transition-transform" />
+              <div className="w-10 h-10 rounded-lg bg-[rgba(100,116,139,0.15)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Building2 className="h-5 w-5 text-[#94a3b8]" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
                 {stackedRigs}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Verfügbar
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Verfügbar</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
+          <Card className="relative overflow-hidden bg-card border-border hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)] transition-all hover:scale-[1.02] cursor-pointer group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#f59e0b]" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Overhaul
               </CardTitle>
-              <Wrench className="h-4 w-4 text-orange-400 group-hover:scale-110 transition-transform" />
+              <div className="w-10 h-10 rounded-lg bg-[rgba(245,158,11,0.15)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Wrench className="h-5 w-5 text-[#f59e0b]" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
                 {overhaulRigs}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                In Wartung
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">In Wartung</p>
             </CardContent>
           </Card>
+        </div>
 
-          <Card className="bg-card border-border hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
+        {/* Row 2: Tasks & Issues */}
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <Card className="relative overflow-hidden bg-card border-border hover:shadow-[0_4px_20px_rgba(239,68,68,0.15)] transition-all hover:scale-[1.02] cursor-pointer group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#ef4444]" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Overdue Inspektionen
               </CardTitle>
-              <Clock className="h-4 w-4 text-red-400 group-hover:scale-110 transition-transform" />
+              <div className="w-10 h-10 rounded-lg bg-[rgba(239,68,68,0.15)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Clock className="h-5 w-5 text-[#ef4444]" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2">
@@ -2132,12 +2164,48 @@ export default function AssetIntegrityManagement() {
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer group">
+          <Card
+            className="relative overflow-hidden bg-card border-border hover:shadow-[0_4px_20px_rgba(239,68,68,0.15)] transition-all hover:scale-[1.02] cursor-pointer group"
+            onClick={() =>
+              overdueNotesCount > 0 && setShowOverdueNotesModal(true)
+            }
+          >
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#ef4444]" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Überfällige Notizen
+              </CardTitle>
+              <div className="w-10 h-10 rounded-lg bg-[rgba(239,68,68,0.15)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                <FileText className="h-5 w-5 text-[#ef4444]" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-baseline gap-2">
+                <div className="text-2xl font-bold text-foreground">
+                  {overdueNotesCount}
+                </div>
+                {overdueNotesCount > 0 && (
+                  <div className="flex items-center gap-1 text-xs text-red-400">
+                    <AlertCircle className="h-3 w-3" />
+                    <span>Aktion nötig</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Zu bearbeiten
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden bg-card border-border hover:shadow-[0_4px_20px_rgba(239,68,68,0.15)] transition-all hover:scale-[1.02] cursor-pointer group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#ef4444]" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Kritische Issues
               </CardTitle>
-              <AlertCircle className="h-4 w-4 text-red-400 group-hover:scale-110 transition-transform" />
+              <div className="w-10 h-10 rounded-lg bg-[rgba(239,68,68,0.15)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                <AlertCircle className="h-5 w-5 text-[#ef4444]" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
@@ -2468,10 +2536,13 @@ export default function AssetIntegrityManagement() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredRigs.map((rig) => {
               const priorityStatus = getRigPriorityStatus(rig);
+              const overdueNotes = getOverdueNotesForRig(rig);
+              const hasOverdueNotes = overdueNotes.length > 0;
               return (
                 <Card
                   key={rig.id}
-                  className={`group relative border-l-4 bg-card/80 hover:bg-card transition-all cursor-pointer hover:shadow-2xl hover:scale-[1.02] backdrop-blur-sm ${getCardBorderColor(rig)}`}
+                  className={`group relative border-l-4 transition-all cursor-pointer hover:scale-[1.02] backdrop-blur-sm ${getCardBorderColor(rig)} ${getContractStatusHoverShadow(rig.contractStatus)}`}
+                  style={getContractStatusGradient(rig.contractStatus)}
                   onClick={() => !bulkMode && setSelectedRig(rig)}
                 >
                   {/* Bulk select checkbox */}
@@ -2668,6 +2739,17 @@ export default function AssetIntegrityManagement() {
                         </span>
                       </div>
                     )}
+
+                    {/* Overdue Notes Alert */}
+                    {hasOverdueNotes && (
+                      <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-1.5 mt-1">
+                        <AlertCircle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+                        <span className="text-xs text-red-400 font-medium">
+                          ⚠️ {overdueNotes.length} Notiz
+                          {overdueNotes.length > 1 ? "en" : ""} überfällig
+                        </span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -2823,7 +2905,10 @@ export default function AssetIntegrityManagement() {
                             <Select
                               value={selectedRig.contractStatus}
                               onValueChange={async (value: string) => {
-                                const newStatus = value as "stacked" | "operational" | "overhaul";
+                                const newStatus = value as
+                                  | "stacked"
+                                  | "operational"
+                                  | "overhaul";
                                 // Optimistic update
                                 const updatedRigs = rigs.map((r) =>
                                   r.id === selectedRig.id
@@ -2860,9 +2945,15 @@ export default function AssetIntegrityManagement() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="stacked">⏸️ Stacked</SelectItem>
-                                <SelectItem value="operational">🟢 Operational</SelectItem>
-                                <SelectItem value="overhaul">🔧 Overhaul</SelectItem>
+                                <SelectItem value="stacked">
+                                  ⏸️ Stacked
+                                </SelectItem>
+                                <SelectItem value="operational">
+                                  🟢 Operational
+                                </SelectItem>
+                                <SelectItem value="overhaul">
+                                  🔧 Overhaul
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -3341,7 +3432,8 @@ export default function AssetIntegrityManagement() {
                       })
                       .map((inspection) => {
                         const daysUntil =
-                          inspection.daysUntilDue ?? getDaysUntil(inspection.dueDate);
+                          inspection.daysUntilDue ??
+                          getDaysUntil(inspection.dueDate);
                         return (
                           <Card
                             key={inspection.id}
@@ -3430,9 +3522,7 @@ export default function AssetIntegrityManagement() {
                                 )}
                                 {!inspection.sapOrder &&
                                   inspection.responsible && (
-                                    <span>
-                                      👤 {inspection.responsible}
-                                    </span>
+                                    <span>👤 {inspection.responsible}</span>
                                   )}
                                 {inspection.type && (
                                   <span className="capitalize">
@@ -3447,7 +3537,6 @@ export default function AssetIntegrityManagement() {
                   </>
                 )}
               </TabsContent>
-
             </Tabs>
           </DialogContent>
         </Dialog>
@@ -4461,6 +4550,185 @@ export default function AssetIntegrityManagement() {
                   {importPreview?.newRigs.length || 0} Anlagen importieren
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Overdue Notes Modal */}
+      <Dialog
+        open={showOverdueNotesModal}
+        onOpenChange={setShowOverdueNotesModal}
+      >
+        <DialogContent className="w-[95vw] max-w-[700px] max-h-[85vh] flex flex-col overflow-hidden bg-card border-border">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <FileText className="h-5 w-5 text-red-400" />
+              📝 Überfällige Notizen (
+              {(() => {
+                let count = 0;
+                rigs.forEach((rig) => {
+                  rig.generalInfo?.forEach((note) => {
+                    if (isNoteOverdue(note)) count++;
+                  });
+                });
+                return count;
+              })()}
+              )
+            </DialogTitle>
+            <DialogDescription>
+              Alle Notizen mit überschrittener Deadline, sortiert nach
+              Dringlichkeit
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+            {(() => {
+              // Collect all overdue notes across all rigs
+              const allOverdueNotes: Array<{
+                noteId: string;
+                rigId: string;
+                rigName: string;
+                description: string;
+                deadline: string;
+                createdDate: string;
+                daysOverdue: number;
+              }> = [];
+
+              rigs.forEach((rig) => {
+                rig.generalInfo?.forEach((note) => {
+                  if (isNoteOverdue(note)) {
+                    allOverdueNotes.push({
+                      noteId: note.id,
+                      rigId: rig.id,
+                      rigName: rig.name,
+                      description: note.description,
+                      deadline: note.deadline!,
+                      createdDate: note.createdDate,
+                      daysOverdue: getDaysOverdue(note),
+                    });
+                  }
+                });
+              });
+
+              // Sort by most overdue first
+              allOverdueNotes.sort((a, b) => b.daysOverdue - a.daysOverdue);
+
+              if (allOverdueNotes.length === 0) {
+                return (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-400" />
+                    <p className="text-lg font-medium">
+                      Keine überfälligen Notizen
+                    </p>
+                    <p className="text-sm mt-1">
+                      Alle Deadlines sind im Zeitplan.
+                    </p>
+                  </div>
+                );
+              }
+
+              return allOverdueNotes.map((note) => (
+                <div
+                  key={`${note.rigId}-${note.noteId}`}
+                  className="border border-red-500/30 bg-red-500/5 rounded-lg overflow-hidden"
+                >
+                  <div className="relative pl-4 pr-4 py-4">
+                    {/* Red left accent bar */}
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500" />
+
+                    {/* Header: Rig tag + overdue badge */}
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-blue-500/30 text-blue-400"
+                        >
+                          {note.rigName}
+                        </Badge>
+                      </div>
+                      <span className="text-xs font-semibold text-red-400">
+                        🔴 vor {note.daysOverdue} Tag
+                        {note.daysOverdue !== 1 ? "en" : ""} überfällig
+                      </span>
+                    </div>
+
+                    {/* Note content */}
+                    <p className="text-sm text-foreground mb-2 leading-relaxed">
+                      {note.description}
+                    </p>
+
+                    {/* Meta: Deadline */}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+                      <span className="flex items-center gap-1 text-red-400 font-medium">
+                        <Calendar className="h-3 w-3" />
+                        Deadline:{" "}
+                        {new Date(note.deadline).toLocaleDateString("de-DE")}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Erstellt:{" "}
+                        {new Date(note.createdDate).toLocaleDateString("de-DE")}
+                      </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                        onClick={() => {
+                          const rig = rigs.find((r) => r.id === note.rigId);
+                          if (rig) {
+                            setSelectedRig(rig);
+                            setShowOverdueNotesModal(false);
+                          }
+                        }}
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        Zur Anlage
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => {
+                          // Remove (mark as completed) by deleting the note
+                          const updatedRigs = rigs.map((r) =>
+                            r.id === note.rigId
+                              ? {
+                                  ...r,
+                                  generalInfo: (r.generalInfo || []).filter(
+                                    (n) => n.id !== note.noteId,
+                                  ),
+                                }
+                              : r,
+                          );
+                          setRigs(updatedRigs);
+                          setHasUnsavedChanges(true);
+                          toast({
+                            variant: "success" as const,
+                            title: "Notiz erledigt",
+                            description: `Notiz von ${note.rigName} als erledigt markiert`,
+                          });
+                        }}
+                      >
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Als erledigt markieren
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+
+          <DialogFooter className="flex-shrink-0 pt-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowOverdueNotesModal(false)}
+            >
+              Schließen
             </Button>
           </DialogFooter>
         </DialogContent>
