@@ -140,7 +140,7 @@ const InspectionReports = () => {
       return response.success ? response.data : [];
     },
   });
-  const reports = reportsData ?? [];
+  const reports = useMemo(() => reportsData ?? [], [reportsData]);
 
   const refreshReports = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.inspections.all });

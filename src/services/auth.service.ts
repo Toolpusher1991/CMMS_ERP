@@ -87,7 +87,7 @@ export const authService = {
         return response.data.accessToken;
       }
       return null;
-    } catch (error) {
+    } catch {
       // If refresh fails, logout user
       this.logout();
       return null;

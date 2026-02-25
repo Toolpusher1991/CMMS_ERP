@@ -12,8 +12,8 @@ async function fixEmail() {
     console.log('✅ Email erfolgreich geändert:');
     console.log(`   Alt: Philip@rigcrew.com`);
     console.log(`   Neu: ${updated.email}`);
-  } catch (error: any) {
-    console.error('❌ Fehler:', error.message);
+  } catch (error: unknown) {
+    console.error('❌ Fehler:', error instanceof Error ? error.message : error);
   } finally {
     await prisma.$disconnect();
   }

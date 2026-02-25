@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-client";
 import { apiClient } from "@/services/api";
@@ -130,7 +130,7 @@ const FailureReportingPage = ({
     queryKey: queryKeys.failureReports.list(),
     queryFn: () => apiClient.request<FailureReport[]>("/failure-reports"),
   });
-  const reports = reportsData ?? [];
+  const reports = useMemo(() => reportsData ?? [], [reportsData]);
 
   useEffect(() => {
     return () => {

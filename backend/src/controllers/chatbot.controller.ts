@@ -524,7 +524,7 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
 // Execute function calls from AI
 async function executeFunction(
   functionName: string,
-  args: any,
+  args: Record<string, unknown>,
   userId: string,
   userEmail: string
 ): Promise<string> {
@@ -940,7 +940,7 @@ async function executeFunction(
       }
 
       case 'get_tender_configurations': {
-        const where: any = {};
+        const where: Record<string, unknown> = {};
         if (args.plant) where.plant = args.plant;
         if (args.contractStatus !== undefined) where.underContract = args.contractStatus;
 
@@ -957,7 +957,7 @@ async function executeFunction(
       }
 
       case 'get_available_users': {
-        const where: any = {};
+        const where: Record<string, unknown> = {};
         
         if (args.role) {
           where.role = args.role;
@@ -998,11 +998,11 @@ async function executeFunction(
           error: `Unbekannte Funktion: ${functionName}`,
         });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error executing function ${functionName}:`, error);
     return JSON.stringify({
       success: false,
-      error: error.message || 'Fehler bei der Ausführung',
+      error: error instanceof Error ? error.message : 'Fehler bei der Ausführung',
     });
   }
 }
@@ -1103,10 +1103,10 @@ export const chat = async (
         { role: 'assistant', content: assistantMessage.content },
       ],
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Chat error:', error);
     
-    if (error.status === 401) {
+    if (error instanceof Error && 'status' in error && (error as { status: number }).status === 401) {
       next(new AppError('OpenAI API key is invalid', 500));
     } else {
       next(error);

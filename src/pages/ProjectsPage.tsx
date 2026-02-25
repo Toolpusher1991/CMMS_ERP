@@ -1057,7 +1057,7 @@ export default function ProjectsPage() {
       return data;
     },
   });
-  const projects = projectsData ?? [];
+  const projects = useMemo(() => projectsData ?? [], [projectsData]);
 
   // React Query: shared user list
   const { data: userListData } = useUserList();
@@ -1194,6 +1194,7 @@ export default function ProjectsPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showFlowDialog, selectedProject, hasFlowChanges]);
 
   // Computed Values
@@ -1242,10 +1243,11 @@ export default function ProjectsPage() {
       switch (sortBy) {
         case "name":
           return a.name.localeCompare(b.name);
-        case "progress":
+        case "progress": {
           const progressA = getProjectProgress(a);
           const progressB = getProjectProgress(b);
           return progressB - progressA;
+        }
         case "dueDate":
           if (!a.endDate) return 1;
           if (!b.endDate) return -1;
@@ -1353,6 +1355,7 @@ export default function ProjectsPage() {
         console.error("Error updating task status:", error);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [setNodes],
   );
 
@@ -1414,6 +1417,7 @@ export default function ProjectsPage() {
       setFlowTaskToDelete(null);
       setShowDeleteFlowTaskDialog(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowTaskToDelete, setNodes, setEdges, toast]);
 
   // Handle Material Update - updates material info directly on the task
@@ -1501,6 +1505,7 @@ export default function ProjectsPage() {
         });
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [setNodes, toast],
   );
 
@@ -1607,6 +1612,7 @@ export default function ProjectsPage() {
         variant: "destructive",
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedProject,
     flowTaskForm,

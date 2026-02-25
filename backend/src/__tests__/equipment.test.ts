@@ -14,7 +14,7 @@ const { mockEquipment } = vi.hoisted(() => ({
 }));
 
 vi.mock('@prisma/client', () => {
-  const MockPrismaClient = function(this: any) {
+  const MockPrismaClient = function(this: Record<string, unknown>) {
     Object.assign(this, {
     equipment: mockEquipment,
     // Stubs for other models (routes import at module scope)
@@ -35,7 +35,7 @@ vi.mock('@prisma/client', () => {
     inspectionReport: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     inspectionSection: { findMany: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn(), deleteMany: vi.fn() },
     inspectionItem: { findMany: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
-    $transaction: vi.fn((cb: any) => cb({
+    $transaction: vi.fn((cb: (prisma: { equipment: typeof mockEquipment }) => unknown) => cb({
       equipment: mockEquipment,
     })),
     });

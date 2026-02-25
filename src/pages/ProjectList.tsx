@@ -350,7 +350,7 @@ export default function AnlagenProjektManagement({
     if (availableRigs.length > 0 && !selectedAnlage) {
       setSelectedAnlage(availableRigs[0].name);
     }
-  }, [availableRigs]);
+  }, [availableRigs, selectedAnlage]);
 
   useEffect(() => {
     loadData();

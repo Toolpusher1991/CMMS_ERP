@@ -101,7 +101,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
         title: "Kommentar hinzugefügt",
         description: "Dein Kommentar wurde erfolgreich hinzugefügt.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Fehler",
         description: "Kommentar konnte nicht hinzugefügt werden.",
@@ -125,7 +125,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
         title: "Kommentar aktualisiert",
         description: "Dein Kommentar wurde erfolgreich aktualisiert.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Fehler",
         description: "Kommentar konnte nicht aktualisiert werden.",
@@ -148,7 +148,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
         title: "Kommentar gelöscht",
         description: "Der Kommentar wurde erfolgreich gelöscht.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Fehler",
         description: "Kommentar konnte nicht gelöscht werden.",

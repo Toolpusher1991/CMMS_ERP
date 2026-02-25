@@ -103,26 +103,7 @@ export function useActionData() {
     }
   }, [isMounted, toast]);
 
-  const loadUsers = useCallback(async () => {
-    try {
-      const cached = getUserListCache();
-      if (cached) {
-        const cachedUsers = cached.users as UserListItem[];
-        setUsers(cachedUsers);
-        processUsers(cachedUsers);
-        return;
-      }
-
-      const response = await apiClient.request<UserListItem[]>("/users/list");
-      setUserListCache(response);
-      setUsers(response);
-      processUsers(response);
-    } catch (error) {
-      console.error("Fehler beim Laden der User:", error);
-    }
-  }, [currentUser]);
-
-  const processUsers = (userList: UserListItem[]) => {
+  const processUsers = useCallback((userList: UserListItem[]) => {
     const allUsers: ActionUser[] = userList.map((user) => ({
       id: user.id,
       firstName: user.firstName,
@@ -143,7 +124,26 @@ export function useActionData() {
         : allUsers;
 
     setAvailableUsers(filteredUsers);
-  };
+  }, [currentUser]);
+
+  const loadUsers = useCallback(async () => {
+    try {
+      const cached = getUserListCache();
+      if (cached) {
+        const cachedUsers = cached.users as UserListItem[];
+        setUsers(cachedUsers);
+        processUsers(cachedUsers);
+        return;
+      }
+
+      const response = await apiClient.request<UserListItem[]>("/users/list");
+      setUserListCache(response);
+      setUsers(response);
+      processUsers(response);
+    } catch (error) {
+      console.error("Fehler beim Laden der User:", error);
+    }
+  }, [processUsers]);
 
   // Toggle action completion
   const toggleComplete = useCallback(

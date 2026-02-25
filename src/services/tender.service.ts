@@ -12,7 +12,9 @@ export interface TenderConfiguration {
   clientName?: string;
   location?: string;
   projectDuration?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectedRig: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectedEquipment: { [key: string]: any[] };
   totalPrice: number;
   isUnderContract: boolean;
@@ -27,7 +29,9 @@ export interface CreateTenderRequest {
   clientName?: string;
   location?: string;
   projectDuration?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectedRig: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectedEquipment: { [key: string]: any[] };
   totalPrice: number;
   isUnderContract?: boolean;
@@ -35,7 +39,7 @@ export interface CreateTenderRequest {
   notes?: string;
 }
 
-export interface UpdateTenderRequest extends Partial<CreateTenderRequest> {}
+export type UpdateTenderRequest = Partial<CreateTenderRequest>;
 
 class TenderService {
   private async getAuthHeaders() {

@@ -67,9 +67,9 @@ export function UserAdminPage() {
       setIsCreateDialogOpen(false);
       resetForm();
       alert("Benutzer erfolgreich erstellt");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to create user:", error);
-      alert(error.message || "Fehler beim Erstellen des Benutzers");
+      alert(error instanceof Error ? error.message : "Fehler beim Erstellen des Benutzers");
     }
   };
 
@@ -89,15 +89,15 @@ export function UserAdminPage() {
     if (!selectedUser) return;
 
     try {
-      const { password, ...updateData } = formData;
+      const { password: _password, ...updateData } = formData;
       await userService.updateUser(selectedUser.id, updateData);
       await loadUsers();
       setIsEditDialogOpen(false);
       resetForm();
       alert("Benutzer erfolgreich aktualisiert");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to update user:", error);
-      alert(error.message || "Fehler beim Aktualisieren des Benutzers");
+      alert(error instanceof Error ? error.message : "Fehler beim Aktualisieren des Benutzers");
     }
   };
 
@@ -108,9 +108,9 @@ export function UserAdminPage() {
       await userService.deleteUser(userId);
       await loadUsers();
       alert("Benutzer erfolgreich gelöscht");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to delete user:", error);
-      alert(error.message || "Fehler beim Löschen des Benutzers");
+      alert(error instanceof Error ? error.message : "Fehler beim Löschen des Benutzers");
     }
   };
 
@@ -121,9 +121,9 @@ export function UserAdminPage() {
 
       await userService.updateUser(userId, { isActive: !user.isActive });
       await loadUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to toggle user status:", error);
-      alert(error.message || "Fehler beim Ändern des Status");
+      alert(error instanceof Error ? error.message : "Fehler beim Ändern des Status");
     }
   };
 

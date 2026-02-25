@@ -92,7 +92,7 @@ export const ChatWindow = forwardRef<ChatWindowRef, ChatWindowProps>(
         };
 
         setMessages((prev) => [...prev, assistantMessage]);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Chat error:", error);
 
         // Add error message
@@ -108,7 +108,7 @@ export const ChatWindow = forwardRef<ChatWindowRef, ChatWindowProps>(
         toast({
           title: "Fehler",
           description:
-            error.message || "Nachricht konnte nicht gesendet werden.",
+            (error instanceof Error ? error.message : String(error)) || "Nachricht konnte nicht gesendet werden.",
           variant: "destructive",
         });
       } finally {

@@ -13,8 +13,8 @@ async function makePhilipAdmin() {
     console.log(`   📧 Email: ${updated.email}`);
     console.log(`   👤 Name: ${updated.firstName} ${updated.lastName}`);
     console.log(`   🔐 Rolle: ${updated.role}`);
-  } catch (error: any) {
-    console.error('❌ Fehler:', error.message);
+  } catch (error: unknown) {
+    console.error('❌ Fehler:', error instanceof Error ? error.message : error);
   } finally {
     await prisma.$disconnect();
   }

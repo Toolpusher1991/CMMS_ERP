@@ -87,6 +87,7 @@ export function EnhancedUserAdminPage() {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const loadData = async () => {
@@ -180,9 +181,9 @@ export function EnhancedUserAdminPage() {
       setIsCreateDialogOpen(false);
       resetForm();
       alert("Benutzer erfolgreich erstellt");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to create user:", error);
-      alert(error.message || "Fehler beim Erstellen des Benutzers");
+      alert(error instanceof Error ? error.message : "Fehler beim Erstellen des Benutzers");
     }
   };
 
@@ -202,15 +203,15 @@ export function EnhancedUserAdminPage() {
     if (!selectedUser) return;
 
     try {
-      const { password, ...updateData } = formData;
+      const { password: _password, ...updateData } = formData;
       await userService.updateUser(selectedUser.id, updateData);
       await loadUsers();
       setIsEditDialogOpen(false);
       resetForm();
       alert("Benutzer erfolgreich aktualisiert");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to update user:", error);
-      alert(error.message || "Fehler beim Aktualisieren des Benutzers");
+      alert(error instanceof Error ? error.message : "Fehler beim Aktualisieren des Benutzers");
     }
   };
 
@@ -221,9 +222,9 @@ export function EnhancedUserAdminPage() {
       await userService.deleteUser(userId);
       await loadUsers();
       alert("Benutzer erfolgreich gelöscht");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to delete user:", error);
-      alert(error.message || "Fehler beim Löschen des Benutzers");
+      alert(error instanceof Error ? error.message : "Fehler beim Löschen des Benutzers");
     }
   };
 
@@ -234,9 +235,9 @@ export function EnhancedUserAdminPage() {
 
       await userService.updateUser(userId, { isActive: !user.isActive });
       await loadUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to toggle user status:", error);
-      alert(error.message || "Fehler beim Ändern des Status");
+      alert(error instanceof Error ? error.message : "Fehler beim Ändern des Status");
     }
   };
 
@@ -272,9 +273,9 @@ export function EnhancedUserAdminPage() {
           ? "Benutzer erfolgreich genehmigt"
           : "Benutzer erfolgreich abgelehnt"
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to approve/reject user:", error);
-      alert(error.message || "Fehler bei der Genehmigung");
+      alert(error instanceof Error ? error.message : "Fehler bei der Genehmigung");
     }
   };
 
@@ -309,9 +310,9 @@ export function EnhancedUserAdminPage() {
       setIsPasswordDialogOpen(false);
       setPasswordData({ newPassword: "", confirmPassword: "" });
       alert("Passwort erfolgreich geändert");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to change password:", error);
-      alert(error.message || "Fehler beim Ändern des Passworts");
+      alert(error instanceof Error ? error.message : "Fehler beim Ändern des Passworts");
     }
   };
 
@@ -326,9 +327,9 @@ export function EnhancedUserAdminPage() {
       await userManagementService.unlockUserAccount(userId);
       await loadUsers();
       alert("Konto erfolgreich entsperrt");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to unlock account:", error);
-      alert(error.message || "Fehler beim Entsperren des Kontos");
+      alert(error instanceof Error ? error.message : "Fehler beim Entsperren des Kontos");
     }
   };
 

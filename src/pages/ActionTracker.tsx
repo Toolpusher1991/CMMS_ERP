@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-client";
 import { apiClient } from "@/services/api";
@@ -152,7 +152,7 @@ const ActionTracker = ({
 
   // -- React Query: users (shared, deduplicated across pages) --
   const { data: userListData } = useUserList();
-  const users: UserListItem[] = userListData ?? [];
+  const users: UserListItem[] = useMemo(() => userListData ?? [], [userListData]);
 
   // -- React Query: actions --
   const transformActions = useCallback((response: ApiAction[]): Action[] => {
@@ -198,7 +198,7 @@ const ActionTracker = ({
       return transformActions(response);
     },
   });
-  const actions: Action[] = actionsData ?? [];
+  const actions: Action[] = useMemo(() => actionsData ?? [], [actionsData]);
 
   /** Invalidate actions query (replaces old loadActions) */
   const refreshActions = useCallback(() => {

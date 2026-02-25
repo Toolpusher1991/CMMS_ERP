@@ -74,7 +74,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({
     }
 
     // Prüfe auf Sonderzeichen
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password)) {
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(formData.password)) {
       setError(
         "Passwort muss mindestens ein Sonderzeichen enthalten (!@#$%^&* etc.)"
       );
@@ -300,14 +300,14 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({
                     </p>
                     <p
                       className={
-                        /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(
+                        /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(
                           formData.password
                         )
                           ? "text-green-600"
                           : "text-muted-foreground"
                       }
                     >
-                      {/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(
+                      {/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(
                         formData.password
                       )
                         ? "✓"
