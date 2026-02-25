@@ -1542,148 +1542,299 @@ export default function AssetIntegrityManagement() {
         const parsedInspections: Omit<Inspection, "id">[] = [];
         const errors: string[] = [];
 
+        // Detect if this is a SAP PM export by checking column names
+        const firstRow = rows[0] || {};
+        const colNames = Object.keys(firstRow);
+        const isSapFormat =
+          colNames.some(
+            (c) =>
+              c.includes("FLoc") ||
+              c.includes("Functional Location") ||
+              c.includes("Equip") ||
+              c.includes("Work Ctr") ||
+              c.includes("Basic start") ||
+              c.includes("Monitor"),
+          );
+
         rows.forEach((row, idx) => {
-          const description = String(
-            row["Beschreibung"] ||
-              row["Description"] ||
-              row["description"] ||
-              row["Inspektion"] ||
-              row["Item"] ||
-              row["item"] ||
-              "",
-          ).trim();
-          if (!description) {
-            errors.push(`Zeile ${idx + 2}: Keine Beschreibung`);
-            return;
-          }
+          // --- SAP PM format ---
+          if (isSapFormat) {
+            const description = String(
+              row["Equipment Description"] ||
+                row["WO operation Description"] ||
+                row["Description"] ||
+                row["Beschreibung"] ||
+                row["description"] ||
+                "",
+            ).trim();
+            if (!description) {
+              errors.push(`Zeile ${idx + 2}: Keine Beschreibung`);
+              return;
+            }
 
-          // Type mapping
-          const rawType = String(
-            row["Typ"] ||
-              row["Type"] ||
-              row["type"] ||
-              row["Category"] ||
-              row["category"] ||
-              "internal",
-          )
-            .toLowerCase()
-            .trim();
-          let type: Inspection["type"] = "internal";
-          if (
-            rawType.includes("statutory") ||
-            rawType.includes("gesetzlich") ||
-            rawType.includes("behördlich")
-          )
-            type = "statutory";
-          else if (
-            rawType.includes("client") ||
-            rawType.includes("kunde") ||
-            rawType.includes("kundeninsp")
-          )
-            type = "client";
-          else if (rawType.includes("cert") || rawType.includes("zertifiz"))
-            type = "certification";
-          else if (rawType.includes("intern")) type = "internal";
+            // Equipment fields
+            const equipmentNumber = String(
+              row["Equip. No."] ||
+                row["Equipment Number"] ||
+                row["Equipment"] ||
+                "",
+            ).trim();
+            const functionalLocation = String(
+              row["FLoc"] ||
+                row["Functional Location"] ||
+                row["FunctionalLocation"] ||
+                "",
+            ).trim();
+            const workCenter = String(
+              row["Work Ctr."] ||
+                row["Work Center"] ||
+                row["WorkCenter"] ||
+                "",
+            ).trim();
+            const cycle = String(
+              row["Cycle"] || row["Zyklus"] || row["Interval"] || "",
+            ).trim();
+            const sapOrder = String(
+              row["Order"] || row["SAP Order"] || row["Auftrag"] || "",
+            ).trim();
+            const operationDescription = String(
+              row["WO operation Description"] ||
+                row["Operation Description"] ||
+                "",
+            ).trim();
+            const plant = String(
+              row["Maint. Plant"] || row["Plant"] || row["Werk"] || "",
+            ).trim();
 
-          // Due date parsing
-          let dueDate = "";
-          const rawDate =
-            row["Fällig"] ||
-            row["Due Date"] ||
-            row["Due"] ||
-            row["Datum"] ||
-            row["Date"] ||
-            row["due_date"] ||
-            row["dueDate"] ||
-            row["Fälligkeitsdatum"] ||
-            "";
-          if (rawDate) {
-            if (typeof rawDate === "number") {
-              // Excel serial date number
-              const excelDate = new Date((rawDate - 25569) * 86400 * 1000);
-              dueDate = excelDate.toISOString().split("T")[0];
-            } else {
-              const dateStr = String(rawDate).trim();
-              // Try ISO format
-              const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-              if (isoMatch) {
-                dueDate = dateStr.slice(0, 10);
+            // Due date parsing (SAP: "Basic start date" in DD.MM.YYYY or Excel serial)
+            let dueDate = "";
+            const rawDate =
+              row["Basic start date"] ||
+              row["Basic Start"] ||
+              row["Due Date"] ||
+              row["Fällig"] ||
+              row["Datum"] ||
+              "";
+            if (rawDate) {
+              if (typeof rawDate === "number") {
+                const excelDate = new Date((rawDate - 25569) * 86400 * 1000);
+                dueDate = excelDate.toISOString().split("T")[0];
               } else {
-                // Try DD.MM.YYYY or DD/MM/YYYY
-                const euMatch = dateStr.match(
-                  /^(\d{1,2})[./](\d{1,2})[./](\d{4})/,
-                );
-                if (euMatch) {
-                  dueDate = `${euMatch[3]}-${euMatch[2].padStart(2, "0")}-${euMatch[1].padStart(2, "0")}`;
+                const dateStr = String(rawDate).trim();
+                const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (isoMatch) {
+                  dueDate = dateStr.slice(0, 10);
+                } else {
+                  const euMatch = dateStr.match(
+                    /^(\d{1,2})[./](\d{1,2})[./](\d{4})/,
+                  );
+                  if (euMatch) {
+                    dueDate = `${euMatch[3]}-${euMatch[2].padStart(2, "0")}-${euMatch[1].padStart(2, "0")}`;
+                  }
                 }
               }
             }
-          }
-          if (!dueDate) {
-            // Default: 30 days from now
-            const d = new Date();
-            d.setDate(d.getDate() + 30);
-            dueDate = d.toISOString().split("T")[0];
-          }
-
-          // Status mapping
-          const rawStatus = String(row["Status"] || row["status"] || "")
-            .toLowerCase()
-            .trim();
-          let status: Inspection["status"] = "upcoming";
-          if (rawStatus.includes("overdue") || rawStatus.includes("überfällig"))
-            status = "overdue";
-          else if (
-            rawStatus.includes("completed") ||
-            rawStatus.includes("erledigt") ||
-            rawStatus.includes("done") ||
-            rawStatus.includes("abgeschlossen")
-          )
-            status = "completed";
-          else if (rawStatus.includes("due") || rawStatus.includes("fällig"))
-            status = "due";
-
-          // Auto-detect overdue based on date if no status given
-          if (!rawStatus && new Date(dueDate) < new Date()) {
-            status = "overdue";
-          }
-
-          const responsible = String(
-            row["Verantwortlich"] ||
-              row["Responsible"] ||
-              row["responsible"] ||
-              row["Zuständig"] ||
-              row["Assigned"] ||
-              row["assigned"] ||
-              "",
-          ).trim();
-
-          const completedDate =
-            row["Abgeschlossen"] ||
-            row["Completed Date"] ||
-            row["completedDate"] ||
-            "";
-          let completedDateStr: string | undefined;
-          if (completedDate) {
-            if (typeof completedDate === "number") {
-              completedDateStr = new Date(
-                (completedDate - 25569) * 86400 * 1000,
-              )
-                .toISOString()
-                .split("T")[0];
-            } else {
-              completedDateStr = String(completedDate).trim();
+            if (!dueDate) {
+              const d = new Date();
+              d.setDate(d.getDate() + 30);
+              dueDate = d.toISOString().split("T")[0];
             }
-          }
 
-          parsedInspections.push({
-            type,
-            description,
-            dueDate,
-            status,
-            responsible,
-            ...(completedDateStr ? { completedDate: completedDateStr } : {}),
-          });
+            // Monitor → daysUntilDue (SAP gives negative = overdue)
+            const monitorRaw = row["Monitor"] || row["Days"] || "";
+            const daysUntilDue = monitorRaw
+              ? parseInt(String(monitorRaw), 10)
+              : Math.ceil(
+                  (new Date(dueDate).getTime() - Date.now()) /
+                    (1000 * 60 * 60 * 24),
+                );
+
+            // Status from daysUntilDue
+            let status: Inspection["status"] = "upcoming";
+            if (daysUntilDue < 0) status = "overdue";
+            else if (daysUntilDue <= 30) status = "due";
+
+            // Type — derive from Work Center if possible
+            let type: Inspection["type"] = "internal";
+            const wcLower = workCenter.toLowerCase();
+            if (wcLower.includes("pdo") || wcLower.includes("client"))
+              type = "client";
+            else if (
+              wcLower.includes("cert") ||
+              wcLower.includes("class") ||
+              wcLower.includes("dnv")
+            )
+              type = "certification";
+            else if (wcLower.includes("gov") || wcLower.includes("statutory"))
+              type = "statutory";
+
+            // Responsible from Work Center
+            const responsible = workCenter || "";
+
+            parsedInspections.push({
+              type,
+              description,
+              dueDate,
+              status,
+              responsible,
+              equipmentNumber: equipmentNumber || undefined,
+              functionalLocation: functionalLocation || undefined,
+              workCenter: workCenter || undefined,
+              cycle: cycle || undefined,
+              sapOrder: sapOrder || undefined,
+              operationDescription: operationDescription || undefined,
+              plant: plant || undefined,
+              daysUntilDue,
+            });
+          } else {
+            // --- Standard/generic format ---
+            const description = String(
+              row["Beschreibung"] ||
+                row["Description"] ||
+                row["description"] ||
+                row["Inspektion"] ||
+                row["Item"] ||
+                row["item"] ||
+                "",
+            ).trim();
+            if (!description) {
+              errors.push(`Zeile ${idx + 2}: Keine Beschreibung`);
+              return;
+            }
+
+            // Type mapping
+            const rawType = String(
+              row["Typ"] ||
+                row["Type"] ||
+                row["type"] ||
+                row["Category"] ||
+                row["category"] ||
+                "internal",
+            )
+              .toLowerCase()
+              .trim();
+            let type: Inspection["type"] = "internal";
+            if (
+              rawType.includes("statutory") ||
+              rawType.includes("gesetzlich") ||
+              rawType.includes("behördlich")
+            )
+              type = "statutory";
+            else if (
+              rawType.includes("client") ||
+              rawType.includes("kunde") ||
+              rawType.includes("kundeninsp")
+            )
+              type = "client";
+            else if (rawType.includes("cert") || rawType.includes("zertifiz"))
+              type = "certification";
+            else if (rawType.includes("intern")) type = "internal";
+
+            // Due date parsing
+            let dueDate = "";
+            const rawDate =
+              row["Fällig"] ||
+              row["Due Date"] ||
+              row["Due"] ||
+              row["Datum"] ||
+              row["Date"] ||
+              row["due_date"] ||
+              row["dueDate"] ||
+              row["Fälligkeitsdatum"] ||
+              "";
+            if (rawDate) {
+              if (typeof rawDate === "number") {
+                const excelDate = new Date((rawDate - 25569) * 86400 * 1000);
+                dueDate = excelDate.toISOString().split("T")[0];
+              } else {
+                const dateStr = String(rawDate).trim();
+                const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (isoMatch) {
+                  dueDate = dateStr.slice(0, 10);
+                } else {
+                  const euMatch = dateStr.match(
+                    /^(\d{1,2})[./](\d{1,2})[./](\d{4})/,
+                  );
+                  if (euMatch) {
+                    dueDate = `${euMatch[3]}-${euMatch[2].padStart(2, "0")}-${euMatch[1].padStart(2, "0")}`;
+                  }
+                }
+              }
+            }
+            if (!dueDate) {
+              const d = new Date();
+              d.setDate(d.getDate() + 30);
+              dueDate = d.toISOString().split("T")[0];
+            }
+
+            // Status mapping
+            const rawStatus = String(row["Status"] || row["status"] || "")
+              .toLowerCase()
+              .trim();
+            let status: Inspection["status"] = "upcoming";
+            if (
+              rawStatus.includes("overdue") ||
+              rawStatus.includes("überfällig")
+            )
+              status = "overdue";
+            else if (
+              rawStatus.includes("completed") ||
+              rawStatus.includes("erledigt") ||
+              rawStatus.includes("done") ||
+              rawStatus.includes("abgeschlossen")
+            )
+              status = "completed";
+            else if (rawStatus.includes("due") || rawStatus.includes("fällig"))
+              status = "due";
+
+            // Auto-detect overdue based on date
+            if (!rawStatus && new Date(dueDate) < new Date()) {
+              status = "overdue";
+            }
+
+            const daysUntilDue = Math.ceil(
+              (new Date(dueDate).getTime() - Date.now()) /
+                (1000 * 60 * 60 * 24),
+            );
+
+            const responsible = String(
+              row["Verantwortlich"] ||
+                row["Responsible"] ||
+                row["responsible"] ||
+                row["Zuständig"] ||
+                row["Assigned"] ||
+                row["assigned"] ||
+                "",
+            ).trim();
+
+            const completedDate =
+              row["Abgeschlossen"] ||
+              row["Completed Date"] ||
+              row["completedDate"] ||
+              "";
+            let completedDateStr: string | undefined;
+            if (completedDate) {
+              if (typeof completedDate === "number") {
+                completedDateStr = new Date(
+                  (completedDate - 25569) * 86400 * 1000,
+                )
+                  .toISOString()
+                  .split("T")[0];
+              } else {
+                completedDateStr = String(completedDate).trim();
+              }
+            }
+
+            parsedInspections.push({
+              type,
+              description,
+              dueDate,
+              status,
+              responsible,
+              daysUntilDue,
+              ...(completedDateStr ? { completedDate: completedDateStr } : {}),
+            });
+          }
         });
 
         if (parsedInspections.length === 0 && errors.length === 0) {
@@ -3137,70 +3288,163 @@ export default function AssetIntegrityManagement() {
                     Keine Inspektionen geplant
                   </p>
                 ) : (
-                  selectedRig.inspections.map((inspection) => {
-                    const daysUntil = getDaysUntil(inspection.dueDate);
-                    return (
-                      <Card
-                        key={inspection.id}
-                        className={`bg-background border-2 ${
-                          inspection.status === "overdue"
-                            ? "border-red-500/50"
-                            : "border-border"
-                        }`}
-                      >
-                        <CardContent className="pt-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <h3 className="text-foreground font-medium">
-                                {inspection.description}
-                              </h3>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge
-                                className={getInspectionStatusColor(
-                                  inspection.status,
+                  <>
+                    {/* Quick stats bar */}
+                    <div className="flex gap-3 text-xs mb-2">
+                      <span className="text-muted-foreground">
+                        Gesamt: {selectedRig.inspections.length}
+                      </span>
+                      <span className="text-red-400">
+                        🔴 Überfällig:{" "}
+                        {
+                          selectedRig.inspections.filter(
+                            (i) => i.status === "overdue",
+                          ).length
+                        }
+                      </span>
+                      <span className="text-yellow-400">
+                        🟡 Bald fällig:{" "}
+                        {
+                          selectedRig.inspections.filter(
+                            (i) => i.status === "due",
+                          ).length
+                        }
+                      </span>
+                      <span className="text-green-400">
+                        🟢 Geplant:{" "}
+                        {
+                          selectedRig.inspections.filter(
+                            (i) =>
+                              i.status === "upcoming" ||
+                              i.status === "completed",
+                          ).length
+                        }
+                      </span>
+                    </div>
+                    {selectedRig.inspections
+                      .slice()
+                      .sort((a, b) => {
+                        // Overdue first, then by date ascending
+                        const aD =
+                          a.daysUntilDue ??
+                          Math.ceil(
+                            (new Date(a.dueDate).getTime() - Date.now()) /
+                              86400000,
+                          );
+                        const bD =
+                          b.daysUntilDue ??
+                          Math.ceil(
+                            (new Date(b.dueDate).getTime() - Date.now()) /
+                              86400000,
+                          );
+                        return aD - bD;
+                      })
+                      .map((inspection) => {
+                        const daysUntil =
+                          inspection.daysUntilDue ?? getDaysUntil(inspection.dueDate);
+                        return (
+                          <Card
+                            key={inspection.id}
+                            className={`bg-background border-2 ${
+                              inspection.status === "overdue"
+                                ? "border-red-500/50"
+                                : inspection.status === "due"
+                                  ? "border-yellow-500/50"
+                                  : "border-border"
+                            }`}
+                          >
+                            <CardContent className="pt-4">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="text-foreground font-medium truncate">
+                                    {inspection.description}
+                                  </h3>
+                                  {inspection.equipmentNumber && (
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                      Equip: {inspection.equipmentNumber}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  {/* Days indicator */}
+                                  {daysUntil !== null &&
+                                    inspection.status !== "completed" && (
+                                      <span
+                                        className={`text-xs font-bold px-2 py-0.5 rounded ${
+                                          daysUntil < 0
+                                            ? "bg-red-500/20 text-red-400"
+                                            : daysUntil <= 30
+                                              ? "bg-yellow-500/20 text-yellow-400"
+                                              : "bg-green-500/20 text-green-400"
+                                        }`}
+                                      >
+                                        {daysUntil < 0
+                                          ? `${daysUntil}d`
+                                          : `+${daysUntil}d`}
+                                      </span>
+                                    )}
+                                  <Badge
+                                    className={getInspectionStatusColor(
+                                      inspection.status,
+                                    )}
+                                  >
+                                    {inspection.status === "overdue"
+                                      ? "Überfällig"
+                                      : inspection.status === "due"
+                                        ? "Bald fällig"
+                                        : inspection.status === "completed"
+                                          ? "Erledigt"
+                                          : "Geplant"}
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() =>
+                                      setDeleteConfirm({
+                                        type: "inspection",
+                                        id: inspection.id,
+                                        label: inspection.description,
+                                      })
+                                    }
+                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                {inspection.cycle && (
+                                  <span>🔄 {inspection.cycle}</span>
                                 )}
-                              >
-                                {inspection.status}
-                              </Badge>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() =>
-                                  setDeleteConfirm({
-                                    type: "inspection",
-                                    id: inspection.id,
-                                    label: inspection.description,
-                                  })
-                                }
-                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="text-sm text-muted-foreground space-y-1">
-                            <p>Typ: {inspection.type}</p>
-                            <p>
-                              Fällig:{" "}
-                              {new Date(inspection.dueDate).toLocaleDateString(
-                                "de-DE",
-                              )}
-                            </p>
-                            <p>Verantwortlich: {inspection.responsible}</p>
-                            {daysUntil !== null &&
-                              inspection.status !== "completed" && (
-                                <p className="text-xs text-yellow-400 font-medium mt-1">
-                                  {daysUntil < 0
-                                    ? `${Math.abs(daysUntil)} Tage überfällig`
-                                    : `Noch ${daysUntil} Tage`}
-                                </p>
-                              )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
+                                {inspection.workCenter && (
+                                  <span>🔧 {inspection.workCenter}</span>
+                                )}
+                                <span>
+                                  📅{" "}
+                                  {new Date(
+                                    inspection.dueDate,
+                                  ).toLocaleDateString("de-DE")}
+                                </span>
+                                {inspection.sapOrder && (
+                                  <span>📋 Order: {inspection.sapOrder}</span>
+                                )}
+                                {!inspection.sapOrder &&
+                                  inspection.responsible && (
+                                    <span>
+                                      👤 {inspection.responsible}
+                                    </span>
+                                  )}
+                                {inspection.type && (
+                                  <span className="capitalize">
+                                    {inspection.type}
+                                  </span>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                  </>
                 )}
               </TabsContent>
 
@@ -3324,21 +3568,62 @@ export default function AssetIntegrityManagement() {
         open={isInspectionImportOpen}
         onOpenChange={setIsInspectionImportOpen}
       >
-        <DialogContent className="bg-card border-border max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-foreground">
-              Inspektionen importieren — {selectedRig?.name}
+              📊 Import-Vorschau — {selectedRig?.name}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Vorschau der zu importierenden Inspektionen
+              {inspectionImportPreview?.inspections.length || 0} Zeilen erkannt
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Status Distribution */}
+            {inspectionImportPreview?.inspections &&
+              inspectionImportPreview.inspections.length > 0 && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-md p-3 text-center">
+                    <p className="text-2xl font-bold text-red-400">
+                      {
+                        inspectionImportPreview.inspections.filter(
+                          (i) => i.status === "overdue",
+                        ).length
+                      }
+                    </p>
+                    <p className="text-xs text-red-300">🔴 Überfällig</p>
+                  </div>
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-md p-3 text-center">
+                    <p className="text-2xl font-bold text-yellow-400">
+                      {
+                        inspectionImportPreview.inspections.filter(
+                          (i) => i.status === "due",
+                        ).length
+                      }
+                    </p>
+                    <p className="text-xs text-yellow-300">
+                      🟡 Bald fällig (≤30 Tage)
+                    </p>
+                  </div>
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-md p-3 text-center">
+                    <p className="text-2xl font-bold text-green-400">
+                      {
+                        inspectionImportPreview.inspections.filter(
+                          (i) => i.status === "upcoming",
+                        ).length
+                      }
+                    </p>
+                    <p className="text-xs text-green-300">🟢 Geplant</p>
+                  </div>
+                </div>
+              )}
+
+            {/* Errors */}
             {inspectionImportPreview?.errors &&
               inspectionImportPreview.errors.length > 0 && (
                 <div className="bg-red-500/10 border border-red-500/30 rounded-md p-3">
                   <p className="text-red-400 font-medium text-sm mb-1">
-                    ⚠️ {inspectionImportPreview.errors.length} Fehler
+                    ⚠️ {inspectionImportPreview.errors.length} Fehler /
+                    übersprungene Zeilen
                   </p>
                   <ul className="text-xs text-red-300 space-y-0.5">
                     {inspectionImportPreview.errors
@@ -3356,71 +3641,100 @@ export default function AssetIntegrityManagement() {
                 </div>
               )}
 
+            {/* Preview Table */}
             {inspectionImportPreview?.inspections &&
               inspectionImportPreview.inspections.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm text-foreground font-medium">
-                    ✅ {inspectionImportPreview.inspections.length} Inspektionen
-                    erkannt:
+                    Vorschau (erste 25 Einträge):
                   </p>
-                  <div className="border border-border rounded-md overflow-hidden">
+                  <div className="border border-border rounded-md overflow-hidden overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-border">
                           <TableHead className="text-muted-foreground text-xs">
-                            Beschreibung
+                            Equipment / Beschreibung
                           </TableHead>
                           <TableHead className="text-muted-foreground text-xs">
-                            Typ
+                            Zyklus
                           </TableHead>
                           <TableHead className="text-muted-foreground text-xs">
                             Fällig
                           </TableHead>
                           <TableHead className="text-muted-foreground text-xs">
+                            Tage
+                          </TableHead>
+                          <TableHead className="text-muted-foreground text-xs">
                             Status
                           </TableHead>
                           <TableHead className="text-muted-foreground text-xs">
-                            Verantwortlich
+                            Work Center
                           </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {inspectionImportPreview.inspections
-                          .slice(0, 20)
+                          .slice(0, 25)
                           .map((insp, i) => (
                             <TableRow key={i} className="border-border">
-                              <TableCell className="text-foreground text-xs max-w-[200px] truncate">
-                                {insp.description}
+                              <TableCell className="text-foreground text-xs max-w-[250px]">
+                                <div className="truncate font-medium">
+                                  {insp.description}
+                                </div>
+                                {insp.equipmentNumber && (
+                                  <div className="text-muted-foreground truncate">
+                                    {insp.equipmentNumber}
+                                  </div>
+                                )}
                               </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-xs">
-                                  {insp.type}
-                                </Badge>
+                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                                {insp.cycle || "—"}
                               </TableCell>
-                              <TableCell className="text-muted-foreground text-xs">
+                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                                 {new Date(insp.dueDate).toLocaleDateString(
                                   "de-DE",
                                 )}
+                              </TableCell>
+                              <TableCell
+                                className={`text-xs font-medium whitespace-nowrap ${
+                                  (insp.daysUntilDue ?? 0) < 0
+                                    ? "text-red-400"
+                                    : (insp.daysUntilDue ?? 0) <= 30
+                                      ? "text-yellow-400"
+                                      : "text-green-400"
+                                }`}
+                              >
+                                {insp.daysUntilDue !== undefined
+                                  ? insp.daysUntilDue < 0
+                                    ? `${insp.daysUntilDue}`
+                                    : `+${insp.daysUntilDue}`
+                                  : "—"}
                               </TableCell>
                               <TableCell>
                                 <Badge
                                   className={`text-xs ${getInspectionStatusColor(insp.status)}`}
                                 >
-                                  {insp.status}
+                                  {insp.status === "overdue"
+                                    ? "Überfällig"
+                                    : insp.status === "due"
+                                      ? "Bald fällig"
+                                      : insp.status === "completed"
+                                        ? "Erledigt"
+                                        : "Geplant"}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="text-muted-foreground text-xs">
-                                {insp.responsible || "—"}
+                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                                {insp.workCenter || insp.responsible || "—"}
                               </TableCell>
                             </TableRow>
                           ))}
                       </TableBody>
                     </Table>
-                    {inspectionImportPreview.inspections.length > 20 && (
+                    {inspectionImportPreview.inspections.length > 25 && (
                       <p className="text-xs text-muted-foreground p-2 text-center">
                         ... und{" "}
-                        {inspectionImportPreview.inspections.length - 20}{" "}
-                        weitere
+                        {inspectionImportPreview.inspections.length - 25}{" "}
+                        weitere Einträge
                       </p>
                     )}
                   </div>

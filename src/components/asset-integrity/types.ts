@@ -8,6 +8,15 @@ export interface Inspection {
   completedDate?: string;
   status: "upcoming" | "due" | "overdue" | "completed";
   responsible: string;
+  // SAP PM fields
+  equipmentNumber?: string;
+  functionalLocation?: string;
+  workCenter?: string;
+  cycle?: string;
+  sapOrder?: string;
+  operationDescription?: string;
+  plant?: string;
+  daysUntilDue?: number;
 }
 
 export interface Issue {
