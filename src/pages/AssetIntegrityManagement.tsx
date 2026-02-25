@@ -97,8 +97,6 @@ import {
   getRigPriorityStatus,
   getContractStatusColor,
   getInspectionStatusColor,
-  getSeverityColor,
-  getImprovementPriorityColor,
 } from "@/components/asset-integrity/utils";
 
 // Equipment Master Database – Komplette Flotte
@@ -838,7 +836,6 @@ export default function AssetIntegrityManagement() {
   const rigTypes = [...new Set(rigs.map((r) => r.rigType).filter(Boolean))];
 
   // Calculate statistics
-  const totalRigs = filteredRigs.length;
   const operationalRigs = filteredRigs.filter(
     (rig) => rig.contractStatus === "operational",
   ).length;
@@ -2323,8 +2320,6 @@ export default function AssetIntegrityManagement() {
               const openIssues = rig.issues.filter(
                 (i) => i.status !== "closed",
               ).length;
-              const totalActions =
-                rig.inspections.length + openIssues + rig.improvements.length;
               return (
                 <Card
                   key={rig.id}
