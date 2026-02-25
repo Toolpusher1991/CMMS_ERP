@@ -2317,9 +2317,6 @@ export default function AssetIntegrityManagement() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredRigs.map((rig) => {
               const priorityStatus = getRigPriorityStatus(rig);
-              const openIssues = rig.issues.filter(
-                (i) => i.status !== "closed",
-              ).length;
               return (
                 <Card
                   key={rig.id}
