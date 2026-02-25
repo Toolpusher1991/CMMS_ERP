@@ -524,7 +524,8 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
 // Execute function calls from AI
 async function executeFunction(
   functionName: string,
-  args: Record<string, unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  args: Record<string, any>,
   userId: string,
   userEmail: string
 ): Promise<string> {
