@@ -185,8 +185,7 @@ const RigConfigurator = () => {
     [key: string]: EquipmentItem[];
   }>({});
 
-  // Gantt Chart View
-  const [showGanttView, setShowGanttView] = useState(false);
+  // Tender View Mode
   const [tenderViewMode, setTenderViewMode] = useState<'table' | 'gantt' | 'board'>('board');
 
   // Contract Start Date Dialog
