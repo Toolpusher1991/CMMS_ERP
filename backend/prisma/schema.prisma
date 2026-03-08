@@ -332,6 +332,7 @@ model TenderConfiguration {
   createdByUser     User                 @relation(fields: [createdBy], references: [id], onDelete: Cascade)
   comments          TenderComment[]
   statusHistory     TenderStatusHistory[]
+  equipmentTasks    TenderEquipmentTask[]
 
   @@index([createdBy])
   @@index([isUnderContract])
@@ -366,6 +367,28 @@ model TenderStatusHistory {
 
   @@index([tenderId])
   @@map("tender_status_history")
+}
+
+model TenderEquipmentTask {
+  id                String              @id @default(uuid())
+  tenderId          String
+  equipmentCategory String              // e.g. "drillPipe", "mud", "bop"
+  title             String              // e.g. "Preis für Drill Pipes klären"
+  description       String?             // Details / context
+  status            String              @default("OPEN") // OPEN, IN_PROGRESS, DONE, CANCELLED
+  priority          String              @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  assignedTo        String?             // user name or free text
+  assignedToUserId  String?             // FK to User (optional)
+  dueDate           DateTime?
+  completedAt       DateTime?
+  createdBy         String              // userId
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  tender            TenderConfiguration @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
+  @@index([status])
+  @@map("tender_equipment_tasks")
 }
 
 model InspectionReport {

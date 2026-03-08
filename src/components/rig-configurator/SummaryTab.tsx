@@ -59,7 +59,8 @@ export function SummaryTab({
   );
   const rigDayRate = selectedRig ? parseFloat(selectedRig.dayRate) : 0;
   const rigCostPct = total > 0 ? Math.round((rigDayRate / total) * 100) : 0;
-  const equipCostPct = total > 0 ? Math.round((equipmentTotal / total) * 100) : 0;
+  const equipCostPct =
+    total > 0 ? Math.round((equipmentTotal / total) * 100) : 0;
   const categoriesWithItems = Object.entries(selectedEquipment).filter(
     ([, items]) => items.length > 0,
   );
@@ -127,7 +128,9 @@ export function SummaryTab({
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                  {durationDays > 0 ? `Projektkosten (${durationDays}d)` : "Projektkosten"}
+                  {durationDays > 0
+                    ? `Projektkosten (${durationDays}d)`
+                    : "Projektkosten"}
                 </p>
                 <p className="text-2xl font-bold text-green-600">
                   {durationDays > 0
@@ -189,19 +192,43 @@ export function SummaryTab({
             </div>
             <div className="space-y-3">
               {[
-                { icon: Building2, label: "Projektname", value: requirements.projectName },
+                {
+                  icon: Building2,
+                  label: "Projektname",
+                  value: requirements.projectName,
+                },
                 { icon: User, label: "Kunde", value: requirements.clientName },
-                { icon: MapPin, label: "Standort", value: requirements.location },
-                { icon: Calendar, label: "Dauer", value: requirements.projectDuration },
-                { icon: Ruler, label: "Zieltiefe", value: requirements.depth ? `${requirements.depth} m` : "" },
-                { icon: Weight, label: "Hakenlast", value: requirements.hookLoad ? `${requirements.hookLoad} t` : "" },
+                {
+                  icon: MapPin,
+                  label: "Standort",
+                  value: requirements.location,
+                },
+                {
+                  icon: Calendar,
+                  label: "Dauer",
+                  value: requirements.projectDuration,
+                },
+                {
+                  icon: Ruler,
+                  label: "Zieltiefe",
+                  value: requirements.depth ? `${requirements.depth} m` : "",
+                },
+                {
+                  icon: Weight,
+                  label: "Hakenlast",
+                  value: requirements.hookLoad
+                    ? `${requirements.hookLoad} t`
+                    : "",
+                },
               ]
                 .filter((item) => item.value)
                 .map(({ icon: Icon, label, value }) => (
                   <div key={label} className="flex items-center gap-3">
                     <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <div className="flex-1 flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">{label}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {label}
+                      </span>
                       <span className="text-sm font-semibold">{value}</span>
                     </div>
                   </div>
@@ -209,7 +236,9 @@ export function SummaryTab({
             </div>
             {requirements.additionalNotes && (
               <div className="mt-4 pt-3 border-t">
-                <p className="text-xs text-muted-foreground mb-1">Anmerkungen</p>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Anmerkungen
+                </p>
                 <p className="text-sm">{requirements.additionalNotes}</p>
               </div>
             )}
@@ -235,15 +264,28 @@ export function SummaryTab({
                     </p>
                   </div>
                   <Badge className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 text-sm px-3 py-1">
-                    € {parseFloat(selectedRig.dayRate).toLocaleString("de-DE")}/Tag
+                    € {parseFloat(selectedRig.dayRate).toLocaleString("de-DE")}
+                    /Tag
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label: "Max. Tiefe", value: `${selectedRig.maxDepth?.toLocaleString()} m` },
-                    { label: "Hakenlast", value: `${selectedRig.maxHookLoad} t` },
-                    { label: "Crew", value: `${selectedRig.crewSize} Personen` },
-                    { label: "Mobilisierung", value: selectedRig.mobilizationTime },
+                    {
+                      label: "Max. Tiefe",
+                      value: `${selectedRig.maxDepth?.toLocaleString()} m`,
+                    },
+                    {
+                      label: "Hakenlast",
+                      value: `${selectedRig.maxHookLoad} t`,
+                    },
+                    {
+                      label: "Crew",
+                      value: `${selectedRig.crewSize} Personen`,
+                    },
+                    {
+                      label: "Mobilisierung",
+                      value: selectedRig.mobilizationTime,
+                    },
                   ].map(({ label, value }) => (
                     <div
                       key={label}
@@ -285,11 +327,16 @@ export function SummaryTab({
             <div className="space-y-4">
               {categoriesWithItems.map(([key, items]) => {
                 const category = equipmentCategories[key];
-                const catTotal = items.reduce((sum, item) => sum + parseFloat(item.price), 0);
+                const catTotal = items.reduce(
+                  (sum, item) => sum + parseFloat(item.price),
+                  0,
+                );
                 return (
                   <div key={key}>
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-semibold">{category?.name ?? key}</p>
+                      <p className="text-sm font-semibold">
+                        {category?.name ?? key}
+                      </p>
                       <span className="text-sm font-semibold text-green-600">
                         € {catTotal.toLocaleString("de-DE")}
                       </span>

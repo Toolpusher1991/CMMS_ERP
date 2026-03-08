@@ -35,7 +35,10 @@ interface RigSelectionTabProps {
 function getContractInfo(
   rigId: string,
   savedConfigurations: TenderConfiguration[],
-): { isUnderContract: boolean; tenders: { projectName: string; clientName?: string; status: string }[] } {
+): {
+  isUnderContract: boolean;
+  tenders: { projectName: string; clientName?: string; status: string }[];
+} {
   const activeTenders = savedConfigurations.filter(
     (config) =>
       config.isUnderContract &&
@@ -161,7 +164,9 @@ export function RigSelectionTab({
                           className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300"
                         >
                           <FileText className="h-3 w-3 flex-shrink-0" />
-                          <span className="font-medium">{tender.projectName}</span>
+                          <span className="font-medium">
+                            {tender.projectName}
+                          </span>
                           {tender.clientName && (
                             <span className="text-amber-600 dark:text-amber-400">
                               — {tender.clientName}

@@ -55,10 +55,13 @@ const CATEGORY_ICONS: Record<
 
 // Category colors for visual distinction
 const CATEGORY_COLORS: Record<string, string> = {
-  drillPipe: "from-orange-500/10 to-orange-500/5 border-orange-200 dark:border-orange-800",
+  drillPipe:
+    "from-orange-500/10 to-orange-500/5 border-orange-200 dark:border-orange-800",
   tanks: "from-cyan-500/10 to-cyan-500/5 border-cyan-200 dark:border-cyan-800",
-  power: "from-yellow-500/10 to-yellow-500/5 border-yellow-200 dark:border-yellow-800",
-  camps: "from-purple-500/10 to-purple-500/5 border-purple-200 dark:border-purple-800",
+  power:
+    "from-yellow-500/10 to-yellow-500/5 border-yellow-200 dark:border-yellow-800",
+  camps:
+    "from-purple-500/10 to-purple-500/5 border-purple-200 dark:border-purple-800",
   safety: "from-red-500/10 to-red-500/5 border-red-200 dark:border-red-800",
   mud: "from-emerald-500/10 to-emerald-500/5 border-emerald-200 dark:border-emerald-800",
   bop: "from-rose-500/10 to-rose-500/5 border-rose-200 dark:border-rose-800",
@@ -103,7 +106,11 @@ export function EquipmentTab({
 }: EquipmentTabProps) {
   // Track which categories are expanded — start with all expanded
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>(
-    () => Object.keys(equipmentCategories).reduce((acc, key) => ({ ...acc, [key]: true }), {}),
+    () =>
+      Object.keys(equipmentCategories).reduce(
+        (acc, key) => ({ ...acc, [key]: true }),
+        {},
+      ),
   );
 
   const totalSelected = Object.values(selectedEquipment).flat().length;
@@ -117,13 +124,19 @@ export function EquipmentTab({
       <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-3 border">
         <div className="flex items-center gap-6">
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Ausgewählt</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+              Ausgewählt
+            </p>
             <p className="text-lg font-bold">{totalSelected} Positionen</p>
           </div>
           <div className="h-8 w-px bg-border" />
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Equipment-Kosten</p>
-            <p className="text-lg font-bold text-green-600">€ {totalEquipmentCost.toLocaleString("de-DE")}/Tag</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+              Equipment-Kosten
+            </p>
+            <p className="text-lg font-bold text-green-600">
+              € {totalEquipmentCost.toLocaleString("de-DE")}/Tag
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -140,7 +153,9 @@ export function EquipmentTab({
               );
             }}
           >
-            {Object.values(openCategories).every(Boolean) ? "Alle zuklappen" : "Alle aufklappen"}
+            {Object.values(openCategories).every(Boolean)
+              ? "Alle zuklappen"
+              : "Alle aufklappen"}
           </Button>
         </div>
       </div>
@@ -154,7 +169,10 @@ export function EquipmentTab({
             const isOpen = openCategories[key] ?? true;
             const colorClass = CATEGORY_COLORS[key] || CATEGORY_COLORS.misc;
             const iconColor = CATEGORY_ICON_COLORS[key] || "text-gray-600";
-            const categoryTotal = selected.reduce((sum, item) => sum + parseFloat(item.price), 0);
+            const categoryTotal = selected.reduce(
+              (sum, item) => sum + parseFloat(item.price),
+              0,
+            );
 
             return (
               <Collapsible
@@ -164,16 +182,22 @@ export function EquipmentTab({
                   setOpenCategories((prev) => ({ ...prev, [key]: open }))
                 }
               >
-                <Card className={`border bg-gradient-to-r ${colorClass} overflow-hidden`}>
+                <Card
+                  className={`border bg-gradient-to-r ${colorClass} overflow-hidden`}
+                >
                   {/* Category header — always visible */}
                   <CollapsibleTrigger asChild>
                     <div className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg bg-background/80 shadow-sm ${iconColor}`}>
+                        <div
+                          className={`p-2 rounded-lg bg-background/80 shadow-sm ${iconColor}`}
+                        >
                           <Icon className="h-4 w-4" />
                         </div>
                         <div>
-                          <h3 className="text-sm font-semibold">{category.name}</h3>
+                          <h3 className="text-sm font-semibold">
+                            {category.name}
+                          </h3>
                           <p className="text-xs text-muted-foreground">
                             {category.items.length} verfügbar
                           </p>
@@ -218,9 +242,14 @@ export function EquipmentTab({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <TooltipProvider delayDuration={300}>
                           {category.items.map((item) => {
-                            const isSelected = selected.some((s) => s.id === item.id);
+                            const isSelected = selected.some(
+                              (s) => s.id === item.id,
+                            );
                             const specs = Object.entries(item)
-                              .filter(([k]) => k !== "id" && k !== "name" && k !== "price")
+                              .filter(
+                                ([k]) =>
+                                  k !== "id" && k !== "name" && k !== "price",
+                              )
                               .map(([, value]) => value)
                               .join(" • ");
 
@@ -251,9 +280,14 @@ export function EquipmentTab({
                                 <div className="flex items-center gap-1 flex-shrink-0">
                                   <div className="text-right mr-1">
                                     <p className="font-bold text-green-600 text-sm whitespace-nowrap">
-                                      € {parseFloat(item.price).toLocaleString("de-DE")}
+                                      €{" "}
+                                      {parseFloat(item.price).toLocaleString(
+                                        "de-DE",
+                                      )}
                                     </p>
-                                    <p className="text-[10px] text-muted-foreground">/Tag</p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                      /Tag
+                                    </p>
                                   </div>
                                   {/* Action buttons — visible on hover */}
                                   <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -271,7 +305,9 @@ export function EquipmentTab({
                                           <ClipboardList className="h-3.5 w-3.5" />
                                         </Button>
                                       </TooltipTrigger>
-                                      <TooltipContent side="top">Tender-Aufgabe</TooltipContent>
+                                      <TooltipContent side="top">
+                                        Tender-Aufgabe
+                                      </TooltipContent>
                                     </Tooltip>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
@@ -287,7 +323,9 @@ export function EquipmentTab({
                                           <Edit className="h-3.5 w-3.5" />
                                         </Button>
                                       </TooltipTrigger>
-                                      <TooltipContent side="top">Bearbeiten</TooltipContent>
+                                      <TooltipContent side="top">
+                                        Bearbeiten
+                                      </TooltipContent>
                                     </Tooltip>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
@@ -303,7 +341,9 @@ export function EquipmentTab({
                                           <Trash2 className="h-3.5 w-3.5" />
                                         </Button>
                                       </TooltipTrigger>
-                                      <TooltipContent side="top">Löschen</TooltipContent>
+                                      <TooltipContent side="top">
+                                        Löschen
+                                      </TooltipContent>
                                     </Tooltip>
                                   </div>
                                 </div>

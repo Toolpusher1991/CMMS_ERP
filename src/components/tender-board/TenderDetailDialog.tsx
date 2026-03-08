@@ -5,11 +5,19 @@ import {
   tenderService,
   TENDER_STATUS_LABELS,
   TENDER_STATUS_COLORS,
+  TASK_STATUS_LABELS,
+  TASK_STATUS_COLORS,
+  TASK_PRIORITY_LABELS,
+  TASK_PRIORITY_COLORS,
   type TenderConfiguration,
   type TenderStatus,
   type TenderComment,
   type TenderStatusHistoryEntry,
+  type TenderEquipmentTask,
+  type TaskStatus,
+  type TaskPriority,
 } from "@/services/tender.service";
+import { useUserList } from "@/hooks/useQueryHooks";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -33,8 +41,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import {
   FileText,
@@ -50,6 +66,12 @@ import {
   Shield,
   User,
   Loader2,
+  Plus,
+  Trash2,
+  CalendarDays,
+  ListTodo,
+  CircleDot,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -98,6 +120,36 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
     enabled: open,
   });
 
+  // ── Equipment Tasks ──
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+    queryKey: queryKeys.tenders.tasks(tender.id),
+    queryFn: () => tenderService.getTasks(tender.id),
+    enabled: open,
+  });
+
+  const { data: userListData } = useUserList();
+  const availableUsers = (userListData ?? []).map((u) => ({
+    id: u.id,
+    name: `${u.firstName} ${u.lastName}`,
+  }));
+
+  const tasksByCategory = useMemo(() => {
+    const map: Record<string, TenderEquipmentTask[]> = {};
+    for (const task of tasks) {
+      if (!map[task.equipmentCategory]) map[task.equipmentCategory] = [];
+      map[task.equipmentCategory].push(task);
+    }
+    return map;
+  }, [tasks]);
+
+  const taskStats = useMemo(() => {
+    const total = tasks.length;
+    const done = tasks.filter((t) => t.status === "DONE").length;
+    const open = tasks.filter((t) => t.status === "OPEN").length;
+    const inProgress = tasks.filter((t) => t.status === "IN_PROGRESS").length;
+    return { total, done, open, inProgress };
+  }, [tasks]);
+
   // ── Transition Mutation ──
   const transitionMutation = useMutation({
     mutationFn: ({
@@ -131,6 +183,75 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
         queryKey: queryKeys.tenders.comments(tender.id),
       });
       setCommentText("");
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Fehler",
+        description: err.message,
+      });
+    },
+  });
+
+  // ── Task Mutations ──
+  const createTaskMutation = useMutation({
+    mutationFn: (data: {
+      equipmentCategory: string;
+      title: string;
+      description?: string;
+      priority?: TaskPriority;
+      assignedTo?: string;
+      assignedToUserId?: string;
+      dueDate?: string;
+    }) => tenderService.createTask(tender.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tenders.tasks(tender.id),
+      });
+      toast({ variant: "success" as const, title: "Aufgabe erstellt" });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Fehler",
+        description: err.message,
+      });
+    },
+  });
+
+  const updateTaskMutation = useMutation({
+    mutationFn: ({
+      taskId,
+      ...data
+    }: {
+      taskId: string;
+      status?: TaskStatus;
+      priority?: TaskPriority;
+      assignedTo?: string;
+      assignedToUserId?: string;
+      dueDate?: string;
+    }) => tenderService.updateTask(tender.id, taskId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tenders.tasks(tender.id),
+      });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Fehler",
+        description: err.message,
+      });
+    },
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: (taskId: string) => tenderService.deleteTask(tender.id, taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tenders.tasks(tender.id),
+      });
+      toast({ variant: "success" as const, title: "Aufgabe gelöscht" });
     },
     onError: (err: Error) => {
       toast({
@@ -218,7 +339,7 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
 
           {/* ── Tabs ── */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview" className="gap-1">
                 <FileText className="h-4 w-4" />
                 Übersicht
@@ -226,6 +347,15 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
               <TabsTrigger value="equipment" className="gap-1">
                 <Shield className="h-4 w-4" />
                 Equipment
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="gap-1">
+                <ListTodo className="h-4 w-4" />
+                Aufgaben
+                {taskStats.total > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 text-xs">
+                    {taskStats.done}/{taskStats.total}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger value="comments" className="gap-1">
                 <MessageSquare className="h-4 w-4" />
@@ -424,49 +554,114 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
               {tender.selectedEquipment &&
               Object.keys(tender.selectedEquipment).length > 0 ? (
                 Object.entries(tender.selectedEquipment).map(
-                  ([category, items]) => (
-                    <Card key={category}>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium capitalize">
-                          {category.replace(/_/g, " ")}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {(Array.isArray(items) ? items : []).map(
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            (item: any, idx: number) => (
-                              <div
-                                key={idx}
-                                className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm"
-                              >
-                                <span>
-                                  {item.name ||
-                                    item.label ||
-                                    JSON.stringify(item)}
-                                </span>
-                                {item.dailyRate != null && (
-                                  <span className="text-emerald-600 font-medium">
-                                    €
-                                    {Number(item.dailyRate).toLocaleString(
-                                      "de-DE",
-                                    )}
-                                    /d
+                  ([category, items]) => {
+                    const catTasks = tasksByCategory[category] || [];
+                    const catDone = catTasks.filter(
+                      (t) => t.status === "DONE",
+                    ).length;
+                    return (
+                      <Card key={category}>
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm font-medium capitalize">
+                              {category.replace(/_/g, " ")}
+                            </CardTitle>
+                            <div className="flex items-center gap-2">
+                              {catTasks.length > 0 && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs gap-1"
+                                >
+                                  <ListTodo className="h-3 w-3" />
+                                  {catDone}/{catTasks.length} Aufgaben
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {(Array.isArray(items) ? items : []).map(
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              (item: any, idx: number) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm"
+                                >
+                                  <span>
+                                    {item.name ||
+                                      item.label ||
+                                      JSON.stringify(item)}
                                   </span>
-                                )}
-                              </div>
-                            ),
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ),
+                                  {(item.dailyRate != null ||
+                                    item.price != null) && (
+                                    <span className="text-emerald-600 font-medium">
+                                      €
+                                      {Number(
+                                        item.dailyRate ?? item.price,
+                                      ).toLocaleString("de-DE")}
+                                      /d
+                                    </span>
+                                  )}
+                                </div>
+                              ),
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  },
                 )
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   Kein Equipment ausgewählt
                 </div>
               )}
+            </TabsContent>
+
+            {/* ── Tasks Tab ── */}
+            <TabsContent value="tasks" className="space-y-4 mt-4">
+              {/* Task stats summary */}
+              {taskStats.total > 0 && (
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <CircleDot className="h-3.5 w-3.5 text-blue-500" />
+                    <span>{taskStats.open} Offen</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-amber-500" />
+                    <span>{taskStats.inProgress} In Bearbeitung</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                    <span>{taskStats.done} Erledigt</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Create task form per category */}
+              {tender.selectedEquipment &&
+                Object.keys(tender.selectedEquipment).length > 0 && (
+                  <EquipmentTaskSection
+                    categories={Object.keys(tender.selectedEquipment)}
+                    tasksByCategory={tasksByCategory}
+                    users={availableUsers}
+                    loading={tasksLoading}
+                    onCreateTask={(data) => createTaskMutation.mutate(data)}
+                    onUpdateTask={(taskId, data) =>
+                      updateTaskMutation.mutate({ taskId, ...data })
+                    }
+                    onDeleteTask={(taskId) => deleteTaskMutation.mutate(taskId)}
+                    isCreating={createTaskMutation.isPending}
+                  />
+                )}
+
+              {!tender.selectedEquipment ||
+                (Object.keys(tender.selectedEquipment).length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Kein Equipment für Aufgaben vorhanden
+                  </div>
+                ))}
             </TabsContent>
 
             {/* ── Comments Tab ── */}
@@ -717,6 +912,439 @@ function HistoryEntry({ entry }: { entry: TenderStatusHistoryEntry }) {
             „{entry.reason}"
           </p>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── Equipment Tasks Section ─────────────────────────────────
+
+const NEXT_STATUS: Record<string, TaskStatus> = {
+  OPEN: "IN_PROGRESS",
+  IN_PROGRESS: "DONE",
+  DONE: "OPEN",
+  CANCELLED: "OPEN",
+};
+
+function EquipmentTaskSection({
+  categories,
+  tasksByCategory,
+  users,
+  loading,
+  onCreateTask,
+  onUpdateTask,
+  onDeleteTask,
+  isCreating,
+}: {
+  categories: string[];
+  tasksByCategory: Record<string, TenderEquipmentTask[]>;
+  users: { id: string; name: string }[];
+  loading: boolean;
+  onCreateTask: (data: {
+    equipmentCategory: string;
+    title: string;
+    description?: string;
+    priority?: TaskPriority;
+    assignedTo?: string;
+    assignedToUserId?: string;
+    dueDate?: string;
+  }) => void;
+  onUpdateTask: (
+    taskId: string,
+    data: {
+      status?: TaskStatus;
+      assignedTo?: string;
+      assignedToUserId?: string;
+    },
+  ) => void;
+  onDeleteTask: (taskId: string) => void;
+  isCreating: boolean;
+}) {
+  const [expandedForm, setExpandedForm] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    priority: "MEDIUM" as TaskPriority,
+    assignedToUserId: "",
+    dueDate: "",
+  });
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      priority: "MEDIUM",
+      assignedToUserId: "",
+      dueDate: "",
+    });
+    setExpandedForm(null);
+  };
+
+  const handleSubmit = (category: string) => {
+    if (!formData.title.trim()) return;
+    const selectedUser = users.find((u) => u.id === formData.assignedToUserId);
+    onCreateTask({
+      equipmentCategory: category,
+      title: formData.title.trim(),
+      description: formData.description.trim() || undefined,
+      priority: formData.priority,
+      assignedTo: selectedUser?.name || undefined,
+      assignedToUserId: formData.assignedToUserId || undefined,
+      dueDate: formData.dueDate || undefined,
+    });
+    resetForm();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {categories.map((category) => {
+        const catTasks = tasksByCategory[category] || [];
+        const isFormOpen = expandedForm === category;
+
+        return (
+          <Card key={category}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium capitalize">
+                  {category.replace(/_/g, " ")}
+                </CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 h-7 text-xs"
+                  onClick={() => {
+                    if (isFormOpen) {
+                      resetForm();
+                    } else {
+                      setExpandedForm(category);
+                    }
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                  Aufgabe
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Inline create form */}
+              {isFormOpen && (
+                <div className="border rounded-lg p-3 bg-muted/30 space-y-3">
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="z.B. Preis für Drill Pipes klären..."
+                      value={formData.title}
+                      onChange={(e) =>
+                        setFormData((p) => ({ ...p, title: e.target.value }))
+                      }
+                      className="text-sm"
+                      autoFocus
+                    />
+                    <Textarea
+                      placeholder="Beschreibung (optional)..."
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData((p) => ({
+                          ...p,
+                          description: e.target.value,
+                        }))
+                      }
+                      className="text-sm min-h-[50px]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Zuständig
+                      </Label>
+                      <Select
+                        value={formData.assignedToUserId}
+                        onValueChange={(v) =>
+                          setFormData((p) => ({ ...p, assignedToUserId: v }))
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Person wählen" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map((u) => (
+                            <SelectItem
+                              key={u.id}
+                              value={u.id}
+                              className="text-xs"
+                            >
+                              {u.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Priorität
+                      </Label>
+                      <Select
+                        value={formData.priority}
+                        onValueChange={(v) =>
+                          setFormData((p) => ({
+                            ...p,
+                            priority: v as TaskPriority,
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(
+                            [
+                              "LOW",
+                              "MEDIUM",
+                              "HIGH",
+                              "CRITICAL",
+                            ] as TaskPriority[]
+                          ).map((p) => (
+                            <SelectItem key={p} value={p} className="text-xs">
+                              {TASK_PRIORITY_LABELS[p]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Fällig am
+                      </Label>
+                      <Input
+                        type="date"
+                        value={formData.dueDate}
+                        onChange={(e) =>
+                          setFormData((p) => ({
+                            ...p,
+                            dueDate: e.target.value,
+                          }))
+                        }
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={resetForm}
+                      className="h-7 text-xs"
+                    >
+                      Abbrechen
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleSubmit(category)}
+                      disabled={!formData.title.trim() || isCreating}
+                      className="h-7 text-xs gap-1"
+                    >
+                      {isCreating ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Plus className="h-3 w-3" />
+                      )}
+                      Erstellen
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Task list */}
+              {catTasks.length === 0 && !isFormOpen && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  Noch keine Aufgaben
+                </p>
+              )}
+
+              {catTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  users={users}
+                  onToggleStatus={() => {
+                    const next = NEXT_STATUS[task.status] || "OPEN";
+                    onUpdateTask(task.id, { status: next });
+                  }}
+                  onReassign={(userId, userName) => {
+                    onUpdateTask(task.id, {
+                      assignedTo: userName,
+                      assignedToUserId: userId,
+                    });
+                  }}
+                  onDelete={() => onDeleteTask(task.id)}
+                />
+              ))}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function TaskCard({
+  task,
+  users,
+  onToggleStatus,
+  onReassign,
+  onDelete,
+}: {
+  task: TenderEquipmentTask;
+  users: { id: string; name: string }[];
+  onToggleStatus: () => void;
+  onReassign: (userId: string, userName: string) => void;
+  onDelete: () => void;
+}) {
+  const isDone = task.status === "DONE";
+  const isOverdue =
+    task.dueDate && !isDone && new Date(task.dueDate) < new Date();
+
+  return (
+    <div
+      className={cn(
+        "group flex items-start gap-3 p-3 rounded-lg border transition-colors",
+        isDone
+          ? "bg-muted/30 border-muted opacity-70"
+          : isOverdue
+            ? "bg-red-50/50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
+            : "bg-background hover:bg-muted/20",
+      )}
+    >
+      {/* Status toggle */}
+      <button
+        onClick={onToggleStatus}
+        className={cn(
+          "mt-0.5 flex-shrink-0 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors",
+          isDone
+            ? "bg-green-500 border-green-500 text-white"
+            : task.status === "IN_PROGRESS"
+              ? "border-amber-400 bg-amber-50 dark:bg-amber-900/30"
+              : "border-muted-foreground/30 hover:border-primary",
+        )}
+        title={`Status: ${TASK_STATUS_LABELS[task.status]} → Klicken zum Wechseln`}
+      >
+        {isDone && <CheckCircle2 className="h-3 w-3" />}
+        {task.status === "IN_PROGRESS" && (
+          <div className="h-2 w-2 rounded-full bg-amber-400" />
+        )}
+      </button>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <p
+            className={cn(
+              "text-sm font-medium leading-tight",
+              isDone && "line-through text-muted-foreground",
+            )}
+          >
+            {task.title}
+          </p>
+          <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onDelete}
+              className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+              title="Löschen"
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+
+        {task.description && (
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+            {task.description}
+          </p>
+        )}
+
+        {/* Meta row */}
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <Badge
+            className={cn(
+              "text-[10px] px-1.5 py-0",
+              TASK_STATUS_COLORS[task.status],
+            )}
+          >
+            {TASK_STATUS_LABELS[task.status]}
+          </Badge>
+
+          <span
+            className={cn(
+              "text-[10px] font-medium",
+              TASK_PRIORITY_COLORS[task.priority],
+            )}
+          >
+            {TASK_PRIORITY_LABELS[task.priority]}
+          </span>
+
+          {task.assignedTo && (
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <User className="h-3 w-3" />
+              <span>{task.assignedTo}</span>
+            </div>
+          )}
+
+          {!task.assignedTo && (
+            <Select
+              onValueChange={(userId) => {
+                const u = users.find((x) => x.id === userId);
+                if (u) onReassign(userId, u.name);
+              }}
+            >
+              <SelectTrigger className="h-5 w-auto gap-1 border-dashed text-[10px] px-1.5 py-0">
+                <UserPlus className="h-3 w-3" />
+                <span>Zuweisen</span>
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((u) => (
+                  <SelectItem key={u.id} value={u.id} className="text-xs">
+                    {u.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {task.dueDate && (
+            <div
+              className={cn(
+                "flex items-center gap-1 text-[10px]",
+                isOverdue
+                  ? "text-red-600 font-medium"
+                  : "text-muted-foreground",
+              )}
+            >
+              <CalendarDays className="h-3 w-3" />
+              <span>
+                {new Date(task.dueDate).toLocaleDateString("de-DE", {
+                  day: "2-digit",
+                  month: "short",
+                })}
+              </span>
+              {isOverdue && <span className="text-red-600">überfällig</span>}
+            </div>
+          )}
+
+          {task.completedAt && (
+            <span className="text-[10px] text-green-600">
+              ✓ {new Date(task.completedAt).toLocaleDateString("de-DE")}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

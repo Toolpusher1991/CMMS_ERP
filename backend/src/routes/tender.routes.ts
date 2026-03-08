@@ -11,6 +11,12 @@ import {
   getTenderComments,
   getTenderHistory,
 } from '../controllers/tender.controller';
+import {
+  getTenderTasks,
+  createTenderTask,
+  updateTenderTask,
+  deleteTenderTask,
+} from '../controllers/tender-tasks.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { createTenderSchema, updateTenderSchema } from '../schemas/tender.schema';
@@ -47,5 +53,11 @@ router.get('/:id/comments', getTenderComments);
 
 // ── Status History ────────────────────────────────────────
 router.get('/:id/history', getTenderHistory);
+
+// ── Equipment Tasks ───────────────────────────────────────
+router.get('/:id/tasks', getTenderTasks);
+router.post('/:id/tasks', createTenderTask);
+router.patch('/:id/tasks/:taskId', updateTenderTask);
+router.delete('/:id/tasks/:taskId', deleteTenderTask);
 
 export default router;

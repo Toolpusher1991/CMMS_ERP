@@ -83,6 +83,75 @@ export interface TenderStatusHistoryEntry {
   createdAt: string;
 }
 
+// ── Equipment Task Types ──────────────────────────────────
+export type TaskStatus = 'OPEN' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  OPEN: 'Offen',
+  IN_PROGRESS: 'In Bearbeitung',
+  DONE: 'Erledigt',
+  CANCELLED: 'Storniert',
+};
+
+export const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
+  OPEN: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+  IN_PROGRESS: 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300',
+  DONE: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+  CANCELLED: 'bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300',
+};
+
+export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
+  LOW: 'Niedrig',
+  MEDIUM: 'Mittel',
+  HIGH: 'Hoch',
+  CRITICAL: 'Kritisch',
+};
+
+export const TASK_PRIORITY_COLORS: Record<TaskPriority, string> = {
+  LOW: 'text-gray-500',
+  MEDIUM: 'text-blue-500',
+  HIGH: 'text-orange-500',
+  CRITICAL: 'text-red-600',
+};
+
+export interface TenderEquipmentTask {
+  id: string;
+  tenderId: string;
+  equipmentCategory: string;
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assignedTo?: string;
+  assignedToUserId?: string;
+  dueDate?: string;
+  completedAt?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTaskRequest {
+  equipmentCategory: string;
+  title: string;
+  description?: string;
+  priority?: TaskPriority;
+  assignedTo?: string;
+  assignedToUserId?: string;
+  dueDate?: string;
+}
+
+export interface UpdateTaskRequest {
+  title?: string;
+  description?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  assignedTo?: string;
+  assignedToUserId?: string;
+  dueDate?: string;
+}
+
 export interface TenderCreator {
   id: string;
   firstName: string;
@@ -266,6 +335,30 @@ class TenderService {
 
   async getHistory(tenderId: string): Promise<TenderStatusHistoryEntry[]> {
     return this.request<TenderStatusHistoryEntry[]>(`/tender/${tenderId}/history`);
+  }
+
+  // ── Equipment Tasks ─────────────────────────────────────
+
+  async getTasks(tenderId: string): Promise<TenderEquipmentTask[]> {
+    return this.request<TenderEquipmentTask[]>(`/tender/${tenderId}/tasks`);
+  }
+
+  async createTask(tenderId: string, task: CreateTaskRequest): Promise<TenderEquipmentTask> {
+    return this.request<TenderEquipmentTask>(`/tender/${tenderId}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify(task),
+    });
+  }
+
+  async updateTask(tenderId: string, taskId: string, update: UpdateTaskRequest): Promise<TenderEquipmentTask> {
+    return this.request<TenderEquipmentTask>(`/tender/${tenderId}/tasks/${taskId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(update),
+    });
+  }
+
+  async deleteTask(tenderId: string, taskId: string): Promise<void> {
+    await this.request<void>(`/tender/${tenderId}/tasks/${taskId}`, { method: 'DELETE' });
   }
 }
 
