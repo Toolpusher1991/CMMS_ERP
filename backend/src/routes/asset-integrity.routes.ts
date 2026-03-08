@@ -26,7 +26,6 @@ const requireAdmin = (req: AuthRequest, res: Response, next: () => void) => {
 router.get('/rigs', authenticate, async (req: Request, res: Response) => {
   try {
     const rigs = await prisma.rig.findMany({
-      orderBy: { name: 'asc' },
       include: {
         _count: {
           select: {
@@ -38,8 +37,14 @@ router.get('/rigs', authenticate, async (req: Request, res: Response) => {
       }
     });
 
+    // Natural sort: T-51 before T-144, T-801 before T-895 etc.
+    const naturalSort = (a: string, b: string) => {
+      return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+    };
+    const sortedRigs = [...rigs].sort((a, b) => naturalSort(a.name, b.name));
+
     // Parse JSON fields
-    const rigsWithParsedData = rigs.map(rig => ({
+    const rigsWithParsedData = sortedRigs.map(rig => ({
       ...rig,
       certifications: JSON.parse(rig.certifications),
       generalInfo: JSON.parse(rig.generalInfo),
