@@ -278,6 +278,21 @@ export const transitionTenderStatus = async (req: Request, res: Response) => {
       );
     }
 
+    // ── Task completion gate: block forward transitions if tasks are not all DONE ──
+    // Forward = anything except REJECTED, CANCELLED, DRAFT (those are always allowed)
+    const BYPASS_TASK_CHECK = ['REJECTED', 'CANCELLED', 'DRAFT'];
+    if (!BYPASS_TASK_CHECK.includes(toStatus)) {
+      const openTasks = await prisma.tenderEquipmentTask.count({
+        where: { tenderId: id, status: { not: 'DONE' } },
+      });
+      if (openTasks > 0) {
+        throw new AppError(
+          `Transition blockiert: ${openTasks} Aufgabe(n) sind noch nicht erledigt. Alle Aufgaben müssen abgeschlossen sein, bevor der Tender weitergeleitet werden kann.`,
+          400,
+        );
+      }
+    }
+
     // Role checks for critical transitions
     if (['TECHNICAL_REVIEW', 'APPROVED', 'REJECTED'].includes(toStatus)) {
       if (userRole !== 'ADMIN' && userRole !== 'MANAGER') {

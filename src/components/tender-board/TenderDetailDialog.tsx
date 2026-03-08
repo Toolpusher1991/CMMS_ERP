@@ -268,6 +268,10 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
     [tender.status],
   );
 
+  // Forward transitions require all tasks to be DONE
+  const BYPASS_TASK_CHECK: TenderStatus[] = ["REJECTED", "CANCELLED", "DRAFT"];
+  const hasOpenTasks = taskStats.total > 0 && taskStats.done < taskStats.total;
+
   const handleTransition = (toStatus: TenderStatus) => {
     if (toStatus === "REJECTED") {
       setRejectOpen(true);
@@ -322,19 +326,33 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <p className="text-sm font-medium">Workflow-Aktionen</p>
                   <div className="flex items-center gap-2 flex-wrap">
-                    {availableTransitions.map((toStatus) => (
-                      <TransitionButton
-                        key={toStatus}
-                        toStatus={toStatus}
-                        disabled={transitionMutation.isPending}
-                        isAdmin={isAdminOrManager}
-                        onClick={() => handleTransition(toStatus)}
-                      />
-                    ))}
+                    {availableTransitions.map((toStatus) => {
+                      const isForward = !BYPASS_TASK_CHECK.includes(toStatus);
+                      const blocked = isForward && hasOpenTasks;
+                      return (
+                        <TransitionButton
+                          key={toStatus}
+                          toStatus={toStatus}
+                          disabled={transitionMutation.isPending || blocked}
+                          isAdmin={isAdminOrManager}
+                          onClick={() => handleTransition(toStatus)}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Task completion warning */}
+          {hasOpenTasks && availableTransitions.some((s) => !BYPASS_TASK_CHECK.includes(s)) && (
+            <div className="flex items-center gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-400">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <span>
+                <strong>{taskStats.total - taskStats.done} Aufgabe(n)</strong> noch offen — alle Aufgaben müssen erledigt sein, bevor der Tender weitergeleitet werden kann.
+              </span>
+            </div>
           )}
 
           {/* ── Tabs ── */}
@@ -551,56 +569,108 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {tender.selectedRig.drawworks && (
                         <div className="p-2 bg-muted/50 rounded">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Drawworks</span>
-                          <p className="text-sm font-medium">{tender.selectedRig.drawworks}</p>
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                            Drawworks
+                          </span>
+                          <p className="text-sm font-medium">
+                            {tender.selectedRig.drawworks}
+                          </p>
                         </div>
                       )}
                       {tender.selectedRig.mudPumps && (
                         <div className="p-2 bg-muted/50 rounded">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Mud Pumps</span>
-                          <p className="text-sm font-medium">{tender.selectedRig.mudPumps}</p>
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                            Mud Pumps
+                          </span>
+                          <p className="text-sm font-medium">
+                            {tender.selectedRig.mudPumps}
+                          </p>
                         </div>
                       )}
                       {tender.selectedRig.topDrive && (
                         <div className="p-2 bg-muted/50 rounded">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Top Drive</span>
-                          <p className="text-sm font-medium">{tender.selectedRig.topDrive}</p>
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                            Top Drive
+                          </span>
+                          <p className="text-sm font-medium">
+                            {tender.selectedRig.topDrive}
+                          </p>
                         </div>
                       )}
                       {tender.selectedRig.derrickCapacity && (
                         <div className="p-2 bg-muted/50 rounded">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Derrick</span>
-                          <p className="text-sm font-medium">{tender.selectedRig.derrickCapacity}</p>
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                            Derrick
+                          </span>
+                          <p className="text-sm font-medium">
+                            {tender.selectedRig.derrickCapacity}
+                          </p>
                         </div>
                       )}
                       {tender.selectedRig.maxDepth && (
                         <div className="p-2 bg-muted/50 rounded">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Max. Tiefe</span>
-                          <p className="text-sm font-medium">{Number(tender.selectedRig.maxDepth).toLocaleString("de-DE")} m</p>
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                            Max. Tiefe
+                          </span>
+                          <p className="text-sm font-medium">
+                            {Number(tender.selectedRig.maxDepth).toLocaleString(
+                              "de-DE",
+                            )}{" "}
+                            m
+                          </p>
                         </div>
                       )}
                       {tender.selectedRig.maxHookLoad && (
                         <div className="p-2 bg-muted/50 rounded">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Hakenlast</span>
-                          <p className="text-sm font-medium">{Number(tender.selectedRig.maxHookLoad).toLocaleString("de-DE")} t</p>
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                            Hakenlast
+                          </span>
+                          <p className="text-sm font-medium">
+                            {Number(
+                              tender.selectedRig.maxHookLoad,
+                            ).toLocaleString("de-DE")}{" "}
+                            t
+                          </p>
                         </div>
                       )}
                       {tender.selectedRig.rotaryTorque && (
                         <div className="p-2 bg-muted/50 rounded">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Drehmoment</span>
-                          <p className="text-sm font-medium">{Number(tender.selectedRig.rotaryTorque).toLocaleString("de-DE")} Nm</p>
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                            Drehmoment
+                          </span>
+                          <p className="text-sm font-medium">
+                            {Number(
+                              tender.selectedRig.rotaryTorque,
+                            ).toLocaleString("de-DE")}{" "}
+                            Nm
+                          </p>
                         </div>
                       )}
                       {tender.selectedRig.pumpPressure && (
                         <div className="p-2 bg-muted/50 rounded">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Pumpendruck</span>
-                          <p className="text-sm font-medium">{Number(tender.selectedRig.pumpPressure).toLocaleString("de-DE")} psi</p>
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                            Pumpendruck
+                          </span>
+                          <p className="text-sm font-medium">
+                            {Number(
+                              tender.selectedRig.pumpPressure,
+                            ).toLocaleString("de-DE")}{" "}
+                            psi
+                          </p>
                         </div>
                       )}
                       {tender.selectedRig.dayRate && (
                         <div className="p-2 bg-muted/50 rounded">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Tagesrate</span>
-                          <p className="text-sm font-medium text-emerald-500">€{Number(tender.selectedRig.dayRate).toLocaleString("de-DE")}/d</p>
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                            Tagesrate
+                          </span>
+                          <p className="text-sm font-medium text-emerald-500">
+                            €
+                            {Number(tender.selectedRig.dayRate).toLocaleString(
+                              "de-DE",
+                            )}
+                            /d
+                          </p>
                         </div>
                       )}
                     </div>
