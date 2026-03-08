@@ -521,13 +521,22 @@ export function useRigConfigurator() {
 
   // ── Tender duration helpers ──
   const calculateTenderDuration = useCallback((config: TenderConfiguration) => {
+    // If both contract dates exist, calculate actual duration
+    if (config.contractStartDate && config.contractEndDate) {
+      const start = new Date(config.contractStartDate).getTime();
+      const end = new Date(config.contractEndDate).getTime();
+      return Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+    }
+    // Fallback: parse projectDuration string (e.g. "90 Tage")
     const match = config.projectDuration?.match(/(\d+)/);
     return match ? parseInt(match[0]) : 0;
   }, []);
 
   const calculateDaysElapsed = useCallback((config: TenderConfiguration) => {
-    if (!config.createdAt) return 0;
-    return Math.ceil(Math.abs(new Date().getTime() - new Date(config.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+    const startDate = config.contractStartDate || config.createdAt;
+    if (!startDate) return 0;
+    const elapsed = Math.ceil((new Date().getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(0, elapsed);
   }, []);
 
   // ═══════════════════════════════════════════════════════

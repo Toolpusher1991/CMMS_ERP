@@ -79,7 +79,7 @@ export function RigSelectionTab({
                 ? "ring-2 ring-primary shadow-lg border-primary"
                 : "hover:shadow-md hover:border-primary/50"
             } ${
-              rig.isSuitable && index === 0
+              rig.isSuitable
                 ? "border-green-500 bg-green-50/50 dark:bg-green-950/20"
                 : ""
             }`}
@@ -91,8 +91,10 @@ export function RigSelectionTab({
                   <div className="flex items-center gap-3 mb-2">
                     <CardTitle className="text-2xl">{rig.name}</CardTitle>
                     <Badge variant="secondary">{rig.category}</Badge>
-                    {rig.isSuitable && index === 0 && (
-                      <Badge className="bg-green-500">EMPFEHLUNG</Badge>
+                    {rig.isSuitable && (
+                      <Badge className="bg-green-500">
+                        {index === 0 ? "BESTE EMPFEHLUNG" : "GEEIGNET"}
+                      </Badge>
                     )}
                     {selectedRig?.id === rig.id && (
                       <Badge className="bg-blue-500">AUSGEWÄHLT</Badge>

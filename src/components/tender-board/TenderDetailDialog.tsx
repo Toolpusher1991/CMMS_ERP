@@ -346,14 +346,19 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
           )}
 
           {/* Task completion warning */}
-          {hasOpenTasks && availableTransitions.some((s) => !BYPASS_TASK_CHECK.includes(s)) && (
-            <div className="flex items-center gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-400">
-              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-              <span>
-                <strong>{taskStats.total - taskStats.done} Aufgabe(n)</strong> noch offen — alle Aufgaben müssen erledigt sein, bevor der Tender weitergeleitet werden kann.
-              </span>
-            </div>
-          )}
+          {hasOpenTasks &&
+            availableTransitions.some(
+              (s) => !BYPASS_TASK_CHECK.includes(s),
+            ) && (
+              <div className="flex items-center gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-400">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                <span>
+                  <strong>{taskStats.total - taskStats.done} Aufgabe(n)</strong>{" "}
+                  noch offen — alle Aufgaben müssen erledigt sein, bevor der
+                  Tender weitergeleitet werden kann.
+                </span>
+              </div>
+            )}
 
           {/* ── Tabs ── */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
