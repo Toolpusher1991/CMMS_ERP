@@ -40,6 +40,7 @@ model User {
   managedProjects      Project[]             @relation("ProjectManager")
   refreshTokens        RefreshToken[]
   tenderConfigurations TenderConfiguration[]
+  tenderComments       TenderComment[]
   approvedByUser       User?                 @relation("UserApprovals", fields: [approvedBy], references: [id])
   approvedUsers        User[]                @relation("UserApprovals")
 
@@ -294,7 +295,8 @@ model ProjectComment {
 }
 
 model TenderConfiguration {
-  id                String    @id @default(uuid())
+  id                String               @id @default(uuid())
+  tenderNumber      String?              @unique
   projectName       String
   clientName        String?
   location          String?
@@ -302,17 +304,68 @@ model TenderConfiguration {
   selectedRig       Json
   selectedEquipment Json
   totalPrice        Float
-  isUnderContract   Boolean   @default(false)
+  isUnderContract   Boolean              @default(false)
   notes             String?
   createdBy         String
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
   contractStartDate DateTime?
-  createdByUser     User      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  // ── Workflow fields ──
+  status            String               @default("DRAFT")
+  validUntil        DateTime?
+  submittedAt       DateTime?
+  submittedBy       String?
+  reviewedAt        DateTime?
+  reviewedBy        String?
+  approvedAt        DateTime?
+  approvedBy        String?
+  rejectionReason   String?
+  contractEndDate   DateTime?
+
+  // ── Risk & Opportunity ──
+  technicalRisks    Json?
+  commercialNotes   Json?
+  assetScore        String?
+
+  // ── Relations ──
+  createdByUser     User                 @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  comments          TenderComment[]
+  statusHistory     TenderStatusHistory[]
 
   @@index([createdBy])
   @@index([isUnderContract])
+  @@index([status])
+  @@index([tenderNumber])
   @@map("tender_configurations")
+}
+
+model TenderComment {
+  id        String              @id @default(uuid())
+  tenderId  String
+  userId    String
+  text      String
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  tender    TenderConfiguration @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
+  @@map("tender_comments")
+}
+
+model TenderStatusHistory {
+  id         String              @id @default(uuid())
+  tenderId   String
+  fromStatus String
+  toStatus   String
+  changedBy  String
+  reason     String?
+  createdAt  DateTime            @default(now())
+  tender     TenderConfiguration @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
+  @@map("tender_status_history")
 }
 
 model InspectionReport {

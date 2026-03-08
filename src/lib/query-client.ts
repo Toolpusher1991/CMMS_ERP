@@ -70,6 +70,8 @@ export const queryKeys = {
     all: ['tenders'] as const,
     list: () => [...queryKeys.tenders.all, 'list'] as const,
     detail: (id: string) => [...queryKeys.tenders.all, 'detail', id] as const,
+    comments: (id: string) => [...queryKeys.tenders.all, 'comments', id] as const,
+    history: (id: string) => [...queryKeys.tenders.all, 'history', id] as const,
   },
 
   // Inspection Reports

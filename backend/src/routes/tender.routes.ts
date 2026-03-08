@@ -5,7 +5,11 @@ import {
   updateTenderConfiguration,
   toggleContractStatus,
   deleteTenderConfiguration,
-  getTenderConfiguration
+  getTenderConfiguration,
+  transitionTenderStatus,
+  addTenderComment,
+  getTenderComments,
+  getTenderHistory,
 } from '../controllers/tender.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';
@@ -16,7 +20,7 @@ const router = express.Router();
 // Apply authentication middleware to all routes
 router.use(authenticate);
 
-// GET /api/tender - Get all tender configurations for current user
+// GET /api/tender - Get all tender configurations
 router.get('/', getAllTenderConfigurations);
 
 // POST /api/tender - Create a new tender configuration
@@ -28,10 +32,20 @@ router.get('/:id', getTenderConfiguration);
 // PUT /api/tender/:id - Update a tender configuration
 router.put('/:id', validate(updateTenderSchema), updateTenderConfiguration);
 
-// PATCH /api/tender/:id/contract-status - Toggle contract status
+// PATCH /api/tender/:id/status - Workflow status transition (new)
+router.patch('/:id/status', transitionTenderStatus);
+
+// PATCH /api/tender/:id/contract-status - Legacy toggle (backwards compat)
 router.patch('/:id/contract-status', toggleContractStatus);
 
 // DELETE /api/tender/:id - Delete a tender configuration
 router.delete('/:id', deleteTenderConfiguration);
+
+// ── Comments ──────────────────────────────────────────────
+router.post('/:id/comments', addTenderComment);
+router.get('/:id/comments', getTenderComments);
+
+// ── Status History ────────────────────────────────────────
+router.get('/:id/history', getTenderHistory);
 
 export default router;

@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-client";
 import { apiClient } from "@/services/api";
@@ -152,7 +158,10 @@ const ActionTracker = ({
 
   // -- React Query: users (shared, deduplicated across pages) --
   const { data: userListData } = useUserList();
-  const users: UserListItem[] = useMemo(() => userListData ?? [], [userListData]);
+  const users: UserListItem[] = useMemo(
+    () => userListData ?? [],
+    [userListData],
+  );
 
   // -- React Query: actions --
   const transformActions = useCallback((response: ApiAction[]): Action[] => {
@@ -198,7 +207,16 @@ const ActionTracker = ({
       return transformActions(response);
     },
   });
-  const actions: Action[] = useMemo(() => actionsData ?? [], [actionsData]);
+  const actions: Action[] = useMemo(
+    () =>
+      (actionsData ?? []).map((a) => ({
+        ...a,
+        tasks: a.tasks ?? [],
+        files: a.files ?? [],
+        comments: a.comments ?? [],
+      })),
+    [actionsData],
+  );
 
   /** Invalidate actions query (replaces old loadActions) */
   const refreshActions = useCallback(() => {
@@ -770,7 +788,7 @@ const ActionTracker = ({
           action.id === currentTaskActionId
             ? {
                 ...action,
-                tasks: action.tasks.map((task) =>
+                tasks: (action.tasks ?? []).map((task) =>
                   task.id === currentTask.id
                     ? {
                         ...task,
@@ -806,7 +824,7 @@ const ActionTracker = ({
       queryClient.setQueryData<Action[]>(queryKeys.actions.list(), (prev) =>
         (prev ?? []).map((action) =>
           action.id === currentTaskActionId
-            ? { ...action, tasks: [...action.tasks, newTask] }
+            ? { ...action, tasks: [...(action.tasks ?? []), newTask] }
             : action,
         ),
       );
@@ -834,7 +852,7 @@ const ActionTracker = ({
         action.id === actionId
           ? {
               ...action,
-              tasks: action.tasks.map((task) =>
+              tasks: (action.tasks ?? []).map((task) =>
                 task.id === taskId
                   ? { ...task, completed: !task.completed }
                   : task,
@@ -851,7 +869,7 @@ const ActionTracker = ({
         action.id === actionId
           ? {
               ...action,
-              tasks: action.tasks.filter((task) => task.id !== taskId),
+              tasks: (action.tasks ?? []).filter((task) => task.id !== taskId),
             }
           : action,
       ),

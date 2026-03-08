@@ -70,6 +70,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { apiClient } from "@/services/api";
 import { rigQuoteExportService } from "@/services/rig-quote-export.service";
 import { PageHeader } from "@/components/shared/PageHeader";
+import TenderBoard from "@/components/tender-board/TenderBoard";
 import type {
   ProjectRequirements,
   EquipmentItem,
@@ -186,6 +187,7 @@ const RigConfigurator = () => {
 
   // Gantt Chart View
   const [showGanttView, setShowGanttView] = useState(false);
+  const [tenderViewMode, setTenderViewMode] = useState<'table' | 'gantt' | 'board'>('board');
 
   // Contract Start Date Dialog
   const [contractDateDialogOpen, setContractDateDialogOpen] = useState(false);
@@ -2237,17 +2239,25 @@ const RigConfigurator = () => {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       <Button
-                        variant={!showGanttView ? "default" : "outline"}
+                        variant={tenderViewMode === "board" ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setShowGanttView(false)}
+                        onClick={() => setTenderViewMode("board")}
+                      >
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Board
+                      </Button>
+                      <Button
+                        variant={tenderViewMode === "table" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setTenderViewMode("table")}
                       >
                         <ClipboardList className="h-4 w-4 mr-2" />
                         Tabelle
                       </Button>
                       <Button
-                        variant={showGanttView ? "default" : "outline"}
+                        variant={tenderViewMode === "gantt" ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setShowGanttView(true)}
+                        onClick={() => setTenderViewMode("gantt")}
                       >
                         <BarChart3 className="h-4 w-4 mr-2" />
                         Gantt-Ansicht
@@ -2266,8 +2276,13 @@ const RigConfigurator = () => {
                     )}
                   </div>
 
+                  {/* Board View (new Kanban + Table) */}
+                  {tenderViewMode === "board" && (
+                    <TenderBoard />
+                  )}
+
                   {/* Gantt Chart View */}
-                  {showGanttView &&
+                  {tenderViewMode === "gantt" &&
                     savedConfigurations.some((c) => c.isUnderContract) && (
                       <Card className="border-2 border-primary/20">
                         <CardHeader>
@@ -2350,7 +2365,7 @@ const RigConfigurator = () => {
                     )}
 
                   {/* Tender Table */}
-                  {!showGanttView && (
+                  {tenderViewMode === "table" && (
                     <div className="rounded-xl border-2 border-primary/20 overflow-hidden shadow-lg">
                       <div className="overflow-x-auto">
                         <table className="w-full">

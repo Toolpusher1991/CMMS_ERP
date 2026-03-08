@@ -65,10 +65,10 @@ export function EnhancedUserAdminPage() {
   const [qrCodeUrl, setQRCodeUrl] = useState<string>("");
 
   const [selectedUser, setSelectedUser] = useState<User | PendingUser | null>(
-    null
+    null,
   );
   const [approvalAction, setApprovalAction] = useState<"APPROVED" | "REJECTED">(
-    "APPROVED"
+    "APPROVED",
   );
   const [rejectionReason, setRejectionReason] = useState("");
 
@@ -183,7 +183,11 @@ export function EnhancedUserAdminPage() {
       alert("Benutzer erfolgreich erstellt");
     } catch (error: unknown) {
       console.error("Failed to create user:", error);
-      alert(error instanceof Error ? error.message : "Fehler beim Erstellen des Benutzers");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Fehler beim Erstellen des Benutzers",
+      );
     }
   };
 
@@ -211,7 +215,11 @@ export function EnhancedUserAdminPage() {
       alert("Benutzer erfolgreich aktualisiert");
     } catch (error: unknown) {
       console.error("Failed to update user:", error);
-      alert(error instanceof Error ? error.message : "Fehler beim Aktualisieren des Benutzers");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Fehler beim Aktualisieren des Benutzers",
+      );
     }
   };
 
@@ -224,7 +232,11 @@ export function EnhancedUserAdminPage() {
       alert("Benutzer erfolgreich gelöscht");
     } catch (error: unknown) {
       console.error("Failed to delete user:", error);
-      alert(error instanceof Error ? error.message : "Fehler beim Löschen des Benutzers");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Fehler beim Löschen des Benutzers",
+      );
     }
   };
 
@@ -237,7 +249,11 @@ export function EnhancedUserAdminPage() {
       await loadUsers();
     } catch (error: unknown) {
       console.error("Failed to toggle user status:", error);
-      alert(error instanceof Error ? error.message : "Fehler beim Ändern des Status");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Fehler beim Ändern des Status",
+      );
     }
   };
 
@@ -247,7 +263,7 @@ export function EnhancedUserAdminPage() {
 
   const handleApprovalDialog = (
     user: PendingUser,
-    action: "APPROVED" | "REJECTED"
+    action: "APPROVED" | "REJECTED",
   ) => {
     setSelectedUser(user);
     setApprovalAction(action);
@@ -271,11 +287,13 @@ export function EnhancedUserAdminPage() {
       alert(
         approvalAction === "APPROVED"
           ? "Benutzer erfolgreich genehmigt"
-          : "Benutzer erfolgreich abgelehnt"
+          : "Benutzer erfolgreich abgelehnt",
       );
     } catch (error: unknown) {
       console.error("Failed to approve/reject user:", error);
-      alert(error instanceof Error ? error.message : "Fehler bei der Genehmigung");
+      alert(
+        error instanceof Error ? error.message : "Fehler bei der Genehmigung",
+      );
     }
   };
 
@@ -312,7 +330,11 @@ export function EnhancedUserAdminPage() {
       alert("Passwort erfolgreich geändert");
     } catch (error: unknown) {
       console.error("Failed to change password:", error);
-      alert(error instanceof Error ? error.message : "Fehler beim Ändern des Passworts");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Fehler beim Ändern des Passworts",
+      );
     }
   };
 
@@ -329,7 +351,11 @@ export function EnhancedUserAdminPage() {
       alert("Konto erfolgreich entsperrt");
     } catch (error: unknown) {
       console.error("Failed to unlock account:", error);
-      alert(error instanceof Error ? error.message : "Fehler beim Entsperren des Kontos");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Fehler beim Entsperren des Kontos",
+      );
     }
   };
 
@@ -369,7 +395,7 @@ export function EnhancedUserAdminPage() {
     (user) =>
       user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   // ============================================
@@ -506,7 +532,7 @@ export function EnhancedUserAdminPage() {
                           <TableCell className="py-3">
                             <span
                               className={`inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium border ${getRoleBadgeColor(
-                                user.role
+                                user.role,
                               )}`}
                             >
                               {user.role}
@@ -515,7 +541,7 @@ export function EnhancedUserAdminPage() {
                           <TableCell className="py-3">
                             <span
                               className={`inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium border ${getStatusBadgeColor(
-                                user.isActive
+                                user.isActive,
                               )}`}
                             >
                               {user.isActive ? "✓ Aktiv" : "✗ Inaktiv"}
@@ -523,7 +549,7 @@ export function EnhancedUserAdminPage() {
                           </TableCell>
                           <TableCell className="py-3 text-sm">
                             {new Date(user.createdAt).toLocaleDateString(
-                              "de-DE"
+                              "de-DE",
                             )}
                           </TableCell>
                           <TableCell className="text-right py-3">
@@ -632,7 +658,7 @@ export function EnhancedUserAdminPage() {
                           <TableCell>
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeColor(
-                                user.role
+                                user.role,
                               )}`}
                             >
                               {user.role}
@@ -647,7 +673,7 @@ export function EnhancedUserAdminPage() {
                                 day: "numeric",
                                 hour: "2-digit",
                                 minute: "2-digit",
-                              }
+                              },
                             )}
                           </TableCell>
                           <TableCell className="text-right">
@@ -787,7 +813,7 @@ export function EnhancedUserAdminPage() {
                       >
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeColor(
-                            item.role
+                            item.role,
                           )}`}
                         >
                           {item.role}

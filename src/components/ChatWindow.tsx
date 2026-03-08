@@ -108,7 +108,8 @@ export const ChatWindow = forwardRef<ChatWindowRef, ChatWindowProps>(
         toast({
           title: "Fehler",
           description:
-            (error instanceof Error ? error.message : String(error)) || "Nachricht konnte nicht gesendet werden.",
+            (error instanceof Error ? error.message : String(error)) ||
+            "Nachricht konnte nicht gesendet werden.",
           variant: "destructive",
         });
       } finally {
@@ -349,5 +350,5 @@ export const ChatWindow = forwardRef<ChatWindowRef, ChatWindowProps>(
         </div>
       </div>
     );
-  }
+  },
 );

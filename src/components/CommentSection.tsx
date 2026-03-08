@@ -195,7 +195,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary">
                           {getInitials(
                             comment.user.firstName,
-                            comment.user.lastName
+                            comment.user.lastName,
                           )}
                         </div>
                       </div>

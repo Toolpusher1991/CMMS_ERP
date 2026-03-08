@@ -69,7 +69,11 @@ export function UserAdminPage() {
       alert("Benutzer erfolgreich erstellt");
     } catch (error: unknown) {
       console.error("Failed to create user:", error);
-      alert(error instanceof Error ? error.message : "Fehler beim Erstellen des Benutzers");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Fehler beim Erstellen des Benutzers",
+      );
     }
   };
 
@@ -97,7 +101,11 @@ export function UserAdminPage() {
       alert("Benutzer erfolgreich aktualisiert");
     } catch (error: unknown) {
       console.error("Failed to update user:", error);
-      alert(error instanceof Error ? error.message : "Fehler beim Aktualisieren des Benutzers");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Fehler beim Aktualisieren des Benutzers",
+      );
     }
   };
 
@@ -110,7 +118,11 @@ export function UserAdminPage() {
       alert("Benutzer erfolgreich gelöscht");
     } catch (error: unknown) {
       console.error("Failed to delete user:", error);
-      alert(error instanceof Error ? error.message : "Fehler beim Löschen des Benutzers");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Fehler beim Löschen des Benutzers",
+      );
     }
   };
 
@@ -123,7 +135,11 @@ export function UserAdminPage() {
       await loadUsers();
     } catch (error: unknown) {
       console.error("Failed to toggle user status:", error);
-      alert(error instanceof Error ? error.message : "Fehler beim Ändern des Status");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Fehler beim Ändern des Status",
+      );
     }
   };
 
@@ -202,7 +218,7 @@ export function UserAdminPage() {
                     <TableCell>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(
-                          user.role
+                          user.role,
                         )}`}
                       >
                         {user.role}

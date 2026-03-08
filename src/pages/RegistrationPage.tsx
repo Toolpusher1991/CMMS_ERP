@@ -76,7 +76,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({
     // Prüfe auf Sonderzeichen
     if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(formData.password)) {
       setError(
-        "Passwort muss mindestens ein Sonderzeichen enthalten (!@#$%^&* etc.)"
+        "Passwort muss mindestens ein Sonderzeichen enthalten (!@#$%^&* etc.)",
       );
       return false;
     }
@@ -118,7 +118,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({
       const error = err as { response?: { data?: { error?: string } } };
       setError(
         error.response?.data?.error ||
-          "Registrierung fehlgeschlagen. Bitte versuche es erneut."
+          "Registrierung fehlgeschlagen. Bitte versuche es erneut.",
       );
     } finally {
       setIsLoading(false);
@@ -301,14 +301,14 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({
                     <p
                       className={
                         /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(
-                          formData.password
+                          formData.password,
                         )
                           ? "text-green-600"
                           : "text-muted-foreground"
                       }
                     >
                       {/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(
-                        formData.password
+                        formData.password,
                       )
                         ? "✓"
                         : "○"}{" "}

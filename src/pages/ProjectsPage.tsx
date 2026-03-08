@@ -1417,7 +1417,7 @@ export default function ProjectsPage() {
       setFlowTaskToDelete(null);
       setShowDeleteFlowTaskDialog(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowTaskToDelete, setNodes, setEdges, toast]);
 
   // Handle Material Update - updates material info directly on the task
@@ -1612,7 +1612,7 @@ export default function ProjectsPage() {
         variant: "destructive",
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedProject,
     flowTaskForm,
