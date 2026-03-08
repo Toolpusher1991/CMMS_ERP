@@ -120,6 +120,7 @@ const RigConfigurator = () => {
               matchedRigs={state.matchedRigs}
               selectedRig={state.selectedRig}
               isAdmin={state.isAdmin}
+              savedConfigurations={state.savedConfigurations}
               onSelectRig={state.setSelectedRig}
               onEditRigPrice={state.openRigPriceEdit}
               onEditRig={state.openRigEdit}
