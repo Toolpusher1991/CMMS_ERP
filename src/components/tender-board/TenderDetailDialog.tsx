@@ -538,6 +538,76 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
 
             {/* ── Equipment Tab (mit Aufgaben & Kommentare) ── */}
             <TabsContent value="equipment" className="space-y-4 mt-4">
+              {/* Rig Core Equipment */}
+              {tender.selectedRig && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      {tender.selectedRig.name} — Hauptausrüstung
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {tender.selectedRig.drawworks && (
+                        <div className="p-2 bg-muted/50 rounded">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Drawworks</span>
+                          <p className="text-sm font-medium">{tender.selectedRig.drawworks}</p>
+                        </div>
+                      )}
+                      {tender.selectedRig.mudPumps && (
+                        <div className="p-2 bg-muted/50 rounded">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Mud Pumps</span>
+                          <p className="text-sm font-medium">{tender.selectedRig.mudPumps}</p>
+                        </div>
+                      )}
+                      {tender.selectedRig.topDrive && (
+                        <div className="p-2 bg-muted/50 rounded">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Top Drive</span>
+                          <p className="text-sm font-medium">{tender.selectedRig.topDrive}</p>
+                        </div>
+                      )}
+                      {tender.selectedRig.derrickCapacity && (
+                        <div className="p-2 bg-muted/50 rounded">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Derrick</span>
+                          <p className="text-sm font-medium">{tender.selectedRig.derrickCapacity}</p>
+                        </div>
+                      )}
+                      {tender.selectedRig.maxDepth && (
+                        <div className="p-2 bg-muted/50 rounded">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Max. Tiefe</span>
+                          <p className="text-sm font-medium">{Number(tender.selectedRig.maxDepth).toLocaleString("de-DE")} m</p>
+                        </div>
+                      )}
+                      {tender.selectedRig.maxHookLoad && (
+                        <div className="p-2 bg-muted/50 rounded">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Hakenlast</span>
+                          <p className="text-sm font-medium">{Number(tender.selectedRig.maxHookLoad).toLocaleString("de-DE")} t</p>
+                        </div>
+                      )}
+                      {tender.selectedRig.rotaryTorque && (
+                        <div className="p-2 bg-muted/50 rounded">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Drehmoment</span>
+                          <p className="text-sm font-medium">{Number(tender.selectedRig.rotaryTorque).toLocaleString("de-DE")} Nm</p>
+                        </div>
+                      )}
+                      {tender.selectedRig.pumpPressure && (
+                        <div className="p-2 bg-muted/50 rounded">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Pumpendruck</span>
+                          <p className="text-sm font-medium">{Number(tender.selectedRig.pumpPressure).toLocaleString("de-DE")} psi</p>
+                        </div>
+                      )}
+                      {tender.selectedRig.dayRate && (
+                        <div className="p-2 bg-muted/50 rounded">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Tagesrate</span>
+                          <p className="text-sm font-medium text-emerald-500">€{Number(tender.selectedRig.dayRate).toLocaleString("de-DE")}/d</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Task stats summary */}
               {taskStats.total > 0 && (
                 <div className="flex items-center gap-4 text-sm px-1">
@@ -601,12 +671,8 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
                   />
                   <Button
                     size="icon"
-                    disabled={
-                      !commentText.trim() || commentMutation.isPending
-                    }
-                    onClick={() =>
-                      commentMutation.mutate(commentText.trim())
-                    }
+                    disabled={!commentText.trim() || commentMutation.isPending}
+                    onClick={() => commentMutation.mutate(commentText.trim())}
                   >
                     {commentMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -949,7 +1015,10 @@ function EquipmentWithTasks({
 
         return (
           <Card key={category}>
-            <CardHeader className="pb-2 cursor-pointer" onClick={() => toggleCategory(category)}>
+            <CardHeader
+              className="pb-2 cursor-pointer"
+              onClick={() => toggleCategory(category)}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-sm font-medium capitalize">
@@ -957,7 +1026,8 @@ function EquipmentWithTasks({
                   </CardTitle>
                   {itemArr.length > 0 && (
                     <Badge variant="secondary" className="text-[10px] h-5">
-                      {itemArr.length} {itemArr.length === 1 ? "Position" : "Positionen"}
+                      {itemArr.length}{" "}
+                      {itemArr.length === 1 ? "Position" : "Positionen"}
                     </Badge>
                   )}
                   {catTasks.length > 0 && (
@@ -1108,11 +1178,7 @@ function EquipmentWithTasks({
                                 "CRITICAL",
                               ] as TaskPriority[]
                             ).map((p) => (
-                              <SelectItem
-                                key={p}
-                                value={p}
-                                className="text-xs"
-                              >
+                              <SelectItem key={p} value={p} className="text-xs">
                                 {TASK_PRIORITY_LABELS[p]}
                               </SelectItem>
                             ))}
