@@ -1,1 +1,12 @@
 export type { ProjectRequirements, EquipmentItem } from "./types";
+export { RequirementsTab } from "./RequirementsTab";
+export { RigSelectionTab } from "./RigSelectionTab";
+export { EquipmentTab } from "./EquipmentTab";
+export { SummaryTab } from "./SummaryTab";
+export { TenderTab } from "./TenderTab";
+export { PriceEditDialog } from "./dialogs/PriceEditDialog";
+export { EquipmentFormDialog } from "./dialogs/EquipmentFormDialog";
+export { RigEditDialog } from "./dialogs/RigEditDialog";
+export { QuickActionDialog } from "./dialogs/QuickActionDialog";
+export { EquipmentManagementDialog } from "./dialogs/EquipmentManagementDialog";
+export { ContractDateDialog } from "./dialogs/ContractDateDialog";

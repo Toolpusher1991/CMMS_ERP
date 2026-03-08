@@ -82,24 +82,17 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
   const [commentText, setCommentText] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
 
-  const isAdminOrManager =
-    user?.role === "ADMIN" || user?.role === "MANAGER";
+  const isAdminOrManager = user?.role === "ADMIN" || user?.role === "MANAGER";
 
   // ── Comments Query ──
-  const {
-    data: comments = [],
-    isLoading: commentsLoading,
-  } = useQuery({
+  const { data: comments = [], isLoading: commentsLoading } = useQuery({
     queryKey: queryKeys.tenders.comments(tender.id),
     queryFn: () => tenderService.getComments(tender.id),
     enabled: open,
   });
 
   // ── History Query ──
-  const {
-    data: history = [],
-    isLoading: historyLoading,
-  } = useQuery({
+  const { data: history = [], isLoading: historyLoading } = useQuery({
     queryKey: queryKeys.tenders.history(tender.id),
     queryFn: () => tenderService.getHistory(tender.id),
     enabled: open,
@@ -224,11 +217,7 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
           )}
 
           {/* ── Tabs ── */}
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="mt-2"
-          >
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview" className="gap-1">
                 <FileText className="h-4 w-4" />
@@ -422,7 +411,9 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{tender.notes}</p>
+                    <p className="text-sm whitespace-pre-wrap">
+                      {tender.notes}
+                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -449,10 +440,18 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
                                 key={idx}
                                 className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm"
                               >
-                                <span>{item.name || item.label || JSON.stringify(item)}</span>
+                                <span>
+                                  {item.name ||
+                                    item.label ||
+                                    JSON.stringify(item)}
+                                </span>
                                 {item.dailyRate != null && (
                                   <span className="text-emerald-600 font-medium">
-                                    €{Number(item.dailyRate).toLocaleString("de-DE")}/d
+                                    €
+                                    {Number(item.dailyRate).toLocaleString(
+                                      "de-DE",
+                                    )}
+                                    /d
                                   </span>
                                 )}
                               </div>
@@ -482,9 +481,7 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
                 />
                 <Button
                   size="icon"
-                  disabled={
-                    !commentText.trim() || commentMutation.isPending
-                  }
+                  disabled={!commentText.trim() || commentMutation.isPending}
                   onClick={() => commentMutation.mutate(commentText.trim())}
                 >
                   {commentMutation.isPending ? (
@@ -578,13 +575,7 @@ export function TenderDetailDialog({ tender, open, onOpenChange }: Props) {
 //  Sub-components
 // ═══════════════════════════════════════════════════════════
 
-function InfoRow({
-  label,
-  value,
-}: {
-  label: string;
-  value?: string | null;
-}) {
+function InfoRow({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-muted-foreground">{label}</span>
@@ -604,7 +595,19 @@ function TransitionButton({
   isAdmin: boolean;
   onClick: () => void;
 }) {
-  const styles: Record<string, { icon: React.ReactNode; variant: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" }> = {
+  const styles: Record<
+    string,
+    {
+      icon: React.ReactNode;
+      variant:
+        | "default"
+        | "destructive"
+        | "outline"
+        | "secondary"
+        | "ghost"
+        | "link";
+    }
+  > = {
     SUBMITTED: {
       icon: <Send className="h-3.5 w-3.5" />,
       variant: "default",

@@ -32,7 +32,6 @@ import {
   ArrowRight,
   Clock,
   CheckCircle2,
-
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -195,10 +194,7 @@ export default function TenderBoard() {
 
       {/* ── Board / Table ── */}
       {viewMode === "kanban" ? (
-        <KanbanView
-          tenders={filteredTenders}
-          onOpen={openDetail}
-        />
+        <KanbanView tenders={filteredTenders} onOpen={openDetail} />
       ) : (
         <TableView tenders={filteredTenders} onOpen={openDetail} />
       )}
