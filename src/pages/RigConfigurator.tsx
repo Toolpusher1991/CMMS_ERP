@@ -188,6 +188,9 @@ const RigConfigurator = () => {
   // Tender View Mode
   const [tenderViewMode, setTenderViewMode] = useState<'table' | 'gantt' | 'board'>('board');
 
+  // Active Tab (controlled)
+  const [activeTab, setActiveTab] = useState('requirements');
+
   // Contract Start Date Dialog
   const [contractDateDialogOpen, setContractDateDialogOpen] = useState(false);
   const [pendingContractConfig, setPendingContractConfig] =
@@ -1314,7 +1317,7 @@ const RigConfigurator = () => {
 
       {/* Main Content */}
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        <Tabs defaultValue="requirements" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto gap-1">
             <TabsTrigger
               value="requirements"
@@ -2263,14 +2266,23 @@ const RigConfigurator = () => {
                       </Button>
                     </div>
 
-                    {/* Save Configuration Button */}
-                    {selectedRig && requirements.projectName && (
+                    {/* Save / New Tender Button */}
+                    {selectedRig && requirements.projectName ? (
                       <Button
                         onClick={saveCurrentConfiguration}
                         className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg"
                       >
                         <Save className="h-4 w-4 mr-2" />
                         Aktuelle Konfiguration als Tender speichern
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => setActiveTab('requirements')}
+                        variant="outline"
+                        className="border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Neuen Tender erstellen
                       </Button>
                     )}
                   </div>
