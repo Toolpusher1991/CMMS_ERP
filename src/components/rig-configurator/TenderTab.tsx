@@ -297,7 +297,9 @@ function GanttView({
                   <span>
                     Ende:{" "}
                     {config.contractEndDate
-                      ? new Date(config.contractEndDate).toLocaleDateString("de-DE")
+                      ? new Date(config.contractEndDate).toLocaleDateString(
+                          "de-DE",
+                        )
                       : new Date(
                           new Date(config.contractStartDate!).getTime() +
                             duration * 24 * 60 * 60 * 1000,

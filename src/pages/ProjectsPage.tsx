@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-client";
 import {
@@ -2874,7 +2880,26 @@ export default function ProjectsPage() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="border rounded-lg overflow-hidden bg-card">
+                      {/* Column Headers */}
+                      <div className="grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 px-4 py-2.5 border-b bg-muted/30">
+                        <span></span>
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider"></span>
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Verantwortlich
+                        </span>
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Fällig
+                        </span>
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Priorität
+                        </span>
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Fortschritt
+                        </span>
+                        <span></span>
+                      </div>
+
                       {filteredProjects.map((project) => {
                         const isExpanded = expandedProjects.has(project.id);
                         const progress = getProjectProgress(project);
@@ -2888,241 +2913,219 @@ export default function ProjectsPage() {
                         ).length;
 
                         return (
-                          <Card
-                            key={project.id}
-                            className={cn(
-                              "transition-all hover:shadow-lg group relative",
-                              project.status === "COMPLETED" && "opacity-70",
-                            )}
-                          >
-                            {/* Quick Actions Hover Overlay */}
-                            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
-                              <Button
-                                variant="secondary"
-                                size="icon"
-                                className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation shadow-lg"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleProjectExpanded(project.id);
-                                }}
-                                title="Ansehen"
+                          <React.Fragment key={project.id}>
+                            {/* Project Row */}
+                            <div
+                              className={`grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 items-center px-4 py-3 border-b hover:bg-muted/40 transition-colors cursor-pointer group ${
+                                project.status === "COMPLETED"
+                                  ? "opacity-70"
+                                  : ""
+                              }`}
+                              onClick={() => toggleProjectExpanded(project.id)}
+                            >
+                              {/* Expand Icon */}
+                              <div className="flex-shrink-0">
+                                {isExpanded ? (
+                                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                                )}
+                              </div>
+
+                              {/* Title & Description */}
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`font-medium text-sm leading-tight ${
+                                      project.status === "COMPLETED"
+                                        ? "line-through text-muted-foreground"
+                                        : ""
+                                    }`}
+                                  >
+                                    {project.name}
+                                  </span>
+                                  <Badge
+                                    className={`text-[10px] font-semibold px-1.5 py-0 border-0 h-5 ${
+                                      project.status === "IN_PROGRESS"
+                                        ? "bg-blue-600 text-white"
+                                        : project.status === "PLANNED"
+                                          ? "bg-slate-500 text-white"
+                                          : project.status === "ON_HOLD"
+                                            ? "bg-amber-400 text-white"
+                                            : project.status === "COMPLETED"
+                                              ? "bg-emerald-600 text-white"
+                                              : "bg-red-500 text-white"
+                                    }`}
+                                  >
+                                    {project.status === "PLANNED" && "Geplant"}
+                                    {project.status === "IN_PROGRESS" &&
+                                      "In Arbeit"}
+                                    {project.status === "ON_HOLD" && "Pausiert"}
+                                    {project.status === "COMPLETED" &&
+                                      "Abgeschlossen"}
+                                    {project.status === "CANCELLED" &&
+                                      "Abgebrochen"}
+                                  </Badge>
+                                </div>
+                                {project.description && (
+                                  <div className="text-xs text-muted-foreground truncate mt-0.5">
+                                    {project.description}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Manager */}
+                              <div className="flex items-center gap-2">
+                                {project.manager ? (
+                                  <>
+                                    <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-[10px] flex-shrink-0 ring-1 ring-primary/20">
+                                      {project.manager.firstName[0]}
+                                      {project.manager.lastName[0]}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">
+                                    —
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Due Date */}
+                              <span className="text-xs text-muted-foreground">
+                                {project.endDate
+                                  ? new Date(
+                                      project.endDate,
+                                    ).toLocaleDateString("de-DE", {
+                                      day: "numeric",
+                                      month: "short",
+                                    })
+                                  : "—"}
+                              </span>
+
+                              {/* Priority Badge */}
+                              <Badge
+                                className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
+                                  project.priority === "URGENT"
+                                    ? "bg-red-500 hover:bg-red-600 text-white"
+                                    : project.priority === "HIGH"
+                                      ? "bg-orange-500 hover:bg-orange-600 text-white"
+                                      : project.priority === "NORMAL"
+                                        ? "bg-amber-400 hover:bg-amber-500 text-white"
+                                        : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                                }`}
                               >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="secondary"
-                                size="icon"
-                                className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation shadow-lg"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openFlowDialog(project);
-                                }}
-                                title="Flowchart"
+                                {project.priority === "URGENT"
+                                  ? "Urgent"
+                                  : project.priority === "HIGH"
+                                    ? "Hoch"
+                                    : project.priority === "NORMAL"
+                                      ? "Normal"
+                                      : "Niedrig"}
+                              </Badge>
+
+                              {/* Progress Badge */}
+                              <Badge
+                                className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
+                                  progress === 100
+                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    : progress >= 50
+                                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                      : progress > 0
+                                        ? "bg-amber-400 hover:bg-amber-500 text-white"
+                                        : "bg-slate-500 hover:bg-slate-600 text-white"
+                                }`}
                               >
-                                <Workflow className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="secondary"
-                                size="icon"
-                                className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation shadow-lg"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openEditProjectDialog(project);
-                                }}
-                                title="Bearbeiten"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="secondary"
-                                size="icon"
-                                className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation shadow-lg text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedProject(project);
-                                  setShowDeleteProjectDialog(true);
-                                }}
-                                title="Löschen"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                                {progress}%
+                              </Badge>
+
+                              {/* Hover Actions */}
+                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openFlowDialog(project);
+                                  }}
+                                  title="Flowchart"
+                                >
+                                  <Workflow className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditProjectDialog(project);
+                                  }}
+                                  title="Bearbeiten"
+                                >
+                                  <Edit className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedProject(project);
+                                    setShowDeleteProjectDialog(true);
+                                  }}
+                                  title="Löschen"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                </Button>
+                              </div>
                             </div>
 
-                            <CardHeader className="pb-3">
-                              <div className="flex items-start justify-between gap-4">
-                                {/* Left Side - Project Info */}
-                                <div
-                                  className="flex-1 cursor-pointer"
-                                  onClick={() =>
-                                    toggleProjectExpanded(project.id)
-                                  }
-                                >
-                                  <div className="flex items-center gap-2 mb-2">
-                                    {isExpanded ? (
-                                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                                    ) : (
-                                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                                    )}
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs font-bold"
-                                    >
-                                      {project.plant}
-                                    </Badge>
-                                    <Badge
-                                      className={cn(
-                                        "text-xs font-semibold px-2.5 py-1",
-                                        project.status === "IN_PROGRESS" &&
-                                          "bg-cyan-500/20 text-cyan-600 border-cyan-500/30",
-                                        project.status === "PLANNED" &&
-                                          "bg-slate-500/20 text-slate-600 border-slate-500/30",
-                                        project.status === "ON_HOLD" &&
-                                          "bg-slate-400/20 text-slate-500 border-slate-400/30",
-                                        project.status === "COMPLETED" &&
-                                          "bg-green-500/20 text-green-600 border-green-500/30",
-                                        project.status === "CANCELLED" &&
-                                          "bg-red-500/20 text-red-600 border-red-500/30",
-                                      )}
-                                      variant="outline"
-                                    >
-                                      {project.status === "PLANNED" &&
-                                        "🟢 Geplant"}
-                                      {project.status === "IN_PROGRESS" &&
-                                        "🔵 In Arbeit"}
-                                      {project.status === "ON_HOLD" &&
-                                        "⏸️ Pausiert"}
-                                      {project.status === "COMPLETED" &&
-                                        "✅ Abgeschlossen"}
-                                      {project.status === "CANCELLED" &&
-                                        "❌ Abgebrochen"}
-                                    </Badge>
-                                    <Badge
-                                      className={cn(
-                                        "text-xs font-semibold px-2.5 py-1",
-                                        project.priority === "URGENT" &&
-                                          "bg-red-500/20 text-red-600 border-red-500/30",
-                                        project.priority === "HIGH" &&
-                                          "bg-orange-500/20 text-orange-600 border-orange-500/30",
-                                        project.priority === "NORMAL" &&
-                                          "bg-blue-500/20 text-blue-600 border-blue-500/30",
-                                        project.priority === "LOW" &&
-                                          "bg-slate-500/20 text-slate-600 border-slate-500/30",
-                                      )}
-                                      variant="outline"
-                                    >
-                                      {project.priority === "URGENT" &&
-                                        "🔴 Urgent"}
-                                      {project.priority === "HIGH" && "🟡 Hoch"}
-                                      {project.priority === "NORMAL" &&
-                                        "🟢 Normal"}
-                                      {project.priority === "LOW" &&
-                                        "⚪ Niedrig"}
-                                    </Badge>
-                                  </div>
-                                  <CardTitle className="text-lg">
-                                    {project.name}
-                                  </CardTitle>
-                                  {project.description && (
-                                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                      {project.description}
-                                    </p>
-                                  )}
-
-                                  {/* Progress Bar */}
-                                  <div className="mt-3 space-y-1">
-                                    <div className="flex items-center justify-between text-xs">
-                                      <span className="text-muted-foreground">
-                                        Fortschritt: {completedTasks}/
-                                        {tasks.length} Aufgaben
-                                      </span>
-                                      <span className="font-medium">
-                                        {progress}%
-                                      </span>
-                                    </div>
-                                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                      <div
-                                        className={cn(
-                                          "h-full transition-all",
-                                          getProgressColor(progress),
-                                        )}
-                                        style={{ width: `${progress}%` }}
-                                      />
-                                    </div>
-                                  </div>
-
-                                  {/* Dates */}
-                                  {(project.startDate || project.endDate) && (
-                                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                      {project.startDate && (
-                                        <span className="flex items-center gap-1">
-                                          <Calendar className="h-3 w-3" />
-                                          Start:{" "}
-                                          {new Date(
-                                            project.startDate,
-                                          ).toLocaleDateString("de-DE")}
-                                        </span>
-                                      )}
-                                      {project.endDate && (
-                                        <span className="flex items-center gap-1">
-                                          <Target className="h-3 w-3" />
-                                          Ende:{" "}
-                                          {new Date(
-                                            project.endDate,
-                                          ).toLocaleDateString("de-DE")}
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Right Side - Manager & Mobile Flowchart Button */}
-                                <div className="flex flex-col gap-2 items-end">
-                                  {project.manager && (
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
-                                        {project.manager.firstName[0]}
-                                        {project.manager.lastName[0]}
-                                      </div>
-                                      <span className="hidden lg:inline">
-                                        {project.manager.firstName}{" "}
-                                        {project.manager.lastName}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {/* Mobile Flowchart Button (visible on mobile, hidden on hover devices) */}
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openFlowDialog(project);
-                                    }}
-                                    className="gap-2 min-h-[44px] touch-manipulation lg:hidden"
-                                  >
-                                    <Workflow className="h-4 w-4" />
-                                    Flowchart
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardHeader>
-
-                            {/* Expanded Task List */}
+                            {/* Expanded Content: Task List */}
                             {isExpanded && (
-                              <CardContent className="pt-0 border-t">
-                                <div className="pt-4">
+                              <div className="border-b bg-muted/20">
+                                <div className="px-4 py-4">
                                   <div className="flex items-center justify-between mb-3">
-                                    <h4 className="font-semibold flex items-center gap-2">
-                                      <ListTodo className="h-4 w-4" />
-                                      Aufgaben ({tasks.length})
-                                    </h4>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => openNewTaskDialog(project)}
-                                    >
-                                      <Plus className="h-4 w-4 mr-1" />
-                                      Aufgabe
-                                    </Button>
+                                    <div className="flex items-center gap-3">
+                                      <h4 className="font-semibold text-sm flex items-center gap-2">
+                                        <ListTodo className="h-4 w-4" />
+                                        Aufgaben ({tasks.length})
+                                      </h4>
+                                      {/* Progress Bar */}
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                          <div
+                                            className={`h-full transition-all ${getProgressColor(progress)}`}
+                                            style={{ width: `${progress}%` }}
+                                          />
+                                        </div>
+                                        <span className="text-xs text-muted-foreground">
+                                          {completedTasks}/{tasks.length}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openFlowDialog(project);
+                                        }}
+                                      >
+                                        <Workflow className="h-4 w-4 mr-1" />
+                                        Flowchart
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                          openNewTaskDialog(project)
+                                        }
+                                      >
+                                        <Plus className="h-4 w-4 mr-1" />
+                                        Aufgabe
+                                      </Button>
+                                    </div>
                                   </div>
 
                                   {tasks.length === 0 ? (
@@ -3130,9 +3133,8 @@ export default function ProjectsPage() {
                                       Noch keine Aufgaben vorhanden
                                     </p>
                                   ) : (
-                                    <div className="space-y-2">
+                                    <div className="space-y-1">
                                       {tasks.map((task) => {
-                                        // Konsistente Prioritäts-Farben
                                         const priorityConfig: Record<
                                           string,
                                           { border: string; flag: string }
@@ -3154,42 +3156,21 @@ export default function ProjectsPage() {
                                             flag: "⚪",
                                           },
                                         };
-
                                         const priority =
                                           priorityConfig[
                                             task.priority || "NORMAL"
                                           ];
 
-                                        // Konsistente Status-Farben
-                                        const statusBackgrounds: Record<
-                                          string,
-                                          string
-                                        > = {
-                                          DONE: "bg-green-500/5 hover:bg-green-500/10",
-                                          IN_PROGRESS:
-                                            "bg-blue-500/5 hover:bg-blue-500/10",
-                                          REVIEW:
-                                            "bg-yellow-500/5 hover:bg-yellow-500/10",
-                                          TODO: "bg-slate-500/5 hover:bg-slate-500/10",
-                                        };
-
                                         return (
                                           <div
                                             key={task.id}
-                                            className={cn(
-                                              "flex items-center justify-between p-3 px-4 rounded-lg transition-all border-l-4 group shadow-sm min-h-[60px]",
-                                              priority.border,
-                                              statusBackgrounds[task.status] ||
-                                                statusBackgrounds.TODO,
-                                              task.status === "DONE" &&
-                                                "opacity-70",
-                                            )}
+                                            className={`flex items-center justify-between px-3 py-2.5 rounded-md transition-all border-l-4 group/task ${priority.border} ${
+                                              task.status === "DONE"
+                                                ? "opacity-60 bg-muted/30"
+                                                : "hover:bg-muted/40"
+                                            }`}
                                           >
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                                              {/* Priority Flag */}
-                                              <span className="text-lg flex-shrink-0">
-                                                {priority.flag}
-                                              </span>
                                               <button
                                                 onClick={() =>
                                                   toggleTaskStatus(
@@ -3197,81 +3178,64 @@ export default function ProjectsPage() {
                                                     task,
                                                   )
                                                 }
-                                                className="hover:scale-125 transition-transform flex-shrink-0 p-1 rounded-md hover:bg-background/50"
+                                                className="hover:scale-110 transition-transform flex-shrink-0"
                                               >
                                                 {task.status === "DONE" ? (
-                                                  <CheckCircle2 className="h-5 w-5 text-green-600 drop-shadow" />
+                                                  <CheckCircle2 className="h-5 w-5 text-green-500" />
                                                 ) : task.status ===
                                                   "IN_PROGRESS" ? (
-                                                  <Clock className="h-5 w-5 text-blue-600 drop-shadow" />
+                                                  <Clock className="h-5 w-5 text-blue-500" />
                                                 ) : task.status === "REVIEW" ? (
-                                                  <Eye className="h-5 w-5 text-yellow-600 drop-shadow" />
+                                                  <Eye className="h-5 w-5 text-yellow-500" />
                                                 ) : (
-                                                  <Circle className="h-5 w-5 text-gray-400" />
+                                                  <Circle className="h-5 w-5 text-gray-300" />
                                                 )}
                                               </button>
                                               <div className="min-w-0 flex-1">
                                                 <p
-                                                  className={cn(
-                                                    "font-medium text-sm truncate",
-                                                    task.status === "DONE" &&
-                                                      "line-through text-muted-foreground",
-                                                  )}
+                                                  className={`text-sm font-medium truncate ${task.status === "DONE" ? "line-through text-muted-foreground" : ""}`}
                                                 >
                                                   {task.title}
                                                 </p>
-                                                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                                                  {task.assignedTo && (
-                                                    <span className="flex items-center gap-1.5 flex-shrink-0">
-                                                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-[9px]">
-                                                        {task.assignedTo
-                                                          .split(" ")
-                                                          .map((n) => n[0])
-                                                          .join("")}
-                                                      </div>
-                                                      <span className="hidden sm:inline">
-                                                        {task.assignedTo}
-                                                      </span>
-                                                    </span>
-                                                  )}
-                                                  {task.description && (
-                                                    <span className="truncate max-w-[200px] hidden md:inline">
-                                                      {task.description}
-                                                    </span>
-                                                  )}
-                                                </div>
                                               </div>
+                                              {task.assignedTo && (
+                                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                  <div className="h-6 w-6 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-[9px] ring-1 ring-primary/20">
+                                                    {task.assignedTo
+                                                      .split(" ")
+                                                      .map((n: string) => n[0])
+                                                      .join("")
+                                                      .slice(0, 2)}
+                                                  </div>
+                                                </div>
+                                              )}
                                             </div>
-                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                            <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                                               <Badge
-                                                className={cn(
-                                                  "text-xs px-2.5 py-1 h-7 font-semibold",
-                                                  task.status === "DONE" &&
-                                                    "bg-green-500/20 text-green-600 border-green-500/30",
-                                                  task.status ===
-                                                    "IN_PROGRESS" &&
-                                                    "bg-blue-500/20 text-blue-600 border-blue-500/30",
-                                                  task.status === "REVIEW" &&
-                                                    "bg-yellow-500/20 text-yellow-600 border-yellow-500/30",
-                                                  task.status === "TODO" &&
-                                                    "bg-slate-500/20 text-slate-600 border-slate-500/30",
-                                                )}
-                                                variant="outline"
+                                                className={`text-[10px] font-semibold px-2 py-0 h-5 border-0 ${
+                                                  task.status === "DONE"
+                                                    ? "bg-emerald-600 text-white"
+                                                    : task.status ===
+                                                        "IN_PROGRESS"
+                                                      ? "bg-blue-600 text-white"
+                                                      : task.status === "REVIEW"
+                                                        ? "bg-amber-400 text-white"
+                                                        : "bg-slate-500 text-white"
+                                                }`}
                                               >
-                                                {task.status === "DONE" &&
-                                                  "✅ Erledigt"}
-                                                {task.status ===
-                                                  "IN_PROGRESS" &&
-                                                  "🔄 In Arbeit"}
-                                                {task.status === "REVIEW" &&
-                                                  "👁️ Review"}
-                                                {task.status === "TODO" &&
-                                                  "⚪ Offen"}
+                                                {task.status === "DONE"
+                                                  ? "Erledigt"
+                                                  : task.status ===
+                                                      "IN_PROGRESS"
+                                                    ? "In Arbeit"
+                                                    : task.status === "REVIEW"
+                                                      ? "Review"
+                                                      : "Offen"}
                                               </Badge>
                                               <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="h-7 w-7 opacity-0 group-hover/task:opacity-100 transition-opacity"
                                                 onClick={() =>
                                                   openEditTaskDialog(
                                                     project,
@@ -3279,12 +3243,12 @@ export default function ProjectsPage() {
                                                   )
                                                 }
                                               >
-                                                <Edit className="h-4 w-4" />
+                                                <Edit className="h-3.5 w-3.5" />
                                               </Button>
                                               <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                                className="h-7 w-7 opacity-0 group-hover/task:opacity-100 transition-opacity text-red-500"
                                                 onClick={() => {
                                                   setTaskToDelete({
                                                     projectId: project.id,
@@ -3293,7 +3257,7 @@ export default function ProjectsPage() {
                                                   setShowDeleteTaskDialog(true);
                                                 }}
                                               >
-                                                <Trash2 className="h-4 w-4" />
+                                                <Trash2 className="h-3.5 w-3.5" />
                                               </Button>
                                             </div>
                                           </div>
@@ -3301,10 +3265,34 @@ export default function ProjectsPage() {
                                       })}
                                     </div>
                                   )}
+
+                                  {/* Dates */}
+                                  {(project.startDate || project.endDate) && (
+                                    <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs text-muted-foreground">
+                                      {project.startDate && (
+                                        <span className="flex items-center gap-1">
+                                          <Calendar className="h-3 w-3" />
+                                          Start:{" "}
+                                          {new Date(
+                                            project.startDate,
+                                          ).toLocaleDateString("de-DE")}
+                                        </span>
+                                      )}
+                                      {project.endDate && (
+                                        <span className="flex items-center gap-1">
+                                          <Target className="h-3 w-3" />
+                                          Ende:{" "}
+                                          {new Date(
+                                            project.endDate,
+                                          ).toLocaleDateString("de-DE")}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
-                              </CardContent>
+                              </div>
                             )}
-                          </Card>
+                          </React.Fragment>
                         );
                       })}
                     </div>

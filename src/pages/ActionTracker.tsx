@@ -102,8 +102,6 @@ import {
   Plus,
   Edit,
   Trash2,
-  ChevronDown,
-  ChevronRight,
   Paperclip,
   X,
   Camera,
@@ -142,9 +140,7 @@ const ActionTracker = ({
   const { toast } = useToast();
   const { user: currentUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState<string>("");
-  const [activeCategoryTab, setActiveCategoryTab] = useState<
-    Record<string, string>
-  >({});
+  const [, setActiveCategoryTab] = useState<Record<string, string>>({});
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -309,7 +305,6 @@ const ActionTracker = ({
     setLocationFilter,
     getFilteredActionsForCategory,
     getActionStats,
-    getCategoryStats,
   } = useActionFilters(actions, users);
 
   // Mobile States
@@ -362,13 +357,16 @@ const ActionTracker = ({
 
         setExpandedRows(new Set([initialActionId]));
 
-        // Scroll to the action after a short delay
-        setTimeout(() => {
+        // Scroll to the action after tab content renders
+        const scrollToAction = (attempts = 0) => {
           const element = document.getElementById(`action-${initialActionId}`);
           if (element) {
             element.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else if (attempts < 5) {
+            setTimeout(() => scrollToAction(attempts + 1), 200);
           }
-        }, 300);
+        };
+        setTimeout(() => scrollToAction(), 300);
       }
     }
   }, [initialActionId, actions]);
@@ -377,14 +375,25 @@ const ActionTracker = ({
   useEffect(() => {
     if (loadedRigs.length > 0) {
       setAvailableRigs(loadedRigs);
-      setActiveTab(loadedRigs[0].name);
+      // Don't override a tab already set by initialActionId navigation
+      if (!initialActionId) {
+        setActiveTab(loadedRigs[0].name);
+      } else if (actions.length > 0) {
+        // If we have an initialActionId, set the tab to that action's plant
+        const targetAction = actions.find((a) => a.id === initialActionId);
+        if (targetAction) {
+          setActiveTab(targetAction.plant);
+        } else {
+          setActiveTab(loadedRigs[0].name);
+        }
+      }
       const categoryDefaults: Record<string, string> = {};
       loadedRigs.forEach((r) => {
         categoryDefaults[r.name] = "alle";
       });
       setActiveCategoryTab(categoryDefaults);
     }
-  }, [loadedRigs]);
+  }, [loadedRigs, initialActionId, actions]);
 
   const toggleRow = (id: string) => {
     const newExpanded = new Set(expandedRows);
@@ -1953,855 +1962,636 @@ const ActionTracker = ({
 
                 {availableRigs.map((rig) => (
                   <TabsContent key={rig.id} value={rig.name}>
-                    {/* Nested Category Tabs */}
-                    <Tabs
-                      value={activeCategoryTab[rig.name] || "alle"}
-                      onValueChange={(value) =>
-                        setActiveCategoryTab({
-                          ...activeCategoryTab,
-                          [rig.name]: value,
-                        })
-                      }
-                      className="space-y-4"
-                    >
-                      <TabsList className="grid w-full grid-cols-3 h-16 bg-muted/30 p-2 gap-2">
-                        <TabsTrigger
-                          value="allgemein"
-                          className="flex-col h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all shadow-sm hover:shadow-md py-2 px-3"
-                        >
-                          <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full">
-                            <span className="text-sm font-semibold leading-tight">
-                              Allgemein
-                            </span>
-                            <Badge
-                              variant="secondary"
-                              className="px-1.5 py-0 text-[10px] data-[state=active]:bg-primary-foreground/20 leading-tight h-4"
-                            >
-                              {getCategoryStats(rig.name, "allgemein")} Actions
-                            </Badge>
-                          </div>
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="rigmoves"
-                          className="flex-col h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all shadow-sm hover:shadow-md py-2 px-3"
-                        >
-                          <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full">
-                            <span className="text-sm font-semibold leading-tight">
-                              Rigmoves
-                            </span>
-                            <Badge
-                              variant="secondary"
-                              className="px-1.5 py-0 text-[10px] data-[state=active]:bg-primary-foreground/20 leading-tight h-4"
-                            >
-                              {getCategoryStats(rig.name, "rigmoves")} Actions
-                            </Badge>
-                          </div>
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="alle"
-                          className="flex-col h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all shadow-sm hover:shadow-md py-2 px-3"
-                        >
-                          <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full">
-                            <span className="text-sm font-semibold leading-tight">
-                              Alle
-                            </span>
-                            <Badge
-                              variant="secondary"
-                              className="px-1.5 py-0 text-[10px] data-[state=active]:bg-primary-foreground/20 leading-tight h-4"
-                            >
-                              {getCategoryStats(rig.name, "alle")} Actions
-                            </Badge>
-                          </div>
-                        </TabsTrigger>
-                      </TabsList>
+                    {(() => {
+                      const allgemeinActions = getFilteredActionsForCategory(
+                        rig.name,
+                        "allgemein",
+                      );
+                      const rigmoveActions = getFilteredActionsForCategory(
+                        rig.name,
+                        "rigmoves",
+                      );
 
-                      {["allgemein", "rigmoves", "alle"].map((category) => {
-                        const categoryActions = getFilteredActionsForCategory(
-                          rig.name,
-                          category,
-                        );
+                      if (
+                        allgemeinActions.length === 0 &&
+                        rigmoveActions.length === 0
+                      ) {
                         return (
-                          <TabsContent key={category} value={category}>
-                            {categoryActions.length === 0 ? (
-                              <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <ClipboardList className="h-12 w-12 text-muted-foreground mb-4" />
-                                <h3 className="text-lg font-semibold">
-                                  Keine Actions
-                                </h3>
-                                <p className="text-sm text-muted-foreground mb-4">
-                                  Erstellen Sie die erste Action f�r {rig.name}
-                                </p>
-                                <Button onClick={openNewDialog}>
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  Action erstellen
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="rounded-md border overflow-x-auto -webkit-overflow-scrolling-touch">
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow className="border-b">
-                                      <TableHead className="w-[32px] py-2 h-9"></TableHead>
-                                      <TableHead className="w-[45px] py-2 h-9 text-xs font-semibold">
-                                        Nr.
-                                      </TableHead>
-                                      <TableHead className="py-2 h-9 text-xs font-semibold">
-                                        Titel
-                                      </TableHead>
-                                      <TableHead className="py-2 h-9 text-xs font-semibold">
-                                        Kategorie
-                                      </TableHead>
-                                      <TableHead className="py-2 h-9 text-xs font-semibold">
-                                        Standort
-                                      </TableHead>
-                                      <TableHead className="py-2 h-9 text-xs font-semibold">
-                                        Status
-                                      </TableHead>
-                                      <TableHead className="py-2 h-9 text-xs font-semibold">
-                                        Priorit�t
-                                      </TableHead>
-                                      <TableHead className="py-2 h-9 text-xs font-semibold">
-                                        Zugewiesen
-                                      </TableHead>
-                                      <TableHead className="py-2 h-9 text-xs font-semibold">
-                                        F�llig
-                                      </TableHead>
-                                      <TableHead className="text-center py-2 h-9 w-[70px] text-xs font-semibold">
-                                        Tasks
-                                      </TableHead>
-                                      <TableHead className="text-center py-2 h-9 w-[70px] text-xs font-semibold">
-                                        Dateien
-                                      </TableHead>
-                                      <TableHead className="text-right py-2 h-9 w-[90px] text-xs font-semibold">
-                                        Aktionen
-                                      </TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {categoryActions.map((action, index) => (
-                                      <React.Fragment key={action.id}>
-                                        <TableRow
-                                          id={`action-${action.id}`}
-                                          className={`hover:bg-muted/50 transition-colors cursor-pointer ${
-                                            isOverdue(
-                                              action.dueDate,
-                                              action.status,
-                                            )
-                                              ? "bg-red-50/50 dark:bg-red-950/20 border-l-4 border-l-red-500"
-                                              : ""
-                                          }`}
-                                        >
-                                          <TableCell className="py-2">
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-6 w-6"
-                                              onClick={() =>
-                                                toggleRow(action.id)
-                                              }
-                                            >
-                                              {expandedRows.has(action.id) ? (
-                                                <ChevronDown className="h-3.5 w-3.5" />
-                                              ) : (
-                                                <ChevronRight className="h-3.5 w-3.5" />
-                                              )}
-                                            </Button>
-                                          </TableCell>
-                                          <TableCell className="py-2">
-                                            <span className="font-medium text-muted-foreground text-xs">
-                                              #{index + 1}
-                                            </span>
-                                          </TableCell>
-                                          <TableCell
-                                            className="py-2 max-w-[250px]"
-                                            onClick={() => toggleRow(action.id)}
-                                          >
-                                            <div className="space-y-0.5">
-                                              <div
-                                                className={`font-medium text-sm leading-tight ${
-                                                  action.status === "COMPLETED"
-                                                    ? "line-through text-muted-foreground"
-                                                    : ""
-                                                }`}
-                                              >
-                                                {action.title}
-                                              </div>
-                                              {action.description && (
-                                                <div className="text-xs text-muted-foreground line-clamp-1">
-                                                  {action.description}
-                                                </div>
-                                              )}
-                                            </div>
-                                          </TableCell>
-                                          <TableCell className="py-2">
-                                            <Badge
-                                              variant="outline"
-                                              className={`text-xs font-medium ${
-                                                action.discipline === "MECHANIK"
-                                                  ? "border-cyan-500 text-cyan-700 dark:text-cyan-400"
-                                                  : action.discipline ===
-                                                      "ELEKTRIK"
-                                                    ? "border-purple-500 text-purple-700 dark:text-purple-400"
-                                                    : action.discipline ===
-                                                        "ANLAGE"
-                                                      ? "border-pink-500 text-pink-700 dark:text-pink-400"
-                                                      : "border-gray-400 text-gray-600 dark:text-gray-400"
-                                              }`}
-                                            >
-                                              {action.discipline ===
-                                                "MECHANIK" && "Mechanik"}
-                                              {action.discipline ===
-                                                "ELEKTRIK" && "Elektrisch"}
-                                              {action.discipline === "ANLAGE" &&
-                                                "Anlage"}
-                                              {!action.discipline && "-"}
-                                            </Badge>
-                                          </TableCell>
-                                          <TableCell className="py-2">
-                                            <span className="text-xs text-muted-foreground">
-                                              {action.location || "-"}
-                                            </span>
-                                          </TableCell>
-                                          <TableCell className="py-2">
-                                            <Badge
-                                              variant="outline"
-                                              className={`text-xs font-medium ${
-                                                action.status === "COMPLETED"
-                                                  ? "border-green-500 text-green-700 dark:text-green-400"
-                                                  : action.status ===
-                                                      "IN_PROGRESS"
-                                                    ? "border-blue-500 text-blue-700 dark:text-blue-400"
-                                                    : "border-yellow-500 text-yellow-700 dark:text-yellow-400"
-                                              }`}
-                                            >
-                                              {action.status === "OPEN" &&
-                                                "Geplant"}
-                                              {action.status ===
-                                                "IN_PROGRESS" && "Aktiv"}
-                                              {action.status === "COMPLETED" &&
-                                                "Abgeschlossen"}
-                                            </Badge>
-                                          </TableCell>
-                                          <TableCell className="py-2">
-                                            <Badge
-                                              variant="outline"
-                                              className={`text-xs font-medium ${
-                                                action.priority === "URGENT"
-                                                  ? "border-red-500 text-red-700 dark:text-red-400"
-                                                  : action.priority === "HIGH"
-                                                    ? "border-orange-500 text-orange-700 dark:text-orange-400"
-                                                    : action.priority ===
-                                                        "MEDIUM"
-                                                      ? "border-yellow-500 text-yellow-700 dark:text-yellow-400"
-                                                      : "border-gray-500 text-gray-700 dark:text-gray-400"
-                                              }`}
-                                            >
-                                              {action.priority}
-                                            </Badge>
-                                          </TableCell>
-                                          <TableCell className="py-2">
-                                            <div className="flex items-center gap-1.5">
-                                              <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                                              <span className="text-xs">
-                                                {action.assignedTo ||
-                                                  "Nicht zugewiesen"}
-                                              </span>
-                                            </div>
-                                          </TableCell>
-                                          <TableCell className="py-2">
-                                            <span
-                                              className={`text-xs font-medium ${
-                                                isOverdue(
-                                                  action.dueDate,
-                                                  action.status,
-                                                )
-                                                  ? "text-red-600 dark:text-red-400"
-                                                  : ""
-                                              }`}
-                                            >
-                                              {action.dueDate
-                                                ? new Date(
-                                                    action.dueDate,
-                                                  ).toLocaleDateString("de-DE")
-                                                : "-"}
-                                            </span>
-                                          </TableCell>
-                                          <TableCell className="py-2">
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              className="h-7 text-xs px-2"
-                                              onClick={() =>
-                                                toggleRow(action.id)
-                                              }
-                                            >
-                                              <ListTodo className="h-3 w-3 mr-1" />
-                                              {
-                                                action.tasks.filter(
-                                                  (t) => t.completed,
-                                                ).length
-                                              }
-                                              /{action.tasks.length}
-                                            </Button>
-                                          </TableCell>
-                                          <TableCell className="py-2">
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              className="h-7 text-xs px-2"
-                                              onClick={() =>
-                                                toggleRow(action.id)
-                                              }
-                                            >
-                                              <Paperclip className="h-3 w-3 mr-1" />
-                                              {action.files.length}
-                                            </Button>
-                                          </TableCell>
-                                          <TableCell className="text-right py-3">
-                                            <div className="flex justify-end gap-1">
-                                              <Button
-                                                variant={
-                                                  action.status === "COMPLETED"
-                                                    ? "outline"
-                                                    : "default"
-                                                }
-                                                size="icon"
-                                                className={`h-8 w-8 ${
-                                                  action.status === "COMPLETED"
-                                                    ? "text-muted-foreground"
-                                                    : "bg-green-600 hover:bg-green-700"
-                                                }`}
-                                                onClick={() =>
-                                                  handleToggleComplete(action)
-                                                }
-                                                title={
-                                                  action.status === "COMPLETED"
-                                                    ? "Action reaktivieren"
-                                                    : "Action abschlie�en"
-                                                }
-                                              >
-                                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                              </Button>
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7"
-                                                onClick={() =>
-                                                  openEditDialog(action)
-                                                }
-                                                title="Action bearbeiten"
-                                              >
-                                                <Edit className="h-3.5 w-3.5" />
-                                              </Button>
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7"
-                                                onClick={() =>
-                                                  handleDelete(action.id)
-                                                }
-                                                title="Action l�schen"
-                                              >
-                                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                                              </Button>
-                                            </div>
-                                          </TableCell>
-                                        </TableRow>
-
-                                        {expandedRows.has(action.id) && (
-                                          <TableRow>
-                                            <TableCell
-                                              colSpan={11}
-                                              className="p-0 bg-muted/30"
-                                            >
-                                              <div className="p-6 space-y-6">
-                                                {/* Beschreibung & Kommentare Grid */}
-                                                <div className="grid grid-cols-2 gap-6">
-                                                  {/* Beschreibung Card */}
-                                                  <Card>
-                                                    <CardHeader className="pb-3">
-                                                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                                        <AlertCircle className="h-4 w-4" />
-                                                        Beschreibung
-                                                      </CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent className="space-y-3">
-                                                      <p className="text-sm whitespace-pre-wrap">
-                                                        {/* Zeige Beschreibung ohne Foto-Zeile und ohne Material-Abschnitt */}
-                                                        {action.description
-                                                          .split(
-                                                            "--- Materialien ---",
-                                                          )[0]
-                                                          .split("\n")
-                                                          .filter(
-                                                            (line) =>
-                                                              !line.startsWith(
-                                                                "?? Photo:",
-                                                              ),
-                                                          )
-                                                          .join("\n")
-                                                          .trim()}
-                                                      </p>
-                                                      {/* Zeige Foto-Thumbnail wenn Cloudinary URL vorhanden */}
-                                                      {(() => {
-                                                        const photoUrl =
-                                                          extractPhotoFromDescription(
-                                                            action.description,
-                                                          );
-                                                        if (
-                                                          photoUrl &&
-                                                          (photoUrl.startsWith(
-                                                            "http://",
-                                                          ) ||
-                                                            photoUrl.startsWith(
-                                                              "https://",
-                                                            ))
-                                                        ) {
-                                                          return (
-                                                            <div className="pt-3 border-t">
-                                                              <p className="text-xs font-medium text-muted-foreground mb-2">
-                                                                Foto
-                                                              </p>
-                                                              <img
-                                                                src={photoUrl}
-                                                                alt="Schadensbericht Foto"
-                                                                className="w-32 h-32 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
-                                                                onClick={() => {
-                                                                  setSelectedPhoto(
-                                                                    photoUrl,
-                                                                  );
-                                                                  setPhotoViewDialogOpen(
-                                                                    true,
-                                                                  );
-                                                                }}
-                                                              />
-                                                            </div>
-                                                          );
-                                                        }
-                                                        return null;
-                                                      })()}
-                                                      {/* Zeige Foto-Button nur f�r alte lokale Dateien */}
-                                                      {(() => {
-                                                        const photoFilename =
-                                                          extractPhotoFromDescription(
-                                                            action.description,
-                                                          );
-                                                        if (
-                                                          photoFilename &&
-                                                          !photoFilename.startsWith(
-                                                            "http://",
-                                                          ) &&
-                                                          !photoFilename.startsWith(
-                                                            "https://",
-                                                          )
-                                                        ) {
-                                                          return (
-                                                            <div className="pt-3 border-t">
-                                                              <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={async () => {
-                                                                  try {
-                                                                    const blob =
-                                                                      await apiClient.request<Blob>(
-                                                                        `/failure-reports/photo/${photoFilename}`,
-                                                                        {
-                                                                          responseType:
-                                                                            "blob",
-                                                                        },
-                                                                      );
-
-                                                                    const photoUrl =
-                                                                      URL.createObjectURL(
-                                                                        blob,
-                                                                      );
-                                                                    setSelectedPhoto(
-                                                                      photoUrl,
-                                                                    );
-                                                                    setPhotoViewDialogOpen(
-                                                                      true,
-                                                                    );
-
-                                                                    setTimeout(
-                                                                      () =>
-                                                                        URL.revokeObjectURL(
-                                                                          photoUrl,
-                                                                        ),
-                                                                      10000,
-                                                                    );
-                                                                  } catch (error) {
-                                                                    console.error(
-                                                                      "? Error loading photo:",
-                                                                      error,
-                                                                    );
-                                                                    toast({
-                                                                      title:
-                                                                        "Fehler",
-                                                                      description:
-                                                                        "Foto konnte nicht geladen werden.",
-                                                                      variant:
-                                                                        "destructive",
-                                                                    });
-                                                                  }
-                                                                }}
-                                                              >
-                                                                <Camera className="h-4 w-4 mr-2" />
-                                                                Foto anzeigen
-                                                              </Button>
-                                                            </div>
-                                                          );
-                                                        }
-                                                        return null;
-                                                      })()}
-                                                    </CardContent>
-                                                  </Card>
-
-                                                  {/* Aufgaben Card */}
-                                                  <Card>
-                                                    <CardHeader className="pb-3">
-                                                      <div className="flex items-center justify-between">
-                                                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                                          <ListTodo className="h-4 w-4" />
-                                                          Aufgaben (
-                                                          {action.tasks.length})
-                                                        </CardTitle>
-                                                        <Button
-                                                          variant="outline"
-                                                          size="sm"
-                                                          className="h-7"
-                                                          onClick={() =>
-                                                            handleOpenTaskDialog(
-                                                              action.id,
-                                                            )
-                                                          }
-                                                        >
-                                                          <Plus className="h-3 w-3 mr-1" />
-                                                          Neu
-                                                        </Button>
-                                                      </div>
-                                                    </CardHeader>
-                                                    <CardContent>
-                                                      {action.tasks.length ===
-                                                      0 ? (
-                                                        <p className="text-sm text-muted-foreground text-center py-4">
-                                                          Keine Aufgaben
-                                                          vorhanden
-                                                        </p>
-                                                      ) : (
-                                                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                                                          {action.tasks.map(
-                                                            (task) => (
-                                                              <div
-                                                                key={task.id}
-                                                                className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border"
-                                                              >
-                                                                <input
-                                                                  type="checkbox"
-                                                                  checked={
-                                                                    task.completed
-                                                                  }
-                                                                  onChange={() =>
-                                                                    handleToggleTask(
-                                                                      action.id,
-                                                                      task.id,
-                                                                    )
-                                                                  }
-                                                                  className="mt-1 h-4 w-4 rounded border-gray-300"
-                                                                />
-                                                                <div className="flex-1 min-w-0">
-                                                                  <div
-                                                                    className={`text-sm font-medium ${
-                                                                      task.completed
-                                                                        ? "line-through text-muted-foreground"
-                                                                        : ""
-                                                                    }`}
-                                                                  >
-                                                                    {task.title}
-                                                                  </div>
-                                                                  {task.description && (
-                                                                    <div className="text-xs text-muted-foreground mt-1">
-                                                                      {
-                                                                        task.description
-                                                                      }
-                                                                    </div>
-                                                                  )}
-                                                                  <div className="flex items-center gap-2 mt-1">
-                                                                    {task.assignedUser && (
-                                                                      <span className="text-xs flex items-center gap-1">
-                                                                        <Users className="h-3 w-3" />
-                                                                        {(() => {
-                                                                          const user =
-                                                                            availableUsers.find(
-                                                                              (
-                                                                                u,
-                                                                              ) =>
-                                                                                u.id ===
-                                                                                task.assignedUser,
-                                                                            );
-                                                                          return user
-                                                                            ? `${user.firstName} ${user.lastName}`
-                                                                            : task.assignedUser;
-                                                                        })()}
-                                                                      </span>
-                                                                    )}
-                                                                    {task.dueDate && (
-                                                                      <span className="text-xs text-muted-foreground">
-                                                                        F�llig:{" "}
-                                                                        {new Date(
-                                                                          task.dueDate,
-                                                                        ).toLocaleDateString(
-                                                                          "de-DE",
-                                                                        )}
-                                                                      </span>
-                                                                    )}
-                                                                  </div>
-                                                                </div>
-                                                                <div className="flex items-center gap-1">
-                                                                  <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className="h-6 w-6 p-0"
-                                                                    onClick={() => {
-                                                                      setCurrentTask(
-                                                                        {
-                                                                          ...task,
-                                                                        },
-                                                                      );
-                                                                      setCurrentTaskActionId(
-                                                                        action.id,
-                                                                      );
-                                                                      setTaskDialogOpen(
-                                                                        true,
-                                                                      );
-                                                                    }}
-                                                                    title="Bearbeiten"
-                                                                  >
-                                                                    <Edit className="h-3 w-3" />
-                                                                  </Button>
-                                                                  <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                                                                    onClick={() =>
-                                                                      handleDeleteTask(
-                                                                        action.id,
-                                                                        task.id,
-                                                                      )
-                                                                    }
-                                                                    title="L�schen"
-                                                                  >
-                                                                    <X className="h-3 w-3" />
-                                                                  </Button>
-                                                                </div>
-                                                              </div>
-                                                            ),
-                                                          )}
-                                                        </div>
-                                                      )}
-                                                    </CardContent>
-                                                  </Card>
-                                                </div>
-
-                                                {/* Angeh�ngte Dateien Card */}
-                                                {action.files.length > 0 && (
-                                                  <Card>
-                                                    <CardHeader className="pb-3">
-                                                      <CardTitle className="text-base flex items-center gap-2">
-                                                        ?? Angeh�ngte Dateien
-                                                        <Badge
-                                                          variant="secondary"
-                                                          className="ml-2"
-                                                        >
-                                                          {action.files.length}
-                                                        </Badge>
-                                                      </CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent>
-                                                      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                                                        {action.files.map(
-                                                          (file) => (
-                                                            <div
-                                                              key={file.id}
-                                                              className="relative group"
-                                                            >
-                                                              <Card className="overflow-hidden hover:shadow-md transition-shadow">
-                                                                {file.isPhoto ? (
-                                                                  <img
-                                                                    src={
-                                                                      file.url
-                                                                    }
-                                                                    alt={
-                                                                      file.name
-                                                                    }
-                                                                    className="w-full aspect-square object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                                                                    onClick={() => {
-                                                                      setSelectedPhoto(
-                                                                        file.url,
-                                                                      );
-                                                                      setPhotoViewDialogOpen(
-                                                                        true,
-                                                                      );
-                                                                    }}
-                                                                  />
-                                                                ) : (
-                                                                  <div className="w-full aspect-square flex items-center justify-center bg-muted">
-                                                                    <Paperclip className="h-8 w-8 text-muted-foreground" />
-                                                                  </div>
-                                                                )}
-                                                              </Card>
-                                                              <p
-                                                                className="text-xs truncate mt-1 text-center"
-                                                                title={
-                                                                  file.name
-                                                                }
-                                                              >
-                                                                {file.name}
-                                                              </p>
-                                                            </div>
-                                                          ),
-                                                        )}
-                                                      </div>
-                                                    </CardContent>
-                                                  </Card>
-                                                )}
-
-                                                {/* Material-Liste Card */}
-                                                {(() => {
-                                                  const materials =
-                                                    parseMaterialsFromDescription(
-                                                      action.description,
-                                                    );
-                                                  if (materials.length === 0)
-                                                    return null;
-
-                                                  return (
-                                                    <Card className="border">
-                                                      <CardHeader className="bg-muted/50 pb-2 pt-3">
-                                                        <div className="flex items-center justify-between">
-                                                          <CardTitle className="text-base flex items-center gap-2">
-                                                            ?? Bestellte
-                                                            Materialien
-                                                          </CardTitle>
-                                                          <Badge
-                                                            variant="secondary"
-                                                            className="text-xs"
-                                                          >
-                                                            {materials.length}{" "}
-                                                            {materials.length ===
-                                                            1
-                                                              ? "Material"
-                                                              : "Materialien"}
-                                                          </Badge>
-                                                        </div>
-                                                      </CardHeader>
-                                                      <CardContent className="pt-3">
-                                                        <div className="space-y-1.5">
-                                                          {materials.map(
-                                                            (material) => {
-                                                              // Status Badge Farbe & Text
-                                                              const getStatusBadge =
-                                                                (
-                                                                  status?: MaterialItem["status"],
-                                                                ) => {
-                                                                  switch (
-                                                                    status
-                                                                  ) {
-                                                                    case "GELIEFERT":
-                                                                      return (
-                                                                        <Badge className="bg-green-600 hover:bg-green-700 text-white">
-                                                                          ??
-                                                                          Geliefert
-                                                                        </Badge>
-                                                                      );
-                                                                    case "UNTERWEGS":
-                                                                      return (
-                                                                        <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
-                                                                          ??
-                                                                          Unterwegs
-                                                                        </Badge>
-                                                                      );
-                                                                    case "BESTELLT":
-                                                                      return (
-                                                                        <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
-                                                                          ??
-                                                                          Bestellt
-                                                                        </Badge>
-                                                                      );
-                                                                    default:
-                                                                      return (
-                                                                        <Badge
-                                                                          variant="outline"
-                                                                          className="border-2"
-                                                                        >
-                                                                          ?
-                                                                          Nicht
-                                                                          bestellt
-                                                                        </Badge>
-                                                                      );
-                                                                  }
-                                                                };
-
-                                                              return (
-                                                                <div
-                                                                  key={
-                                                                    material.id
-                                                                  }
-                                                                  className="group p-2.5 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
-                                                                >
-                                                                  <div className="flex items-center justify-between gap-3">
-                                                                    <div className="flex-1 min-w-0">
-                                                                      <div className="flex items-center gap-2 mb-1">
-                                                                        <span className="font-mono text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">
-                                                                          {
-                                                                            material.mmNumber
-                                                                          }
-                                                                        </span>
-                                                                        {getStatusBadge(
-                                                                          material.status,
-                                                                        )}
-                                                                      </div>
-                                                                      <p className="text-xs line-clamp-1">
-                                                                        {
-                                                                          material.description
-                                                                        }
-                                                                      </p>
-                                                                    </div>
-                                                                    <div className="flex flex-col items-end justify-center bg-muted/50 px-2.5 py-2 rounded min-w-[60px]">
-                                                                      <p className="text-lg font-bold text-primary">
-                                                                        {
-                                                                          material.quantity
-                                                                        }
-                                                                      </p>
-                                                                      <p className="text-[10px] font-medium text-muted-foreground uppercase">
-                                                                        {
-                                                                          material.unit
-                                                                        }
-                                                                      </p>
-                                                                    </div>
-                                                                  </div>
-                                                                </div>
-                                                              );
-                                                            },
-                                                          )}
-                                                        </div>
-                                                      </CardContent>
-                                                    </Card>
-                                                  );
-                                                })()}
-                                              </div>
-                                            </TableCell>
-                                          </TableRow>
-                                        )}
-                                      </React.Fragment>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                            )}
-                          </TabsContent>
+                          <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <ClipboardList className="h-12 w-12 text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-semibold">
+                              Keine Actions
+                            </h3>
+                            <p className="text-sm text-muted-foreground mb-4">
+                              Erstellen Sie die erste Action für {rig.name}
+                            </p>
+                            <Button onClick={openNewDialog}>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Action erstellen
+                            </Button>
+                          </div>
                         );
-                      })}
-                    </Tabs>
+                      }
+
+                      const renderActionRow = (action: Action) => (
+                        <React.Fragment key={action.id}>
+                          <div
+                            id={`action-${action.id}`}
+                            className={`grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 items-center px-4 py-3 border-b hover:bg-muted/40 transition-colors cursor-pointer group ${
+                              isOverdue(action.dueDate, action.status)
+                                ? "bg-red-50/50 dark:bg-red-950/20"
+                                : ""
+                            }`}
+                            onClick={() => toggleRow(action.id)}
+                          >
+                            {/* Status Icon */}
+                            <button
+                              className="flex-shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleComplete(action);
+                              }}
+                            >
+                              {action.status === "COMPLETED" ? (
+                                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                              ) : action.status === "IN_PROGRESS" ? (
+                                <div className="h-5 w-5 rounded-full border-2 border-blue-400 flex items-center justify-center">
+                                  <div className="h-2.5 w-2.5 rounded-full bg-blue-400" />
+                                </div>
+                              ) : (
+                                <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" />
+                              )}
+                            </button>
+
+                            {/* Title & Description */}
+                            <div className="min-w-0">
+                              <div
+                                className={`font-medium text-sm leading-tight ${
+                                  action.status === "COMPLETED"
+                                    ? "line-through text-muted-foreground"
+                                    : ""
+                                }`}
+                              >
+                                {action.title}
+                              </div>
+                              {action.description && (
+                                <div className="text-xs text-muted-foreground truncate mt-0.5">
+                                  {
+                                    action.description
+                                      .split("--- Materialien ---")[0]
+                                      .split("\n")[0]
+                                  }
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Assignee */}
+                            <div className="flex items-center gap-2">
+                              {action.assignedTo ? (
+                                <>
+                                  <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-[10px] flex-shrink-0 ring-1 ring-primary/20">
+                                    {action.assignedTo
+                                      .split(" ")
+                                      .map((n: string) => n[0])
+                                      .join("")
+                                      .slice(0, 2)}
+                                  </div>
+                                </>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">
+                                  —
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Due Date */}
+                            <span
+                              className={`text-xs ${
+                                isOverdue(action.dueDate, action.status)
+                                  ? "text-red-600 dark:text-red-400 font-semibold"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {action.dueDate
+                                ? new Date(action.dueDate).toLocaleDateString(
+                                    "de-DE",
+                                    { day: "numeric", month: "short" },
+                                  )
+                                : "—"}
+                            </span>
+
+                            {/* Priority Badge */}
+                            <Badge
+                              className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
+                                action.priority === "URGENT"
+                                  ? "bg-red-500 hover:bg-red-600 text-white"
+                                  : action.priority === "HIGH"
+                                    ? "bg-orange-500 hover:bg-orange-600 text-white"
+                                    : action.priority === "MEDIUM"
+                                      ? "bg-amber-400 hover:bg-amber-500 text-white"
+                                      : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                              }`}
+                            >
+                              {action.priority === "URGENT"
+                                ? "Urgent"
+                                : action.priority === "HIGH"
+                                  ? "Hoch"
+                                  : action.priority === "MEDIUM"
+                                    ? "Mittel"
+                                    : "Niedrig"}
+                            </Badge>
+
+                            {/* Status Badge */}
+                            <Badge
+                              className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
+                                action.status === "COMPLETED"
+                                  ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                  : action.status === "IN_PROGRESS"
+                                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                    : "bg-slate-500 hover:bg-slate-600 text-white"
+                              }`}
+                            >
+                              {action.status === "OPEN"
+                                ? "Offen"
+                                : action.status === "IN_PROGRESS"
+                                  ? "In Arbeit"
+                                  : "Erledigt"}
+                            </Badge>
+
+                            {/* Hover Actions */}
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditDialog(action);
+                                }}
+                                title="Bearbeiten"
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(action.id);
+                                }}
+                                title="Löschen"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Expanded Detail Section */}
+                          {expandedRows.has(action.id) && (
+                            <div className="border-b bg-muted/20">
+                              <div className="p-6 space-y-6">
+                                {/* Beschreibung & Aufgaben Grid */}
+                                <div className="grid grid-cols-2 gap-6">
+                                  {/* Beschreibung Card */}
+                                  <Card>
+                                    <CardHeader className="pb-3">
+                                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                        <AlertCircle className="h-4 w-4" />
+                                        Beschreibung
+                                      </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                      <p className="text-sm whitespace-pre-wrap">
+                                        {action.description
+                                          .split("--- Materialien ---")[0]
+                                          .split("\n")
+                                          .filter(
+                                            (line: string) =>
+                                              !line.startsWith("📷 Photo:"),
+                                          )
+                                          .join("\n")
+                                          .trim()}
+                                      </p>
+                                      {(() => {
+                                        const photoUrl =
+                                          extractPhotoFromDescription(
+                                            action.description,
+                                          );
+                                        if (
+                                          photoUrl &&
+                                          (photoUrl.startsWith("http://") ||
+                                            photoUrl.startsWith("https://"))
+                                        ) {
+                                          return (
+                                            <div className="pt-3 border-t">
+                                              <p className="text-xs font-medium text-muted-foreground mb-2">
+                                                Foto
+                                              </p>
+                                              <img
+                                                src={photoUrl}
+                                                alt="Schadensbericht Foto"
+                                                className="w-32 h-32 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                                                onClick={() => {
+                                                  setSelectedPhoto(photoUrl);
+                                                  setPhotoViewDialogOpen(true);
+                                                }}
+                                              />
+                                            </div>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
+                                      {(() => {
+                                        const photoFilename =
+                                          extractPhotoFromDescription(
+                                            action.description,
+                                          );
+                                        if (
+                                          photoFilename &&
+                                          !photoFilename.startsWith(
+                                            "http://",
+                                          ) &&
+                                          !photoFilename.startsWith("https://")
+                                        ) {
+                                          return (
+                                            <div className="pt-3 border-t">
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={async () => {
+                                                  try {
+                                                    const blob =
+                                                      await apiClient.request<Blob>(
+                                                        `/failure-reports/photo/${photoFilename}`,
+                                                        {
+                                                          responseType: "blob",
+                                                        },
+                                                      );
+                                                    const pUrl =
+                                                      URL.createObjectURL(blob);
+                                                    setSelectedPhoto(pUrl);
+                                                    setPhotoViewDialogOpen(
+                                                      true,
+                                                    );
+                                                    setTimeout(
+                                                      () =>
+                                                        URL.revokeObjectURL(
+                                                          pUrl,
+                                                        ),
+                                                      10000,
+                                                    );
+                                                  } catch (error) {
+                                                    console.error(
+                                                      "Error loading photo:",
+                                                      error,
+                                                    );
+                                                    toast({
+                                                      title: "Fehler",
+                                                      description:
+                                                        "Foto konnte nicht geladen werden.",
+                                                      variant: "destructive",
+                                                    });
+                                                  }
+                                                }}
+                                              >
+                                                <Camera className="h-4 w-4 mr-2" />
+                                                Foto anzeigen
+                                              </Button>
+                                            </div>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
+                                    </CardContent>
+                                  </Card>
+
+                                  {/* Aufgaben Card */}
+                                  <Card>
+                                    <CardHeader className="pb-3">
+                                      <div className="flex items-center justify-between">
+                                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                          <ListTodo className="h-4 w-4" />
+                                          Aufgaben ({action.tasks.length})
+                                        </CardTitle>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-7"
+                                          onClick={() =>
+                                            handleOpenTaskDialog(action.id)
+                                          }
+                                        >
+                                          <Plus className="h-3 w-3 mr-1" />
+                                          Neu
+                                        </Button>
+                                      </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                      {action.tasks.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground text-center py-4">
+                                          Keine Aufgaben vorhanden
+                                        </p>
+                                      ) : (
+                                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                                          {action.tasks.map((task) => (
+                                            <div
+                                              key={task.id}
+                                              className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border"
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                checked={task.completed}
+                                                onChange={() =>
+                                                  handleToggleTask(
+                                                    action.id,
+                                                    task.id,
+                                                  )
+                                                }
+                                                className="mt-1 h-4 w-4 rounded border-gray-300"
+                                              />
+                                              <div className="flex-1 min-w-0">
+                                                <div
+                                                  className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                                                >
+                                                  {task.title}
+                                                </div>
+                                                {task.description && (
+                                                  <div className="text-xs text-muted-foreground mt-1">
+                                                    {task.description}
+                                                  </div>
+                                                )}
+                                                <div className="flex items-center gap-2 mt-1">
+                                                  {task.assignedUser && (
+                                                    <span className="text-xs flex items-center gap-1">
+                                                      <Users className="h-3 w-3" />
+                                                      {(() => {
+                                                        const user =
+                                                          availableUsers.find(
+                                                            (u) =>
+                                                              u.id ===
+                                                              task.assignedUser,
+                                                          );
+                                                        return user
+                                                          ? `${user.firstName} ${user.lastName}`
+                                                          : task.assignedUser;
+                                                      })()}
+                                                    </span>
+                                                  )}
+                                                  {task.dueDate && (
+                                                    <span className="text-xs text-muted-foreground">
+                                                      Fällig:{" "}
+                                                      {new Date(
+                                                        task.dueDate,
+                                                      ).toLocaleDateString(
+                                                        "de-DE",
+                                                      )}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center gap-1">
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-6 w-6 p-0"
+                                                  onClick={() => {
+                                                    setCurrentTask({ ...task });
+                                                    setCurrentTaskActionId(
+                                                      action.id,
+                                                    );
+                                                    setTaskDialogOpen(true);
+                                                  }}
+                                                  title="Bearbeiten"
+                                                >
+                                                  <Edit className="h-3 w-3" />
+                                                </Button>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                                  onClick={() =>
+                                                    handleDeleteTask(
+                                                      action.id,
+                                                      task.id,
+                                                    )
+                                                  }
+                                                  title="Löschen"
+                                                >
+                                                  <X className="h-3 w-3" />
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </CardContent>
+                                  </Card>
+                                </div>
+
+                                {/* Angehängte Dateien */}
+                                {action.files.length > 0 && (
+                                  <Card>
+                                    <CardHeader className="pb-3">
+                                      <CardTitle className="text-base flex items-center gap-2">
+                                        📁 Angehängte Dateien
+                                        <Badge
+                                          variant="secondary"
+                                          className="ml-2"
+                                        >
+                                          {action.files.length}
+                                        </Badge>
+                                      </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                                        {action.files.map((file) => (
+                                          <div
+                                            key={file.id}
+                                            className="relative group"
+                                          >
+                                            <Card className="overflow-hidden hover:shadow-md transition-shadow">
+                                              {file.isPhoto ? (
+                                                <img
+                                                  src={file.url}
+                                                  alt={file.name}
+                                                  className="w-full aspect-square object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                                  onClick={() => {
+                                                    setSelectedPhoto(file.url);
+                                                    setPhotoViewDialogOpen(
+                                                      true,
+                                                    );
+                                                  }}
+                                                />
+                                              ) : (
+                                                <div className="w-full aspect-square flex items-center justify-center bg-muted">
+                                                  <Paperclip className="h-8 w-8 text-muted-foreground" />
+                                                </div>
+                                              )}
+                                            </Card>
+                                            <p
+                                              className="text-xs truncate mt-1 text-center"
+                                              title={file.name}
+                                            >
+                                              {file.name}
+                                            </p>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                )}
+
+                                {/* Material-Liste */}
+                                {(() => {
+                                  const materials =
+                                    parseMaterialsFromDescription(
+                                      action.description,
+                                    );
+                                  if (materials.length === 0) return null;
+                                  return (
+                                    <Card className="border">
+                                      <CardHeader className="bg-muted/50 pb-2 pt-3">
+                                        <div className="flex items-center justify-between">
+                                          <CardTitle className="text-base flex items-center gap-2">
+                                            📦 Bestellte Materialien
+                                          </CardTitle>
+                                          <Badge
+                                            variant="secondary"
+                                            className="text-xs"
+                                          >
+                                            {materials.length}{" "}
+                                            {materials.length === 1
+                                              ? "Material"
+                                              : "Materialien"}
+                                          </Badge>
+                                        </div>
+                                      </CardHeader>
+                                      <CardContent className="pt-3">
+                                        <div className="space-y-1.5">
+                                          {materials.map((material) => {
+                                            const getStatusBadge = (
+                                              status?: string,
+                                            ) => {
+                                              switch (status) {
+                                                case "GELIEFERT":
+                                                  return (
+                                                    <Badge className="bg-green-600 hover:bg-green-700 text-white">
+                                                      ✅ Geliefert
+                                                    </Badge>
+                                                  );
+                                                case "UNTERWEGS":
+                                                  return (
+                                                    <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
+                                                      🚚 Unterwegs
+                                                    </Badge>
+                                                  );
+                                                case "BESTELLT":
+                                                  return (
+                                                    <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                                                      ⚠️ Bestellt
+                                                    </Badge>
+                                                  );
+                                                default:
+                                                  return (
+                                                    <Badge
+                                                      variant="outline"
+                                                      className="border-2"
+                                                    >
+                                                      ❌ Nicht bestellt
+                                                    </Badge>
+                                                  );
+                                              }
+                                            };
+                                            return (
+                                              <div
+                                                key={material.id}
+                                                className="group p-2.5 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+                                              >
+                                                <div className="flex items-center justify-between gap-3">
+                                                  <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                      <span className="font-mono text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">
+                                                        {material.mmNumber}
+                                                      </span>
+                                                      {getStatusBadge(
+                                                        material.status,
+                                                      )}
+                                                    </div>
+                                                    <p className="text-xs line-clamp-1">
+                                                      {material.description}
+                                                    </p>
+                                                  </div>
+                                                  <div className="flex flex-col items-end justify-center bg-muted/50 px-2.5 py-2 rounded min-w-[60px]">
+                                                    <p className="text-lg font-bold text-primary">
+                                                      {material.quantity}
+                                                    </p>
+                                                    <p className="text-[10px] font-medium text-muted-foreground uppercase">
+                                                      {material.unit}
+                                                    </p>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                          )}
+                        </React.Fragment>
+                      );
+
+                      return (
+                        <div className="border rounded-lg overflow-hidden bg-card">
+                          {/* Column Headers */}
+                          <div className="grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 px-4 py-2.5 border-b bg-muted/30">
+                            <span></span>
+                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider"></span>
+                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              Zugewiesen
+                            </span>
+                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              Fällig
+                            </span>
+                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              Priorität
+                            </span>
+                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              Status
+                            </span>
+                            <span></span>
+                          </div>
+
+                          {/* Allgemein Section */}
+                          {allgemeinActions.length > 0 && (
+                            <>
+                              <div className="px-4 py-2.5 border-b bg-muted/10">
+                                <h3 className="font-bold text-sm tracking-tight">
+                                  Allgemein
+                                </h3>
+                              </div>
+                              {allgemeinActions.map(renderActionRow)}
+                            </>
+                          )}
+
+                          {/* Rigmoves Section */}
+                          {rigmoveActions.length > 0 && (
+                            <>
+                              <div className="px-4 py-2.5 border-b bg-muted/10">
+                                <h3 className="font-bold text-sm tracking-tight">
+                                  Rigmoves
+                                </h3>
+                              </div>
+                              {rigmoveActions.map(renderActionRow)}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </TabsContent>
                 ))}
               </Tabs>
