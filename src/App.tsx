@@ -117,6 +117,8 @@ function App() {
       if (itemId) {
         setInitialReportId(itemId);
       }
+    } else if (page === "asset-integrity") {
+      setCurrentPage("integrity");
     } else {
       setCurrentPage(page as AppPage);
     }
