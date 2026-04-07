@@ -1102,7 +1102,10 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
   useEffect(() => {
     if (!rigSelectorOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (rigDropdownRef.current && !rigDropdownRef.current.contains(e.target as globalThis.Node)) {
+      if (
+        rigDropdownRef.current &&
+        !rigDropdownRef.current.contains(e.target as globalThis.Node)
+      ) {
         setRigSelectorOpen(false);
         setRigSearchTerm("");
       }
@@ -2887,151 +2890,209 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
                     onClick={() => setRigSelectorOpen(!rigSelectorOpen)}
                     className="w-full h-12 justify-between bg-muted/30 hover:bg-muted/50 border-border/50"
                   >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Building2 className="h-4 w-4 shrink-0 text-primary" />
-                        {activeTab ? (
-                          <>
-                            <span className="font-semibold truncate">
-                              {activeTab}
-                            </span>
-                            {(() => {
-                              const stats = getProjectStats(activeTab);
-                              if (stats.active > 0)
-                                return (
-                                  <Badge
-                                    variant="destructive"
-                                    className="px-1.5 py-0 text-[10px] font-bold h-5 shrink-0"
-                                  >
-                                    {stats.active} Aktiv
-                                  </Badge>
-                                );
-                              if (stats.total > 0)
-                                return (
-                                  <Badge
-                                    variant="outline"
-                                    className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 h-5 shrink-0"
-                                  >
-                                    ✓ Erledigt
-                                  </Badge>
-                                );
-                              return (
-                                <span className="text-[11px] text-muted-foreground shrink-0">
-                                  Keine Projekte
-                                </span>
-                              );
-                            })()}
-                          </>
-                        ) : (
-                          <span className="text-muted-foreground">
-                            Anlage auswählen...
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Building2 className="h-4 w-4 shrink-0 text-primary" />
+                      {activeTab ? (
+                        <>
+                          <span className="font-semibold truncate">
+                            {activeTab}
                           </span>
-                        )}
-                      </div>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
+                          {(() => {
+                            const stats = getProjectStats(activeTab);
+                            if (stats.active > 0)
+                              return (
+                                <Badge
+                                  variant="destructive"
+                                  className="px-1.5 py-0 text-[10px] font-bold h-5 shrink-0"
+                                >
+                                  {stats.active} Aktiv
+                                </Badge>
+                              );
+                            if (stats.total > 0)
+                              return (
+                                <Badge
+                                  variant="outline"
+                                  className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 h-5 shrink-0"
+                                >
+                                  ✓ Erledigt
+                                </Badge>
+                              );
+                            return (
+                              <span className="text-[11px] text-muted-foreground shrink-0">
+                                Keine Projekte
+                              </span>
+                            );
+                          })()}
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          Anlage auswählen...
+                        </span>
+                      )}
+                    </div>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
                   {rigSelectorOpen && (
                     <div className="absolute top-full left-0 mt-1 w-full sm:w-96 z-50 rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95">
                       <div className="flex flex-col">
-                      {/* Search Input */}
-                      <div className="flex items-center border-b px-3">
-                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                        <input
-                          className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
-                          placeholder="Anlage suchen..."
-                          value={rigSearchTerm}
-                          onChange={(e) => setRigSearchTerm(e.target.value)}
-                          autoFocus
-                        />
-                      </div>
-                      <div className="max-h-80 overflow-y-auto p-1">
-                        {(() => {
-                          const filtered = availableRigs.filter((r) =>
-                            r.name.toLowerCase().includes(rigSearchTerm.toLowerCase())
-                          );
-                          const activeRigs = filtered.filter((r) => getProjectStats(r.name).active > 0);
-                          const completedRigs = filtered.filter((r) => {
-                            const s = getProjectStats(r.name);
-                            return s.active === 0 && s.total > 0;
-                          });
-                          const emptyRigs = filtered.filter((r) => getProjectStats(r.name).total === 0);
-
-                          if (filtered.length === 0) {
-                            return (
-                              <div className="py-6 text-center text-sm text-muted-foreground">
-                                Keine Anlage gefunden.
-                              </div>
+                        {/* Search Input */}
+                        <div className="flex items-center border-b px-3">
+                          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                          <input
+                            className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+                            placeholder="Anlage suchen..."
+                            value={rigSearchTerm}
+                            onChange={(e) => setRigSearchTerm(e.target.value)}
+                            autoFocus
+                          />
+                        </div>
+                        <div className="max-h-80 overflow-y-auto p-1">
+                          {(() => {
+                            const filtered = availableRigs.filter((r) =>
+                              r.name
+                                .toLowerCase()
+                                .includes(rigSearchTerm.toLowerCase()),
                             );
-                          }
+                            const activeRigs = filtered.filter(
+                              (r) => getProjectStats(r.name).active > 0,
+                            );
+                            const completedRigs = filtered.filter((r) => {
+                              const s = getProjectStats(r.name);
+                              return s.active === 0 && s.total > 0;
+                            });
+                            const emptyRigs = filtered.filter(
+                              (r) => getProjectStats(r.name).total === 0,
+                            );
 
-                          return (
-                            <>
-                              {activeRigs.length > 0 && (
-                                <div>
-                                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                                    Aktive Projekte
-                                  </div>
-                                  {activeRigs.map((rig) => {
-                                    const stats = getProjectStats(rig.name);
-                                    return (
-                                      <div
-                                        key={rig.id}
-                                        onClick={() => {
-                                          setActiveTab(rig.name);
-                                          setRigSelectorOpen(false);
-                                          setRigSearchTerm("");
-                                        }}
-                                        className={cn(
-                                          "flex items-center gap-3 py-2.5 px-3 cursor-pointer rounded-sm text-sm hover:bg-accent hover:text-accent-foreground",
-                                          activeTab === rig.name && "bg-accent"
-                                        )}
-                                      >
+                            if (filtered.length === 0) {
+                              return (
+                                <div className="py-6 text-center text-sm text-muted-foreground">
+                                  Keine Anlage gefunden.
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <>
+                                {activeRigs.length > 0 && (
+                                  <div>
+                                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                      Aktive Projekte
+                                    </div>
+                                    {activeRigs.map((rig) => {
+                                      const stats = getProjectStats(rig.name);
+                                      return (
                                         <div
+                                          key={rig.id}
+                                          onClick={() => {
+                                            setActiveTab(rig.name);
+                                            setRigSelectorOpen(false);
+                                            setRigSearchTerm("");
+                                          }}
                                           className={cn(
-                                            "flex h-5 w-5 items-center justify-center rounded-full border shrink-0",
-                                            activeTab === rig.name
-                                              ? "bg-primary border-primary text-primary-foreground"
-                                              : "border-muted-foreground/30",
+                                            "flex items-center gap-3 py-2.5 px-3 cursor-pointer rounded-sm text-sm hover:bg-accent hover:text-accent-foreground",
+                                            activeTab === rig.name &&
+                                              "bg-accent",
                                           )}
                                         >
-                                          {activeTab === rig.name && (
-                                            <Check className="h-3 w-3" />
-                                          )}
-                                        </div>
-                                        <div className="flex flex-1 items-center justify-between min-w-0">
-                                          <span className="font-semibold">
-                                            {rig.name}
-                                          </span>
-                                          <div className="flex items-center gap-2 shrink-0">
-                                            <div className="flex items-center gap-1">
-                                              <Activity className="h-3 w-3 text-red-500" />
-                                              <span className="text-xs font-medium text-red-500">
-                                                {stats.active}
+                                          <div
+                                            className={cn(
+                                              "flex h-5 w-5 items-center justify-center rounded-full border shrink-0",
+                                              activeTab === rig.name
+                                                ? "bg-primary border-primary text-primary-foreground"
+                                                : "border-muted-foreground/30",
+                                            )}
+                                          >
+                                            {activeTab === rig.name && (
+                                              <Check className="h-3 w-3" />
+                                            )}
+                                          </div>
+                                          <div className="flex flex-1 items-center justify-between min-w-0">
+                                            <span className="font-semibold">
+                                              {rig.name}
+                                            </span>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                              <div className="flex items-center gap-1">
+                                                <Activity className="h-3 w-3 text-red-500" />
+                                                <span className="text-xs font-medium text-red-500">
+                                                  {stats.active}
+                                                </span>
+                                              </div>
+                                              <span className="text-[10px] text-muted-foreground">
+                                                {stats.total}{" "}
+                                                {stats.total === 1
+                                                  ? "Projekt"
+                                                  : "Projekte"}
                                               </span>
                                             </div>
-                                            <span className="text-[10px] text-muted-foreground">
-                                              {stats.total}{" "}
-                                              {stats.total === 1
-                                                ? "Projekt"
-                                                : "Projekte"}
-                                            </span>
                                           </div>
                                         </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                              {completedRigs.length > 0 && (
-                                <div>
-                                  {activeRigs.length > 0 && (
-                                    <div className="-mx-1 my-1 h-px bg-border" />
-                                  )}
-                                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                                    Abgeschlossen
+                                      );
+                                    })}
                                   </div>
-                                  {completedRigs.map((rig) => {
-                                    const stats = getProjectStats(rig.name);
-                                    return (
+                                )}
+                                {completedRigs.length > 0 && (
+                                  <div>
+                                    {activeRigs.length > 0 && (
+                                      <div className="-mx-1 my-1 h-px bg-border" />
+                                    )}
+                                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                      Abgeschlossen
+                                    </div>
+                                    {completedRigs.map((rig) => {
+                                      const stats = getProjectStats(rig.name);
+                                      return (
+                                        <div
+                                          key={rig.id}
+                                          onClick={() => {
+                                            setActiveTab(rig.name);
+                                            setRigSelectorOpen(false);
+                                            setRigSearchTerm("");
+                                          }}
+                                          className={cn(
+                                            "flex items-center gap-3 py-2 px-3 cursor-pointer rounded-sm text-sm hover:bg-accent hover:text-accent-foreground",
+                                            activeTab === rig.name &&
+                                              "bg-accent",
+                                          )}
+                                        >
+                                          <div
+                                            className={cn(
+                                              "flex h-5 w-5 items-center justify-center rounded-full border shrink-0",
+                                              activeTab === rig.name
+                                                ? "bg-primary border-primary text-primary-foreground"
+                                                : "border-muted-foreground/30",
+                                            )}
+                                          >
+                                            {activeTab === rig.name && (
+                                              <Check className="h-3 w-3" />
+                                            )}
+                                          </div>
+                                          <div className="flex flex-1 items-center justify-between min-w-0">
+                                            <span className="font-medium text-muted-foreground">
+                                              {rig.name}
+                                            </span>
+                                            <div className="flex items-center gap-1">
+                                              <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                              <span className="text-[10px] text-green-600">
+                                                {stats.total} erledigt
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                {emptyRigs.length > 0 && (
+                                  <div>
+                                    {(activeRigs.length > 0 ||
+                                      completedRigs.length > 0) && (
+                                      <div className="-mx-1 my-1 h-px bg-border" />
+                                    )}
+                                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                      Ohne Projekte
+                                    </div>
+                                    {emptyRigs.map((rig) => (
                                       <div
                                         key={rig.id}
                                         onClick={() => {
@@ -3040,8 +3101,9 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
                                           setRigSearchTerm("");
                                         }}
                                         className={cn(
-                                          "flex items-center gap-3 py-2 px-3 cursor-pointer rounded-sm text-sm hover:bg-accent hover:text-accent-foreground",
-                                          activeTab === rig.name && "bg-accent"
+                                          "flex items-center gap-3 py-2 px-3 cursor-pointer rounded-sm text-sm opacity-60 hover:opacity-100 hover:bg-accent hover:text-accent-foreground",
+                                          activeTab === rig.name &&
+                                            "bg-accent opacity-100",
                                         )}
                                       >
                                         <div
@@ -3049,74 +3111,25 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
                                             "flex h-5 w-5 items-center justify-center rounded-full border shrink-0",
                                             activeTab === rig.name
                                               ? "bg-primary border-primary text-primary-foreground"
-                                              : "border-muted-foreground/30",
+                                              : "border-muted-foreground/20",
                                           )}
                                         >
                                           {activeTab === rig.name && (
                                             <Check className="h-3 w-3" />
                                           )}
                                         </div>
-                                        <div className="flex flex-1 items-center justify-between min-w-0">
-                                          <span className="font-medium text-muted-foreground">
-                                            {rig.name}
-                                          </span>
-                                          <div className="flex items-center gap-1">
-                                            <CheckCircle2 className="h-3 w-3 text-green-500" />
-                                            <span className="text-[10px] text-green-600">
-                                              {stats.total} erledigt
-                                            </span>
-                                          </div>
-                                        </div>
+                                        <span className="text-sm text-muted-foreground">
+                                          {rig.name}
+                                        </span>
                                       </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                              {emptyRigs.length > 0 && (
-                                <div>
-                                  {(activeRigs.length > 0 || completedRigs.length > 0) && (
-                                    <div className="-mx-1 my-1 h-px bg-border" />
-                                  )}
-                                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                                    Ohne Projekte
+                                    ))}
                                   </div>
-                                  {emptyRigs.map((rig) => (
-                                    <div
-                                      key={rig.id}
-                                      onClick={() => {
-                                        setActiveTab(rig.name);
-                                        setRigSelectorOpen(false);
-                                        setRigSearchTerm("");
-                                      }}
-                                      className={cn(
-                                        "flex items-center gap-3 py-2 px-3 cursor-pointer rounded-sm text-sm opacity-60 hover:opacity-100 hover:bg-accent hover:text-accent-foreground",
-                                        activeTab === rig.name && "bg-accent opacity-100"
-                                      )}
-                                    >
-                                      <div
-                                        className={cn(
-                                          "flex h-5 w-5 items-center justify-center rounded-full border shrink-0",
-                                          activeTab === rig.name
-                                            ? "bg-primary border-primary text-primary-foreground"
-                                            : "border-muted-foreground/20",
-                                        )}
-                                      >
-                                        {activeTab === rig.name && (
-                                          <Check className="h-3 w-3" />
-                                        )}
-                                      </div>
-                                      <span className="text-sm text-muted-foreground">
-                                        {rig.name}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </>
-                          );
-                        })()}
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
                       </div>
-                    </div>
                     </div>
                   )}
                 </div>
