@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-client";
 import { apiClient } from "@/services/api";
@@ -17,7 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// Tabs removed - using custom dropdown selector instead
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,6 +68,12 @@ import {
   X,
   MapPin,
   Clock,
+  Building2,
+  Check,
+  ChevronsUpDown,
+  Search,
+  Activity,
+  CheckCircle2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -104,6 +110,23 @@ const FailureReportingPage = ({
   const { toast } = useToast();
   const isMobile = isMobileDevice();
   const [activeTab, setActiveTab] = useState<string>("");
+  const [plantSelectorOpen, setPlantSelectorOpen] = useState(false);
+  const [plantSearchTerm, setPlantSearchTerm] = useState("");
+  const plantDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close plant dropdown on click outside
+  useEffect(() => {
+    if (!plantSelectorOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (plantDropdownRef.current && !plantDropdownRef.current.contains(e.target as globalThis.Node)) {
+        setPlantSelectorOpen(false);
+        setPlantSearchTerm("");
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [plantSelectorOpen]);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
@@ -131,6 +154,17 @@ const FailureReportingPage = ({
     queryFn: () => apiClient.request<FailureReport[]>("/failure-reports"),
   });
   const reports = useMemo(() => reportsData ?? [], [reportsData]);
+
+  const getPlantStats = useCallback(
+    (plant: string) => {
+      const plantReports = reports.filter((r: FailureReport) => r.plant === plant);
+      const openCount = plantReports.filter(
+        (r: FailureReport) => r.status === "REPORTED" || r.status === "IN_REVIEW",
+      ).length;
+      return { total: plantReports.length, open: openCount };
+    },
+    [reports],
+  );
 
   useEffect(() => {
     return () => {
@@ -814,100 +848,228 @@ const FailureReportingPage = ({
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList
-              className={`grid w-full h-20 bg-muted/30 p-2 gap-2`}
-              style={{
-                gridTemplateColumns: `repeat(${availableRigs.length || 1}, minmax(0, 1fr))`,
-              }}
-            >
-              {getAvailablePlants().map((plant) => {
-                const plantReports = reports.filter((r) => r.plant === plant);
-                const openCount = plantReports.filter(
-                  (r) => r.status === "REPORTED" || r.status === "IN_REVIEW",
-                ).length;
-                const totalCount = plantReports.length;
-
-                return (
-                  <TabsTrigger
-                    key={plant}
-                    value={plant}
-                    className="relative flex-col h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all shadow-sm hover:shadow-md py-2 px-3"
-                  >
-                    <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
-                      <span className="text-base font-bold leading-tight">
-                        {plant}
-                      </span>
-                      <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                        {openCount > 0 && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] opacity-70 leading-tight">
-                              Offen:
-                            </span>
-                            <Badge
-                              variant="destructive"
-                              className="px-1.5 py-0 text-[10px] font-bold leading-tight h-4"
-                            >
-                              {openCount}
+          {/* Plant Selector - Custom Dropdown */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="relative w-full sm:w-80" ref={plantDropdownRef}>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={plantSelectorOpen}
+                onClick={() => setPlantSelectorOpen(!plantSelectorOpen)}
+                className="w-full h-12 justify-between bg-muted/30 hover:bg-muted/50 border-border/50"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Building2 className="h-4 w-4 shrink-0 text-primary" />
+                  {activeTab ? (
+                    <>
+                      <span className="font-semibold truncate">{activeTab}</span>
+                      {(() => {
+                        const stats = getPlantStats(activeTab);
+                        if (stats.open > 0)
+                          return (
+                            <Badge variant="destructive" className="px-1.5 py-0 text-xs font-bold h-5 shrink-0">
+                              {stats.open} Offen
                             </Badge>
-                          </div>
-                        )}
-                        {openCount === 0 && totalCount > 0 && (
-                          <Badge
-                            variant="outline"
-                            className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 leading-tight h-4"
-                          >
-                            ✓ Alle bearbeitet
-                          </Badge>
-                        )}
-                        {totalCount === 0 && (
-                          <span className="text-[10px] opacity-60 leading-tight">
+                          );
+                        if (stats.total > 0)
+                          return (
+                            <Badge variant="outline" className="px-1.5 py-0 text-xs bg-green-500/10 text-green-600 border-green-500/20 h-5 shrink-0">
+                              ✓ Alle bearbeitet
+                            </Badge>
+                          );
+                        return (
+                          <span className="text-xs text-muted-foreground shrink-0">
                             Keine Reports
                           </span>
-                        )}
-                      </div>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Anlage auswählen...</span>
+                  )}
+                </div>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+              {plantSelectorOpen && (
+                <div className="absolute top-full left-0 mt-1 w-full sm:w-96 z-50 rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95">
+                  <div className="flex flex-col">
+                    <div className="flex items-center border-b px-3">
+                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                      <input
+                        className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+                        placeholder="Anlage suchen..."
+                        value={plantSearchTerm}
+                        onChange={(e) => setPlantSearchTerm(e.target.value)}
+                        autoFocus
+                      />
                     </div>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
+                    <div className="max-h-80 overflow-y-auto p-1">
+                      {(() => {
+                        const plants = getAvailablePlants().filter((p) =>
+                          p.toLowerCase().includes(plantSearchTerm.toLowerCase())
+                        );
+                        const withOpen = plants.filter((p) => getPlantStats(p).open > 0);
+                        const withDone = plants.filter((p) => {
+                          const s = getPlantStats(p);
+                          return s.open === 0 && s.total > 0;
+                        });
+                        const empty = plants.filter((p) => getPlantStats(p).total === 0);
 
-            {getAvailablePlants().map((plant) => (
-              <TabsContent key={plant} value={plant}>
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[140px] py-3 text-base">
-                          Ticket-Nr.
-                        </TableHead>
-                        <TableHead className="py-3 text-base">Status</TableHead>
-                        <TableHead className="py-3 text-base">Titel</TableHead>
-                        <TableHead className="py-3 text-base">
-                          Schwere
-                        </TableHead>
-                        <TableHead className="py-3 text-base">
-                          Gemeldet von
-                        </TableHead>
-                        <TableHead className="py-3 text-base">Foto</TableHead>
-                        <TableHead className="py-3 text-base">Datum</TableHead>
-                        <TableHead className="text-right py-3 text-base">
-                          Aktionen
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredReports.length === 0 ? (
-                        <TableRow>
-                          <TableCell
-                            colSpan={8}
-                            className="text-center py-6 text-base"
-                          >
-                            Keine Failure Reports für {plant}
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredReports.map((report) => (
+                        if (plants.length === 0) {
+                          return (
+                            <div className="py-6 text-center text-sm text-muted-foreground">
+                              Keine Anlage gefunden.
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <>
+                            {withOpen.length > 0 && (
+                              <div>
+                                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                  Offene Reports
+                                </div>
+                                {withOpen.map((plant) => {
+                                  const stats = getPlantStats(plant);
+                                  return (
+                                    <div
+                                      key={plant}
+                                      onClick={() => {
+                                        setActiveTab(plant);
+                                        setPlantSelectorOpen(false);
+                                        setPlantSearchTerm("");
+                                      }}
+                                      className={cn(
+                                        "flex items-center gap-3 py-2.5 px-3 cursor-pointer rounded-sm text-sm hover:bg-accent hover:text-accent-foreground",
+                                        activeTab === plant && "bg-accent"
+                                      )}
+                                    >
+                                      <div className={cn(
+                                        "flex h-5 w-5 items-center justify-center rounded-full border shrink-0",
+                                        activeTab === plant ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"
+                                      )}>
+                                        {activeTab === plant && <Check className="h-3 w-3" />}
+                                      </div>
+                                      <div className="flex flex-1 items-center justify-between min-w-0">
+                                        <span className="font-semibold">{plant}</span>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          <Activity className="h-3 w-3 text-red-500" />
+                                          <span className="text-xs font-medium text-red-500">{stats.open}</span>
+                                          <span className="text-xs text-muted-foreground ml-1">{stats.total} gesamt</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {withDone.length > 0 && (
+                              <div>
+                                {withOpen.length > 0 && <div className="-mx-1 my-1 h-px bg-border" />}
+                                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                  Alle bearbeitet
+                                </div>
+                                {withDone.map((plant) => {
+                                  const stats = getPlantStats(plant);
+                                  return (
+                                    <div
+                                      key={plant}
+                                      onClick={() => {
+                                        setActiveTab(plant);
+                                        setPlantSelectorOpen(false);
+                                        setPlantSearchTerm("");
+                                      }}
+                                      className={cn(
+                                        "flex items-center gap-3 py-2 px-3 cursor-pointer rounded-sm text-sm hover:bg-accent hover:text-accent-foreground",
+                                        activeTab === plant && "bg-accent"
+                                      )}
+                                    >
+                                      <div className={cn(
+                                        "flex h-5 w-5 items-center justify-center rounded-full border shrink-0",
+                                        activeTab === plant ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"
+                                      )}>
+                                        {activeTab === plant && <Check className="h-3 w-3" />}
+                                      </div>
+                                      <div className="flex flex-1 items-center justify-between min-w-0">
+                                        <span className="font-medium text-muted-foreground">{plant}</span>
+                                        <div className="flex items-center gap-1">
+                                          <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                          <span className="text-xs text-green-600">{stats.total} erledigt</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {empty.length > 0 && (
+                              <div>
+                                {(withOpen.length > 0 || withDone.length > 0) && <div className="-mx-1 my-1 h-px bg-border" />}
+                                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                  Ohne Reports
+                                </div>
+                                {empty.map((plant) => (
+                                  <div
+                                    key={plant}
+                                    onClick={() => {
+                                      setActiveTab(plant);
+                                      setPlantSelectorOpen(false);
+                                      setPlantSearchTerm("");
+                                    }}
+                                    className={cn(
+                                      "flex items-center gap-3 py-2 px-3 cursor-pointer rounded-sm text-sm opacity-60 hover:opacity-100 hover:bg-accent hover:text-accent-foreground",
+                                      activeTab === plant && "bg-accent opacity-100"
+                                    )}
+                                  >
+                                    <div className={cn(
+                                      "flex h-5 w-5 items-center justify-center rounded-full border shrink-0",
+                                      activeTab === plant ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/20"
+                                    )}>
+                                      {activeTab === plant && <Check className="h-3 w-3" />}
+                                    </div>
+                                    <span className="text-sm text-muted-foreground">{plant}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <span className="text-sm text-muted-foreground hidden sm:inline">
+              {getAvailablePlants().length} Anlagen
+            </span>
+          </div>
+
+          {/* Reports Table */}
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[140px] py-3 text-base">Ticket-Nr.</TableHead>
+                  <TableHead className="py-3 text-base">Status</TableHead>
+                  <TableHead className="py-3 text-base">Titel</TableHead>
+                  <TableHead className="py-3 text-base">Schwere</TableHead>
+                  <TableHead className="py-3 text-base">Gemeldet von</TableHead>
+                  <TableHead className="py-3 text-base">Foto</TableHead>
+                  <TableHead className="py-3 text-base">Datum</TableHead>
+                  <TableHead className="text-right py-3 text-base">Aktionen</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredReports.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-6 text-base">
+                      Keine Failure Reports für {activeTab}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredReports.map((report) => (
                           <TableRow key={report.id}>
                             <TableCell className="py-3">
                               <span className="font-mono font-medium text-sm">
@@ -1055,9 +1217,6 @@ const FailureReportingPage = ({
                     </TableBody>
                   </Table>
                 </div>
-              </TabsContent>
-            ))}
-          </Tabs>
         </CardContent>
       </Card>
 
