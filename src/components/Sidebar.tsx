@@ -2,16 +2,15 @@ import { useState, useMemo, useEffect } from "react";
 import {
   LayoutDashboard,
   FolderKanban,
-  FileText,
   ListTodo,
   Building2,
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
-  ClipboardCheck,
   Settings,
   CalendarDays,
   Shield,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,11 +25,10 @@ import { isTabletDevice } from "@/lib/device-detection";
 type AppPage =
   | "dashboard"
   | "projects"
-  | "workorders"
   | "actions"
   | "tender"
   | "failures"
-  | "inspections"
+  | "cspl"
   | "shifts"
   | "integrity"
   | "admin";
@@ -45,11 +43,10 @@ interface NavItem {
 const allNavItems: NavItem[] = [
   { title: "Dashboard", page: "dashboard", icon: LayoutDashboard },
   { title: "Projekte", page: "projects", icon: FolderKanban },
-  { title: "Work Orders", page: "workorders", icon: FileText },
   { title: "Action Tracker", page: "actions", icon: ListTodo },
   { title: "Schichtplan", page: "shifts", icon: CalendarDays },
   { title: "Asset Integrity", page: "integrity", icon: Shield },
-  { title: "Inspektionsberichte", page: "inspections", icon: ClipboardCheck },
+  { title: "CSPL Gap Analysis", page: "cspl", icon: Package },
   { title: "Bohranlagen", page: "tender", icon: Building2 },
   { title: "Störungsmeldung", page: "failures", icon: AlertTriangle },
   { title: "Admin", page: "admin", icon: Settings, adminOnly: true },
@@ -147,12 +144,10 @@ export function Sidebar({ currentPage, onPageChange, userRole }: SidebarProps) {
                   return "text-blue-500";
                 case "projects":
                   return "text-purple-500";
-                case "workorders":
-                  return "text-cyan-500";
                 case "actions":
                   return "text-orange-500";
-                case "inspections":
-                  return "text-green-500";
+                case "cspl":
+                  return "text-cyan-500";
                 case "shifts":
                   return "text-teal-500";
                 case "integrity":

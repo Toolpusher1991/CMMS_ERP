@@ -372,23 +372,32 @@ const ActionTracker = ({
   }, [initialActionId, actions]);
 
   // Initialize rig data and category tabs when rigs load
+  // Also include plants from actions that are not in the rig list (e.g. "Oman Field 1")
   useEffect(() => {
     if (loadedRigs.length > 0) {
-      setAvailableRigs(loadedRigs);
+      const rigNames = new Set(loadedRigs.map((r) => r.name));
+      const extraPlants = Array.from(
+        new Set(
+          actions.map((a) => a.plant).filter((p) => p && !rigNames.has(p)),
+        ),
+      ).map((name) => ({ id: `extra-${name}`, name }));
+      const allRigs = [...loadedRigs, ...extraPlants];
+      setAvailableRigs(allRigs);
+
       // Don't override a tab already set by initialActionId navigation
       if (!initialActionId) {
-        setActiveTab(loadedRigs[0].name);
+        setActiveTab(allRigs[0].name);
       } else if (actions.length > 0) {
         // If we have an initialActionId, set the tab to that action's plant
         const targetAction = actions.find((a) => a.id === initialActionId);
         if (targetAction) {
           setActiveTab(targetAction.plant);
         } else {
-          setActiveTab(loadedRigs[0].name);
+          setActiveTab(allRigs[0].name);
         }
       }
       const categoryDefaults: Record<string, string> = {};
-      loadedRigs.forEach((r) => {
+      allRigs.forEach((r) => {
         categoryDefaults[r.name] = "alle";
       });
       setActiveCategoryTab(categoryDefaults);

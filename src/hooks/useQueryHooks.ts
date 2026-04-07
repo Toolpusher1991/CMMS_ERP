@@ -192,28 +192,6 @@ export function useTenderMutations() {
 }
 
 // ═══════════════════════════════════════════════════════
-// Inspection Reports
-// ═══════════════════════════════════════════════════════
-
-export function useInspectionReports() {
-  return useQuery({
-    queryKey: queryKeys.inspections.list(),
-    queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: unknown[] }>('/inspection-reports');
-      return res.data;
-    },
-  });
-}
-
-export function useInspectionMutations() {
-  const qc = useQueryClient();
-
-  const invalidateInspections = () =>
-    qc.invalidateQueries({ queryKey: queryKeys.inspections.all });
-
-  return { invalidateInspections };
-}
-
 // ═══════════════════════════════════════════════════════
 // Dashboard — combined query (deduplicates with individual caches)
 // ═══════════════════════════════════════════════════════

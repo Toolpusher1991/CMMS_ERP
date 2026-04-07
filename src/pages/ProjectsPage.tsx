@@ -105,6 +105,10 @@ import {
   ClipboardList,
   PlayCircle,
   EyeIcon,
+  Check,
+  ChevronsUpDown,
+  Building2,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/services/api";
@@ -869,7 +873,7 @@ function GroupNode({
         />
         {/* Header - Doppelklick zum Umbenennen */}
         <div
-          className="px-3 py-1.5 rounded-t-[10px] text-xs font-semibold text-white flex items-center justify-between gap-2 cursor-pointer bg-gradient-to-r from-indigo-600 to-indigo-500"
+          className="px-3 py-2 rounded-t-[10px] text-xs font-semibold text-white flex items-center justify-between gap-2 cursor-pointer bg-gradient-to-r from-indigo-600 to-indigo-500"
           onDoubleClick={handleDoubleClick}
           title="Doppelklick zum Umbenennen"
         >
@@ -1051,7 +1055,11 @@ function ProjectsPageSkeleton() {
 }
 
 // ===== Main Component =====
-export default function ProjectsPage() {
+interface ProjectsPageProps {
+  initialProjectId?: string;
+}
+
+export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -1074,8 +1082,34 @@ export default function ProjectsPage() {
   }, [queryClient]);
 
   // State
-  const { rigs: availableRigs } = useRigs();
+  const { rigs: loadedRigs } = useRigs();
+  // Include plants from projects that are not in the rig list
+  const availableRigs = useMemo(() => {
+    const rigNames = new Set(loadedRigs.map((r) => r.name));
+    const extraPlants = projects
+      .map((p) => p.plant)
+      .filter((p): p is string => !!p && !rigNames.has(p))
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .map((name) => ({ id: `extra-${name}`, name }));
+    return [...loadedRigs, ...extraPlants];
+  }, [loadedRigs, projects]);
   const [activeTab, setActiveTab] = useState<string>("");
+  const [rigSelectorOpen, setRigSelectorOpen] = useState(false);
+  const [rigSearchTerm, setRigSearchTerm] = useState("");
+  const rigDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close rig dropdown on click outside
+  useEffect(() => {
+    if (!rigSelectorOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (rigDropdownRef.current && !rigDropdownRef.current.contains(e.target as globalThis.Node)) {
+        setRigSelectorOpen(false);
+        setRigSearchTerm("");
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [rigSelectorOpen]);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(
     new Set(),
@@ -1147,12 +1181,46 @@ export default function ProjectsPage() {
     label: "",
   });
 
-  // Set active tab to first rig when rigs load
+  // Set active tab to first rig when rigs load, or navigate to project's plant
   useEffect(() => {
     if (availableRigs.length > 0 && !activeTab) {
-      setActiveTab(availableRigs[0].name);
+      if (initialProjectId && projects.length > 0) {
+        const targetProject = projects.find((p) => p.id === initialProjectId);
+        const plant = targetProject?.plant;
+        if (plant) {
+          setActiveTab(plant);
+        } else {
+          setActiveTab(availableRigs[0].name);
+        }
+      } else {
+        setActiveTab(availableRigs[0].name);
+      }
     }
-  }, [availableRigs, activeTab]);
+  }, [availableRigs, activeTab, initialProjectId, projects]);
+
+  // Expand and scroll to project if initialProjectId is provided
+  useEffect(() => {
+    if (initialProjectId && projects.length > 0 && activeTab) {
+      const targetProject = projects.find((p) => p.id === initialProjectId);
+      const plant = targetProject?.plant;
+      if (plant) {
+        setActiveTab(plant);
+        setExpandedProjects(new Set([initialProjectId]));
+
+        const scrollToProject = (attempts = 0) => {
+          const element = document.getElementById(
+            `project-${initialProjectId}`,
+          );
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else if (attempts < 5) {
+            setTimeout(() => scrollToProject(attempts + 1), 200);
+          }
+        };
+        setTimeout(() => scrollToProject(), 300);
+      }
+    }
+  }, [initialProjectId, projects, activeTab]);
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -1673,9 +1741,9 @@ export default function ProjectsPage() {
   const NODE_WIDTH = 240;
   const NODE_HEIGHT = 95;
   const NODE_MIN_WIDTH = 240;
-  const GROUP_PADDING = 12;
-  const GROUP_HEADER = 32;
-  const NODE_GAP = 10;
+  const GROUP_PADDING = 16;
+  const GROUP_HEADER = 36;
+  const NODE_GAP = 12;
 
   // Helper: Recalculate group size and reposition children
   const recalculateGroup = useCallback(
@@ -2808,498 +2876,713 @@ export default function ProjectsPage() {
           {loading ? (
             <ProjectsPageSkeleton />
           ) : (
-            <Tabs
-              value={activeTab}
-              onValueChange={(v) => setActiveTab(v)}
-              className="space-y-4"
-            >
-              {/* Rig Selector Dropdown - scales for 20+ rigs */}
-              <div className="flex items-center gap-3">
-                <Select
-                  value={activeTab}
-                  onValueChange={(v) => setActiveTab(v)}
-                >
-                  <SelectTrigger className="w-full sm:w-72 h-12 bg-muted/30">
-                    <SelectValue placeholder="Anlage auswählen..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableRigs.map((rig) => {
-                      const stats = getProjectStats(rig.name);
-                      return (
-                        <SelectItem key={rig.id} value={rig.name}>
-                          <div className="flex items-center gap-3 py-1">
-                            <span className="font-bold">{rig.name}</span>
-                            {stats.active > 0 && (
-                              <Badge
-                                variant="destructive"
-                                className="px-1.5 py-0 text-[10px] font-bold h-4"
-                              >
-                                {stats.active} Aktiv
-                              </Badge>
-                            )}
-                            {stats.active === 0 && stats.total > 0 && (
-                              <Badge
-                                variant="outline"
-                                className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 h-4"
-                              >
-                                Alle erledigt
-                              </Badge>
-                            )}
-                            {stats.total === 0 && (
-                              <span className="text-[10px] text-muted-foreground">
-                                Keine Projekte
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+            <>
+              {/* Rig Selector - Custom dropdown (no Radix Popover) */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="relative w-full sm:w-80" ref={rigDropdownRef}>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={rigSelectorOpen}
+                    onClick={() => setRigSelectorOpen(!rigSelectorOpen)}
+                    className="w-full h-12 justify-between bg-muted/30 hover:bg-muted/50 border-border/50"
+                  >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Building2 className="h-4 w-4 shrink-0 text-primary" />
+                        {activeTab ? (
+                          <>
+                            <span className="font-semibold truncate">
+                              {activeTab}
+                            </span>
+                            {(() => {
+                              const stats = getProjectStats(activeTab);
+                              if (stats.active > 0)
+                                return (
+                                  <Badge
+                                    variant="destructive"
+                                    className="px-1.5 py-0 text-[10px] font-bold h-5 shrink-0"
+                                  >
+                                    {stats.active} Aktiv
+                                  </Badge>
+                                );
+                              if (stats.total > 0)
+                                return (
+                                  <Badge
+                                    variant="outline"
+                                    className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 h-5 shrink-0"
+                                  >
+                                    ✓ Erledigt
+                                  </Badge>
+                                );
+                              return (
+                                <span className="text-[11px] text-muted-foreground shrink-0">
+                                  Keine Projekte
+                                </span>
+                              );
+                            })()}
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            Anlage auswählen...
+                          </span>
+                        )}
+                      </div>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  {rigSelectorOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-full sm:w-96 z-50 rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95">
+                      <div className="flex flex-col">
+                      {/* Search Input */}
+                      <div className="flex items-center border-b px-3">
+                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                        <input
+                          className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+                          placeholder="Anlage suchen..."
+                          value={rigSearchTerm}
+                          onChange={(e) => setRigSearchTerm(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="max-h-80 overflow-y-auto p-1">
+                        {(() => {
+                          const filtered = availableRigs.filter((r) =>
+                            r.name.toLowerCase().includes(rigSearchTerm.toLowerCase())
+                          );
+                          const activeRigs = filtered.filter((r) => getProjectStats(r.name).active > 0);
+                          const completedRigs = filtered.filter((r) => {
+                            const s = getProjectStats(r.name);
+                            return s.active === 0 && s.total > 0;
+                          });
+                          const emptyRigs = filtered.filter((r) => getProjectStats(r.name).total === 0);
+
+                          if (filtered.length === 0) {
+                            return (
+                              <div className="py-6 text-center text-sm text-muted-foreground">
+                                Keine Anlage gefunden.
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <>
+                              {activeRigs.length > 0 && (
+                                <div>
+                                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                    Aktive Projekte
+                                  </div>
+                                  {activeRigs.map((rig) => {
+                                    const stats = getProjectStats(rig.name);
+                                    return (
+                                      <div
+                                        key={rig.id}
+                                        onClick={() => {
+                                          setActiveTab(rig.name);
+                                          setRigSelectorOpen(false);
+                                          setRigSearchTerm("");
+                                        }}
+                                        className={cn(
+                                          "flex items-center gap-3 py-2.5 px-3 cursor-pointer rounded-sm text-sm hover:bg-accent hover:text-accent-foreground",
+                                          activeTab === rig.name && "bg-accent"
+                                        )}
+                                      >
+                                        <div
+                                          className={cn(
+                                            "flex h-5 w-5 items-center justify-center rounded-full border shrink-0",
+                                            activeTab === rig.name
+                                              ? "bg-primary border-primary text-primary-foreground"
+                                              : "border-muted-foreground/30",
+                                          )}
+                                        >
+                                          {activeTab === rig.name && (
+                                            <Check className="h-3 w-3" />
+                                          )}
+                                        </div>
+                                        <div className="flex flex-1 items-center justify-between min-w-0">
+                                          <span className="font-semibold">
+                                            {rig.name}
+                                          </span>
+                                          <div className="flex items-center gap-2 shrink-0">
+                                            <div className="flex items-center gap-1">
+                                              <Activity className="h-3 w-3 text-red-500" />
+                                              <span className="text-xs font-medium text-red-500">
+                                                {stats.active}
+                                              </span>
+                                            </div>
+                                            <span className="text-[10px] text-muted-foreground">
+                                              {stats.total}{" "}
+                                              {stats.total === 1
+                                                ? "Projekt"
+                                                : "Projekte"}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              {completedRigs.length > 0 && (
+                                <div>
+                                  {activeRigs.length > 0 && (
+                                    <div className="-mx-1 my-1 h-px bg-border" />
+                                  )}
+                                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                    Abgeschlossen
+                                  </div>
+                                  {completedRigs.map((rig) => {
+                                    const stats = getProjectStats(rig.name);
+                                    return (
+                                      <div
+                                        key={rig.id}
+                                        onClick={() => {
+                                          setActiveTab(rig.name);
+                                          setRigSelectorOpen(false);
+                                          setRigSearchTerm("");
+                                        }}
+                                        className={cn(
+                                          "flex items-center gap-3 py-2 px-3 cursor-pointer rounded-sm text-sm hover:bg-accent hover:text-accent-foreground",
+                                          activeTab === rig.name && "bg-accent"
+                                        )}
+                                      >
+                                        <div
+                                          className={cn(
+                                            "flex h-5 w-5 items-center justify-center rounded-full border shrink-0",
+                                            activeTab === rig.name
+                                              ? "bg-primary border-primary text-primary-foreground"
+                                              : "border-muted-foreground/30",
+                                          )}
+                                        >
+                                          {activeTab === rig.name && (
+                                            <Check className="h-3 w-3" />
+                                          )}
+                                        </div>
+                                        <div className="flex flex-1 items-center justify-between min-w-0">
+                                          <span className="font-medium text-muted-foreground">
+                                            {rig.name}
+                                          </span>
+                                          <div className="flex items-center gap-1">
+                                            <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                            <span className="text-[10px] text-green-600">
+                                              {stats.total} erledigt
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              {emptyRigs.length > 0 && (
+                                <div>
+                                  {(activeRigs.length > 0 || completedRigs.length > 0) && (
+                                    <div className="-mx-1 my-1 h-px bg-border" />
+                                  )}
+                                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                    Ohne Projekte
+                                  </div>
+                                  {emptyRigs.map((rig) => (
+                                    <div
+                                      key={rig.id}
+                                      onClick={() => {
+                                        setActiveTab(rig.name);
+                                        setRigSelectorOpen(false);
+                                        setRigSearchTerm("");
+                                      }}
+                                      className={cn(
+                                        "flex items-center gap-3 py-2 px-3 cursor-pointer rounded-sm text-sm opacity-60 hover:opacity-100 hover:bg-accent hover:text-accent-foreground",
+                                        activeTab === rig.name && "bg-accent opacity-100"
+                                      )}
+                                    >
+                                      <div
+                                        className={cn(
+                                          "flex h-5 w-5 items-center justify-center rounded-full border shrink-0",
+                                          activeTab === rig.name
+                                            ? "bg-primary border-primary text-primary-foreground"
+                                            : "border-muted-foreground/20",
+                                        )}
+                                      >
+                                        {activeTab === rig.name && (
+                                          <Check className="h-3 w-3" />
+                                        )}
+                                      </div>
+                                      <span className="text-sm text-muted-foreground">
+                                        {rig.name}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                    </div>
+                  )}
+                </div>
                 <span className="text-sm text-muted-foreground hidden sm:inline">
                   {availableRigs.length} Anlagen
                 </span>
               </div>
 
-              {availableRigs.map((rig) => (
-                <TabsContent
-                  key={rig.id}
-                  value={rig.name}
-                  className="space-y-4"
-                >
-                  {filteredProjects.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <FolderKanban className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold">Keine Projekte</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Erstellen Sie das erste Projekt für {rig.name}
-                      </p>
-                      <Button onClick={openNewProjectDialog}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Projekt erstellen
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="border rounded-lg overflow-hidden bg-card">
-                      {/* Column Headers */}
-                      <div className="grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 px-4 py-2.5 border-b bg-muted/30">
-                        <span></span>
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider"></span>
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          Verantwortlich
-                        </span>
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          Fällig
-                        </span>
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          Priorität
-                        </span>
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          Fortschritt
-                        </span>
-                        <span></span>
+              <Tabs
+                value={activeTab}
+                onValueChange={(v) => setActiveTab(v)}
+                className="space-y-4"
+              >
+                {availableRigs.map((rig) => (
+                  <TabsContent
+                    key={rig.id}
+                    value={rig.name}
+                    className="space-y-4"
+                  >
+                    {filteredProjects.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <FolderKanban className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold">
+                          Keine Projekte
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Erstellen Sie das erste Projekt für {rig.name}
+                        </p>
+                        <Button onClick={openNewProjectDialog}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Projekt erstellen
+                        </Button>
                       </div>
+                    ) : (
+                      <div className="border rounded-lg overflow-hidden bg-card">
+                        {/* Column Headers */}
+                        <div className="grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 px-4 py-2.5 border-b bg-muted/30">
+                          <span></span>
+                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider"></span>
+                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Verantwortlich
+                          </span>
+                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Fällig
+                          </span>
+                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Priorität
+                          </span>
+                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Fortschritt
+                          </span>
+                          <span></span>
+                        </div>
 
-                      {filteredProjects.map((project) => {
-                        const isExpanded = expandedProjects.has(project.id);
-                        const progress = getProjectProgress(project);
-                        const flowOrderMap = getFlowchartTaskOrder(project);
-                        const tasks = sortTasksByFlowOrder(
-                          project.tasks || [],
-                          flowOrderMap,
-                        );
-                        const completedTasks = tasks.filter(
-                          (t) => t.status === "DONE",
-                        ).length;
+                        {filteredProjects.map((project) => {
+                          const isExpanded = expandedProjects.has(project.id);
+                          const progress = getProjectProgress(project);
+                          const flowOrderMap = getFlowchartTaskOrder(project);
+                          const tasks = sortTasksByFlowOrder(
+                            project.tasks || [],
+                            flowOrderMap,
+                          );
+                          const completedTasks = tasks.filter(
+                            (t) => t.status === "DONE",
+                          ).length;
 
-                        return (
-                          <React.Fragment key={project.id}>
-                            {/* Project Row */}
-                            <div
-                              className={`grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 items-center px-4 py-3 border-b hover:bg-muted/40 transition-colors cursor-pointer group ${
-                                project.status === "COMPLETED"
-                                  ? "opacity-70"
-                                  : ""
-                              }`}
-                              onClick={() => toggleProjectExpanded(project.id)}
-                            >
-                              {/* Expand Icon */}
-                              <div className="flex-shrink-0">
-                                {isExpanded ? (
-                                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                                ) : (
-                                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                                )}
-                              </div>
-
-                              {/* Title & Description */}
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={`font-medium text-sm leading-tight ${
-                                      project.status === "COMPLETED"
-                                        ? "line-through text-muted-foreground"
-                                        : ""
-                                    }`}
-                                  >
-                                    {project.name}
-                                  </span>
-                                  <Badge
-                                    className={`text-[10px] font-semibold px-1.5 py-0 border-0 h-5 ${
-                                      project.status === "IN_PROGRESS"
-                                        ? "bg-blue-600 text-white"
-                                        : project.status === "PLANNED"
-                                          ? "bg-slate-500 text-white"
-                                          : project.status === "ON_HOLD"
-                                            ? "bg-amber-400 text-white"
-                                            : project.status === "COMPLETED"
-                                              ? "bg-emerald-600 text-white"
-                                              : "bg-red-500 text-white"
-                                    }`}
-                                  >
-                                    {project.status === "PLANNED" && "Geplant"}
-                                    {project.status === "IN_PROGRESS" &&
-                                      "In Arbeit"}
-                                    {project.status === "ON_HOLD" && "Pausiert"}
-                                    {project.status === "COMPLETED" &&
-                                      "Abgeschlossen"}
-                                    {project.status === "CANCELLED" &&
-                                      "Abgebrochen"}
-                                  </Badge>
+                          return (
+                            <React.Fragment key={project.id}>
+                              {/* Project Row */}
+                              <div
+                                id={`project-${project.id}`}
+                                className={`grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 items-center px-4 py-3 border-b hover:bg-muted/40 transition-colors cursor-pointer group ${
+                                  project.status === "COMPLETED"
+                                    ? "opacity-70"
+                                    : ""
+                                }`}
+                                onClick={() =>
+                                  toggleProjectExpanded(project.id)
+                                }
+                              >
+                                {/* Expand Icon */}
+                                <div className="flex-shrink-0">
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                                  ) : (
+                                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                                  )}
                                 </div>
-                                {project.description && (
-                                  <div className="text-xs text-muted-foreground truncate mt-0.5">
-                                    {project.description}
+
+                                {/* Title & Description */}
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`font-medium text-sm leading-tight ${
+                                        project.status === "COMPLETED"
+                                          ? "line-through text-muted-foreground"
+                                          : ""
+                                      }`}
+                                    >
+                                      {project.name}
+                                    </span>
+                                    <Badge
+                                      className={`text-[10px] font-semibold px-1.5 py-0 border-0 h-5 ${
+                                        project.status === "IN_PROGRESS"
+                                          ? "bg-blue-600 text-white"
+                                          : project.status === "PLANNED"
+                                            ? "bg-slate-500 text-white"
+                                            : project.status === "ON_HOLD"
+                                              ? "bg-amber-400 text-white"
+                                              : project.status === "COMPLETED"
+                                                ? "bg-emerald-600 text-white"
+                                                : "bg-red-500 text-white"
+                                      }`}
+                                    >
+                                      {project.status === "PLANNED" &&
+                                        "Geplant"}
+                                      {project.status === "IN_PROGRESS" &&
+                                        "In Arbeit"}
+                                      {project.status === "ON_HOLD" &&
+                                        "Pausiert"}
+                                      {project.status === "COMPLETED" &&
+                                        "Abgeschlossen"}
+                                      {project.status === "CANCELLED" &&
+                                        "Abgebrochen"}
+                                    </Badge>
                                   </div>
-                                )}
-                              </div>
-
-                              {/* Manager */}
-                              <div className="flex items-center gap-2">
-                                {project.manager ? (
-                                  <>
-                                    <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-[10px] flex-shrink-0 ring-1 ring-primary/20">
-                                      {project.manager.firstName[0]}
-                                      {project.manager.lastName[0]}
+                                  {project.description && (
+                                    <div className="text-xs text-muted-foreground truncate mt-0.5">
+                                      {project.description}
                                     </div>
-                                  </>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">
-                                    —
-                                  </span>
-                                )}
-                              </div>
+                                  )}
+                                </div>
 
-                              {/* Due Date */}
-                              <span className="text-xs text-muted-foreground">
-                                {project.endDate
-                                  ? new Date(
-                                      project.endDate,
-                                    ).toLocaleDateString("de-DE", {
-                                      day: "numeric",
-                                      month: "short",
-                                    })
-                                  : "—"}
-                              </span>
+                                {/* Manager */}
+                                <div className="flex items-center gap-2">
+                                  {project.manager ? (
+                                    <>
+                                      <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-[10px] flex-shrink-0 ring-1 ring-primary/20">
+                                        {project.manager.firstName[0]}
+                                        {project.manager.lastName[0]}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">
+                                      —
+                                    </span>
+                                  )}
+                                </div>
 
-                              {/* Priority Badge */}
-                              <Badge
-                                className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
-                                  project.priority === "URGENT"
-                                    ? "bg-red-500 hover:bg-red-600 text-white"
+                                {/* Due Date */}
+                                <span className="text-xs text-muted-foreground">
+                                  {project.endDate
+                                    ? new Date(
+                                        project.endDate,
+                                      ).toLocaleDateString("de-DE", {
+                                        day: "numeric",
+                                        month: "short",
+                                      })
+                                    : "—"}
+                                </span>
+
+                                {/* Priority Badge */}
+                                <Badge
+                                  className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
+                                    project.priority === "URGENT"
+                                      ? "bg-red-500 hover:bg-red-600 text-white"
+                                      : project.priority === "HIGH"
+                                        ? "bg-orange-500 hover:bg-orange-600 text-white"
+                                        : project.priority === "NORMAL"
+                                          ? "bg-amber-400 hover:bg-amber-500 text-white"
+                                          : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                                  }`}
+                                >
+                                  {project.priority === "URGENT"
+                                    ? "Urgent"
                                     : project.priority === "HIGH"
-                                      ? "bg-orange-500 hover:bg-orange-600 text-white"
+                                      ? "Hoch"
                                       : project.priority === "NORMAL"
-                                        ? "bg-amber-400 hover:bg-amber-500 text-white"
-                                        : "bg-emerald-500 hover:bg-emerald-600 text-white"
-                                }`}
-                              >
-                                {project.priority === "URGENT"
-                                  ? "Urgent"
-                                  : project.priority === "HIGH"
-                                    ? "Hoch"
-                                    : project.priority === "NORMAL"
-                                      ? "Normal"
-                                      : "Niedrig"}
-                              </Badge>
+                                        ? "Normal"
+                                        : "Niedrig"}
+                                </Badge>
 
-                              {/* Progress Badge */}
-                              <Badge
-                                className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
-                                  progress === 100
-                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                                    : progress >= 50
-                                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                      : progress > 0
-                                        ? "bg-amber-400 hover:bg-amber-500 text-white"
-                                        : "bg-slate-500 hover:bg-slate-600 text-white"
-                                }`}
-                              >
-                                {progress}%
-                              </Badge>
+                                {/* Progress Badge */}
+                                <Badge
+                                  className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
+                                    progress === 100
+                                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                      : progress >= 50
+                                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                        : progress > 0
+                                          ? "bg-amber-400 hover:bg-amber-500 text-white"
+                                          : "bg-slate-500 hover:bg-slate-600 text-white"
+                                  }`}
+                                >
+                                  {progress}%
+                                </Badge>
 
-                              {/* Hover Actions */}
-                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openFlowDialog(project);
-                                  }}
-                                  title="Flowchart"
-                                >
-                                  <Workflow className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openEditProjectDialog(project);
-                                  }}
-                                  title="Bearbeiten"
-                                >
-                                  <Edit className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedProject(project);
-                                    setShowDeleteProjectDialog(true);
-                                  }}
-                                  title="Löschen"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                                </Button>
+                                {/* Hover Actions */}
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openFlowDialog(project);
+                                    }}
+                                    title="Flowchart"
+                                  >
+                                    <Workflow className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEditProjectDialog(project);
+                                    }}
+                                    title="Bearbeiten"
+                                  >
+                                    <Edit className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedProject(project);
+                                      setShowDeleteProjectDialog(true);
+                                    }}
+                                    title="Löschen"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
 
-                            {/* Expanded Content: Task List */}
-                            {isExpanded && (
-                              <div className="border-b bg-muted/20">
-                                <div className="px-4 py-4">
-                                  <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                      <h4 className="font-semibold text-sm flex items-center gap-2">
-                                        <ListTodo className="h-4 w-4" />
-                                        Aufgaben ({tasks.length})
-                                      </h4>
-                                      {/* Progress Bar */}
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                          <div
-                                            className={`h-full transition-all ${getProgressColor(progress)}`}
-                                            style={{ width: `${progress}%` }}
-                                          />
+                              {/* Expanded Content: Task List */}
+                              {isExpanded && (
+                                <div className="border-b bg-muted/20">
+                                  <div className="px-4 py-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                      <div className="flex items-center gap-3">
+                                        <h4 className="font-semibold text-sm flex items-center gap-2">
+                                          <ListTodo className="h-4 w-4" />
+                                          Aufgaben ({tasks.length})
+                                        </h4>
+                                        {/* Progress Bar */}
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                            <div
+                                              className={`h-full transition-all ${getProgressColor(progress)}`}
+                                              style={{ width: `${progress}%` }}
+                                            />
+                                          </div>
+                                          <span className="text-xs text-muted-foreground">
+                                            {completedTasks}/{tasks.length}
+                                          </span>
                                         </div>
-                                        <span className="text-xs text-muted-foreground">
-                                          {completedTasks}/{tasks.length}
-                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openFlowDialog(project);
+                                          }}
+                                        >
+                                          <Workflow className="h-4 w-4 mr-1" />
+                                          Flowchart
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() =>
+                                            openNewTaskDialog(project)
+                                          }
+                                        >
+                                          <Plus className="h-4 w-4 mr-1" />
+                                          Aufgabe
+                                        </Button>
                                       </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openFlowDialog(project);
-                                        }}
-                                      >
-                                        <Workflow className="h-4 w-4 mr-1" />
-                                        Flowchart
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() =>
-                                          openNewTaskDialog(project)
-                                        }
-                                      >
-                                        <Plus className="h-4 w-4 mr-1" />
-                                        Aufgabe
-                                      </Button>
-                                    </div>
-                                  </div>
 
-                                  {tasks.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground text-center py-4">
-                                      Noch keine Aufgaben vorhanden
-                                    </p>
-                                  ) : (
-                                    <div className="space-y-1">
-                                      {tasks.map((task) => {
-                                        const priorityConfig: Record<
-                                          string,
-                                          { border: string; flag: string }
-                                        > = {
-                                          URGENT: {
-                                            border: "border-l-red-500",
-                                            flag: "🔴",
-                                          },
-                                          HIGH: {
-                                            border: "border-l-orange-500",
-                                            flag: "🟡",
-                                          },
-                                          NORMAL: {
-                                            border: "border-l-blue-500",
-                                            flag: "🟢",
-                                          },
-                                          LOW: {
-                                            border: "border-l-slate-400",
-                                            flag: "⚪",
-                                          },
-                                        };
-                                        const priority =
-                                          priorityConfig[
-                                            task.priority || "NORMAL"
-                                          ];
+                                    {tasks.length === 0 ? (
+                                      <p className="text-sm text-muted-foreground text-center py-4">
+                                        Noch keine Aufgaben vorhanden
+                                      </p>
+                                    ) : (
+                                      <div className="space-y-1">
+                                        {tasks.map((task) => {
+                                          const priorityConfig: Record<
+                                            string,
+                                            { border: string; flag: string }
+                                          > = {
+                                            URGENT: {
+                                              border: "border-l-red-500",
+                                              flag: "🔴",
+                                            },
+                                            HIGH: {
+                                              border: "border-l-orange-500",
+                                              flag: "🟡",
+                                            },
+                                            NORMAL: {
+                                              border: "border-l-blue-500",
+                                              flag: "🟢",
+                                            },
+                                            LOW: {
+                                              border: "border-l-slate-400",
+                                              flag: "⚪",
+                                            },
+                                          };
+                                          const priority =
+                                            priorityConfig[
+                                              task.priority || "NORMAL"
+                                            ];
 
-                                        return (
-                                          <div
-                                            key={task.id}
-                                            className={`flex items-center justify-between px-3 py-2.5 rounded-md transition-all border-l-4 group/task ${priority.border} ${
-                                              task.status === "DONE"
-                                                ? "opacity-60 bg-muted/30"
-                                                : "hover:bg-muted/40"
-                                            }`}
-                                          >
-                                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                                              <button
-                                                onClick={() =>
-                                                  toggleTaskStatus(
-                                                    project,
-                                                    task,
-                                                  )
-                                                }
-                                                className="hover:scale-110 transition-transform flex-shrink-0"
-                                              >
-                                                {task.status === "DONE" ? (
-                                                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                                                ) : task.status ===
-                                                  "IN_PROGRESS" ? (
-                                                  <Clock className="h-5 w-5 text-blue-500" />
-                                                ) : task.status === "REVIEW" ? (
-                                                  <Eye className="h-5 w-5 text-yellow-500" />
-                                                ) : (
-                                                  <Circle className="h-5 w-5 text-gray-300" />
-                                                )}
-                                              </button>
-                                              <div className="min-w-0 flex-1">
-                                                <p
-                                                  className={`text-sm font-medium truncate ${task.status === "DONE" ? "line-through text-muted-foreground" : ""}`}
+                                          return (
+                                            <div
+                                              key={task.id}
+                                              className={`flex items-center justify-between px-3 py-2.5 rounded-md transition-all border-l-4 group/task ${priority.border} ${
+                                                task.status === "DONE"
+                                                  ? "opacity-60 bg-muted/30"
+                                                  : "hover:bg-muted/40"
+                                              }`}
+                                            >
+                                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                <button
+                                                  onClick={() =>
+                                                    toggleTaskStatus(
+                                                      project,
+                                                      task,
+                                                    )
+                                                  }
+                                                  className="hover:scale-110 transition-transform flex-shrink-0"
                                                 >
-                                                  {task.title}
-                                                </p>
-                                              </div>
-                                              {task.assignedTo && (
-                                                <div className="flex items-center gap-1.5 flex-shrink-0">
-                                                  <div className="h-6 w-6 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-[9px] ring-1 ring-primary/20">
-                                                    {task.assignedTo
-                                                      .split(" ")
-                                                      .map((n: string) => n[0])
-                                                      .join("")
-                                                      .slice(0, 2)}
-                                                  </div>
+                                                  {task.status === "DONE" ? (
+                                                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                                  ) : task.status ===
+                                                    "IN_PROGRESS" ? (
+                                                    <Clock className="h-5 w-5 text-blue-500" />
+                                                  ) : task.status ===
+                                                    "REVIEW" ? (
+                                                    <Eye className="h-5 w-5 text-yellow-500" />
+                                                  ) : (
+                                                    <Circle className="h-5 w-5 text-gray-300" />
+                                                  )}
+                                                </button>
+                                                <div className="min-w-0 flex-1">
+                                                  <p
+                                                    className={`text-sm font-medium truncate ${task.status === "DONE" ? "line-through text-muted-foreground" : ""}`}
+                                                  >
+                                                    {task.title}
+                                                  </p>
                                                 </div>
-                                              )}
-                                            </div>
-                                            <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                                              <Badge
-                                                className={`text-[10px] font-semibold px-2 py-0 h-5 border-0 ${
-                                                  task.status === "DONE"
-                                                    ? "bg-emerald-600 text-white"
+                                                {task.assignedTo && (
+                                                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                    <div className="h-6 w-6 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-[9px] ring-1 ring-primary/20">
+                                                      {task.assignedTo
+                                                        .split(" ")
+                                                        .map(
+                                                          (n: string) => n[0],
+                                                        )
+                                                        .join("")
+                                                        .slice(0, 2)}
+                                                    </div>
+                                                  </div>
+                                                )}
+                                              </div>
+                                              <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                                                <Badge
+                                                  className={`text-[10px] font-semibold px-2 py-0 h-5 border-0 ${
+                                                    task.status === "DONE"
+                                                      ? "bg-emerald-600 text-white"
+                                                      : task.status ===
+                                                          "IN_PROGRESS"
+                                                        ? "bg-blue-600 text-white"
+                                                        : task.status ===
+                                                            "REVIEW"
+                                                          ? "bg-amber-400 text-white"
+                                                          : "bg-slate-500 text-white"
+                                                  }`}
+                                                >
+                                                  {task.status === "DONE"
+                                                    ? "Erledigt"
                                                     : task.status ===
                                                         "IN_PROGRESS"
-                                                      ? "bg-blue-600 text-white"
+                                                      ? "In Arbeit"
                                                       : task.status === "REVIEW"
-                                                        ? "bg-amber-400 text-white"
-                                                        : "bg-slate-500 text-white"
-                                                }`}
-                                              >
-                                                {task.status === "DONE"
-                                                  ? "Erledigt"
-                                                  : task.status ===
-                                                      "IN_PROGRESS"
-                                                    ? "In Arbeit"
-                                                    : task.status === "REVIEW"
-                                                      ? "Review"
-                                                      : "Offen"}
-                                              </Badge>
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7 opacity-0 group-hover/task:opacity-100 transition-opacity"
-                                                onClick={() =>
-                                                  openEditTaskDialog(
-                                                    project,
-                                                    task,
-                                                  )
-                                                }
-                                              >
-                                                <Edit className="h-3.5 w-3.5" />
-                                              </Button>
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7 opacity-0 group-hover/task:opacity-100 transition-opacity text-red-500"
-                                                onClick={() => {
-                                                  setTaskToDelete({
-                                                    projectId: project.id,
-                                                    taskId: task.id,
-                                                  });
-                                                  setShowDeleteTaskDialog(true);
-                                                }}
-                                              >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                              </Button>
+                                                        ? "Review"
+                                                        : "Offen"}
+                                                </Badge>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-7 w-7 opacity-0 group-hover/task:opacity-100 transition-opacity"
+                                                  onClick={() =>
+                                                    openEditTaskDialog(
+                                                      project,
+                                                      task,
+                                                    )
+                                                  }
+                                                >
+                                                  <Edit className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-7 w-7 opacity-0 group-hover/task:opacity-100 transition-opacity text-red-500"
+                                                  onClick={() => {
+                                                    setTaskToDelete({
+                                                      projectId: project.id,
+                                                      taskId: task.id,
+                                                    });
+                                                    setShowDeleteTaskDialog(
+                                                      true,
+                                                    );
+                                                  }}
+                                                >
+                                                  <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                              </div>
                                             </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
+                                          );
+                                        })}
+                                      </div>
+                                    )}
 
-                                  {/* Dates */}
-                                  {(project.startDate || project.endDate) && (
-                                    <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs text-muted-foreground">
-                                      {project.startDate && (
-                                        <span className="flex items-center gap-1">
-                                          <Calendar className="h-3 w-3" />
-                                          Start:{" "}
-                                          {new Date(
-                                            project.startDate,
-                                          ).toLocaleDateString("de-DE")}
-                                        </span>
-                                      )}
-                                      {project.endDate && (
-                                        <span className="flex items-center gap-1">
-                                          <Target className="h-3 w-3" />
-                                          Ende:{" "}
-                                          {new Date(
-                                            project.endDate,
-                                          ).toLocaleDateString("de-DE")}
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
+                                    {/* Dates */}
+                                    {(project.startDate || project.endDate) && (
+                                      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs text-muted-foreground">
+                                        {project.startDate && (
+                                          <span className="flex items-center gap-1">
+                                            <Calendar className="h-3 w-3" />
+                                            Start:{" "}
+                                            {new Date(
+                                              project.startDate,
+                                            ).toLocaleDateString("de-DE")}
+                                          </span>
+                                        )}
+                                        {project.endDate && (
+                                          <span className="flex items-center gap-1">
+                                            <Target className="h-3 w-3" />
+                                            Ende:{" "}
+                                            {new Date(
+                                              project.endDate,
+                                            ).toLocaleDateString("de-DE")}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
-                    </div>
-                  )}
-                </TabsContent>
-              ))}
-            </Tabs>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </>
           )}
         </CardContent>
       </Card>

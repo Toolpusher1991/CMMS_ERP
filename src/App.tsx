@@ -22,25 +22,23 @@ import type { User } from "@/services/auth.service";
 // Lazy-loaded pages for code splitting
 const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
 const ProjectsPage = lazy(() => import("@/pages/ProjectsPage"));
-const WorkOrderManagement = lazy(() => import("@/pages/WorkOrderManagement"));
 const ActionTracker = lazy(() => import("@/pages/ActionTracker"));
 const RigConfigurator = lazy(() => import("@/pages/RigConfigurator"));
 const FailureReporting = lazy(() => import("@/pages/FailureReporting"));
-const InspectionReports = lazy(() => import("@/pages/InspectionReports"));
 const ShiftPlanner = lazy(() => import("@/pages/ShiftPlanner"));
 const AssetIntegrityManagement = lazy(
   () => import("@/pages/AssetIntegrityManagement"),
 );
+const CSPLGapAnalysis = lazy(() => import("@/pages/CSPLGapAnalysis"));
 
 type AuthView = "login" | "register" | "forgot-password";
 type AppPage =
   | "dashboard"
   | "projects"
-  | "workorders"
   | "actions"
   | "tender"
   | "failures"
-  | "inspections"
+  | "cspl"
   | "shifts"
   | "integrity"
   | "admin";
@@ -58,6 +56,9 @@ function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>("dashboard");
   const [isMobile, setIsMobile] = useState(false);
   const [initialActionId, setInitialActionId] = useState<string | undefined>();
+  const [initialProjectId, setInitialProjectId] = useState<
+    string | undefined
+  >();
   const [initialReportId, setInitialReportId] = useState<string | undefined>();
   const [showOnlyMyActions, setShowOnlyMyActions] = useState(false);
 
@@ -93,6 +94,7 @@ function App() {
   const handleNavigate = (page: string, itemId?: string) => {
     // Reset IDs and filters when navigating
     setInitialActionId(undefined);
+    setInitialProjectId(undefined);
     setInitialReportId(undefined);
     setShowOnlyMyActions(false);
 
@@ -107,6 +109,9 @@ function App() {
       }
     } else if (page === "projects") {
       setCurrentPage("projects");
+      if (itemId) {
+        setInitialProjectId(itemId);
+      }
     } else if (page === "failure-reporting") {
       setCurrentPage("failures");
       if (itemId) {
@@ -122,7 +127,9 @@ function App() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Laden...</p>
+          <p className="mt-4 text-muted-foreground">
+            Überprüfe Anmeldestatus...
+          </p>
         </div>
       </div>
     );
@@ -220,12 +227,7 @@ function App() {
                       )}
                       {currentPage === "projects" && (
                         <PageErrorBoundary>
-                          <ProjectsPage />
-                        </PageErrorBoundary>
-                      )}
-                      {currentPage === "workorders" && (
-                        <PageErrorBoundary>
-                          <WorkOrderManagement />
+                          <ProjectsPage initialProjectId={initialProjectId} />
                         </PageErrorBoundary>
                       )}
                       {currentPage === "actions" && (
@@ -241,9 +243,9 @@ function App() {
                           <FailureReporting initialReportId={initialReportId} />
                         </PageErrorBoundary>
                       )}
-                      {currentPage === "inspections" && (
+                      {currentPage === "cspl" && (
                         <PageErrorBoundary>
-                          <InspectionReports />
+                          <CSPLGapAnalysis />
                         </PageErrorBoundary>
                       )}
                       {currentPage === "shifts" && (
@@ -265,6 +267,67 @@ function App() {
                         <PageErrorBoundary>
                           <AdminPanel />
                         </PageErrorBoundary>
+                      )}
+                      {currentPage === "admin" && user.role !== "ADMIN" && (
+                        <div className="flex flex-col items-center justify-center py-24 text-center">
+                          <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-8 w-8 text-destructive"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <rect
+                                width="18"
+                                height="11"
+                                x="3"
+                                y="11"
+                                rx="2"
+                                ry="2"
+                              />
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                          </div>
+                          <h2 className="text-xl font-semibold mb-2">
+                            Zugriff verweigert
+                          </h2>
+                          <p className="text-muted-foreground mb-6">
+                            Sie haben keine Berechtigung für den Admin-Bereich.
+                          </p>
+                          <Button onClick={() => setCurrentPage("dashboard")}>
+                            Zurück zum Dashboard
+                          </Button>
+                        </div>
+                      )}
+                      {![
+                        "dashboard",
+                        "projects",
+                        "actions",
+                        "failures",
+                        "cspl",
+                        "shifts",
+                        "tender",
+                        "integrity",
+                        "admin",
+                      ].includes(currentPage) && (
+                        <div className="flex flex-col items-center justify-center py-24 text-center">
+                          <div className="text-6xl font-bold text-muted-foreground/30 mb-4">
+                            404
+                          </div>
+                          <h2 className="text-xl font-semibold mb-2">
+                            Seite nicht gefunden
+                          </h2>
+                          <p className="text-muted-foreground mb-6">
+                            Die angeforderte Seite existiert nicht.
+                          </p>
+                          <Button onClick={() => setCurrentPage("dashboard")}>
+                            Zurück zum Dashboard
+                          </Button>
+                        </div>
                       )}
                     </Suspense>
                   </ErrorBoundary>

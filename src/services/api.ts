@@ -1,3 +1,5 @@
+import { toast } from '@/components/ui/use-toast';
+
 // Automatische API-URL Erkennung
 const getApiBaseUrl = () => {
   // 1. Production: Nutze immer VITE_API_URL wenn gesetzt (wird beim Build eingefügt)
@@ -78,11 +80,16 @@ class ApiClient {
       localStorage.setItem('accessToken', newAccessToken);
       return newAccessToken;
     } catch {
-      // If refresh fails, clear tokens and redirect to login
+      // If refresh fails, clear tokens and notify user before redirect
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
-      window.location.href = '/';
+      toast({
+        title: 'Sitzung abgelaufen',
+        description: 'Bitte melden Sie sich erneut an.',
+        variant: 'destructive',
+      });
+      setTimeout(() => { window.location.href = '/'; }, 1500);
       return null;
     }
   }

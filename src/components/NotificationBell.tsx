@@ -18,10 +18,12 @@ interface NotificationBellProps {
     page:
       | "dashboard"
       | "projects"
-      | "workorders"
       | "actions"
       | "tender"
       | "failures"
+      | "cspl"
+      | "shifts"
+      | "integrity"
       | "admin",
   ) => void;
 }
