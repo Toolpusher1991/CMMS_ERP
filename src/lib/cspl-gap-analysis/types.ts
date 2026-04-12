@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════
-// CSPL Gap Analysis — Type Definitions
-// H&P International E&M
+// CSPL Gap Analysis — Type Definitions (v7)
+// H&P International E&M — with plant-level stock & transfers
 // ═══════════════════════════════════════════════════════════
 
 export type ItemStatus =
@@ -13,6 +13,16 @@ export type ItemStatus =
 
 export type Priority = 1 | 2;
 
+export type TabId =
+  | "overview"
+  | "critical"
+  | "transfers"
+  | "procurement"
+  | "equipment"
+  | "detail";
+
+export type StatusFilter = ItemStatus | "all";
+
 export interface CSPLItem {
   no: number;
   equipment: string;
@@ -21,6 +31,11 @@ export interface CSPLItem {
   material: string;
   min: number;
   max: number;
+}
+
+export interface PlantStock {
+  plant: string;
+  qty: number;
 }
 
 export interface StockEntry {
@@ -38,6 +53,24 @@ export interface AnalyzedItem extends CSPLItem {
   fillRate: number;
   orderQtyMin: number;
   orderQtyMax: number;
+  stockDesc: string;
+  stockMfr: string;
+  plantBreakdown: Record<string, number>;
+  plantsWithStock: PlantStock[];
+  plantsWithout: string[];
+  plantCoverage: number;
+  totalPlants: number;
+  transferSources: PlantStock[];
+  totalTransferQty: number;
+  hasAlternative: boolean;
+  hasGap: boolean;
+  action: "" | "TRANSFER" | "PROCURE";
+}
+
+export interface StockMeta {
+  totalMaterials: number;
+  totalQty: number;
+  plants: string[];
 }
 
 export interface StatusSummary {
@@ -49,7 +82,11 @@ export interface StatusSummary {
   noMat: number;
   noTarget: number;
   coverageRate: number;
+  coverageRateMatched: number;
   criticalCount: number;
+  transferCount: number;
+  procureCount: number;
+  gapCount: number;
   totalMinRequired: number;
   totalStock: number;
   totalGap: number;
@@ -63,6 +100,7 @@ export interface EquipmentGroup {
   zeroStock: number;
   notFound: number;
   noMat: number;
+  transferCount: number;
   coverageRate: number;
   items: AnalyzedItem[];
   criticalItems: AnalyzedItem[];
@@ -72,16 +110,6 @@ export interface ProcurementItem extends AnalyzedItem {
   priority: Priority;
 }
 
-export type TabId =
-  | "overview"
-  | "critical"
-  | "procurement"
-  | "equipment"
-  | "detail";
-
-export type StatusFilter = ItemStatus | "all";
-
-// ── H&P Brand Colors ──
 export const HP_COLORS = {
   deepBlue: "#143269",
   hpBlue: "#2B5597",
@@ -96,9 +124,10 @@ export const HP_COLORS = {
   paleGray: "#F0F0FA",
   red: "#D94040",
   amber: "#E8A820",
+  teal: "#0D9488",
+  orange: "#E07020",
 } as const;
 
-// ── Status config for rendering ──
 export const STATUS_CONFIG: Record<
   ItemStatus,
   { label: string; shortLabel: string; color: string; bg: string; tw: string }
@@ -108,41 +137,41 @@ export const STATUS_CONFIG: Record<
     shortLabel: "OK",
     color: HP_COLORS.lightGreen,
     bg: "#e8f9ef",
-    tw: "text-green-600 bg-green-50",
+    tw: "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950/30",
   },
   SHORTAGE: {
     label: "Shortage",
     shortLabel: "SHORT",
     color: HP_COLORS.amber,
     bg: "#fdf6e3",
-    tw: "text-amber-600 bg-amber-50",
+    tw: "text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/30",
   },
   "ZERO STOCK": {
     label: "Zero Stock",
     shortLabel: "ZERO",
     color: HP_COLORS.red,
     bg: "#fdeaea",
-    tw: "text-red-600 bg-red-50",
+    tw: "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/30",
   },
   "NOT FOUND": {
     label: "Not Found",
     shortLabel: "N/F",
     color: HP_COLORS.lightPurple,
     bg: "#f3eeff",
-    tw: "text-purple-600 bg-purple-50",
+    tw: "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-950/30",
   },
   "NO MAT#": {
     label: "No Mat#",
     shortLabel: "NO#",
-    color: "#888",
-    bg: "#f0f0f0",
-    tw: "text-gray-500 bg-gray-100",
+    color: HP_COLORS.orange,
+    bg: "#fde8d8",
+    tw: "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-950/30",
   },
   "NO TARGET": {
     label: "No Target",
     shortLabel: "—",
     color: HP_COLORS.medGray,
     bg: "#f3f3f6",
-    tw: "text-gray-400 bg-gray-50",
+    tw: "text-gray-400 bg-gray-50 dark:text-gray-500 dark:bg-gray-900/30",
   },
 };
