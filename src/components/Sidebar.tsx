@@ -11,6 +11,7 @@ import {
   CalendarDays,
   Shield,
   Package,
+  ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,7 @@ type AppPage =
   | "cspl"
   | "shifts"
   | "integrity"
+  | "inspections"
   | "admin";
 
 interface NavItem {
@@ -47,6 +49,7 @@ const allNavItems: NavItem[] = [
   { title: "Schichtplan", page: "shifts", icon: CalendarDays },
   { title: "Asset Integrity", page: "integrity", icon: Shield },
   { title: "CSPL Gap Analysis", page: "cspl", icon: Package },
+  { title: "Inspektionen", page: "inspections", icon: ClipboardCheck },
   { title: "Bohranlagen", page: "tender", icon: Building2 },
   { title: "Störungsmeldung", page: "failures", icon: AlertTriangle },
   { title: "Admin", page: "admin", icon: Settings, adminOnly: true },
