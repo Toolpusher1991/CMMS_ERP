@@ -899,731 +899,1294 @@ export default function CSPLGapAnalysis() {
 
   // ═══ ANALYSIS VIEW ═══
   return (
-    <div className="space-y-4">
-      <Button
-        variant="ghost"
-        onClick={() => window.history.back()}
-        className="mb-1"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" /> Zurück
-      </Button>
-
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Package className="h-6 w-6" /> CSPL Gap Analysis
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {summary.total} items · {stockMeta.plants.length} plants · Coverage:{" "}
-            {summary.coverageRate}%
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" /> Excel Export
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleReset}>
-            <Trash2 className="mr-2 h-4 w-4" /> Reset
-          </Button>
+    <div className="-m-4 sm:-m-6 lg:-m-8">
+      {/* H&P Navy Header */}
+      <div className="bg-gradient-to-r from-[#143269] to-[#2B5597] px-6 py-6">
+        <button
+          onClick={() => window.history.back()}
+          className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm mb-4 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Zurück
+        </button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
+              <Package className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-wide">
+                CSPL Gap Analysis
+              </h1>
+              <p className="text-sm text-white/60">
+                {summary.total} items · {stockMeta.plants.length} plants ·
+                Coverage: {summary.coverageRate}%
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1.5 text-white/80 hover:text-white border border-white/30 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Excel Export
+            </button>
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-1.5 text-white/80 hover:text-white border border-white/30 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Reset
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-        <KpiCard
-          label="CSPL Items"
-          value={summary.total}
-          color="border-l-blue-600"
-        />
-        <KpiCard
-          label="OK"
-          value={summary.ok}
-          color="border-l-green-500"
-          sub={`${summary.coverageRate}% of total`}
-        />
-        <KpiCard
-          label="Unavailable"
-          value={summary.zeroStock + summary.notFound}
-          color="border-l-red-500"
-          sub={`${summary.zeroStock} Zero · ${summary.notFound} N/F`}
-        />
-        <KpiCard
-          label="Shortage"
-          value={summary.shortage}
-          color="border-l-amber-500"
-          sub="Below min target"
-        />
-        <KpiCard
-          label="No Mat#"
-          value={summary.noMat}
-          color="border-l-orange-500"
-          sub="No SAP material#"
-        />
-        <KpiCard
-          label="No Target"
-          value={summary.noTarget}
-          color="border-l-gray-400"
-          sub="Min = 0"
-        />
-        <KpiCard
-          label="Transfer avail."
-          value={summary.transferCount}
-          color="border-l-teal-500"
-          sub="Available elsewhere"
-        />
-      </div>
+      <div className="p-6 space-y-4">
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          <KpiCard
+            label="CSPL Items"
+            value={summary.total}
+            color="border-l-blue-600"
+          />
+          <KpiCard
+            label="OK"
+            value={summary.ok}
+            color="border-l-green-500"
+            sub={`${summary.coverageRate}% of total`}
+          />
+          <KpiCard
+            label="Unavailable"
+            value={summary.zeroStock + summary.notFound}
+            color="border-l-red-500"
+            sub={`${summary.zeroStock} Zero · ${summary.notFound} N/F`}
+          />
+          <KpiCard
+            label="Shortage"
+            value={summary.shortage}
+            color="border-l-amber-500"
+            sub="Below min target"
+          />
+          <KpiCard
+            label="No Mat#"
+            value={summary.noMat}
+            color="border-l-orange-500"
+            sub="No SAP material#"
+          />
+          <KpiCard
+            label="No Target"
+            value={summary.noTarget}
+            color="border-l-gray-400"
+            sub="Min = 0"
+          />
+          <KpiCard
+            label="Transfer avail."
+            value={summary.transferCount}
+            color="border-l-teal-500"
+            sub="Available elsewhere"
+          />
+        </div>
 
-      {/* Coverage Bar */}
-      <Card>
-        <CardContent className="py-3 space-y-2">
-          <div className="text-xs font-medium text-muted-foreground">
-            Stock Coverage
-          </div>
-          <div className="h-5 rounded bg-muted overflow-hidden flex">
-            {summary.ok > 0 && (
-              <div
-                className="bg-green-500 transition-all"
-                style={{ width: `${(summary.ok / summary.total) * 100}%` }}
-              />
-            )}
-            {summary.shortage > 0 && (
-              <div
-                className="bg-amber-500 transition-all"
-                style={{
-                  width: `${(summary.shortage / summary.total) * 100}%`,
-                }}
-              />
-            )}
-            {summary.zeroStock + summary.notFound > 0 && (
-              <div
-                className="bg-red-500 transition-all"
-                style={{
-                  width: `${((summary.zeroStock + summary.notFound) / summary.total) * 100}%`,
-                }}
-              />
-            )}
-            {summary.noTarget > 0 && (
-              <div
-                className="bg-gray-400 transition-all"
-                style={{
-                  width: `${(summary.noTarget / summary.total) * 100}%`,
-                }}
-              />
-            )}
-            {summary.noMat > 0 && (
-              <div
-                className="bg-orange-500 transition-all"
-                style={{ width: `${(summary.noMat / summary.total) * 100}%` }}
-              />
-            )}
-          </div>
-          <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground">
-            <span>
-              <span className="text-green-500">●</span> OK ({summary.ok})
-            </span>
-            <span>
-              <span className="text-amber-500">●</span> Shortage (
-              {summary.shortage})
-            </span>
-            <span>
-              <span className="text-red-500">●</span> Unavailable (
-              {summary.zeroStock + summary.notFound})
-            </span>
-            <span>
-              <span className="text-gray-400">●</span> No Target (
-              {summary.noTarget})
-            </span>
-            <span>
-              <span className="text-orange-500">●</span> No Mat# (
-              {summary.noMat})
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Coverage Bar */}
+        <Card>
+          <CardContent className="py-3 space-y-2">
+            <div className="text-xs font-medium text-muted-foreground">
+              Stock Coverage
+            </div>
+            <div className="h-5 rounded bg-muted overflow-hidden flex">
+              {summary.ok > 0 && (
+                <div
+                  className="bg-green-500 transition-all"
+                  style={{ width: `${(summary.ok / summary.total) * 100}%` }}
+                />
+              )}
+              {summary.shortage > 0 && (
+                <div
+                  className="bg-amber-500 transition-all"
+                  style={{
+                    width: `${(summary.shortage / summary.total) * 100}%`,
+                  }}
+                />
+              )}
+              {summary.zeroStock + summary.notFound > 0 && (
+                <div
+                  className="bg-red-500 transition-all"
+                  style={{
+                    width: `${((summary.zeroStock + summary.notFound) / summary.total) * 100}%`,
+                  }}
+                />
+              )}
+              {summary.noTarget > 0 && (
+                <div
+                  className="bg-gray-400 transition-all"
+                  style={{
+                    width: `${(summary.noTarget / summary.total) * 100}%`,
+                  }}
+                />
+              )}
+              {summary.noMat > 0 && (
+                <div
+                  className="bg-orange-500 transition-all"
+                  style={{ width: `${(summary.noMat / summary.total) * 100}%` }}
+                />
+              )}
+            </div>
+            <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+              <span>
+                <span className="text-green-500">●</span> OK ({summary.ok})
+              </span>
+              <span>
+                <span className="text-amber-500">●</span> Shortage (
+                {summary.shortage})
+              </span>
+              <span>
+                <span className="text-red-500">●</span> Unavailable (
+                {summary.zeroStock + summary.notFound})
+              </span>
+              <span>
+                <span className="text-gray-400">●</span> No Target (
+                {summary.noTarget})
+              </span>
+              <span>
+                <span className="text-orange-500">●</span> No Mat# (
+                {summary.noMat})
+              </span>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)}>
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="overview" className="gap-1">
-            <BarChart3 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="critical" className="gap-1">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Critical</span>
-            {summary.zeroStock + summary.notFound > 0 && (
-              <Badge
-                variant="destructive"
-                className="ml-1 h-4 px-1 text-[10px]"
-              >
-                {summary.zeroStock + summary.notFound}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="transfers" className="gap-1">
-            <ArrowRightLeft className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Transfers</span>
-            {summary.transferCount > 0 && (
-              <Badge className="ml-1 h-4 px-1 text-[10px] bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-400">
-                {summary.transferCount}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="procurement" className="gap-1">
-            <ShoppingCart className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Procurement</span>
-          </TabsTrigger>
-          <TabsTrigger value="equipment" className="gap-1">
-            <Layers className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Equipment</span>
-          </TabsTrigger>
-          <TabsTrigger value="detail" className="gap-1">
-            <List className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Detail</span>
-          </TabsTrigger>
-        </TabsList>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)}>
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="overview" className="gap-1">
+              <BarChart3 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="critical" className="gap-1">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Critical</span>
+              {summary.zeroStock + summary.notFound > 0 && (
+                <Badge
+                  variant="destructive"
+                  className="ml-1 h-4 px-1 text-[10px]"
+                >
+                  {summary.zeroStock + summary.notFound}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="transfers" className="gap-1">
+              <ArrowRightLeft className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Transfers</span>
+              {summary.transferCount > 0 && (
+                <Badge className="ml-1 h-4 px-1 text-[10px] bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-400">
+                  {summary.transferCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="procurement" className="gap-1">
+              <ShoppingCart className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Procurement</span>
+            </TabsTrigger>
+            <TabsTrigger value="equipment" className="gap-1">
+              <Layers className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Equipment</span>
+            </TabsTrigger>
+            <TabsTrigger value="detail" className="gap-1">
+              <List className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Detail</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* ═══ OVERVIEW TAB ═══ */}
-        <TabsContent value="overview" className="space-y-4 mt-4">
-          {/* Action Summary */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Action Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-left">Action</TableHead>
-                    <TableHead className="text-center">Items</TableHead>
-                    <TableHead className="text-center">
-                      Total Qty needed
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>
-                      <TransferTag />
-                    </TableCell>
-                    <TableCell className="text-center font-semibold text-teal-600">
-                      {summary.transferCount}
-                    </TableCell>
-                    <TableCell className="text-center text-teal-600">
-                      {xferQty} EA
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] border-0 text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/30"
-                      >
-                        Procure
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center font-semibold text-red-600">
-                      {summary.procureCount}
-                    </TableCell>
-                    <TableCell className="text-center text-red-600">
-                      {procQty} EA
-                    </TableCell>
-                  </TableRow>
-                  {summary.gapCount > 0 && (
+          {/* ═══ OVERVIEW TAB ═══ */}
+          <TabsContent value="overview" className="space-y-4 mt-4">
+            {/* Action Summary */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Action Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-left">Action</TableHead>
+                      <TableHead className="text-center">Items</TableHead>
+                      <TableHead className="text-center">
+                        Total Qty needed
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     <TableRow>
                       <TableCell>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-semibold dark:bg-amber-950/30 dark:text-amber-400">
-                          ⚠ Coverage Gap
-                        </span>
+                        <TransferTag />
                       </TableCell>
-                      <TableCell className="text-center font-semibold text-amber-600">
-                        {summary.gapCount}
+                      <TableCell className="text-center font-semibold text-teal-600">
+                        {summary.transferCount}
                       </TableCell>
-                      <TableCell className="text-center text-muted-foreground">
-                        OK total, not all plants
+                      <TableCell className="text-center text-teal-600">
+                        {xferQty} EA
                       </TableCell>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                    <TableRow>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] border-0 text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/30"
+                        >
+                          Procure
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-semibold text-red-600">
+                        {summary.procureCount}
+                      </TableCell>
+                      <TableCell className="text-center text-red-600">
+                        {procQty} EA
+                      </TableCell>
+                    </TableRow>
+                    {summary.gapCount > 0 && (
+                      <TableRow>
+                        <TableCell>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-semibold dark:bg-amber-950/30 dark:text-amber-400">
+                            ⚠ Coverage Gap
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center font-semibold text-amber-600">
+                          {summary.gapCount}
+                        </TableCell>
+                        <TableCell className="text-center text-muted-foreground">
+                          OK total, not all plants
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
 
-          {/* SAP Info */}
-          <Card>
-            <CardContent className="py-3 text-sm text-muted-foreground">
-              <b>{stockMeta.totalMaterials}</b> materials ·{" "}
-              <b>{stockMeta.totalQty}</b> total qty · Plants:{" "}
-              <b>{stockMeta.plants.join(", ")}</b>
-            </CardContent>
-          </Card>
+            {/* SAP Info */}
+            <Card>
+              <CardContent className="py-3 text-sm text-muted-foreground">
+                <b>{stockMeta.totalMaterials}</b> materials ·{" "}
+                <b>{stockMeta.totalQty}</b> total qty · Plants:{" "}
+                <b>{stockMeta.plants.join(", ")}</b>
+              </CardContent>
+            </Card>
 
-          {/* Equipment Groups — expandable */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">
-                Equipment Groups — click to expand
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
+            {/* Equipment Groups — expandable */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">
+                  Equipment Groups — click to expand
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-left">Equipment</TableHead>
+                        <TableHead className="text-center">Total</TableHead>
+                        <TableHead className="text-center">OK</TableHead>
+                        <TableHead className="text-center">Short</TableHead>
+                        <TableHead className="text-center">Zero</TableHead>
+                        <TableHead className="text-center">N/F</TableHead>
+                        <TableHead className="text-center">No#</TableHead>
+                        <TableHead className="text-center">Xfer</TableHead>
+                        <TableHead className="text-center">Coverage</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {equipmentGroups.map((g) => {
+                        const isOpen = expandedGroups.has(g.name);
+                        const cov = g.coverageRate;
+                        const statusOrder: Record<string, number> = {
+                          "ZERO STOCK": 0,
+                          SHORTAGE: 1,
+                          "NOT FOUND": 2,
+                          "NO MAT#": 3,
+                          "NO TARGET": 4,
+                          OK: 5,
+                        };
+                        const sorted = [...g.items].sort(
+                          (a, b) =>
+                            (statusOrder[a.status] || 9) -
+                            (statusOrder[b.status] || 9),
+                        );
+                        return (
+                          <>
+                            <TableRow
+                              key={g.name}
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => toggleGroup(g.name)}
+                            >
+                              <TableCell className="font-semibold flex items-center gap-1 text-sm">
+                                {isOpen ? (
+                                  <ChevronDown className="h-3.5 w-3.5 text-primary" />
+                                ) : (
+                                  <ChevronRight className="h-3.5 w-3.5 text-primary" />
+                                )}
+                                {g.name}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {g.total}
+                              </TableCell>
+                              <TableCell className="text-center text-green-600">
+                                {g.ok}
+                              </TableCell>
+                              <TableCell
+                                className={cn(
+                                  "text-center",
+                                  g.shortage > 0
+                                    ? "text-amber-600 font-semibold"
+                                    : "text-muted-foreground",
+                                )}
+                              >
+                                {g.shortage}
+                              </TableCell>
+                              <TableCell
+                                className={cn(
+                                  "text-center",
+                                  g.zeroStock > 0
+                                    ? "text-red-600 font-semibold"
+                                    : "text-muted-foreground",
+                                )}
+                              >
+                                {g.zeroStock}
+                              </TableCell>
+                              <TableCell
+                                className={cn(
+                                  "text-center",
+                                  g.notFound > 0
+                                    ? "text-purple-600 font-semibold"
+                                    : "text-muted-foreground",
+                                )}
+                              >
+                                {g.notFound}
+                              </TableCell>
+                              <TableCell
+                                className={cn(
+                                  "text-center",
+                                  g.noMat > 0
+                                    ? "text-orange-600 font-semibold"
+                                    : "text-muted-foreground",
+                                )}
+                              >
+                                {g.noMat}
+                              </TableCell>
+                              <TableCell
+                                className={cn(
+                                  "text-center",
+                                  g.transferCount > 0
+                                    ? "text-teal-600 font-semibold"
+                                    : "text-muted-foreground",
+                                )}
+                              >
+                                {g.transferCount}
+                              </TableCell>
+                              <TableCell
+                                className={cn(
+                                  "text-center font-semibold",
+                                  cov >= 80
+                                    ? "text-green-600"
+                                    : cov >= 50
+                                      ? "text-amber-600"
+                                      : "text-red-600",
+                                )}
+                              >
+                                {cov}%
+                              </TableCell>
+                            </TableRow>
+                            {isOpen && (
+                              <TableRow key={`${g.name}-sub`}>
+                                <TableCell
+                                  colSpan={9}
+                                  className="p-0 bg-muted/30"
+                                >
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="text-center w-20">
+                                          Status
+                                        </TableHead>
+                                        <TableHead className="text-left">
+                                          Description
+                                        </TableHead>
+                                        <TableHead className="text-center">
+                                          OEM
+                                        </TableHead>
+                                        <TableHead className="text-center">
+                                          SAP Mat.
+                                        </TableHead>
+                                        <TableHead className="text-center">
+                                          Min
+                                        </TableHead>
+                                        <TableHead className="text-center">
+                                          Max
+                                        </TableHead>
+                                        <TableHead className="text-center">
+                                          Stock
+                                        </TableHead>
+                                        <TableHead className="text-center">
+                                          Delta
+                                        </TableHead>
+                                        <TableHead className="text-center">
+                                          Plants
+                                        </TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {sorted.map((r) => (
+                                        <TableRow
+                                          key={r.no}
+                                          className="cursor-pointer hover:bg-muted/50"
+                                          onClick={() => setDetailItem(r)}
+                                        >
+                                          <TableCell className="text-center">
+                                            <StatusBadge status={r.status} />
+                                          </TableCell>
+                                          <TableCell
+                                            className="text-left text-xs max-w-[250px] truncate"
+                                            title={r.description}
+                                          >
+                                            {r.description}
+                                          </TableCell>
+                                          <TableCell className="text-center text-xs text-muted-foreground">
+                                            {r.oem}
+                                          </TableCell>
+                                          <TableCell className="text-center font-mono text-xs">
+                                            {r.material}
+                                          </TableCell>
+                                          <TableCell className="text-center text-xs">
+                                            {r.min}
+                                          </TableCell>
+                                          <TableCell className="text-center text-xs">
+                                            {r.max}
+                                          </TableCell>
+                                          <TableCell
+                                            className={cn(
+                                              "text-center text-xs font-semibold",
+                                              r.available === 0 && r.material
+                                                ? "text-red-600"
+                                                : "",
+                                            )}
+                                          >
+                                            {r.available}
+                                          </TableCell>
+                                          <TableCell
+                                            className={cn(
+                                              "text-center text-xs font-semibold",
+                                              r.delta < 0
+                                                ? "text-red-600"
+                                                : r.delta > 0
+                                                  ? "text-green-600"
+                                                  : "text-amber-600",
+                                            )}
+                                          >
+                                            {r.delta >= 0 ? "+" : ""}
+                                            {r.delta}
+                                          </TableCell>
+                                          <TableCell className="text-center">
+                                            <PlantCoverage item={r} />
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ═══ CRITICAL TAB ═══ */}
+          <TabsContent value="critical" className="space-y-4 mt-4">
+            {/* Status explanation */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Card className="border-l-4 border-l-red-500">
+                <CardContent className="py-3 text-sm">
+                  <b className="text-red-600">ZERO STOCK</b> — Material exists
+                  in SAP but current inventory is 0. Clear procurement gap —
+                  order or transfer.
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-purple-500">
+                <CardContent className="py-3 text-sm">
+                  <b className="text-purple-600">NOT FOUND</b> — Material number
+                  does not exist in SAP stock export. Verify SAP material number
+                  before ordering.
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Unavailable */}
+            <Card className="border-l-4 border-l-red-500">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-red-600 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" /> Unavailable —{" "}
+                  {unavailItems.length} items
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-center w-10">#</TableHead>
+                        <TableHead className="text-center">Reason</TableHead>
+                        <TableHead className="text-center">Equipment</TableHead>
+                        <TableHead className="text-left">Description</TableHead>
+                        <TableHead className="text-center">OEM</TableHead>
+                        <TableHead className="text-center">SAP Mat.</TableHead>
+                        <TableHead className="text-center">Min</TableHead>
+                        <TableHead className="text-center">
+                          Other Plants
+                        </TableHead>
+                        <TableHead className="text-center">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {unavailItems.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={9}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            No critical items
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        unavailItems.map((r, i) => (
+                          <TableRow
+                            key={r.no}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => setDetailItem(r)}
+                          >
+                            <TableCell className="text-center text-xs">
+                              {i + 1}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <StatusBadge status={r.reason} />
+                            </TableCell>
+                            <TableCell className="text-center text-xs text-muted-foreground max-w-[100px] truncate">
+                              {r.equipment}
+                            </TableCell>
+                            <TableCell className="text-left text-xs">
+                              {r.description}
+                            </TableCell>
+                            <TableCell className="text-center text-xs text-muted-foreground">
+                              {r.oem}
+                            </TableCell>
+                            <TableCell className="text-center font-mono text-xs">
+                              {r.material}
+                            </TableCell>
+                            <TableCell className="text-center text-xs font-semibold">
+                              {r.min}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <PlantSourcesList item={r} />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <ActionTag action={r.action} />
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Shortage */}
+            <Card className="border-l-4 border-l-amber-500">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-amber-600 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" /> Shortage —{" "}
+                  {shortageItems.length} items
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-center w-10">#</TableHead>
+                        <TableHead className="text-center">Equipment</TableHead>
+                        <TableHead className="text-left">Description</TableHead>
+                        <TableHead className="text-center">SAP Mat.</TableHead>
+                        <TableHead className="text-center">Min</TableHead>
+                        <TableHead className="text-center">Stock</TableHead>
+                        <TableHead className="text-center">Gap</TableHead>
+                        <TableHead className="text-center">Fill %</TableHead>
+                        <TableHead className="text-center">
+                          Other Plants
+                        </TableHead>
+                        <TableHead className="text-center">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {shortageItems.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={10}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            No shortage items
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        shortageItems.map((r, i) => (
+                          <TableRow
+                            key={r.no}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => setDetailItem(r)}
+                          >
+                            <TableCell className="text-center text-xs">
+                              {i + 1}
+                            </TableCell>
+                            <TableCell className="text-center text-xs text-muted-foreground">
+                              {r.equipment}
+                            </TableCell>
+                            <TableCell className="text-left text-xs">
+                              {r.description}
+                            </TableCell>
+                            <TableCell className="text-center font-mono text-xs">
+                              {r.material}
+                            </TableCell>
+                            <TableCell className="text-center text-xs">
+                              {r.min}
+                            </TableCell>
+                            <TableCell className="text-center text-xs font-semibold text-amber-600">
+                              {r.available}
+                            </TableCell>
+                            <TableCell className="text-center text-xs font-semibold text-red-600">
+                              {r.delta}
+                            </TableCell>
+                            <TableCell className="text-center text-xs text-amber-600">
+                              {r.fillRate}%
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <PlantSourcesList item={r} />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <ActionTag action={r.action} />
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ═══ TRANSFERS TAB ═══ */}
+          <TabsContent value="transfers" className="space-y-4 mt-4">
+            {/* Transfer opportunities */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-teal-600 flex items-center gap-2">
+                  <ArrowRightLeft className="h-4 w-4" /> Stock Transfer
+                  Opportunities
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Materials missing or short at the CSPL location, but available
+                  at other Oman plants. Transfer instead of procurement saves
+                  lead time and cost.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-center">Status</TableHead>
+                        <TableHead className="text-center">Equipment</TableHead>
+                        <TableHead className="text-left">Description</TableHead>
+                        <TableHead className="text-center">SAP Mat.</TableHead>
+                        <TableHead className="text-center">Min</TableHead>
+                        <TableHead className="text-center">
+                          Stock (here)
+                        </TableHead>
+                        <TableHead className="text-center">Gap</TableHead>
+                        <TableHead className="text-center">
+                          Available elsewhere
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Transfer from
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {xferItems.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={9}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            No transfer opportunities
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        xferItems.map((r) => (
+                          <TableRow
+                            key={r.no}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => setDetailItem(r)}
+                          >
+                            <TableCell className="text-center">
+                              <StatusBadge status={r.status} />
+                            </TableCell>
+                            <TableCell className="text-center text-xs text-muted-foreground">
+                              {r.equipment}
+                            </TableCell>
+                            <TableCell className="text-left text-xs">
+                              {r.description}
+                            </TableCell>
+                            <TableCell className="text-center font-mono text-xs">
+                              {r.material}
+                            </TableCell>
+                            <TableCell className="text-center text-xs">
+                              {r.min}
+                            </TableCell>
+                            <TableCell
+                              className={cn(
+                                "text-center text-xs font-semibold",
+                                r.available === 0
+                                  ? "text-red-600"
+                                  : "text-amber-600",
+                              )}
+                            >
+                              {r.available}
+                            </TableCell>
+                            <TableCell className="text-center text-xs font-semibold text-red-600">
+                              {r.delta}
+                            </TableCell>
+                            <TableCell className="text-center text-xs font-semibold text-teal-600">
+                              {r.totalTransferQty}
+                            </TableCell>
+                            <TableCell className="text-center text-xs text-teal-600">
+                              {r.transferSources
+                                .map((p) => `${p.plant} (${p.qty})`)
+                                .join(", ")}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Transfer summary by source plant */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-teal-600">
+                  Transfer Summary by Source Plant
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-left">Source Plant</TableHead>
+                      <TableHead className="text-center">
+                        Materials available
+                      </TableHead>
+                      <TableHead className="text-center">
+                        Total transferable qty
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {plantTransferMap.map(([plant, d]) => (
+                      <TableRow key={plant}>
+                        <TableCell className="font-semibold">{plant}</TableCell>
+                        <TableCell className="text-center text-teal-600">
+                          {d.materials.size}
+                        </TableCell>
+                        <TableCell className="text-center font-semibold text-teal-600">
+                          {d.qty}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Coverage gaps */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-amber-600 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" /> Coverage Gaps — OK items
+                  missing from some plants
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Total stock is sufficient, but material is not present on all
+                  plants. Emergency need may require internal transfer.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-center">Plants</TableHead>
+                        <TableHead className="text-center">Equipment</TableHead>
+                        <TableHead className="text-left">Description</TableHead>
+                        <TableHead className="text-center">SAP Mat.</TableHead>
+                        <TableHead className="text-center">Min</TableHead>
+                        <TableHead className="text-center">
+                          Total Stock
+                        </TableHead>
+                        <TableHead className="text-left text-red-600">
+                          Missing from
+                        </TableHead>
+                        <TableHead className="text-left text-teal-600">
+                          Available at
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {gapItems.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={8}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            All OK items present on all plants
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        gapItems.map((r) => (
+                          <TableRow
+                            key={r.no}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => setDetailItem(r)}
+                          >
+                            <TableCell className="text-center">
+                              <PlantCoverage item={r} />
+                            </TableCell>
+                            <TableCell className="text-center text-xs text-muted-foreground">
+                              {r.equipment}
+                            </TableCell>
+                            <TableCell className="text-left text-xs">
+                              {r.description}
+                            </TableCell>
+                            <TableCell className="text-center font-mono text-xs">
+                              {r.material}
+                            </TableCell>
+                            <TableCell className="text-center text-xs">
+                              {r.min}
+                            </TableCell>
+                            <TableCell className="text-center text-xs font-semibold text-green-600">
+                              {r.available}
+                            </TableCell>
+                            <TableCell className="text-left text-xs text-red-600">
+                              {r.plantsWithout.join(", ")}
+                            </TableCell>
+                            <TableCell className="text-left text-xs text-teal-600">
+                              {r.plantsWithStock
+                                .map((p) => `${p.plant} (${p.qty})`)
+                                .join(", ")}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ═══ PROCUREMENT TAB ═══ */}
+          <TabsContent value="procurement" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">
+                  Procurement Action List (excl. transfer candidates)
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Items where no stock exists at other Oman plants — external
+                  procurement required.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {procurementItems.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground text-sm">
+                    All critical items can be covered via stock transfer
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {procurementItems.map((r) => (
+                      <div
+                        key={r.no}
+                        className="flex gap-3 items-start p-3 border rounded-lg cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => setDetailItem(r)}
+                      >
+                        <div
+                          className={cn(
+                            "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0",
+                            r.priority === 1 ? "bg-red-500" : "bg-amber-500",
+                          )}
+                        >
+                          P{r.priority}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium">
+                            {r.description}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {r.equipment}
+                            {r.oem ? ` · ${r.oem}` : ""}
+                          </div>
+                          <div className="font-mono text-xs text-muted-foreground">
+                            {r.material}
+                          </div>
+                          <div className="flex gap-2 mt-1 text-xs">
+                            <span className="px-1.5 py-0.5 rounded bg-muted">
+                              Min: <b>{r.min}</b>
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded bg-muted">
+                              Stock:{" "}
+                              <b
+                                className={
+                                  r.available === 0
+                                    ? "text-red-600"
+                                    : "text-amber-600"
+                                }
+                              >
+                                {r.available}
+                              </b>
+                            </span>
+                            <span
+                              className={cn(
+                                "px-1.5 py-0.5 rounded",
+                                r.priority === 1
+                                  ? "bg-red-50 dark:bg-red-950/30"
+                                  : "bg-amber-50 dark:bg-amber-950/30",
+                              )}
+                            >
+                              Order: <b>{r.orderQtyMin}</b>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Equipment procurement summary */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">
+                  Procurement Summary by Equipment
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-left">Equipment</TableHead>
-                      <TableHead className="text-center">Total</TableHead>
-                      <TableHead className="text-center">OK</TableHead>
-                      <TableHead className="text-center">Short</TableHead>
-                      <TableHead className="text-center">Zero</TableHead>
-                      <TableHead className="text-center">N/F</TableHead>
-                      <TableHead className="text-center">No#</TableHead>
-                      <TableHead className="text-center">Xfer</TableHead>
-                      <TableHead className="text-center">Coverage</TableHead>
+                      <TableHead className="text-center">Items</TableHead>
+                      <TableHead className="text-center">
+                        Total Order Qty
+                      </TableHead>
+                      <TableHead className="text-center">P1</TableHead>
+                      <TableHead className="text-center">P2</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {equipmentGroups.map((g) => {
-                      const isOpen = expandedGroups.has(g.name);
-                      const cov = g.coverageRate;
-                      const statusOrder: Record<string, number> = {
-                        "ZERO STOCK": 0,
-                        SHORTAGE: 1,
-                        "NOT FOUND": 2,
-                        "NO MAT#": 3,
-                        "NO TARGET": 4,
-                        OK: 5,
-                      };
-                      const sorted = [...g.items].sort(
-                        (a, b) =>
-                          (statusOrder[a.status] || 9) -
-                          (statusOrder[b.status] || 9),
-                      );
-                      return (
-                        <>
-                          <TableRow
-                            key={g.name}
-                            className="cursor-pointer hover:bg-muted/50"
-                            onClick={() => toggleGroup(g.name)}
-                          >
-                            <TableCell className="font-semibold flex items-center gap-1 text-sm">
-                              {isOpen ? (
-                                <ChevronDown className="h-3.5 w-3.5 text-primary" />
-                              ) : (
-                                <ChevronRight className="h-3.5 w-3.5 text-primary" />
-                              )}
-                              {g.name}
+                    {(() => {
+                      const eqP: Record<
+                        string,
+                        { n: number; q: number; p1: number; p2: number }
+                      > = {};
+                      procurementItems.forEach((r) => {
+                        if (!eqP[r.equipment])
+                          eqP[r.equipment] = { n: 0, q: 0, p1: 0, p2: 0 };
+                        eqP[r.equipment].n++;
+                        eqP[r.equipment].q += r.orderQtyMin;
+                        if (r.priority === 1) eqP[r.equipment].p1++;
+                        else eqP[r.equipment].p2++;
+                      });
+                      return Object.entries(eqP)
+                        .sort((a, b) => b[1].q - a[1].q)
+                        .map(([name, g]) => (
+                          <TableRow key={name}>
+                            <TableCell className="font-semibold text-sm">
+                              {name}
                             </TableCell>
-                            <TableCell className="text-center">
-                              {g.total}
-                            </TableCell>
-                            <TableCell className="text-center text-green-600">
-                              {g.ok}
+                            <TableCell className="text-center">{g.n}</TableCell>
+                            <TableCell className="text-center font-semibold">
+                              {g.q}
                             </TableCell>
                             <TableCell
                               className={cn(
                                 "text-center",
-                                g.shortage > 0
-                                  ? "text-amber-600 font-semibold"
-                                  : "text-muted-foreground",
-                              )}
-                            >
-                              {g.shortage}
-                            </TableCell>
-                            <TableCell
-                              className={cn(
-                                "text-center",
-                                g.zeroStock > 0
+                                g.p1 > 0
                                   ? "text-red-600 font-semibold"
                                   : "text-muted-foreground",
                               )}
                             >
-                              {g.zeroStock}
+                              {g.p1}
                             </TableCell>
                             <TableCell
                               className={cn(
                                 "text-center",
-                                g.notFound > 0
-                                  ? "text-purple-600 font-semibold"
+                                g.p2 > 0
+                                  ? "text-amber-600"
                                   : "text-muted-foreground",
                               )}
                             >
-                              {g.notFound}
-                            </TableCell>
-                            <TableCell
-                              className={cn(
-                                "text-center",
-                                g.noMat > 0
-                                  ? "text-orange-600 font-semibold"
-                                  : "text-muted-foreground",
-                              )}
-                            >
-                              {g.noMat}
-                            </TableCell>
-                            <TableCell
-                              className={cn(
-                                "text-center",
-                                g.transferCount > 0
-                                  ? "text-teal-600 font-semibold"
-                                  : "text-muted-foreground",
-                              )}
-                            >
-                              {g.transferCount}
-                            </TableCell>
-                            <TableCell
-                              className={cn(
-                                "text-center font-semibold",
-                                cov >= 80
-                                  ? "text-green-600"
-                                  : cov >= 50
-                                    ? "text-amber-600"
-                                    : "text-red-600",
-                              )}
-                            >
-                              {cov}%
+                              {g.p2}
                             </TableCell>
                           </TableRow>
-                          {isOpen && (
-                            <TableRow key={`${g.name}-sub`}>
-                              <TableCell
-                                colSpan={9}
-                                className="p-0 bg-muted/30"
+                        ));
+                    })()}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ═══ EQUIPMENT TAB ═══ */}
+          <TabsContent value="equipment" className="mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {equipmentGroups.map((g) => {
+                const hasCrit = g.shortage + g.zeroStock > 0;
+                const critItems = g.items.filter(
+                  (r) => r.status === "SHORTAGE" || r.status === "ZERO STOCK",
+                );
+                const nfItems = g.items.filter((r) => r.status === "NOT FOUND");
+                const isOpen = expandedGroups.has("eq-" + g.name);
+                return (
+                  <Card
+                    key={g.name}
+                    className={cn(
+                      "cursor-pointer transition-colors",
+                      hasCrit
+                        ? "border-l-4 border-l-red-500"
+                        : nfItems.length > 0
+                          ? "border-l-4 border-l-purple-500"
+                          : "border-l-4 border-l-blue-500",
+                    )}
+                    onClick={() => {
+                      setExpandedGroups((prev) => {
+                        const next = new Set(prev);
+                        const key = "eq-" + g.name;
+                        if (next.has(key)) next.delete(key);
+                        else next.add(key);
+                        return next;
+                      });
+                    }}
+                  >
+                    <CardContent className="py-3">
+                      <div className="font-semibold text-sm">
+                        {g.name}{" "}
+                        <span className="font-normal text-xs text-muted-foreground">
+                          ({g.total})
+                        </span>
+                      </div>
+                      <div className="flex gap-2 text-[10px] text-muted-foreground mt-1">
+                        <span className="text-green-600">{g.ok} OK</span>
+                        {g.shortage > 0 && (
+                          <span className="text-amber-600">
+                            {g.shortage} short
+                          </span>
+                        )}
+                        {g.zeroStock > 0 && (
+                          <span className="text-red-600">
+                            {g.zeroStock} zero
+                          </span>
+                        )}
+                        {g.notFound > 0 && (
+                          <span className="text-purple-600">
+                            {g.notFound} n/f
+                          </span>
+                        )}
+                      </div>
+                      <div className="h-1.5 rounded bg-muted overflow-hidden flex mt-2">
+                        <div
+                          className="bg-green-500"
+                          style={{ width: `${(g.ok / g.total) * 100}%` }}
+                        />
+                        <div
+                          className="bg-amber-500"
+                          style={{ width: `${(g.shortage / g.total) * 100}%` }}
+                        />
+                        <div
+                          className="bg-red-500"
+                          style={{ width: `${(g.zeroStock / g.total) * 100}%` }}
+                        />
+                        <div
+                          className="bg-purple-500"
+                          style={{ width: `${(g.notFound / g.total) * 100}%` }}
+                        />
+                      </div>
+                      {isOpen && (
+                        <div className="mt-2 pt-2 border-t space-y-1">
+                          {critItems.length > 0 ? (
+                            critItems.map((r) => (
+                              <div
+                                key={r.no}
+                                className="flex items-center gap-1 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDetailItem(r);
+                                }}
                               >
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead className="text-center w-20">
-                                        Status
-                                      </TableHead>
-                                      <TableHead className="text-left">
-                                        Description
-                                      </TableHead>
-                                      <TableHead className="text-center">
-                                        OEM
-                                      </TableHead>
-                                      <TableHead className="text-center">
-                                        SAP Mat.
-                                      </TableHead>
-                                      <TableHead className="text-center">
-                                        Min
-                                      </TableHead>
-                                      <TableHead className="text-center">
-                                        Max
-                                      </TableHead>
-                                      <TableHead className="text-center">
-                                        Stock
-                                      </TableHead>
-                                      <TableHead className="text-center">
-                                        Delta
-                                      </TableHead>
-                                      <TableHead className="text-center">
-                                        Plants
-                                      </TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {sorted.map((r) => (
-                                      <TableRow
-                                        key={r.no}
-                                        className="cursor-pointer hover:bg-muted/50"
-                                        onClick={() => setDetailItem(r)}
-                                      >
-                                        <TableCell className="text-center">
-                                          <StatusBadge status={r.status} />
-                                        </TableCell>
-                                        <TableCell
-                                          className="text-left text-xs max-w-[250px] truncate"
-                                          title={r.description}
-                                        >
-                                          {r.description}
-                                        </TableCell>
-                                        <TableCell className="text-center text-xs text-muted-foreground">
-                                          {r.oem}
-                                        </TableCell>
-                                        <TableCell className="text-center font-mono text-xs">
-                                          {r.material}
-                                        </TableCell>
-                                        <TableCell className="text-center text-xs">
-                                          {r.min}
-                                        </TableCell>
-                                        <TableCell className="text-center text-xs">
-                                          {r.max}
-                                        </TableCell>
-                                        <TableCell
-                                          className={cn(
-                                            "text-center text-xs font-semibold",
-                                            r.available === 0 && r.material
-                                              ? "text-red-600"
-                                              : "",
-                                          )}
-                                        >
-                                          {r.available}
-                                        </TableCell>
-                                        <TableCell
-                                          className={cn(
-                                            "text-center text-xs font-semibold",
-                                            r.delta < 0
-                                              ? "text-red-600"
-                                              : r.delta > 0
-                                                ? "text-green-600"
-                                                : "text-amber-600",
-                                          )}
-                                        >
-                                          {r.delta >= 0 ? "+" : ""}
-                                          {r.delta}
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                          <PlantCoverage item={r} />
-                                        </TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              </TableCell>
-                            </TableRow>
+                                <StatusBadge status={r.status} />
+                                <span className="flex-1 truncate">
+                                  {r.description}
+                                </span>
+                                {r.hasAlternative && <TransferTag />}
+                                <span
+                                  className={cn(
+                                    "font-semibold",
+                                    r.available === 0
+                                      ? "text-red-600"
+                                      : "text-amber-600",
+                                  )}
+                                >
+                                  {r.available}/{r.min}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-xs text-green-600">
+                              ✓ All covered
+                            </div>
                           )}
-                        </>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                          {nfItems.length > 0 && (
+                            <div className="text-[10px] text-purple-600 pt-1 border-t">
+                              {nfItems.length} item
+                              {nfItems.length > 1 ? "s" : ""} not found in SAP
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </TabsContent>
 
-        {/* ═══ CRITICAL TAB ═══ */}
-        <TabsContent value="critical" className="space-y-4 mt-4">
-          {/* Status explanation */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Card className="border-l-4 border-l-red-500">
-              <CardContent className="py-3 text-sm">
-                <b className="text-red-600">ZERO STOCK</b> — Material exists in
-                SAP but current inventory is 0. Clear procurement gap — order or
-                transfer.
-              </CardContent>
-            </Card>
-            <Card className="border-l-4 border-l-purple-500">
-              <CardContent className="py-3 text-sm">
-                <b className="text-purple-600">NOT FOUND</b> — Material number
-                does not exist in SAP stock export. Verify SAP material number
-                before ordering.
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Unavailable */}
-          <Card className="border-l-4 border-l-red-500">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-red-600 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" /> Unavailable —{" "}
-                {unavailItems.length} items
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-center w-10">#</TableHead>
-                      <TableHead className="text-center">Reason</TableHead>
-                      <TableHead className="text-center">Equipment</TableHead>
-                      <TableHead className="text-left">Description</TableHead>
-                      <TableHead className="text-center">OEM</TableHead>
-                      <TableHead className="text-center">SAP Mat.</TableHead>
-                      <TableHead className="text-center">Min</TableHead>
-                      <TableHead className="text-center">
-                        Other Plants
-                      </TableHead>
-                      <TableHead className="text-center">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {unavailItems.length === 0 ? (
+          {/* ═══ DETAIL TABLE TAB ═══ */}
+          <TabsContent value="detail" className="mt-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <CardTitle className="text-sm">
+                    {filteredItems.length} of {csplItems.length}
+                    {filteredItems.length > 800 ? " (first 800)" : ""}
+                  </CardTitle>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {(
+                      [
+                        "all",
+                        "ZERO STOCK",
+                        "SHORTAGE",
+                        "OK",
+                        "NOT FOUND",
+                        "NO MAT#",
+                      ] as StatusFilter[]
+                    ).map((f) => (
+                      <Button
+                        key={f}
+                        size="sm"
+                        variant={statusFilter === f ? "default" : "outline"}
+                        className={cn(
+                          "text-xs h-7 px-2.5",
+                          statusFilter === f &&
+                            f === "all" &&
+                            "bg-blue-600 hover:bg-blue-700",
+                          statusFilter === f &&
+                            f === "ZERO STOCK" &&
+                            "bg-red-600 hover:bg-red-700",
+                          statusFilter === f &&
+                            f === "SHORTAGE" &&
+                            "bg-amber-600 hover:bg-amber-700",
+                          statusFilter === f &&
+                            f === "OK" &&
+                            "bg-green-600 hover:bg-green-700",
+                          statusFilter === f &&
+                            f === "NOT FOUND" &&
+                            "bg-purple-600 hover:bg-purple-700",
+                          statusFilter === f &&
+                            f === "NO MAT#" &&
+                            "bg-gray-600 hover:bg-gray-700",
+                        )}
+                        onClick={() => setStatusFilter(f)}
+                      >
+                        {f === "all"
+                          ? "Alle"
+                          : STATUS_CONFIG[f]?.shortLabel || f}
+                      </Button>
+                    ))}
+                    <Select
+                      value={equipmentFilter}
+                      onValueChange={setEquipmentFilter}
+                    >
+                      <SelectTrigger className="w-[160px] h-7 text-xs">
+                        <SelectValue placeholder="All equipment" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value=" ">All equipment</SelectItem>
+                        {equipmentNames.map((eq) => (
+                          <SelectItem key={eq} value={eq}>
+                            {eq}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Search..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-8 h-7 text-xs w-44"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell
-                          colSpan={9}
-                          className="text-center py-8 text-muted-foreground"
-                        >
-                          No critical items
-                        </TableCell>
+                        <TableHead className="text-center">Status</TableHead>
+                        <TableHead className="text-center">Equipment</TableHead>
+                        <TableHead className="text-left">Description</TableHead>
+                        <TableHead className="text-center">OEM</TableHead>
+                        <TableHead className="text-center">SAP Mat.</TableHead>
+                        <TableHead className="text-center">Min</TableHead>
+                        <TableHead className="text-center">Max</TableHead>
+                        <TableHead className="text-center">Stock</TableHead>
+                        <TableHead className="text-center">Delta</TableHead>
+                        <TableHead className="text-center">Plants</TableHead>
                       </TableRow>
-                    ) : (
-                      unavailItems.map((r, i) => (
-                        <TableRow
-                          key={r.no}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => setDetailItem(r)}
-                        >
-                          <TableCell className="text-center text-xs">
-                            {i + 1}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <StatusBadge status={r.reason} />
-                          </TableCell>
-                          <TableCell className="text-center text-xs text-muted-foreground max-w-[100px] truncate">
-                            {r.equipment}
-                          </TableCell>
-                          <TableCell className="text-left text-xs">
-                            {r.description}
-                          </TableCell>
-                          <TableCell className="text-center text-xs text-muted-foreground">
-                            {r.oem}
-                          </TableCell>
-                          <TableCell className="text-center font-mono text-xs">
-                            {r.material}
-                          </TableCell>
-                          <TableCell className="text-center text-xs font-semibold">
-                            {r.min}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <PlantSourcesList item={r} />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <ActionTag action={r.action} />
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Shortage */}
-          <Card className="border-l-4 border-l-amber-500">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-amber-600 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" /> Shortage —{" "}
-                {shortageItems.length} items
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-center w-10">#</TableHead>
-                      <TableHead className="text-center">Equipment</TableHead>
-                      <TableHead className="text-left">Description</TableHead>
-                      <TableHead className="text-center">SAP Mat.</TableHead>
-                      <TableHead className="text-center">Min</TableHead>
-                      <TableHead className="text-center">Stock</TableHead>
-                      <TableHead className="text-center">Gap</TableHead>
-                      <TableHead className="text-center">Fill %</TableHead>
-                      <TableHead className="text-center">
-                        Other Plants
-                      </TableHead>
-                      <TableHead className="text-center">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {shortageItems.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={10}
-                          className="text-center py-8 text-muted-foreground"
-                        >
-                          No shortage items
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      shortageItems.map((r, i) => (
-                        <TableRow
-                          key={r.no}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => setDetailItem(r)}
-                        >
-                          <TableCell className="text-center text-xs">
-                            {i + 1}
-                          </TableCell>
-                          <TableCell className="text-center text-xs text-muted-foreground">
-                            {r.equipment}
-                          </TableCell>
-                          <TableCell className="text-left text-xs">
-                            {r.description}
-                          </TableCell>
-                          <TableCell className="text-center font-mono text-xs">
-                            {r.material}
-                          </TableCell>
-                          <TableCell className="text-center text-xs">
-                            {r.min}
-                          </TableCell>
-                          <TableCell className="text-center text-xs font-semibold text-amber-600">
-                            {r.available}
-                          </TableCell>
-                          <TableCell className="text-center text-xs font-semibold text-red-600">
-                            {r.delta}
-                          </TableCell>
-                          <TableCell className="text-center text-xs text-amber-600">
-                            {r.fillRate}%
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <PlantSourcesList item={r} />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <ActionTag action={r.action} />
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ═══ TRANSFERS TAB ═══ */}
-        <TabsContent value="transfers" className="space-y-4 mt-4">
-          {/* Transfer opportunities */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-teal-600 flex items-center gap-2">
-                <ArrowRightLeft className="h-4 w-4" /> Stock Transfer
-                Opportunities
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Materials missing or short at the CSPL location, but available
-                at other Oman plants. Transfer instead of procurement saves lead
-                time and cost.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-center">Status</TableHead>
-                      <TableHead className="text-center">Equipment</TableHead>
-                      <TableHead className="text-left">Description</TableHead>
-                      <TableHead className="text-center">SAP Mat.</TableHead>
-                      <TableHead className="text-center">Min</TableHead>
-                      <TableHead className="text-center">
-                        Stock (here)
-                      </TableHead>
-                      <TableHead className="text-center">Gap</TableHead>
-                      <TableHead className="text-center">
-                        Available elsewhere
-                      </TableHead>
-                      <TableHead className="text-center">
-                        Transfer from
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {xferItems.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={9}
-                          className="text-center py-8 text-muted-foreground"
-                        >
-                          No transfer opportunities
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      xferItems.map((r) => (
+                    </TableHeader>
+                    <TableBody>
+                      {filteredItems.slice(0, 800).map((r) => (
                         <TableRow
                           key={r.no}
                           className="cursor-pointer hover:bg-muted/50"
@@ -1632,877 +2195,347 @@ export default function CSPLGapAnalysis() {
                           <TableCell className="text-center">
                             <StatusBadge status={r.status} />
                           </TableCell>
-                          <TableCell className="text-center text-xs text-muted-foreground">
+                          <TableCell className="text-center text-xs text-muted-foreground max-w-[100px] truncate">
                             {r.equipment}
                           </TableCell>
-                          <TableCell className="text-left text-xs">
+                          <TableCell
+                            className="text-left text-xs max-w-[200px] truncate"
+                            title={r.description}
+                          >
                             {r.description}
+                          </TableCell>
+                          <TableCell className="text-center text-xs text-muted-foreground">
+                            {r.oem}
                           </TableCell>
                           <TableCell className="text-center font-mono text-xs">
                             {r.material}
                           </TableCell>
                           <TableCell className="text-center text-xs">
                             {r.min}
+                          </TableCell>
+                          <TableCell className="text-center text-xs">
+                            {r.max}
                           </TableCell>
                           <TableCell
                             className={cn(
                               "text-center text-xs font-semibold",
-                              r.available === 0
+                              r.available === 0 && r.material
                                 ? "text-red-600"
-                                : "text-amber-600",
+                                : "",
                             )}
                           >
                             {r.available}
                           </TableCell>
-                          <TableCell className="text-center text-xs font-semibold text-red-600">
+                          <TableCell
+                            className={cn(
+                              "text-center text-xs font-semibold",
+                              r.delta < 0
+                                ? "text-red-600"
+                                : r.delta > 0
+                                  ? "text-green-600"
+                                  : "text-amber-600",
+                            )}
+                          >
+                            {r.delta >= 0 ? "+" : ""}
                             {r.delta}
                           </TableCell>
-                          <TableCell className="text-center text-xs font-semibold text-teal-600">
-                            {r.totalTransferQty}
-                          </TableCell>
-                          <TableCell className="text-center text-xs text-teal-600">
-                            {r.transferSources
-                              .map((p) => `${p.plant} (${p.qty})`)
-                              .join(", ")}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Transfer summary by source plant */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-teal-600">
-                Transfer Summary by Source Plant
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-left">Source Plant</TableHead>
-                    <TableHead className="text-center">
-                      Materials available
-                    </TableHead>
-                    <TableHead className="text-center">
-                      Total transferable qty
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {plantTransferMap.map(([plant, d]) => (
-                    <TableRow key={plant}>
-                      <TableCell className="font-semibold">{plant}</TableCell>
-                      <TableCell className="text-center text-teal-600">
-                        {d.materials.size}
-                      </TableCell>
-                      <TableCell className="text-center font-semibold text-teal-600">
-                        {d.qty}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Coverage gaps */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-amber-600 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" /> Coverage Gaps — OK items
-                missing from some plants
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Total stock is sufficient, but material is not present on all
-                plants. Emergency need may require internal transfer.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-center">Plants</TableHead>
-                      <TableHead className="text-center">Equipment</TableHead>
-                      <TableHead className="text-left">Description</TableHead>
-                      <TableHead className="text-center">SAP Mat.</TableHead>
-                      <TableHead className="text-center">Min</TableHead>
-                      <TableHead className="text-center">Total Stock</TableHead>
-                      <TableHead className="text-left text-red-600">
-                        Missing from
-                      </TableHead>
-                      <TableHead className="text-left text-teal-600">
-                        Available at
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {gapItems.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={8}
-                          className="text-center py-8 text-muted-foreground"
-                        >
-                          All OK items present on all plants
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      gapItems.map((r) => (
-                        <TableRow
-                          key={r.no}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => setDetailItem(r)}
-                        >
                           <TableCell className="text-center">
                             <PlantCoverage item={r} />
                           </TableCell>
-                          <TableCell className="text-center text-xs text-muted-foreground">
-                            {r.equipment}
-                          </TableCell>
-                          <TableCell className="text-left text-xs">
-                            {r.description}
-                          </TableCell>
-                          <TableCell className="text-center font-mono text-xs">
-                            {r.material}
-                          </TableCell>
-                          <TableCell className="text-center text-xs">
-                            {r.min}
-                          </TableCell>
-                          <TableCell className="text-center text-xs font-semibold text-green-600">
-                            {r.available}
-                          </TableCell>
-                          <TableCell className="text-left text-xs text-red-600">
-                            {r.plantsWithout.join(", ")}
-                          </TableCell>
-                          <TableCell className="text-left text-xs text-teal-600">
-                            {r.plantsWithStock
-                              .map((p) => `${p.plant} (${p.qty})`)
-                              .join(", ")}
+                        </TableRow>
+                      ))}
+                      {filteredItems.length === 0 && (
+                        <TableRow>
+                          <TableCell
+                            colSpan={10}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            No results
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
-        {/* ═══ PROCUREMENT TAB ═══ */}
-        <TabsContent value="procurement" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">
-                Procurement Action List (excl. transfer candidates)
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Items where no stock exists at other Oman plants — external
-                procurement required.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {procurementItems.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground text-sm">
-                  All critical items can be covered via stock transfer
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {procurementItems.map((r) => (
-                    <div
-                      key={r.no}
-                      className="flex gap-3 items-start p-3 border rounded-lg cursor-pointer hover:bg-muted/30 transition-colors"
-                      onClick={() => setDetailItem(r)}
-                    >
-                      <div
+        {/* ═══ DETAIL PANEL (slide-in) ═══ */}
+        {detailItem && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/20 z-40"
+              onClick={() => setDetailItem(null)}
+            />
+            <div className="fixed right-0 top-0 w-full sm:w-[420px] h-screen bg-background border-l shadow-xl z-50 overflow-y-auto animate-in slide-in-from-right duration-200">
+              <div className="bg-primary text-primary-foreground px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+                <h3 className="text-sm font-medium truncate max-w-[320px]">
+                  {detailItem.description}
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-primary-foreground hover:text-primary-foreground/80"
+                  onClick={() => setDetailItem(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="p-4 space-y-4">
+                {/* Status */}
+                <div className="flex gap-2">
+                  <StatusBadge status={detailItem.status} />
+                  {detailItem.hasAlternative && <TransferTag />}
+                </div>
+
+                {/* Identification */}
+                <div>
+                  <SectionTitle>Identification</SectionTitle>
+                  <DPRow label="Description" value={detailItem.description} />
+                  <DPRow label="Equipment" value={detailItem.equipment} />
+                  <DPRow label="OEM Part No." value={detailItem.oem || "—"} />
+                  <DPRow
+                    label="SAP Material"
+                    value={detailItem.material || "—"}
+                  />
+                  {detailItem.stockDesc && (
+                    <DPRow
+                      label="SAP Description"
+                      value={detailItem.stockDesc}
+                    />
+                  )}
+                  {detailItem.stockMfr && (
+                    <DPRow
+                      label="SAP Manufacturer"
+                      value={detailItem.stockMfr}
+                    />
+                  )}
+                </div>
+
+                {/* Stock levels */}
+                <div>
+                  <SectionTitle>Stock Levels</SectionTitle>
+                  <DPRow label="Target Min" value={String(detailItem.min)} />
+                  <DPRow label="Target Max" value={String(detailItem.max)} />
+                  <DPRow
+                    label="Total Stock"
+                    value={
+                      <span
                         className={cn(
-                          "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0",
-                          r.priority === 1 ? "bg-red-500" : "bg-amber-500",
+                          "font-semibold",
+                          detailItem.available === 0 && detailItem.material
+                            ? "text-red-600"
+                            : "",
                         )}
                       >
-                        P{r.priority}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium">
-                          {r.description}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {r.equipment}
-                          {r.oem ? ` · ${r.oem}` : ""}
-                        </div>
-                        <div className="font-mono text-xs text-muted-foreground">
-                          {r.material}
-                        </div>
-                        <div className="flex gap-2 mt-1 text-xs">
-                          <span className="px-1.5 py-0.5 rounded bg-muted">
-                            Min: <b>{r.min}</b>
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded bg-muted">
-                            Stock:{" "}
-                            <b
-                              className={
-                                r.available === 0
-                                  ? "text-red-600"
-                                  : "text-amber-600"
-                              }
-                            >
-                              {r.available}
-                            </b>
-                          </span>
-                          <span
-                            className={cn(
-                              "px-1.5 py-0.5 rounded",
-                              r.priority === 1
-                                ? "bg-red-50 dark:bg-red-950/30"
-                                : "bg-amber-50 dark:bg-amber-950/30",
-                            )}
-                          >
-                            Order: <b>{r.orderQtyMin}</b>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Equipment procurement summary */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">
-                Procurement Summary by Equipment
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-left">Equipment</TableHead>
-                    <TableHead className="text-center">Items</TableHead>
-                    <TableHead className="text-center">
-                      Total Order Qty
-                    </TableHead>
-                    <TableHead className="text-center">P1</TableHead>
-                    <TableHead className="text-center">P2</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(() => {
-                    const eqP: Record<
-                      string,
-                      { n: number; q: number; p1: number; p2: number }
-                    > = {};
-                    procurementItems.forEach((r) => {
-                      if (!eqP[r.equipment])
-                        eqP[r.equipment] = { n: 0, q: 0, p1: 0, p2: 0 };
-                      eqP[r.equipment].n++;
-                      eqP[r.equipment].q += r.orderQtyMin;
-                      if (r.priority === 1) eqP[r.equipment].p1++;
-                      else eqP[r.equipment].p2++;
-                    });
-                    return Object.entries(eqP)
-                      .sort((a, b) => b[1].q - a[1].q)
-                      .map(([name, g]) => (
-                        <TableRow key={name}>
-                          <TableCell className="font-semibold text-sm">
-                            {name}
-                          </TableCell>
-                          <TableCell className="text-center">{g.n}</TableCell>
-                          <TableCell className="text-center font-semibold">
-                            {g.q}
-                          </TableCell>
-                          <TableCell
-                            className={cn(
-                              "text-center",
-                              g.p1 > 0
-                                ? "text-red-600 font-semibold"
-                                : "text-muted-foreground",
-                            )}
-                          >
-                            {g.p1}
-                          </TableCell>
-                          <TableCell
-                            className={cn(
-                              "text-center",
-                              g.p2 > 0
-                                ? "text-amber-600"
-                                : "text-muted-foreground",
-                            )}
-                          >
-                            {g.p2}
-                          </TableCell>
-                        </TableRow>
-                      ));
-                  })()}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ═══ EQUIPMENT TAB ═══ */}
-        <TabsContent value="equipment" className="mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {equipmentGroups.map((g) => {
-              const hasCrit = g.shortage + g.zeroStock > 0;
-              const critItems = g.items.filter(
-                (r) => r.status === "SHORTAGE" || r.status === "ZERO STOCK",
-              );
-              const nfItems = g.items.filter((r) => r.status === "NOT FOUND");
-              const isOpen = expandedGroups.has("eq-" + g.name);
-              return (
-                <Card
-                  key={g.name}
-                  className={cn(
-                    "cursor-pointer transition-colors",
-                    hasCrit
-                      ? "border-l-4 border-l-red-500"
-                      : nfItems.length > 0
-                        ? "border-l-4 border-l-purple-500"
-                        : "border-l-4 border-l-blue-500",
-                  )}
-                  onClick={() => {
-                    setExpandedGroups((prev) => {
-                      const next = new Set(prev);
-                      const key = "eq-" + g.name;
-                      if (next.has(key)) next.delete(key);
-                      else next.add(key);
-                      return next;
-                    });
-                  }}
-                >
-                  <CardContent className="py-3">
-                    <div className="font-semibold text-sm">
-                      {g.name}{" "}
-                      <span className="font-normal text-xs text-muted-foreground">
-                        ({g.total})
+                        {detailItem.available}
                       </span>
-                    </div>
-                    <div className="flex gap-2 text-[10px] text-muted-foreground mt-1">
-                      <span className="text-green-600">{g.ok} OK</span>
-                      {g.shortage > 0 && (
-                        <span className="text-amber-600">
-                          {g.shortage} short
-                        </span>
-                      )}
-                      {g.zeroStock > 0 && (
-                        <span className="text-red-600">{g.zeroStock} zero</span>
-                      )}
-                      {g.notFound > 0 && (
-                        <span className="text-purple-600">
-                          {g.notFound} n/f
-                        </span>
-                      )}
-                    </div>
-                    <div className="h-1.5 rounded bg-muted overflow-hidden flex mt-2">
-                      <div
-                        className="bg-green-500"
-                        style={{ width: `${(g.ok / g.total) * 100}%` }}
-                      />
-                      <div
-                        className="bg-amber-500"
-                        style={{ width: `${(g.shortage / g.total) * 100}%` }}
-                      />
-                      <div
-                        className="bg-red-500"
-                        style={{ width: `${(g.zeroStock / g.total) * 100}%` }}
-                      />
-                      <div
-                        className="bg-purple-500"
-                        style={{ width: `${(g.notFound / g.total) * 100}%` }}
-                      />
-                    </div>
-                    {isOpen && (
-                      <div className="mt-2 pt-2 border-t space-y-1">
-                        {critItems.length > 0 ? (
-                          critItems.map((r) => (
-                            <div
-                              key={r.no}
-                              className="flex items-center gap-1 text-xs"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDetailItem(r);
-                              }}
-                            >
-                              <StatusBadge status={r.status} />
-                              <span className="flex-1 truncate">
-                                {r.description}
-                              </span>
-                              {r.hasAlternative && <TransferTag />}
-                              <span
-                                className={cn(
-                                  "font-semibold",
-                                  r.available === 0
-                                    ? "text-red-600"
-                                    : "text-amber-600",
-                                )}
-                              >
-                                {r.available}/{r.min}
-                              </span>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-xs text-green-600">
-                            ✓ All covered
-                          </div>
+                    }
+                  />
+                  <DPRow
+                    label="Delta"
+                    value={
+                      <span
+                        className={cn(
+                          "font-semibold",
+                          detailItem.delta < 0
+                            ? "text-red-600"
+                            : detailItem.delta > 0
+                              ? "text-green-600"
+                              : "text-amber-600",
                         )}
-                        {nfItems.length > 0 && (
-                          <div className="text-[10px] text-purple-600 pt-1 border-t">
-                            {nfItems.length} item{nfItems.length > 1 ? "s" : ""}{" "}
-                            not found in SAP
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </TabsContent>
-
-        {/* ═══ DETAIL TABLE TAB ═══ */}
-        <TabsContent value="detail" className="mt-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <CardTitle className="text-sm">
-                  {filteredItems.length} of {csplItems.length}
-                  {filteredItems.length > 800 ? " (first 800)" : ""}
-                </CardTitle>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {(
-                    [
-                      "all",
-                      "ZERO STOCK",
-                      "SHORTAGE",
-                      "OK",
-                      "NOT FOUND",
-                      "NO MAT#",
-                    ] as StatusFilter[]
-                  ).map((f) => (
-                    <Button
-                      key={f}
-                      size="sm"
-                      variant={statusFilter === f ? "default" : "outline"}
+                      >
+                        {detailItem.delta >= 0 ? "+" : ""}
+                        {detailItem.delta}
+                      </span>
+                    }
+                  />
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Fill rate: {detailItem.fillRate}%
+                  </div>
+                  <div className="h-2.5 rounded-full bg-muted overflow-hidden mt-1">
+                    <div
                       className={cn(
-                        "text-xs h-7 px-2.5",
-                        statusFilter === f &&
-                          f === "all" &&
-                          "bg-blue-600 hover:bg-blue-700",
-                        statusFilter === f &&
-                          f === "ZERO STOCK" &&
-                          "bg-red-600 hover:bg-red-700",
-                        statusFilter === f &&
-                          f === "SHORTAGE" &&
-                          "bg-amber-600 hover:bg-amber-700",
-                        statusFilter === f &&
-                          f === "OK" &&
-                          "bg-green-600 hover:bg-green-700",
-                        statusFilter === f &&
-                          f === "NOT FOUND" &&
-                          "bg-purple-600 hover:bg-purple-700",
-                        statusFilter === f &&
-                          f === "NO MAT#" &&
-                          "bg-gray-600 hover:bg-gray-700",
+                        "h-full rounded-full",
+                        detailItem.fillRate >= 100
+                          ? "bg-green-500"
+                          : detailItem.fillRate >= 50
+                            ? "bg-amber-500"
+                            : "bg-red-500",
                       )}
-                      onClick={() => setStatusFilter(f)}
-                    >
-                      {f === "all" ? "Alle" : STATUS_CONFIG[f]?.shortLabel || f}
-                    </Button>
-                  ))}
-                  <Select
-                    value={equipmentFilter}
-                    onValueChange={setEquipmentFilter}
-                  >
-                    <SelectTrigger className="w-[160px] h-7 text-xs">
-                      <SelectValue placeholder="All equipment" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value=" ">All equipment</SelectItem>
-                      {equipmentNames.map((eq) => (
-                        <SelectItem key={eq} value={eq}>
-                          {eq}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      placeholder="Search..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-8 h-7 text-xs w-44"
+                      style={{
+                        width: `${Math.min(detailItem.fillRate, 100)}%`,
+                      }}
                     />
                   </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-center">Status</TableHead>
-                      <TableHead className="text-center">Equipment</TableHead>
-                      <TableHead className="text-left">Description</TableHead>
-                      <TableHead className="text-center">OEM</TableHead>
-                      <TableHead className="text-center">SAP Mat.</TableHead>
-                      <TableHead className="text-center">Min</TableHead>
-                      <TableHead className="text-center">Max</TableHead>
-                      <TableHead className="text-center">Stock</TableHead>
-                      <TableHead className="text-center">Delta</TableHead>
-                      <TableHead className="text-center">Plants</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredItems.slice(0, 800).map((r) => (
-                      <TableRow
-                        key={r.no}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => setDetailItem(r)}
-                      >
-                        <TableCell className="text-center">
-                          <StatusBadge status={r.status} />
-                        </TableCell>
-                        <TableCell className="text-center text-xs text-muted-foreground max-w-[100px] truncate">
-                          {r.equipment}
-                        </TableCell>
-                        <TableCell
-                          className="text-left text-xs max-w-[200px] truncate"
-                          title={r.description}
-                        >
-                          {r.description}
-                        </TableCell>
-                        <TableCell className="text-center text-xs text-muted-foreground">
-                          {r.oem}
-                        </TableCell>
-                        <TableCell className="text-center font-mono text-xs">
-                          {r.material}
-                        </TableCell>
-                        <TableCell className="text-center text-xs">
-                          {r.min}
-                        </TableCell>
-                        <TableCell className="text-center text-xs">
-                          {r.max}
-                        </TableCell>
-                        <TableCell
-                          className={cn(
-                            "text-center text-xs font-semibold",
-                            r.available === 0 && r.material
-                              ? "text-red-600"
-                              : "",
-                          )}
-                        >
-                          {r.available}
-                        </TableCell>
-                        <TableCell
-                          className={cn(
-                            "text-center text-xs font-semibold",
-                            r.delta < 0
-                              ? "text-red-600"
-                              : r.delta > 0
-                                ? "text-green-600"
-                                : "text-amber-600",
-                          )}
-                        >
-                          {r.delta >= 0 ? "+" : ""}
-                          {r.delta}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <PlantCoverage item={r} />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {filteredItems.length === 0 && (
-                      <TableRow>
-                        <TableCell
-                          colSpan={10}
-                          className="text-center py-8 text-muted-foreground"
-                        >
-                          No results
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
 
-      {/* ═══ DETAIL PANEL (slide-in) ═══ */}
-      {detailItem && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/20 z-40"
-            onClick={() => setDetailItem(null)}
-          />
-          <div className="fixed right-0 top-0 w-full sm:w-[420px] h-screen bg-background border-l shadow-xl z-50 overflow-y-auto animate-in slide-in-from-right duration-200">
-            <div className="bg-primary text-primary-foreground px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-              <h3 className="text-sm font-medium truncate max-w-[320px]">
-                {detailItem.description}
-              </h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-primary-foreground hover:text-primary-foreground/80"
-                onClick={() => setDetailItem(null)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="p-4 space-y-4">
-              {/* Status */}
-              <div className="flex gap-2">
-                <StatusBadge status={detailItem.status} />
-                {detailItem.hasAlternative && <TransferTag />}
-              </div>
-
-              {/* Identification */}
-              <div>
-                <SectionTitle>Identification</SectionTitle>
-                <DPRow label="Description" value={detailItem.description} />
-                <DPRow label="Equipment" value={detailItem.equipment} />
-                <DPRow label="OEM Part No." value={detailItem.oem || "—"} />
-                <DPRow
-                  label="SAP Material"
-                  value={detailItem.material || "—"}
-                />
-                {detailItem.stockDesc && (
-                  <DPRow label="SAP Description" value={detailItem.stockDesc} />
-                )}
-                {detailItem.stockMfr && (
-                  <DPRow label="SAP Manufacturer" value={detailItem.stockMfr} />
-                )}
-              </div>
-
-              {/* Stock levels */}
-              <div>
-                <SectionTitle>Stock Levels</SectionTitle>
-                <DPRow label="Target Min" value={String(detailItem.min)} />
-                <DPRow label="Target Max" value={String(detailItem.max)} />
-                <DPRow
-                  label="Total Stock"
-                  value={
-                    <span
-                      className={cn(
-                        "font-semibold",
-                        detailItem.available === 0 && detailItem.material
-                          ? "text-red-600"
-                          : "",
-                      )}
-                    >
-                      {detailItem.available}
-                    </span>
-                  }
-                />
-                <DPRow
-                  label="Delta"
-                  value={
-                    <span
-                      className={cn(
-                        "font-semibold",
-                        detailItem.delta < 0
-                          ? "text-red-600"
-                          : detailItem.delta > 0
-                            ? "text-green-600"
-                            : "text-amber-600",
-                      )}
-                    >
-                      {detailItem.delta >= 0 ? "+" : ""}
-                      {detailItem.delta}
-                    </span>
-                  }
-                />
-                <div className="text-xs text-muted-foreground mt-2">
-                  Fill rate: {detailItem.fillRate}%
-                </div>
-                <div className="h-2.5 rounded-full bg-muted overflow-hidden mt-1">
-                  <div
-                    className={cn(
-                      "h-full rounded-full",
-                      detailItem.fillRate >= 100
-                        ? "bg-green-500"
-                        : detailItem.fillRate >= 50
-                          ? "bg-amber-500"
-                          : "bg-red-500",
-                    )}
-                    style={{ width: `${Math.min(detailItem.fillRate, 100)}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Per-plant breakdown */}
-              {stockMeta.plants.length > 0 &&
-                detailItem.material &&
-                detailItem.status !== "NOT FOUND" &&
-                detailItem.status !== "NO MAT#" && (
-                  <div>
-                    <SectionTitle>
-                      Stock per Plant ({detailItem.plantCoverage}/
-                      {detailItem.totalPlants})
-                    </SectionTitle>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-left text-xs">
-                            Plant
-                          </TableHead>
-                          <TableHead className="text-center text-xs">
-                            Qty
-                          </TableHead>
-                          <TableHead className="text-center text-xs"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {stockMeta.plants.map((plant) => {
-                          const qty = detailItem.plantBreakdown[plant] || 0;
-                          return (
-                            <TableRow key={plant}>
-                              <TableCell className="font-semibold text-xs">
-                                {plant}
-                              </TableCell>
-                              <TableCell
-                                className={cn(
-                                  "text-center text-xs",
-                                  qty > 0
-                                    ? "font-semibold text-green-600"
-                                    : "text-muted-foreground",
-                                )}
-                              >
-                                {qty}
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {qty === 0 && (
-                                  <span className="text-[10px] text-red-500">
-                                    ✗ missing
-                                  </span>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                    {detailItem.plantsWithout.length > 0 && (
-                      <div className="text-xs p-2 rounded bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400 mt-2">
-                        Missing from:{" "}
-                        <b>{detailItem.plantsWithout.join(", ")}</b>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-              {/* Action recommendation */}
-              {(detailItem.status === "SHORTAGE" ||
-                detailItem.status === "ZERO STOCK") && (
-                <div>
-                  <SectionTitle>Recommended Action</SectionTitle>
-                  {detailItem.hasAlternative ? (
-                    <div className="p-3 rounded-lg bg-teal-50 dark:bg-teal-950/30 space-y-2">
-                      <div className="text-sm font-semibold text-teal-700 dark:text-teal-400 flex items-center gap-1">
-                        <ArrowRightLeft className="h-3.5 w-3.5" /> Stock
-                        transfer recommended
-                      </div>
-                      {detailItem.transferSources.map((p) => (
-                        <div
-                          key={p.plant}
-                          className="flex justify-between text-sm"
-                        >
-                          <span className="font-semibold">{p.plant}</span>
-                          <span className="font-semibold text-teal-600">
-                            {p.qty} EA
-                          </span>
-                        </div>
-                      ))}
-                      <div className="text-xs border-t border-teal-200 dark:border-teal-800 pt-2 mt-1">
-                        Required: <b>{detailItem.orderQtyMin}</b> · Elsewhere:{" "}
-                        <b className="text-teal-600">
-                          {detailItem.totalTransferQty}
-                        </b>
-                      </div>
-                      {detailItem.totalTransferQty < detailItem.orderQtyMin && (
-                        <div className="text-xs text-amber-600">
-                          ⚠ Remaining{" "}
-                          {detailItem.orderQtyMin - detailItem.totalTransferQty}{" "}
-                          via procurement
+                {/* Per-plant breakdown */}
+                {stockMeta.plants.length > 0 &&
+                  detailItem.material &&
+                  detailItem.status !== "NOT FOUND" &&
+                  detailItem.status !== "NO MAT#" && (
+                    <div>
+                      <SectionTitle>
+                        Stock per Plant ({detailItem.plantCoverage}/
+                        {detailItem.totalPlants})
+                      </SectionTitle>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-left text-xs">
+                              Plant
+                            </TableHead>
+                            <TableHead className="text-center text-xs">
+                              Qty
+                            </TableHead>
+                            <TableHead className="text-center text-xs"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {stockMeta.plants.map((plant) => {
+                            const qty = detailItem.plantBreakdown[plant] || 0;
+                            return (
+                              <TableRow key={plant}>
+                                <TableCell className="font-semibold text-xs">
+                                  {plant}
+                                </TableCell>
+                                <TableCell
+                                  className={cn(
+                                    "text-center text-xs",
+                                    qty > 0
+                                      ? "font-semibold text-green-600"
+                                      : "text-muted-foreground",
+                                  )}
+                                >
+                                  {qty}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  {qty === 0 && (
+                                    <span className="text-[10px] text-red-500">
+                                      ✗ missing
+                                    </span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                      {detailItem.plantsWithout.length > 0 && (
+                        <div className="text-xs p-2 rounded bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400 mt-2">
+                          Missing from:{" "}
+                          <b>{detailItem.plantsWithout.join(", ")}</b>
                         </div>
                       )}
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <DPRow
-                        label="Priority"
-                        value={
-                          detailItem.status === "ZERO STOCK" ? (
-                            <span className="text-red-600 font-semibold">
-                              P1 — Zero Stock
-                            </span>
-                          ) : (
-                            <span className="text-amber-600 font-semibold">
-                              P2 — Below Min
-                            </span>
-                          )
-                        }
-                      />
-                      <DPRow
-                        label="Order qty → Min"
-                        value={<b>{detailItem.orderQtyMin}</b>}
-                      />
-                      <DPRow
-                        label="Order qty → Max"
-                        value={<b>{detailItem.orderQtyMax}</b>}
-                      />
-                      <div className="text-xs text-muted-foreground mt-2 p-2 rounded bg-muted">
-                        No stock at other plants — external procurement required
-                      </div>
                     </div>
                   )}
-                </div>
-              )}
 
-              {detailItem.hasGap && (
-                <div>
-                  <SectionTitle>Coverage Gap</SectionTitle>
-                  <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30">
-                    <div className="text-sm font-semibold text-amber-600 mb-1">
-                      ⚠ Not on all plants
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Total stock covers target. In case of emergency need at{" "}
-                      <b>{detailItem.plantsWithout.join(", ")}</b> internal
-                      transfer required.
+                {/* Action recommendation */}
+                {(detailItem.status === "SHORTAGE" ||
+                  detailItem.status === "ZERO STOCK") && (
+                  <div>
+                    <SectionTitle>Recommended Action</SectionTitle>
+                    {detailItem.hasAlternative ? (
+                      <div className="p-3 rounded-lg bg-teal-50 dark:bg-teal-950/30 space-y-2">
+                        <div className="text-sm font-semibold text-teal-700 dark:text-teal-400 flex items-center gap-1">
+                          <ArrowRightLeft className="h-3.5 w-3.5" /> Stock
+                          transfer recommended
+                        </div>
+                        {detailItem.transferSources.map((p) => (
+                          <div
+                            key={p.plant}
+                            className="flex justify-between text-sm"
+                          >
+                            <span className="font-semibold">{p.plant}</span>
+                            <span className="font-semibold text-teal-600">
+                              {p.qty} EA
+                            </span>
+                          </div>
+                        ))}
+                        <div className="text-xs border-t border-teal-200 dark:border-teal-800 pt-2 mt-1">
+                          Required: <b>{detailItem.orderQtyMin}</b> · Elsewhere:{" "}
+                          <b className="text-teal-600">
+                            {detailItem.totalTransferQty}
+                          </b>
+                        </div>
+                        {detailItem.totalTransferQty <
+                          detailItem.orderQtyMin && (
+                          <div className="text-xs text-amber-600">
+                            ⚠ Remaining{" "}
+                            {detailItem.orderQtyMin -
+                              detailItem.totalTransferQty}{" "}
+                            via procurement
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <DPRow
+                          label="Priority"
+                          value={
+                            detailItem.status === "ZERO STOCK" ? (
+                              <span className="text-red-600 font-semibold">
+                                P1 — Zero Stock
+                              </span>
+                            ) : (
+                              <span className="text-amber-600 font-semibold">
+                                P2 — Below Min
+                              </span>
+                            )
+                          }
+                        />
+                        <DPRow
+                          label="Order qty → Min"
+                          value={<b>{detailItem.orderQtyMin}</b>}
+                        />
+                        <DPRow
+                          label="Order qty → Max"
+                          value={<b>{detailItem.orderQtyMax}</b>}
+                        />
+                        <div className="text-xs text-muted-foreground mt-2 p-2 rounded bg-muted">
+                          No stock at other plants — external procurement
+                          required
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {detailItem.hasGap && (
+                  <div>
+                    <SectionTitle>Coverage Gap</SectionTitle>
+                    <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30">
+                      <div className="text-sm font-semibold text-amber-600 mb-1">
+                        ⚠ Not on all plants
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Total stock covers target. In case of emergency need at{" "}
+                        <b>{detailItem.plantsWithout.join(", ")}</b> internal
+                        transfer required.
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {detailItem.status === "NOT FOUND" && (
-                <div>
-                  <SectionTitle>Possible Causes</SectionTitle>
-                  <div className="text-xs text-muted-foreground space-y-0.5">
-                    <p>• Flag for Deletion in SAP</p>
-                    <p>• New material number assigned</p>
-                    <p>• Not yet created in SAP master</p>
-                    <p>• Typo in CSPL material number</p>
+                {detailItem.status === "NOT FOUND" && (
+                  <div>
+                    <SectionTitle>Possible Causes</SectionTitle>
+                    <div className="text-xs text-muted-foreground space-y-0.5">
+                      <p>• Flag for Deletion in SAP</p>
+                      <p>• New material number assigned</p>
+                      <p>• Not yet created in SAP master</p>
+                      <p>• Typo in CSPL material number</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

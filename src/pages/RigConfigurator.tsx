@@ -6,6 +6,7 @@ import {
   BarChart3,
   Calculator,
   ChevronRight,
+  ArrowLeft,
 } from "lucide-react";
 import { useRigConfigurator } from "@/hooks/useRigConfigurator";
 import {
@@ -45,32 +46,38 @@ const RigConfigurator = () => {
 
   return (
     <div className="min-h-screen flex flex-col -m-4 sm:-m-6 lg:-m-8">
-      {/* ─── Navy Header ─── */}
-      <div className="bg-[#143269] text-white">
-        <div className="max-w-[1800px] mx-auto px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      {/* H&P Navy Header */}
+      <div className="bg-gradient-to-r from-[#143269] to-[#2B5597] px-6 py-6">
+        <button
+          onClick={() => window.history.back()}
+          className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm mb-4 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Zurück
+        </button>
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+            <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
               <Building2 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="font-bold text-lg tracking-wide">
+              <h1 className="text-xl font-bold text-white tracking-wide">
                 Rig Configurator
               </h1>
-              <p className="text-[11px] text-white/60">
+              <p className="text-sm text-white/60">
                 Professionelle Anlagenkonfiguration für Commerce
               </p>
             </div>
           </div>
-          <Card className="px-5 py-3 bg-white/10 border-white/20 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
             <div className="text-right">
               <p className="text-xs text-white/60">Gesamtpreis (Tagesrate)</p>
               <p className="text-2xl font-bold text-white">
                 € {state.calculateTotal().toLocaleString("de-DE")}
               </p>
             </div>
-          </Card>
+          </div>
         </div>
-        <div className="h-1 w-full bg-gradient-to-r from-[#2B5597] via-[#24C26B] to-[#24C26B]" />
       </div>
 
       {/* ─── Content ─── */}

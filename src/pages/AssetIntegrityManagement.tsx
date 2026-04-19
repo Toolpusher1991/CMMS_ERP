@@ -6,6 +6,7 @@ import {
   Shield,
   Building2,
   AlertCircle,
+  ArrowLeft,
   CheckCircle,
   Clock,
   MapPin,
@@ -1990,87 +1991,83 @@ export default function AssetIntegrityManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-card border-b border-border shadow-lg">
-        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg shadow-lg">
-                <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
-                  Asset Integrity Management
-                </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                  Vertrags-, Inspektions- & Risikomanagement für Ihre
-                  Bohranlagen
-                </p>
-              </div>
+    <div className="min-h-screen bg-background -m-4 sm:-m-6 lg:-m-8">
+      {/* H&P Navy Header */}
+      <div className="bg-gradient-to-r from-[#143269] to-[#2B5597] px-6 py-6">
+        <button
+          onClick={() => window.history.back()}
+          className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm mb-4 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Zurück
+        </button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
+              <Shield className="h-5 w-5 text-white" />
             </div>
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              {/* Save Status Indicator */}
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-background/50 rounded-lg border border-border">
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin text-blue-400" />
-                    <span className="text-xs text-muted-foreground">
-                      Speichert...
-                    </span>
-                  </>
-                ) : hasUnsavedChanges ? (
-                  <>
-                    <Clock className="h-3 w-3 text-orange-400" />
-                    <span className="text-xs text-orange-400">
-                      Nicht gespeichert
-                    </span>
-                  </>
-                ) : lastSaved ? (
-                  <>
-                    <CheckCircle className="h-3 w-3 text-green-400" />
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(lastSaved).toLocaleTimeString("de-DE")}
-                    </span>
-                  </>
-                ) : null}
-              </div>
-
-              {/* Manual Save Button */}
-              <Button
-                onClick={saveData}
-                disabled={isSaving || !hasUnsavedChanges}
-                variant="outline"
-                size="sm"
-                className="touch-manipulation"
-                title="Strg+S"
-              >
-                <Save className="h-4 w-4 mr-1" />
-                <span className="hidden lg:inline">Speichern</span>
-              </Button>
-
-              <Button
-                onClick={() => setIsAddRigOpen(true)}
-                className="flex-1 sm:flex-none bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 touch-manipulation"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Anlage hinzufügen</span>
-                <span className="sm:hidden">Neue Anlage</span>
-              </Button>
-              <Button
-                onClick={() => {
-                  setOverviewForAll(true);
-                  setShowMeetingOverview(true);
-                }}
-                className="flex-1 sm:flex-none bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 touch-manipulation"
-              >
-                <Presentation className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">
-                  Meeting-Übersicht (Alle)
-                </span>
-                <span className="sm:hidden">Übersicht</span>
-              </Button>
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-wide">
+                Asset Integrity Management
+              </h1>
+              <p className="text-sm text-white/60">
+                Vertrags-, Inspektions- & Risikomanagement für Ihre Bohranlagen
+              </p>
             </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Save Status Indicator */}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg border border-white/20">
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin text-white/70" />
+                  <span className="text-xs text-white/70">Speichert...</span>
+                </>
+              ) : hasUnsavedChanges ? (
+                <>
+                  <Clock className="h-3 w-3 text-orange-300" />
+                  <span className="text-xs text-orange-300">
+                    Nicht gespeichert
+                  </span>
+                </>
+              ) : lastSaved ? (
+                <>
+                  <CheckCircle className="h-3 w-3 text-green-300" />
+                  <span className="text-xs text-white/70">
+                    {new Date(lastSaved).toLocaleTimeString("de-DE")}
+                  </span>
+                </>
+              ) : null}
+            </div>
+
+            <button
+              onClick={saveData}
+              disabled={isSaving || !hasUnsavedChanges}
+              className="flex items-center gap-1.5 text-white/80 hover:text-white border border-white/30 rounded-lg px-3 py-2 text-xs font-medium transition-colors disabled:opacity-40"
+            >
+              <Save className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">Speichern</span>
+            </button>
+
+            <button
+              onClick={() => setIsAddRigOpen(true)}
+              className="flex items-center gap-2 bg-[#24C26B] hover:bg-[#1da55a] text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors shadow-lg shadow-[#24C26B]/20"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Anlage hinzufügen</span>
+              <span className="sm:hidden">Neue Anlage</span>
+            </button>
+            <button
+              onClick={() => {
+                setOverviewForAll(true);
+                setShowMeetingOverview(true);
+              }}
+              className="flex items-center gap-1.5 text-white/80 hover:text-white border border-white/30 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            >
+              <Presentation className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Meeting-Übersicht (Alle)</span>
+              <span className="sm:hidden">Übersicht</span>
+            </button>
           </div>
         </div>
       </div>

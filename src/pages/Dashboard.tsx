@@ -486,28 +486,24 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       )}
 
       {/* Welcome Banner with Gradient */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 dark:from-slate-900 dark:via-slate-800 dark:to-black p-8 shadow-xl border border-slate-700/50">
-        {/* Decorative Background Pattern */}
-        <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.3))]"></div>
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div className="bg-gradient-to-r from-[#143269] to-[#2B5597] rounded-xl p-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           {/* Left: Greeting & Logo */}
           <div className="space-y-3">
             <div className="flex items-center gap-4">
-              {/* Company Logo Placeholder */}
-              <div className="h-14 w-14 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
-                <Building2 className="h-8 w-8 text-slate-200" />
+              <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
+                <Building2 className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
+                <h1 className="text-xl font-bold text-white tracking-wide">
                   {getGreeting()}, {currentUser?.firstName || "User"}!
                 </h1>
-                <p className="text-slate-300 text-sm md:text-base mt-1">
+                <p className="text-sm text-white/60">
                   {currentUser?.email || "Willkommen im CMMS"}
                 </p>
               </div>
             </div>
-            <p className="text-slate-400 text-base md:text-lg max-w-2xl">
+            <p className="text-sm text-white/60 max-w-2xl">
               {lastNavigatedPage === "projects"
                 ? "Hier sind deine offenen Projekte"
                 : lastNavigatedPage === "actions"
@@ -520,17 +516,17 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
           {/* Right: Quick Stats */}
           <div className="flex gap-4">
-            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 min-w-[120px]">
+            <div className="bg-white/10 rounded-lg p-4 border border-white/20 min-w-[120px]">
               <div className="text-2xl font-bold text-white">
                 {animatedFailures + animatedProjects + animatedActions}
               </div>
-              <div className="text-slate-300 text-sm">Offene Tasks</div>
+              <div className="text-sm text-white/60">Offene Tasks</div>
             </div>
-            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 min-w-[120px]">
+            <div className="bg-white/10 rounded-lg p-4 border border-white/20 min-w-[120px]">
               <div className="text-2xl font-bold text-white">
                 {animatedCompletionRate}%
               </div>
-              <div className="text-slate-300 text-sm">Erledigt</div>
+              <div className="text-sm text-white/60">Erledigt</div>
             </div>
           </div>
         </div>

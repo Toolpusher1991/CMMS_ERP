@@ -67,6 +67,7 @@ import {
   Upload,
   X,
   Camera,
+  ArrowLeft,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 
@@ -989,244 +990,73 @@ const InspectionReports = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <PageHeader
-        title="Inspektionsberichte"
-        subtitle="CAT III Crown Block und weitere Inspektionen"
-        icon={<FileText className="h-5 w-5" />}
-        actions={
-          <>
-            <Button
-              variant="outline"
-              onClick={() => setIsPDFUploadDialogOpen(true)}
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Aus PDF erstellen
-            </Button>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Neuer Bericht
-            </Button>
-          </>
-        }
-        className="mb-0"
-      />
-
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filter</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <Label>Suche</Label>
-              <Input
-                placeholder="Berichtnummer, Titel, Equipment..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+    <div className="-m-4 sm:-m-6 lg:-m-8">
+      {/* H&P Navy Header */}
+      <div className="bg-gradient-to-r from-[#143269] to-[#2B5597] px-6 py-6">
+        <button
+          onClick={() => window.history.back()}
+          className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm mb-4 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Zurück
+        </button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
+              <FileText className="h-5 w-5 text-white" />
             </div>
             <div>
-              <Label>Anlage</Label>
-              <Select value={filterPlant} onValueChange={setFilterPlant}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  {availableRigs.map((rig) => (
-                    <SelectItem key={rig.id} value={rig.name}>
-                      {rig.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Typ</Label>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  <SelectItem value="CAT_III_CROWN_BLOCK">
-                    CAT III Crown Block
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Status</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  <SelectItem value="DRAFT">Entwurf</SelectItem>
-                  <SelectItem value="SUBMITTED">Eingereicht</SelectItem>
-                  <SelectItem value="APPROVED">Genehmigt</SelectItem>
-                  <SelectItem value="REJECTED">Abgelehnt</SelectItem>
-                </SelectContent>
-              </Select>
+              <h1 className="text-xl font-bold text-white tracking-wide">
+                Inspektionen
+              </h1>
+              <p className="text-sm text-white/60">
+                CAT III Crown Block und weitere Inspektionen
+              </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsPDFUploadDialogOpen(true)}
+              className="flex items-center gap-1.5 text-white/80 hover:text-white border border-white/30 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Aus PDF erstellen
+            </button>
+            <button
+              onClick={() => setIsCreateDialogOpen(true)}
+              className="flex items-center gap-2 bg-[#24C26B] hover:bg-[#1da55a] text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors shadow-lg shadow-[#24C26B]/20"
+            >
+              <Plus className="h-4 w-4" />
+              Neuer Bericht
+            </button>
+          </div>
+        </div>
+      </div>
 
-      {/* Reports Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Berichte ({filteredReports.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-3 py-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex gap-4">
-                  <Skeleton className="h-5 w-24" />
-                  <Skeleton className="h-5 flex-1" />
-                  <Skeleton className="h-5 w-16" />
-                  <Skeleton className="h-5 w-20" />
-                  <Skeleton className="h-5 w-20" />
-                  <Skeleton className="h-5 w-24" />
-                  <Skeleton className="h-5 w-16" />
-                  <Skeleton className="h-5 w-16" />
-                  <Skeleton className="h-5 w-20" />
-                </div>
-              ))}
-            </div>
-          ) : filteredReports.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Keine Berichte gefunden
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Berichtnummer</TableHead>
-                    <TableHead>Titel</TableHead>
-                    <TableHead>Typ</TableHead>
-                    <TableHead>Anlage</TableHead>
-                    <TableHead>Equipment</TableHead>
-                    <TableHead>Datum</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Ergebnis</TableHead>
-                    <TableHead>Aktionen</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredReports.map((report) => (
-                    <TableRow key={report.id}>
-                      <TableCell className="font-mono">
-                        {report.reportNumber}
-                      </TableCell>
-                      <TableCell>{report.title}</TableCell>
-                      <TableCell>
-                        {report.type === "CAT_III_CROWN_BLOCK" &&
-                          "CAT III Crown Block"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{report.plant}</Badge>
-                      </TableCell>
-                      <TableCell>{report.equipment}</TableCell>
-                      <TableCell>
-                        {new Date(report.inspectionDate).toLocaleDateString(
-                          "de-DE",
-                        )}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(report.status)}</TableCell>
-                      <TableCell>
-                        {getResultBadge(report.overallResult)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setSelectedReport(report);
-                              setIsViewDialogOpen(true);
-                            }}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteReport(report.id)}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Create Report Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Neuer Inspektionsbericht</DialogTitle>
-            <DialogDescription>
-              Erstellen Sie einen neuen Inspektionsbericht
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label>Titel *</Label>
-              <Input
-                value={newReport.title}
-                onChange={(e) =>
-                  setNewReport({ ...newReport, title: e.target.value })
-                }
-                placeholder="z.B. Crown Block Inspektion Q4 2025"
-              />
-            </div>
-
-            <div>
-              <Label>Typ *</Label>
-              <Select
-                value={newReport.type}
-                onValueChange={(value) =>
-                  setNewReport({ ...newReport, type: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Inspektionstyp wählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CAT_III_CROWN_BLOCK">
-                    CAT III Crown Block
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+      <div className="p-6 space-y-6">
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Filter</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <Label>Anlage *</Label>
-                <Select
-                  value={newReport.plant}
-                  onValueChange={(value) =>
-                    setNewReport({ ...newReport, plant: value })
-                  }
-                >
+                <Label>Suche</Label>
+                <Input
+                  placeholder="Berichtnummer, Titel, Equipment..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Anlage</Label>
+                <Select value={filterPlant} onValueChange={setFilterPlant}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
                     {availableRigs.map((rig) => (
                       <SelectItem key={rig.id} value={rig.name}>
                         {rig.name}
@@ -1235,737 +1065,946 @@ const InspectionReports = () => {
                   </SelectContent>
                 </Select>
               </div>
-
               <div>
-                <Label>Equipment *</Label>
-                <Input
-                  value={newReport.equipment}
-                  onChange={(e) =>
-                    setNewReport({ ...newReport, equipment: e.target.value })
-                  }
-                  placeholder="z.B. Crown Block #1"
-                />
+                <Label>Typ</Label>
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    <SelectItem value="CAT_III_CROWN_BLOCK">
+                      CAT III Crown Block
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    <SelectItem value="DRAFT">Entwurf</SelectItem>
+                    <SelectItem value="SUBMITTED">Eingereicht</SelectItem>
+                    <SelectItem value="APPROVED">Genehmigt</SelectItem>
+                    <SelectItem value="REJECTED">Abgelehnt</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="grid grid-cols-2 gap-4">
+        {/* Reports Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Berichte ({filteredReports.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-3 py-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex gap-4">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-5 flex-1" />
+                    <Skeleton className="h-5 w-16" />
+                    <Skeleton className="h-5 w-20" />
+                    <Skeleton className="h-5 w-20" />
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-5 w-16" />
+                    <Skeleton className="h-5 w-16" />
+                    <Skeleton className="h-5 w-20" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredReports.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Keine Berichte gefunden
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Berichtnummer</TableHead>
+                      <TableHead>Titel</TableHead>
+                      <TableHead>Typ</TableHead>
+                      <TableHead>Anlage</TableHead>
+                      <TableHead>Equipment</TableHead>
+                      <TableHead>Datum</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Ergebnis</TableHead>
+                      <TableHead>Aktionen</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredReports.map((report) => (
+                      <TableRow key={report.id}>
+                        <TableCell className="font-mono">
+                          {report.reportNumber}
+                        </TableCell>
+                        <TableCell>{report.title}</TableCell>
+                        <TableCell>
+                          {report.type === "CAT_III_CROWN_BLOCK" &&
+                            "CAT III Crown Block"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{report.plant}</Badge>
+                        </TableCell>
+                        <TableCell>{report.equipment}</TableCell>
+                        <TableCell>
+                          {new Date(report.inspectionDate).toLocaleDateString(
+                            "de-DE",
+                          )}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(report.status)}</TableCell>
+                        <TableCell>
+                          {getResultBadge(report.overallResult)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setSelectedReport(report);
+                                setIsViewDialogOpen(true);
+                              }}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteReport(report.id)}
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Create Report Dialog */}
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Neuer Inspektionsbericht</DialogTitle>
+              <DialogDescription>
+                Erstellen Sie einen neuen Inspektionsbericht
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
               <div>
-                <Label>Inspektionsdatum</Label>
+                <Label>Titel *</Label>
                 <Input
-                  type="date"
-                  value={newReport.inspectionDate}
+                  value={newReport.title}
                   onChange={(e) =>
-                    setNewReport({
-                      ...newReport,
-                      inspectionDate: e.target.value,
-                    })
+                    setNewReport({ ...newReport, title: e.target.value })
                   }
+                  placeholder="z.B. Crown Block Inspektion Q4 2025"
                 />
               </div>
 
               <div>
-                <Label>Inspektor</Label>
-                <Input
-                  value={newReport.inspector}
-                  onChange={(e) =>
-                    setNewReport({ ...newReport, inspector: e.target.value })
-                  }
-                  placeholder={user ? `${user.firstName} ${user.lastName}` : ""}
-                />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsCreateDialogOpen(false)}
-            >
-              Abbrechen
-            </Button>
-            <Button onClick={handleCreateReport}>Erstellen</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* PDF Upload Dialog */}
-      <Dialog
-        open={isPDFUploadDialogOpen}
-        onOpenChange={setIsPDFUploadDialogOpen}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Inspektionsbericht aus PDF erstellen</DialogTitle>
-            <DialogDescription>
-              Laden Sie eine PDF-Checkliste hoch. Die App extrahiert automatisch
-              die Checkboxen und erstellt einen interaktiven Bericht.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {/* PDF File Upload */}
-            <div>
-              <Label>PDF-Datei *</Label>
-              <div className="mt-2">
-                <input
-                  type="file"
-                  id="pdf-file-input"
-                  accept=".pdf"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setPDFFile(file);
-                    }
-                  }}
-                  className="hidden"
-                />
-                <label htmlFor="pdf-file-input">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full cursor-pointer"
-                    onClick={() =>
-                      document.getElementById("pdf-file-input")?.click()
-                    }
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {pdfFile ? pdfFile.name : "PDF-Datei auswählen"}
-                  </Button>
-                </label>
-              </div>
-              {pdfFile && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Größe: {(pdfFile.size / 1024).toFixed(1)} KB
-                </p>
-              )}
-            </div>
-
-            {/* Required Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Anlage *</Label>
+                <Label>Typ *</Label>
                 <Select
-                  value={newReport.plant}
+                  value={newReport.type}
                   onValueChange={(value) =>
-                    setNewReport({ ...newReport, plant: value })
+                    setNewReport({ ...newReport, type: value })
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Anlage wählen" />
+                    <SelectValue placeholder="Inspektionstyp wählen" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableRigs.map((rig) => (
-                      <SelectItem key={rig.id} value={rig.name}>
-                        {rig.name}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="CAT_III_CROWN_BLOCK">
+                      CAT III Crown Block
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div>
-                <Label>Equipment *</Label>
-                <Input
-                  value={newReport.equipment}
-                  onChange={(e) =>
-                    setNewReport({ ...newReport, equipment: e.target.value })
-                  }
-                  placeholder="z.B. Crown Block #1"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Inspektionsdatum</Label>
-                <Input
-                  type="date"
-                  value={newReport.inspectionDate}
-                  onChange={(e) =>
-                    setNewReport({
-                      ...newReport,
-                      inspectionDate: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div>
-                <Label>Inspektor</Label>
-                <Input
-                  value={newReport.inspector}
-                  onChange={(e) =>
-                    setNewReport({ ...newReport, inspector: e.target.value })
-                  }
-                  placeholder={user ? `${user.firstName} ${user.lastName}` : ""}
-                />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsPDFUploadDialogOpen(false);
-                setPDFFile(null);
-              }}
-              disabled={isUploadingPDF}
-            >
-              Abbrechen
-            </Button>
-            <Button onClick={handlePDFUpload} disabled={isUploadingPDF}>
-              {isUploadingPDF ? "Wird verarbeitet..." : "PDF analysieren"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* View/Edit Report Dialog */}
-      {selectedReport && (
-        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <div className="flex items-center justify-between">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <DialogTitle>{selectedReport.title}</DialogTitle>
-                  <DialogDescription className="font-mono">
-                    {selectedReport.reportNumber}
-                  </DialogDescription>
-                </div>
-                <div className="flex gap-2">
-                  {getStatusBadge(selectedReport.status)}
-                  {getResultBadge(selectedReport.overallResult)}
-                </div>
-              </div>
-            </DialogHeader>
-
-            <Tabs defaultValue="inspection" className="w-full">
-              <TabsList>
-                <TabsTrigger value="inspection">Inspektion</TabsTrigger>
-                <TabsTrigger value="notes">Notizen & Bewertung</TabsTrigger>
-                <TabsTrigger value="attachments">Anhänge</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="inspection" className="space-y-6 mt-4">
-                {/* Info Card */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Inspektionsinformationen</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-muted-foreground">Anlage</Label>
-                      <p>{selectedReport.plant}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Equipment</Label>
-                      <p>{selectedReport.equipment}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Datum</Label>
-                      <p>
-                        {new Date(
-                          selectedReport.inspectionDate,
-                        ).toLocaleDateString("de-DE")}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Inspektor</Label>
-                      <p>{selectedReport.inspector}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Inspection Sections */}
-                {selectedReport.sections &&
-                selectedReport.sections.length > 0 ? (
-                  selectedReport.sections.map((section) => (
-                    <Card key={section.id}>
-                      <CardHeader>
-                        <CardTitle>
-                          {section.sectionNumber}. {section.title}
-                        </CardTitle>
-                        {section.description && (
-                          <CardDescription>
-                            {section.description}
-                          </CardDescription>
-                        )}
-                      </CardHeader>
-                      <CardContent>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-24">Nr.</TableHead>
-                              <TableHead>Beschreibung</TableHead>
-                              <TableHead className="w-48">Ergebnis</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {section.items &&
-                              section.items.map((item) => (
-                                <TableRow key={item.id}>
-                                  <TableCell className="font-mono">
-                                    {item.itemNumber}
-                                  </TableCell>
-                                  <TableCell>{item.description}</TableCell>
-                                  <TableCell>
-                                    <div className="flex gap-1">
-                                      <Button
-                                        size="sm"
-                                        variant={
-                                          item.result === "OK"
-                                            ? "default"
-                                            : "outline"
-                                        }
-                                        className={
-                                          item.result === "OK"
-                                            ? "bg-green-600 hover:bg-green-700"
-                                            : ""
-                                        }
-                                        onClick={() =>
-                                          handleUpdateItem(item.id, {
-                                            result: "OK",
-                                          })
-                                        }
-                                        disabled={
-                                          selectedReport.status === "APPROVED"
-                                        }
-                                      >
-                                        <CheckCircle2 className="w-4 h-4 mr-1" />
-                                        OK
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant={
-                                          item.result === "NOT_OK"
-                                            ? "destructive"
-                                            : "outline"
-                                        }
-                                        onClick={() =>
-                                          handleUpdateItem(item.id, {
-                                            result: "NOT_OK",
-                                          })
-                                        }
-                                        disabled={
-                                          selectedReport.status === "APPROVED"
-                                        }
-                                      >
-                                        <XCircle className="w-4 h-4 mr-1" />
-                                        Nicht OK
-                                      </Button>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                          </TableBody>
-                        </Table>
-                      </CardContent>
-                    </Card>
-                  ))
-                ) : (
-                  <Card>
-                    <CardContent className="py-8 text-center text-muted-foreground">
-                      Keine Inspektionspunkte vorhanden
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-
-              <TabsContent value="notes" className="space-y-4 mt-4">
-                <div>
-                  <Label>Gesamtergebnis</Label>
+                  <Label>Anlage *</Label>
                   <Select
-                    value={selectedReport.overallResult || ""}
+                    value={newReport.plant}
                     onValueChange={(value) =>
-                      handleUpdateReport({
-                        overallResult: value as
-                          | "PASSED"
-                          | "FAILED"
-                          | "CONDITIONAL",
-                      })
-                    }
-                    disabled={selectedReport.status === "APPROVED"}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Ergebnis wählen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PASSED">Bestanden</SelectItem>
-                      <SelectItem value="FAILED">Nicht bestanden</SelectItem>
-                      <SelectItem value="CONDITIONAL">Bedingt</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label>Allgemeine Notizen</Label>
-                  <Textarea
-                    value={selectedReport.generalNotes || ""}
-                    onChange={(e) =>
-                      handleUpdateReport({ generalNotes: e.target.value })
-                    }
-                    rows={5}
-                    placeholder="Allgemeine Bemerkungen zur Inspektion..."
-                    disabled={selectedReport.status === "APPROVED"}
-                  />
-                </div>
-
-                <div>
-                  <Label>Empfehlungen</Label>
-                  <Textarea
-                    value={selectedReport.recommendations || ""}
-                    onChange={(e) =>
-                      handleUpdateReport({ recommendations: e.target.value })
-                    }
-                    rows={5}
-                    placeholder="Empfohlene Maßnahmen..."
-                    disabled={selectedReport.status === "APPROVED"}
-                  />
-                </div>
-
-                <div>
-                  <Label>Status</Label>
-                  <Select
-                    value={selectedReport.status}
-                    onValueChange={(value) =>
-                      handleUpdateReport({
-                        status: value as
-                          | "DRAFT"
-                          | "SUBMITTED"
-                          | "APPROVED"
-                          | "REJECTED",
-                      })
+                      setNewReport({ ...newReport, plant: value })
                     }
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="DRAFT">Entwurf</SelectItem>
-                      <SelectItem value="SUBMITTED">Eingereicht</SelectItem>
-                      {user?.role === "ADMIN" && (
-                        <>
-                          <SelectItem value="APPROVED">Genehmigt</SelectItem>
-                          <SelectItem value="REJECTED">Abgelehnt</SelectItem>
-                        </>
-                      )}
+                      {availableRigs.map((rig) => (
+                        <SelectItem key={rig.id} value={rig.name}>
+                          {rig.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-              </TabsContent>
 
-              <TabsContent value="attachments" className="mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Anhänge</CardTitle>
-                    <CardDescription>
-                      Fügen Sie Fotos oder Dokumente hinzu
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Upload Button */}
-                    <div className="mb-4">
-                      <input
-                        type="file"
-                        id="file-upload"
-                        multiple
-                        accept="image/*,.pdf,.doc,.docx"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                      <label htmlFor="file-upload">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="cursor-pointer"
-                          onClick={() =>
-                            document.getElementById("file-upload")?.click()
-                          }
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          Dateien hochladen
-                        </Button>
-                      </label>
-                    </div>
+                <div>
+                  <Label>Equipment *</Label>
+                  <Input
+                    value={newReport.equipment}
+                    onChange={(e) =>
+                      setNewReport({ ...newReport, equipment: e.target.value })
+                    }
+                    placeholder="z.B. Crown Block #1"
+                  />
+                </div>
+              </div>
 
-                    {!selectedReport.attachments ||
-                    selectedReport.attachments.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        Keine Anhänge vorhanden
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {selectedReport.attachments.map((attachment) => (
-                          <div
-                            key={attachment.id}
-                            className="flex items-center justify-between p-3 border rounded-lg"
-                          >
-                            <div className="flex items-center gap-3">
-                              <FileText className="w-5 h-5 text-muted-foreground" />
-                              <div>
-                                <p className="font-medium">
-                                  {attachment.originalName}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {(attachment.fileSize / 1024).toFixed(1)} KB •{" "}
-                                  {new Date(
-                                    attachment.uploadedAt,
-                                  ).toLocaleDateString("de-DE")}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() =>
-                                  window.open(attachment.filePath, "_blank")
-                                }
-                              >
-                                <Download className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() =>
-                                  handleDeleteAttachment(attachment.id)
-                                }
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Inspektionsdatum</Label>
+                  <Input
+                    type="date"
+                    value={newReport.inspectionDate}
+                    onChange={(e) =>
+                      setNewReport({
+                        ...newReport,
+                        inspectionDate: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label>Inspektor</Label>
+                  <Input
+                    value={newReport.inspector}
+                    onChange={(e) =>
+                      setNewReport({ ...newReport, inspector: e.target.value })
+                    }
+                    placeholder={
+                      user ? `${user.firstName} ${user.lastName}` : ""
+                    }
+                  />
+                </div>
+              </div>
+            </div>
 
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => setIsViewDialogOpen(false)}
+                onClick={() => setIsCreateDialogOpen(false)}
               >
-                Schließen
+                Abbrechen
               </Button>
+              <Button onClick={handleCreateReport}>Erstellen</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* PDF Upload Dialog */}
+        <Dialog
+          open={isPDFUploadDialogOpen}
+          onOpenChange={setIsPDFUploadDialogOpen}
+        >
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Inspektionsbericht aus PDF erstellen</DialogTitle>
+              <DialogDescription>
+                Laden Sie eine PDF-Checkliste hoch. Die App extrahiert
+                automatisch die Checkboxen und erstellt einen interaktiven
+                Bericht.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {/* PDF File Upload */}
+              <div>
+                <Label>PDF-Datei *</Label>
+                <div className="mt-2">
+                  <input
+                    type="file"
+                    id="pdf-file-input"
+                    accept=".pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setPDFFile(file);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  <label htmlFor="pdf-file-input">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full cursor-pointer"
+                      onClick={() =>
+                        document.getElementById("pdf-file-input")?.click()
+                      }
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {pdfFile ? pdfFile.name : "PDF-Datei auswählen"}
+                    </Button>
+                  </label>
+                </div>
+                {pdfFile && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Größe: {(pdfFile.size / 1024).toFixed(1)} KB
+                  </p>
+                )}
+              </div>
+
+              {/* Required Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Anlage *</Label>
+                  <Select
+                    value={newReport.plant}
+                    onValueChange={(value) =>
+                      setNewReport({ ...newReport, plant: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Anlage wählen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRigs.map((rig) => (
+                        <SelectItem key={rig.id} value={rig.name}>
+                          {rig.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Equipment *</Label>
+                  <Input
+                    value={newReport.equipment}
+                    onChange={(e) =>
+                      setNewReport({ ...newReport, equipment: e.target.value })
+                    }
+                    placeholder="z.B. Crown Block #1"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Inspektionsdatum</Label>
+                  <Input
+                    type="date"
+                    value={newReport.inspectionDate}
+                    onChange={(e) =>
+                      setNewReport({
+                        ...newReport,
+                        inspectionDate: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label>Inspektor</Label>
+                  <Input
+                    value={newReport.inspector}
+                    onChange={(e) =>
+                      setNewReport({ ...newReport, inspector: e.target.value })
+                    }
+                    placeholder={
+                      user ? `${user.firstName} ${user.lastName}` : ""
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() =>
-                  selectedReport && generateReportPDF(selectedReport)
-                }
+                onClick={() => {
+                  setIsPDFUploadDialogOpen(false);
+                  setPDFFile(null);
+                }}
+                disabled={isUploadingPDF}
               >
-                <Download className="w-4 h-4 mr-2" />
-                PDF Export
+                Abbrechen
+              </Button>
+              <Button onClick={handlePDFUpload} disabled={isUploadingPDF}>
+                {isUploadingPDF ? "Wird verarbeitet..." : "PDF analysieren"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      )}
 
-      {/* Action Confirmation Dialog */}
-      <AlertDialog
-        open={isActionConfirmOpen}
-        onOpenChange={setIsActionConfirmOpen}
-      >
-        <AlertDialogContent className="max-w-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Item als "Nicht OK" markiert</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div>
-                Dieses Item wurde als "Nicht OK" markiert.
-                {pendingNotOkUpdate && (
-                  <div className="mt-3 space-y-3">
-                    <div>
-                      <p className="font-semibold text-foreground">Item:</p>
-                      <p className="text-muted-foreground">
-                        {pendingNotOkUpdate.itemDescription}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-foreground">Sektion:</p>
-                      <p className="text-muted-foreground">
-                        {pendingNotOkUpdate.sectionTitle}
-                      </p>
-                    </div>
+        {/* View/Edit Report Dialog */}
+        {selectedReport && (
+          <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <DialogTitle>{selectedReport.title}</DialogTitle>
+                    <DialogDescription className="font-mono">
+                      {selectedReport.reportNumber}
+                    </DialogDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    {getStatusBadge(selectedReport.status)}
+                    {getResultBadge(selectedReport.overallResult)}
+                  </div>
+                </div>
+              </DialogHeader>
 
-                    {/* Photo Upload Section */}
-                    <div className="mt-4 space-y-2">
-                      <Label htmlFor="notok-photos" className="text-foreground">
-                        Fotos anhängen (optional)
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          id="notok-photos"
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          capture="environment"
-                          onChange={(e) => {
-                            const files = Array.from(e.target.files || []);
-                            setNotOkPhotos((prev) => [...prev, ...files]);
-                          }}
-                          className="cursor-pointer"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            const input = document.getElementById(
-                              "notok-photos",
-                            ) as HTMLInputElement;
-                            input?.click();
-                          }}
-                        >
-                          <Camera className="w-4 h-4" />
-                        </Button>
+              <Tabs defaultValue="inspection" className="w-full">
+                <TabsList>
+                  <TabsTrigger value="inspection">Inspektion</TabsTrigger>
+                  <TabsTrigger value="notes">Notizen & Bewertung</TabsTrigger>
+                  <TabsTrigger value="attachments">Anhänge</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="inspection" className="space-y-6 mt-4">
+                  {/* Info Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Inspektionsinformationen</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-muted-foreground">Anlage</Label>
+                        <p>{selectedReport.plant}</p>
                       </div>
-                      {notOkPhotos.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          <p className="text-sm text-muted-foreground">
-                            {notOkPhotos.length} Foto(s) ausgewählt:
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {notOkPhotos.map((photo, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-1 bg-secondary px-2 py-1 rounded text-xs"
-                              >
-                                <span>{photo.name}</span>
+                      <div>
+                        <Label className="text-muted-foreground">
+                          Equipment
+                        </Label>
+                        <p>{selectedReport.equipment}</p>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground">Datum</Label>
+                        <p>
+                          {new Date(
+                            selectedReport.inspectionDate,
+                          ).toLocaleDateString("de-DE")}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground">
+                          Inspektor
+                        </Label>
+                        <p>{selectedReport.inspector}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Inspection Sections */}
+                  {selectedReport.sections &&
+                  selectedReport.sections.length > 0 ? (
+                    selectedReport.sections.map((section) => (
+                      <Card key={section.id}>
+                        <CardHeader>
+                          <CardTitle>
+                            {section.sectionNumber}. {section.title}
+                          </CardTitle>
+                          {section.description && (
+                            <CardDescription>
+                              {section.description}
+                            </CardDescription>
+                          )}
+                        </CardHeader>
+                        <CardContent>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-24">Nr.</TableHead>
+                                <TableHead>Beschreibung</TableHead>
+                                <TableHead className="w-48">Ergebnis</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {section.items &&
+                                section.items.map((item) => (
+                                  <TableRow key={item.id}>
+                                    <TableCell className="font-mono">
+                                      {item.itemNumber}
+                                    </TableCell>
+                                    <TableCell>{item.description}</TableCell>
+                                    <TableCell>
+                                      <div className="flex gap-1">
+                                        <Button
+                                          size="sm"
+                                          variant={
+                                            item.result === "OK"
+                                              ? "default"
+                                              : "outline"
+                                          }
+                                          className={
+                                            item.result === "OK"
+                                              ? "bg-green-600 hover:bg-green-700"
+                                              : ""
+                                          }
+                                          onClick={() =>
+                                            handleUpdateItem(item.id, {
+                                              result: "OK",
+                                            })
+                                          }
+                                          disabled={
+                                            selectedReport.status === "APPROVED"
+                                          }
+                                        >
+                                          <CheckCircle2 className="w-4 h-4 mr-1" />
+                                          OK
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant={
+                                            item.result === "NOT_OK"
+                                              ? "destructive"
+                                              : "outline"
+                                          }
+                                          onClick={() =>
+                                            handleUpdateItem(item.id, {
+                                              result: "NOT_OK",
+                                            })
+                                          }
+                                          disabled={
+                                            selectedReport.status === "APPROVED"
+                                          }
+                                        >
+                                          <XCircle className="w-4 h-4 mr-1" />
+                                          Nicht OK
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <Card>
+                      <CardContent className="py-8 text-center text-muted-foreground">
+                        Keine Inspektionspunkte vorhanden
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="notes" className="space-y-4 mt-4">
+                  <div>
+                    <Label>Gesamtergebnis</Label>
+                    <Select
+                      value={selectedReport.overallResult || ""}
+                      onValueChange={(value) =>
+                        handleUpdateReport({
+                          overallResult: value as
+                            | "PASSED"
+                            | "FAILED"
+                            | "CONDITIONAL",
+                        })
+                      }
+                      disabled={selectedReport.status === "APPROVED"}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Ergebnis wählen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PASSED">Bestanden</SelectItem>
+                        <SelectItem value="FAILED">Nicht bestanden</SelectItem>
+                        <SelectItem value="CONDITIONAL">Bedingt</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Allgemeine Notizen</Label>
+                    <Textarea
+                      value={selectedReport.generalNotes || ""}
+                      onChange={(e) =>
+                        handleUpdateReport({ generalNotes: e.target.value })
+                      }
+                      rows={5}
+                      placeholder="Allgemeine Bemerkungen zur Inspektion..."
+                      disabled={selectedReport.status === "APPROVED"}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Empfehlungen</Label>
+                    <Textarea
+                      value={selectedReport.recommendations || ""}
+                      onChange={(e) =>
+                        handleUpdateReport({ recommendations: e.target.value })
+                      }
+                      rows={5}
+                      placeholder="Empfohlene Maßnahmen..."
+                      disabled={selectedReport.status === "APPROVED"}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Status</Label>
+                    <Select
+                      value={selectedReport.status}
+                      onValueChange={(value) =>
+                        handleUpdateReport({
+                          status: value as
+                            | "DRAFT"
+                            | "SUBMITTED"
+                            | "APPROVED"
+                            | "REJECTED",
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DRAFT">Entwurf</SelectItem>
+                        <SelectItem value="SUBMITTED">Eingereicht</SelectItem>
+                        {user?.role === "ADMIN" && (
+                          <>
+                            <SelectItem value="APPROVED">Genehmigt</SelectItem>
+                            <SelectItem value="REJECTED">Abgelehnt</SelectItem>
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="attachments" className="mt-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Anhänge</CardTitle>
+                      <CardDescription>
+                        Fügen Sie Fotos oder Dokumente hinzu
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Upload Button */}
+                      <div className="mb-4">
+                        <input
+                          type="file"
+                          id="file-upload"
+                          multiple
+                          accept="image/*,.pdf,.doc,.docx"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                        <label htmlFor="file-upload">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="cursor-pointer"
+                            onClick={() =>
+                              document.getElementById("file-upload")?.click()
+                            }
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            Dateien hochladen
+                          </Button>
+                        </label>
+                      </div>
+
+                      {!selectedReport.attachments ||
+                      selectedReport.attachments.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          Keine Anhänge vorhanden
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {selectedReport.attachments.map((attachment) => (
+                            <div
+                              key={attachment.id}
+                              className="flex items-center justify-between p-3 border rounded-lg"
+                            >
+                              <div className="flex items-center gap-3">
+                                <FileText className="w-5 h-5 text-muted-foreground" />
+                                <div>
+                                  <p className="font-medium">
+                                    {attachment.originalName}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {(attachment.fileSize / 1024).toFixed(1)} KB
+                                    •{" "}
+                                    {new Date(
+                                      attachment.uploadedAt,
+                                    ).toLocaleDateString("de-DE")}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
                                 <Button
-                                  type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="h-4 w-4 p-0"
-                                  onClick={() => {
-                                    setNotOkPhotos((prev) =>
-                                      prev.filter((_, i) => i !== index),
-                                    );
-                                  }}
+                                  onClick={() =>
+                                    window.open(attachment.filePath, "_blank")
+                                  }
                                 >
-                                  <X className="w-3 h-3" />
+                                  <Download className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() =>
+                                    handleDeleteAttachment(attachment.id)
+                                  }
+                                >
+                                  <X className="w-4 h-4" />
                                 </Button>
                               </div>
-                            ))}
-                          </div>
+                            </div>
+                          ))}
                         </div>
                       )}
-                    </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
 
-                    {/* Discipline and Priority Selection */}
-                    <div className="mt-4 pt-3 border-t space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="action-discipline"
-                            className="text-foreground"
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsViewDialogOpen(false)}
+                >
+                  Schließen
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    selectedReport && generateReportPDF(selectedReport)
+                  }
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  PDF Export
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Action Confirmation Dialog */}
+        <AlertDialog
+          open={isActionConfirmOpen}
+          onOpenChange={setIsActionConfirmOpen}
+        >
+          <AlertDialogContent className="max-w-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Item als "Nicht OK" markiert</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div>
+                  Dieses Item wurde als "Nicht OK" markiert.
+                  {pendingNotOkUpdate && (
+                    <div className="mt-3 space-y-3">
+                      <div>
+                        <p className="font-semibold text-foreground">Item:</p>
+                        <p className="text-muted-foreground">
+                          {pendingNotOkUpdate.itemDescription}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground">
+                          Sektion:
+                        </p>
+                        <p className="text-muted-foreground">
+                          {pendingNotOkUpdate.sectionTitle}
+                        </p>
+                      </div>
+
+                      {/* Photo Upload Section */}
+                      <div className="mt-4 space-y-2">
+                        <Label
+                          htmlFor="notok-photos"
+                          className="text-foreground"
+                        >
+                          Fotos anhängen (optional)
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id="notok-photos"
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            capture="environment"
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              setNotOkPhotos((prev) => [...prev, ...files]);
+                            }}
+                            className="cursor-pointer"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              const input = document.getElementById(
+                                "notok-photos",
+                              ) as HTMLInputElement;
+                              input?.click();
+                            }}
                           >
-                            Zuständigkeit
-                          </Label>
-                          <Select
-                            value={actionDiscipline}
-                            onValueChange={(value) =>
-                              setActionDiscipline(
-                                value as "MECHANIK" | "ELEKTRIK" | "ANLAGE",
-                              )
-                            }
-                          >
-                            <SelectTrigger id="action-discipline">
-                              <SelectValue placeholder="Wählen..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="MECHANIK">Mechanik</SelectItem>
-                              <SelectItem value="ELEKTRIK">
-                                Elektriker
-                              </SelectItem>
-                              <SelectItem value="ANLAGE">Anlage</SelectItem>
-                            </SelectContent>
-                          </Select>
+                            <Camera className="w-4 h-4" />
+                          </Button>
                         </div>
+                        {notOkPhotos.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            <p className="text-sm text-muted-foreground">
+                              {notOkPhotos.length} Foto(s) ausgewählt:
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {notOkPhotos.map((photo, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center gap-1 bg-secondary px-2 py-1 rounded text-xs"
+                                >
+                                  <span>{photo.name}</span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-4 w-4 p-0"
+                                    onClick={() => {
+                                      setNotOkPhotos((prev) =>
+                                        prev.filter((_, i) => i !== index),
+                                      );
+                                    }}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
 
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="action-priority"
-                            className="text-foreground"
-                          >
-                            Dringlichkeit
-                          </Label>
-                          <Select
-                            value={actionPriority}
-                            onValueChange={(value) =>
-                              setActionPriority(
-                                value as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
-                              )
-                            }
-                          >
-                            <SelectTrigger id="action-priority">
-                              <SelectValue placeholder="Wählen..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="LOW">Niedrig</SelectItem>
-                              <SelectItem value="MEDIUM">Mittel</SelectItem>
-                              <SelectItem value="HIGH">Hoch</SelectItem>
-                              <SelectItem value="URGENT">Dringend</SelectItem>
-                            </SelectContent>
-                          </Select>
+                      {/* Discipline and Priority Selection */}
+                      <div className="mt-4 pt-3 border-t space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="action-discipline"
+                              className="text-foreground"
+                            >
+                              Zuständigkeit
+                            </Label>
+                            <Select
+                              value={actionDiscipline}
+                              onValueChange={(value) =>
+                                setActionDiscipline(
+                                  value as "MECHANIK" | "ELEKTRIK" | "ANLAGE",
+                                )
+                              }
+                            >
+                              <SelectTrigger id="action-discipline">
+                                <SelectValue placeholder="Wählen..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="MECHANIK">
+                                  Mechanik
+                                </SelectItem>
+                                <SelectItem value="ELEKTRIK">
+                                  Elektriker
+                                </SelectItem>
+                                <SelectItem value="ANLAGE">Anlage</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="action-priority"
+                              className="text-foreground"
+                            >
+                              Dringlichkeit
+                            </Label>
+                            <Select
+                              value={actionPriority}
+                              onValueChange={(value) =>
+                                setActionPriority(
+                                  value as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
+                                )
+                              }
+                            >
+                              <SelectTrigger id="action-priority">
+                                <SelectValue placeholder="Wählen..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="LOW">Niedrig</SelectItem>
+                                <SelectItem value="MEDIUM">Mittel</SelectItem>
+                                <SelectItem value="HIGH">Hoch</SelectItem>
+                                <SelectItem value="URGENT">Dringend</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="mt-4 pt-3 border-t">
-                      <p className="font-semibold text-foreground">
-                        Möchten Sie automatisch eine hochpriorisierte Aufgabe
-                        (Action) erstellen?
-                      </p>
+                      <div className="mt-4 pt-3 border-t">
+                        <p className="font-semibold text-foreground">
+                          Möchten Sie automatisch eine hochpriorisierte Aufgabe
+                          (Action) erstellen?
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                // Update without creating action
-                if (pendingNotOkUpdate) {
-                  performItemUpdate(
-                    pendingNotOkUpdate.itemId,
-                    pendingNotOkUpdate.updates,
-                    false,
-                  );
-                }
-                setPendingNotOkUpdate(null);
-                setNotOkPhotos([]);
-                setActionDiscipline("MECHANIK");
-                setActionPriority("HIGH");
-              }}
-            >
-              Nein, nur Status ändern
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                // Update and create action
-                if (pendingNotOkUpdate) {
-                  performItemUpdate(
-                    pendingNotOkUpdate.itemId,
-                    pendingNotOkUpdate.updates,
-                    true,
-                  );
-                }
-                setPendingNotOkUpdate(null);
-                setNotOkPhotos([]);
-                setActionDiscipline("MECHANIK");
-                setActionPriority("HIGH");
-              }}
-            >
-              Ja, Action erstellen
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                  )}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  // Update without creating action
+                  if (pendingNotOkUpdate) {
+                    performItemUpdate(
+                      pendingNotOkUpdate.itemId,
+                      pendingNotOkUpdate.updates,
+                      false,
+                    );
+                  }
+                  setPendingNotOkUpdate(null);
+                  setNotOkPhotos([]);
+                  setActionDiscipline("MECHANIK");
+                  setActionPriority("HIGH");
+                }}
+              >
+                Nein, nur Status ändern
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  // Update and create action
+                  if (pendingNotOkUpdate) {
+                    performItemUpdate(
+                      pendingNotOkUpdate.itemId,
+                      pendingNotOkUpdate.updates,
+                      true,
+                    );
+                  }
+                  setPendingNotOkUpdate(null);
+                  setNotOkPhotos([]);
+                  setActionDiscipline("MECHANIK");
+                  setActionPriority("HIGH");
+                }}
+              >
+                Ja, Action erstellen
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 };

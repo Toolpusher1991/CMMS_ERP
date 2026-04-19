@@ -3,6 +3,7 @@ import {
   Check,
   ChevronRight,
   ChevronLeft,
+  ArrowLeft,
   AlertTriangle,
   X,
   Minus,
@@ -298,20 +299,30 @@ function HomeScreen({
   );
 
   return (
-    <div>
-      {/* ─── Hero Section ─── */}
-      <div className="bg-[#f7f9fc] dark:bg-slate-900 py-14 px-6">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl md:text-5xl font-bold text-[#143269] dark:text-blue-200 leading-tight tracking-tight">
-            Rig equipment maintenance.
-            <br />
-            Field-ready, offline-first.
-          </h1>
-          <p className="text-[#4a6fa5] dark:text-blue-400 text-lg mt-4 max-w-2xl leading-relaxed">
-            Choose a piece of equipment to start a CAT I–IV inspection.
-            Checklists follow KCA Deutag equipment &amp; maintenance strategy
-            documents and API RP 8B / 7K / 7L.
-          </p>
+    <div className="-m-4 sm:-m-6 lg:-m-8">
+      {/* H&P Navy Header */}
+      <div className="bg-gradient-to-r from-[#143269] to-[#2B5597] px-6 py-6">
+        <button
+          onClick={() => window.history.back()}
+          className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm mb-4 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Zurück
+        </button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
+              <Wrench className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-wide">
+                Bohranlagen
+              </h1>
+              <p className="text-sm text-white/60">
+                Rig equipment maintenance — field-ready, offline-first
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

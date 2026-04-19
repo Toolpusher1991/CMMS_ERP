@@ -1,0 +1,252 @@
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *  H&P DESIGN TOKENS — MaintAIn / Maintenance Intelligence
+ *  Based on H&P Brand Guidelines (K-CW-EM-GU-015 Branding)
+ *  Font: IBM Plex Sans (Light, Regular, Medium)
+ *  Fallback: Arial
+ * ═══════════════════════════════════════════════════════════════
+ *
+ *  HOW TO USE WITH COPILOT:
+ *  1. Place this file at: /src/styles/hp-tokens.css
+ *  2. Import in your main CSS/SCSS: @import './hp-tokens.css';
+ *  3. Reference vars in components: color: var(--hp-blue);
+ *  4. Tell Copilot: "Use the design tokens from hp-tokens.css"
+ *
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+:root {
+  /* ─── PRIMARY PALETTE ─── */
+  --hp-blue:      #2B5597;   /* PMS 7685, CMYK 92.73.11.0  */
+  --deep-blue:    #143269;   /* PMS 288,  CMYK 100.90.31.19 */
+  --black:        #000000;
+  --dark-gray:    #64646E;   /* PMS 425 */
+  --medium-gray:  #C8C8D2;   /* PMS 421 */
+  --pale-gray:    #F0F0FA;   /* PMS 5315 */
+  --white:        #FFFFFF;
+
+  /* ─── SECONDARY PALETTE ─── */
+  --light-blue:   #00B2E3;   /* CMYK 75.0.7.0  */
+  --light-green:  #24C26B;   /* CMYK 72.0.77.0 */
+  --medium-green: #23B755;
+  --dark-green:   #0D5E4F;
+  --light-purple: #6645C6;
+  --medium-purple:#560BA9;
+  --dark-purple:  #460076;
+
+  /* ─── FUNCTIONAL COLORS ─── */
+  --danger:       #C8102E;
+  --warning:      #E37222;
+  --success:      #24C26B;
+  --info:         #00B2E3;
+  --sap-blue:     #0073C8;   /* SAP PM integration accent */
+
+  /* ─── GRADIENT (only H&P Blue → Light Green, left to right) ─── */
+  --gradient-main:    linear-gradient(90deg, #2B5597 0%, #24C26B 100%);
+  --gradient-reverse: linear-gradient(90deg, #24C26B 0%, #2B5597 100%);
+  /* NOTE: Per brand guidelines, gradient is used sparingly —
+     separator lines, button hover effects, progress bars.
+     Never as large background areas. */
+
+  /* ─── TYPOGRAPHY ─── */
+  --font-primary: 'IBM Plex Sans', Arial, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Weights: only Light(300), Regular(400), Medium(500).
+     Bold(700) is NOT used per brand guidelines.
+     SemiBold reserved for signage only. */
+  --fw-light:     300;
+  --fw-regular:   400;
+  --fw-medium:    500;
+
+  /* Type scale (sentence case everywhere, never all-caps for headings) */
+  --fs-hero:      42px;   /* Landing page hero only */
+  --fs-h1:        32px;
+  --fs-h2:        22px;
+  --fs-h3:        16px;
+  --fs-h4:        14px;
+  --fs-body:      15px;
+  --fs-small:     13px;
+  --fs-caption:   11px;
+  --fs-micro:     10px;
+
+  --lh-tight:     1.2;
+  --lh-normal:    1.5;
+  --lh-relaxed:   1.65;
+
+  /* Letter spacing */
+  --ls-tight:     -0.6px;  /* h1 */
+  --ls-normal:    -0.2px;  /* h2, h3 */
+  --ls-caps:       1.4px;  /* uppercase labels */
+  --ls-wide:       0.4px;  /* small text */
+
+  /* ─── SPACING (4px base grid) ─── */
+  --space-1:      4px;
+  --space-2:      8px;
+  --space-3:      12px;
+  --space-4:      16px;
+  --space-5:      20px;
+  --space-6:      24px;
+  --space-7:      28px;
+  --space-8:      32px;
+  --space-10:     40px;
+  --space-12:     48px;
+  --space-16:     64px;
+
+  /* ─── BORDERS & LINES ─── */
+  /* Lines should always appear thin, never bold (brand guideline §2.21) */
+  --line-thin:    0.75px solid var(--medium-gray);
+  --line-med:     1px solid var(--medium-gray);
+  --border-radius-none: 0px;    /* Primary — sharp corners (brand default) */
+  --border-radius-sm:   2px;    /* Buttons, inputs, badges only */
+
+  /* ─── SHADOWS ─── */
+  --shadow-sm:    0 1px 2px rgba(20, 50, 105, 0.06);
+  --shadow-md:    0 2px 8px rgba(20, 50, 105, 0.08);
+  --shadow-lg:    0 8px 24px rgba(20, 50, 105, 0.12);
+
+  /* ─── Z-INDEX SCALE ─── */
+  --z-dropdown:   10;
+  --z-sticky:     20;
+  --z-header:     50;
+  --z-modal:      100;
+  --z-toast:      200;
+
+  /* ─── TRANSITIONS ─── */
+  --transition-fast:   0.12s ease;
+  --transition-normal: 0.15s ease;
+  --transition-slow:   0.25s ease;
+
+  /* ─── COMPONENT TOKENS ─── */
+
+  /* Sidebar (like MaintAIn) */
+  --sidebar-bg:         var(--deep-blue);
+  --sidebar-text:       rgba(255, 255, 255, 0.85);
+  --sidebar-text-active: var(--white);
+  --sidebar-active-bg:  var(--hp-blue);
+  --sidebar-hover-bg:   rgba(255, 255, 255, 0.08);
+  --sidebar-width:      240px;
+  --sidebar-collapsed:  64px;
+
+  /* Header */
+  --header-bg:          var(--white);
+  --header-border:      var(--line-thin);
+  --header-height:      60px;
+
+  /* Cards */
+  --card-bg:            var(--white);
+  --card-border:        var(--line-thin);
+  --card-padding:       28px;
+  --card-hover-shadow:  var(--shadow-md);
+  --card-hover-lift:    translateY(-2px);
+
+  /* Buttons */
+  --btn-primary-bg:     var(--deep-blue);
+  --btn-primary-hover:  var(--hp-blue);
+  --btn-primary-text:   var(--white);
+  --btn-ghost-border:   1px solid var(--deep-blue);
+  --btn-ghost-text:     var(--deep-blue);
+  --btn-danger-border:  1px solid var(--danger);
+  --btn-danger-text:    var(--danger);
+  --btn-padding:        11px 22px;
+  --btn-font-size:      12px;
+  --btn-letter-spacing: 1.4px;
+  --btn-text-transform: uppercase;
+
+  /* Form inputs */
+  --input-bg:           var(--white);
+  --input-border:       1px solid var(--medium-gray);
+  --input-focus-border: var(--hp-blue);
+  --input-padding:      10px 12px;
+  --input-font-size:    14px;
+
+  /* Tables */
+  --table-header-bg:    var(--pale-gray);
+  --table-header-text:  var(--dark-gray);
+  --table-row-hover:    #FAFBFE;
+  --table-border:       var(--line-thin);
+
+  /* Status badges */
+  --badge-ok-bg:        var(--success);
+  --badge-obs-bg:       var(--warning);
+  --badge-def-bg:       var(--danger);
+  --badge-na-bg:        var(--dark-gray);
+  --badge-draft-bg:     var(--pale-gray);
+  --badge-draft-text:   var(--dark-gray);
+  --badge-active-bg:    var(--success);
+  --badge-progress-bg:  var(--hp-blue);
+
+  /* CAT badges */
+  --cat-1-bg:           var(--success);
+  --cat-2-bg:           var(--hp-blue);
+  --cat-3-bg:           var(--warning);
+  --cat-4-bg:           var(--danger);
+
+  /* Priority (SAP PM) */
+  --priority-1-bg:      var(--danger);
+  --priority-2-bg:      var(--warning);
+  --priority-3-bg:      var(--hp-blue);
+  --priority-4-bg:      var(--dark-gray);
+
+  /* Chevron (brand element §2.20) */
+  /* Light Blue, 66% of typography height, right-pointing only,
+     horizontally centered to first headline line,
+     three negative chevron-spaces away from text */
+  --chevron-color:      var(--light-blue);
+  --chevron-char:       "›";
+
+  /* Toast / notification */
+  --toast-bg:           var(--deep-blue);
+  --toast-text:         var(--white);
+
+  /* Modal */
+  --modal-backdrop:     rgba(20, 50, 105, 0.6);
+  --modal-bg:           var(--white);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN RULES FOR AI / COPILOT REFERENCE
+   ═══════════════════════════════════════════════════════════════
+
+   1. TYPOGRAPHY
+      - Headlines: sentence case, never ALL CAPS, never Initial Caps
+      - Labels/captions: uppercase, 11px, letter-spacing 1.4px
+      - Font weights: only Light(300), Regular(400), Medium(500)
+      - Never use Bold(700) except in signage
+      - System font fallback: Arial Regular and Arial Bold only
+
+   2. COLORS
+      - Primary backgrounds: white or pale-gray
+      - Text: black for body, dark-gray for secondary, deep-blue for headings
+      - Accent: light-blue for interactive elements (chevrons, links, hover)
+      - Never use secondary palette colors for backgrounds or typography
+      - Status: green=ok, orange=observation, red=defect, gray=n/a
+
+   3. LAYOUT
+      - Sharp corners (border-radius: 0) as default
+      - border-radius: 2px only on buttons, inputs, small badges
+      - Lines always thin (0.75px), never bold
+      - Cards: white bg, thin border, no border-radius
+      - Sidebar: deep-blue background, white text
+
+   4. CHEVRON (brand element)
+      - Only points RIGHT, never left/up/down
+      - Color: light-blue (#00B2E3)
+      - Used before section headings
+      - 66% of typography height
+      - Centered to first line of headline
+
+   5. GRADIENT
+      - Only H&P Blue → Light Green, left to right
+      - Used sparingly: progress bars, button hovers, separator lines
+      - Never as large background fills
+
+   6. INTERACTIVE
+      - Cards lift 2px on hover with medium shadow
+      - Left accent bar (light-blue, 3-4px) on card hover
+      - Buttons: uppercase, 12px, letter-spacing 1.4px
+      - Status buttons: large touch targets (min 64px height)
+      - Transitions: 0.15s ease default
+
+   ═══════════════════════════════════════════════════════════════ */

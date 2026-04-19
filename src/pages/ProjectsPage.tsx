@@ -106,6 +106,13 @@ import {
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/services/api";
 import { toPng } from "html-to-image";
+import {
+  CreationWizard,
+  DISCIPLINE_CARDS,
+  COMPONENT_CARDS,
+  PRIORITY_CARDS,
+} from "@/components/shared/CreationWizard";
+import { Factory } from "lucide-react";
 
 // ===== Types =====
 type TaskStatus = ProjectTask["status"];
@@ -1119,6 +1126,7 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
   const [showFlowDialog, setShowFlowDialog] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [showProjectDialog, setShowProjectDialog] = useState(false);
+  const [showProjectWizard, setShowProjectWizard] = useState(false);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [showDeleteProjectDialog, setShowDeleteProjectDialog] = useState(false);
   const [showDeleteTaskDialog, setShowDeleteTaskDialog] = useState(false);
@@ -2504,12 +2512,12 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
       description: "",
       status: "IN_PROGRESS" as Project["status"],
       priority: "NORMAL" as Project["priority"],
-      plant: activeTab,
+      plant: "",
       startDate: new Date().toISOString().split("T")[0],
       endDate: "",
       managerId: "",
     });
-    setShowProjectDialog(true);
+    setShowProjectWizard(true);
   };
 
   const openEditProjectDialog = (project: Project) => {
@@ -3998,6 +4006,180 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
       </Dialog>
 
       {/* Project Dialog */}
+      {/* Project Creation Wizard */}
+      <Dialog open={showProjectWizard} onOpenChange={setShowProjectWizard}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden flex flex-col">
+          <CreationWizard
+            steps={[
+              {
+                id: "plant",
+                title: "Anlage auswählen",
+                subtitle: "Für welche Anlage soll das Projekt erstellt werden?",
+                cards: availableRigs.map((rig) => ({
+                  id: rig.name,
+                  label: rig.name,
+                  icon: <Factory className="h-7 w-7" />,
+                })),
+              },
+              {
+                id: "discipline",
+                title: "Disziplin auswählen",
+                subtitle: "Welcher Fachbereich ist betroffen?",
+                cards: DISCIPLINE_CARDS,
+              },
+              {
+                id: "component",
+                title: "Hauptkomponente auswählen",
+                subtitle: "Welche Komponente ist betroffen?",
+                cards: COMPONENT_CARDS,
+              },
+              {
+                id: "priority",
+                title: "Priorität festlegen",
+                subtitle: "Wie wichtig ist das Projekt?",
+                cards: PRIORITY_CARDS,
+              },
+            ]}
+            finalStepTitle="Projektdetails eingeben"
+            finalStepSubtitle="Name, Beschreibung und Zeitraum"
+            finalStepContent={(selections) => (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Name *</Label>
+                  <Input
+                    value={projectForm.name}
+                    onChange={(e) =>
+                      setProjectForm({ ...projectForm, name: e.target.value })
+                    }
+                    placeholder="Projektname..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Beschreibung</Label>
+                  <Textarea
+                    value={projectForm.description}
+                    onChange={(e) =>
+                      setProjectForm({
+                        ...projectForm,
+                        description: e.target.value,
+                      })
+                    }
+                    placeholder="Projektbeschreibung..."
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select
+                      value={projectForm.status}
+                      onValueChange={(v) =>
+                        setProjectForm({
+                          ...projectForm,
+                          status: v as Project["status"],
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PLANNED">Geplant</SelectItem>
+                        <SelectItem value="IN_PROGRESS">In Arbeit</SelectItem>
+                        <SelectItem value="ON_HOLD">Pausiert</SelectItem>
+                        <SelectItem value="COMPLETED">Abgeschlossen</SelectItem>
+                        <SelectItem value="CANCELLED">Abgebrochen</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Startdatum</Label>
+                    <Input
+                      type="date"
+                      value={projectForm.startDate}
+                      onChange={(e) =>
+                        setProjectForm({
+                          ...projectForm,
+                          startDate: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Enddatum</Label>
+                    <Input
+                      type="date"
+                      value={projectForm.endDate}
+                      onChange={(e) =>
+                        setProjectForm({
+                          ...projectForm,
+                          endDate: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Projektleiter</Label>
+                  <Select
+                    value={projectForm.managerId || "none"}
+                    onValueChange={(v) =>
+                      setProjectForm({
+                        ...projectForm,
+                        managerId: v === "none" ? "" : v,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Projektleiter auswählen..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Kein Projektleiter</SelectItem>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.firstName} {user.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            onComplete={async (selections) => {
+              const plantName = selections.plant as string;
+              const priority = selections.priority as string;
+              try {
+                await projectService.createProject({
+                  projectNumber: `PRJ-${Date.now()}`,
+                  name: projectForm.name,
+                  description: projectForm.description,
+                  status: projectForm.status,
+                  priority: priority as Project["priority"],
+                  plant: plantName,
+                  startDate: projectForm.startDate,
+                  endDate: projectForm.endDate,
+                  managerId: projectForm.managerId || undefined,
+                });
+                toast({
+                  title: "Projekt erstellt",
+                  description: `${projectForm.name} wurde erfolgreich erstellt.`,
+                });
+                refreshProjects();
+                setShowProjectWizard(false);
+              } catch (error) {
+                console.error("Error saving project:", error);
+                toast({
+                  title: "Fehler",
+                  description: "Projekt konnte nicht gespeichert werden.",
+                  variant: "destructive",
+                });
+              }
+            }}
+            onCancel={() => setShowProjectWizard(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showProjectDialog} onOpenChange={setShowProjectDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>

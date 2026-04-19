@@ -122,6 +122,13 @@ import {
   importActionsFromExcel,
   downloadActionTemplate,
 } from "@/services/excel.service";
+import {
+  CreationWizard,
+  DISCIPLINE_CARDS,
+  COMPONENT_CARDS,
+  PRIORITY_CARDS,
+} from "@/components/shared/CreationWizard";
+import { Factory } from "lucide-react";
 
 interface User {
   id: string;
@@ -143,6 +150,7 @@ const ActionTracker = ({
   const [, setActiveCategoryTab] = useState<Record<string, string>>({});
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [actionToDelete, setActionToDelete] = useState<string | null>(null);
@@ -421,7 +429,7 @@ const ActionTracker = ({
     setPhotoPreview(null);
     setMaterials([]); // Reset materials for new action
     setCurrentAction({
-      plant: activeTab, // Use active tab as default
+      plant: "", // Will be set by wizard
       title: "",
       description: "",
       status: "OPEN",
@@ -433,7 +441,7 @@ const ActionTracker = ({
     setSelectedAssignees([]);
     // Reload locations to get any newly added ones
     setAvailableLocations(getActiveLocations());
-    setIsDialogOpen(true);
+    setIsWizardOpen(true);
   };
 
   const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -471,31 +479,25 @@ const ActionTracker = ({
     setIsDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (overrides?: Partial<Action>) => {
+    const actionData = { ...currentAction, ...overrides };
     // Validation - plant, location and title are required
-    if (
-      !currentAction.plant ||
-      !currentAction.location ||
-      !currentAction.title
-    ) {
+    if (!actionData.plant || !actionData.location || !actionData.title) {
       toast({
         title: "Fehler",
         description:
-          "Bitte w�hlen Sie eine Anlage, einen Standort und geben Sie einen Titel ein.",
+          "Bitte wählen Sie eine Anlage, einen Standort und geben Sie einen Titel ein.",
         variant: "destructive",
       });
       return;
     }
 
     // Desktop: require assignedTo and dueDate
-    if (
-      !isMobileDevice() &&
-      (!currentAction.assignedTo || !currentAction.dueDate)
-    ) {
+    if (!isMobileDevice() && (!actionData.assignedTo || !actionData.dueDate)) {
       toast({
         title: "Fehler",
         description:
-          "Bitte f�llen Sie alle Pflichtfelder aus (Zugewiesen an, F�lligkeitsdatum).",
+          "Bitte füllen Sie alle Pflichtfelder aus (Zugewiesen an, Fälligkeitsdatum).",
         variant: "destructive",
       });
       return;
@@ -505,7 +507,7 @@ const ActionTracker = ({
       let actionId: string;
 
       // Append materials to description if any
-      let descriptionWithMaterials = currentAction.description;
+      let descriptionWithMaterials = actionData.description;
       if (materials.length > 0) {
         const materialsText = materials
           .map(
@@ -515,37 +517,37 @@ const ActionTracker = ({
               } | ${m.status || "NICHT_BESTELLT"}`,
           )
           .join("\n");
-        descriptionWithMaterials = currentAction.description
-          ? `${currentAction.description}\n\n--- Materialien ---\n${materialsText}`
+        descriptionWithMaterials = actionData.description
+          ? `${actionData.description}\n\n--- Materialien ---\n${materialsText}`
           : `--- Materialien ---\n${materialsText}`;
       }
 
-      if (isEditMode && currentAction.id) {
+      if (isEditMode && actionData.id) {
         // Update
-        await apiClient.request(`/actions/${currentAction.id}`, {
+        await apiClient.request(`/actions/${actionData.id}`, {
           method: "PUT",
           body: JSON.stringify({
-            plant: currentAction.plant,
-            location: currentAction.location,
-            category: currentAction.category,
-            discipline: currentAction.discipline,
-            title: currentAction.title,
+            plant: actionData.plant,
+            location: actionData.location,
+            category: actionData.category,
+            discipline: actionData.discipline,
+            title: actionData.title,
             description: descriptionWithMaterials,
-            status: currentAction.status,
-            priority: currentAction.priority,
-            assignedTo: currentAction.assignedTo,
+            status: actionData.status,
+            priority: actionData.priority,
+            assignedTo: actionData.assignedTo,
             assignedUsers: selectedAssignees,
-            dueDate: currentAction.dueDate,
+            dueDate: actionData.dueDate,
           }),
         });
 
-        actionId = currentAction.id;
+        actionId = actionData.id;
 
         if (isMounted.current) {
           toast({
             variant: "success" as const,
             title: "Action aktualisiert",
-            description: `${currentAction.title} wurde erfolgreich aktualisiert.`,
+            description: `${actionData.title} wurde erfolgreich aktualisiert.`,
           });
         }
       } else {
@@ -553,17 +555,17 @@ const ActionTracker = ({
         const response = await apiClient.request<{ id: string }>("/actions", {
           method: "POST",
           body: JSON.stringify({
-            plant: currentAction.plant,
-            location: currentAction.location,
-            category: currentAction.category,
-            discipline: currentAction.discipline,
-            title: currentAction.title,
+            plant: actionData.plant,
+            location: actionData.location,
+            category: actionData.category,
+            discipline: actionData.discipline,
+            title: actionData.title,
             description: descriptionWithMaterials,
-            status: currentAction.status,
-            priority: currentAction.priority,
-            assignedTo: currentAction.assignedTo,
+            status: actionData.status,
+            priority: actionData.priority,
+            assignedTo: actionData.assignedTo,
             assignedUsers: selectedAssignees,
-            dueDate: currentAction.dueDate,
+            dueDate: actionData.dueDate,
           }),
         });
 
@@ -573,7 +575,7 @@ const ActionTracker = ({
           toast({
             variant: "success" as const,
             title: "Action erstellt",
-            description: `${currentAction.title} wurde erfolgreich erstellt.`,
+            description: `${actionData.title} wurde erfolgreich erstellt.`,
           });
         }
       }
@@ -624,6 +626,7 @@ const ActionTracker = ({
 
       refreshActions();
       setIsDialogOpen(false);
+      setIsWizardOpen(false);
     } catch (error) {
       console.error("Fehler beim Speichern:", error);
       if (isMounted.current) {
@@ -1522,6 +1525,204 @@ const ActionTracker = ({
                 Abbrechen
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Creation Wizard Dialog */}
+        <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden">
+            <CreationWizard
+              steps={[
+                {
+                  id: "plant",
+                  title: "Anlage auswählen",
+                  subtitle:
+                    "Für welche Anlage soll die Action erstellt werden?",
+                  cards: availableRigs.map((rig) => ({
+                    id: rig.name,
+                    label: rig.name,
+                    icon: <Factory className="h-7 w-7" />,
+                  })),
+                },
+                {
+                  id: "discipline",
+                  title: "Disziplin auswählen",
+                  subtitle: "Welcher Fachbereich ist betroffen?",
+                  cards: DISCIPLINE_CARDS,
+                },
+                {
+                  id: "component",
+                  title: "Hauptkomponente auswählen",
+                  subtitle: "Welche Komponente ist betroffen?",
+                  cards: COMPONENT_CARDS,
+                },
+                {
+                  id: "priority",
+                  title: "Priorität festlegen",
+                  subtitle: "Wie dringend ist die Aufgabe?",
+                  cards: PRIORITY_CARDS,
+                },
+              ]}
+              finalStepTitle="Details eingeben"
+              finalStepSubtitle="Titel, Beschreibung und Zuweisung"
+              finalStepContent={(selections) => (
+                <div className="space-y-4">
+                  {/* Title */}
+                  <div className="space-y-2">
+                    <Label htmlFor="wizard-title">Titel *</Label>
+                    <Input
+                      id="wizard-title"
+                      value={currentAction.title}
+                      onChange={(e) =>
+                        setCurrentAction({
+                          ...currentAction,
+                          title: e.target.value,
+                        })
+                      }
+                      placeholder="Kurze Beschreibung"
+                      className="h-12 text-base"
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <Label htmlFor="wizard-description">Beschreibung</Label>
+                    <Textarea
+                      id="wizard-description"
+                      value={currentAction.description}
+                      onChange={(e) =>
+                        setCurrentAction({
+                          ...currentAction,
+                          description: e.target.value,
+                        })
+                      }
+                      placeholder="Detaillierte Beschreibung..."
+                      rows={3}
+                      className="text-base"
+                    />
+                  </div>
+
+                  {/* Assignee */}
+                  <div className="space-y-2">
+                    <Label>Verantwortlich</Label>
+                    <Select
+                      value={currentAction.assignedTo}
+                      onValueChange={(value) =>
+                        setCurrentAction({
+                          ...currentAction,
+                          assignedTo: value,
+                        })
+                      }
+                    >
+                      <SelectTrigger className="h-12 text-base">
+                        <SelectValue placeholder="Person auswählen..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users
+                          .filter((user) => {
+                            const isManager =
+                              user.role === "MANAGER" || user.role === "ADMIN";
+                            const hasNoPlantAssignment = !user.assignedPlant;
+                            const isSamePlant =
+                              user.assignedPlant === currentAction.plant;
+                            return (
+                              isManager || hasNoPlantAssignment || isSamePlant
+                            );
+                          })
+                          .map((user) => (
+                            <SelectItem key={user.id} value={user.email}>
+                              {user.firstName} {user.lastName} (
+                              {user.role || "USER"})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Photo Upload */}
+                  <div className="space-y-2">
+                    <Label>Foto hinzufügen</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          if (fileInputRef.current) {
+                            fileInputRef.current.setAttribute(
+                              "capture",
+                              "environment",
+                            );
+                            fileInputRef.current.click();
+                          }
+                        }}
+                        className="w-full h-12"
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        Kamera
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          if (fileInputRef.current) {
+                            fileInputRef.current.removeAttribute("capture");
+                            fileInputRef.current.click();
+                          }
+                        }}
+                        className="w-full h-12"
+                      >
+                        <ImageIcon className="h-4 w-4 mr-2" />
+                        Galerie
+                      </Button>
+                    </div>
+                    {photoPreview && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            setPhotoPreview(null);
+                            setPhotoFile(null);
+                            if (fileInputRef.current)
+                              fileInputRef.current.value = "";
+                          }}
+                          className="w-full mt-2"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Foto entfernen
+                        </Button>
+                        <div className="mt-2">
+                          <img
+                            src={photoPreview}
+                            alt="Preview"
+                            className="max-w-full h-auto rounded-md border"
+                          />
+                        </div>
+                      </>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoCapture}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              )}
+              isSubmitting={isUploadingFiles}
+              onComplete={(selections) => {
+                handleSave({
+                  plant: selections.plant as string,
+                  discipline: selections.discipline as Action["discipline"],
+                  priority: selections.priority as Action["priority"],
+                  location: selections.component as string,
+                  category: "ALLGEMEIN",
+                });
+              }}
+              onCancel={() => setIsWizardOpen(false)}
+            />
           </DialogContent>
         </Dialog>
 
@@ -2636,6 +2837,221 @@ const ActionTracker = ({
           </div>
         </div>
       </div>
+
+      {/* Creation Wizard Dialog (Desktop) */}
+      <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden flex flex-col">
+          <CreationWizard
+            steps={[
+              {
+                id: "plant",
+                title: "Anlage auswählen",
+                subtitle: "Für welche Anlage soll die Action erstellt werden?",
+                cards: availableRigs.map((rig) => ({
+                  id: rig.name,
+                  label: rig.name,
+                  icon: <Factory className="h-7 w-7" />,
+                })),
+              },
+              {
+                id: "discipline",
+                title: "Disziplin auswählen",
+                subtitle: "Welcher Fachbereich ist betroffen?",
+                cards: DISCIPLINE_CARDS,
+              },
+              {
+                id: "component",
+                title: "Hauptkomponente auswählen",
+                subtitle: "Welche Komponente ist betroffen?",
+                cards: COMPONENT_CARDS,
+              },
+              {
+                id: "priority",
+                title: "Priorität festlegen",
+                subtitle: "Wie dringend ist die Aufgabe?",
+                cards: PRIORITY_CARDS,
+              },
+            ]}
+            finalStepTitle="Details eingeben"
+            finalStepSubtitle="Titel, Beschreibung und Zuweisung"
+            finalStepContent={(selections) => (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Title */}
+                  <div className="space-y-2">
+                    <Label>Titel *</Label>
+                    <Input
+                      value={currentAction.title}
+                      onChange={(e) =>
+                        setCurrentAction({
+                          ...currentAction,
+                          title: e.target.value,
+                        })
+                      }
+                      placeholder="z.B. Pumpe P-101 Wartung"
+                    />
+                  </div>
+                  {/* Status */}
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select
+                      value={currentAction.status}
+                      onValueChange={(value: Action["status"]) =>
+                        setCurrentAction({ ...currentAction, status: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="OPEN">Offen</SelectItem>
+                        <SelectItem value="IN_PROGRESS">
+                          In Bearbeitung
+                        </SelectItem>
+                        <SelectItem value="COMPLETED">Abgeschlossen</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label>Beschreibung</Label>
+                  <Textarea
+                    value={currentAction.description}
+                    onChange={(e) =>
+                      setCurrentAction({
+                        ...currentAction,
+                        description: e.target.value,
+                      })
+                    }
+                    placeholder="Detaillierte Beschreibung der Aufgabe..."
+                    rows={4}
+                    className="resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Assignee */}
+                  <div className="space-y-2">
+                    <Label>Zugewiesen an *</Label>
+                    <Select
+                      value={currentAction.assignedTo}
+                      onValueChange={(value) =>
+                        setCurrentAction({
+                          ...currentAction,
+                          assignedTo: value,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="User auswählen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users
+                          .filter((user) => {
+                            if (!user.assignedPlant) return true;
+                            return (
+                              user.assignedPlant ===
+                              (selections.plant as string)
+                            );
+                          })
+                          .map((user) => (
+                            <SelectItem key={user.id} value={user.email}>
+                              {user.firstName} {user.lastName}
+                              {user.assignedPlant && ` (${user.assignedPlant})`}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* Due Date */}
+                  <div className="space-y-2">
+                    <Label>Fälligkeitsdatum *</Label>
+                    <DatePicker
+                      date={
+                        currentAction.dueDate
+                          ? new Date(currentAction.dueDate)
+                          : undefined
+                      }
+                      onSelect={(date) =>
+                        setCurrentAction({
+                          ...currentAction,
+                          dueDate: date ? formatDateForInput(date) : "",
+                        })
+                      }
+                      placeholder="Fälligkeitsdatum wählen"
+                    />
+                  </div>
+                </div>
+
+                {/* File Upload */}
+                <div className="space-y-2">
+                  <Label>Dateien anhängen</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        document.getElementById("wizard-file-upload")?.click()
+                      }
+                      className="flex-1"
+                    >
+                      <Paperclip className="mr-2 h-4 w-4" />
+                      Dateien auswählen
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        document.getElementById("wizard-camera-upload")?.click()
+                      }
+                    >
+                      <Camera className="mr-2 h-4 w-4" />
+                      Foto aufnehmen
+                    </Button>
+                  </div>
+                  <input
+                    id="wizard-file-upload"
+                    type="file"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <input
+                    id="wizard-camera-upload"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  {pendingFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {pendingFiles.map((file, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">
+                          {file.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            isSubmitting={isUploadingFiles}
+            onComplete={(selections) => {
+              handleSave({
+                plant: selections.plant as string,
+                discipline: selections.discipline as Action["discipline"],
+                priority: selections.priority as Action["priority"],
+                location: selections.component as string,
+                category: "ALLGEMEIN",
+              });
+            }}
+            onCancel={() => setIsWizardOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

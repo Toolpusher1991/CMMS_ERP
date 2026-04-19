@@ -32,7 +32,7 @@ export interface Action {
   id: string;
   plant: string;
   category?: "ALLGEMEIN" | "RIGMOVE";
-  discipline?: "MECHANIK" | "ELEKTRIK" | "ANLAGE";
+  discipline?: "MECHANIK" | "ELEKTRIK" | "ANLAGE" | "WELL_CONTROL" | "HYDRAULIK" | "SONSTIGES";
   location?: string;
   title: string;
   description: string;
