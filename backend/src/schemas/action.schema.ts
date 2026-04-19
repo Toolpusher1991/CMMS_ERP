@@ -4,15 +4,16 @@ import { z } from 'zod';
 
 export const createActionSchema = z.object({
   plant: z.string().min(1, 'Anlage ist erforderlich'),
-  location: z.string().optional(),
-  category: z.string().optional(),
-  discipline: z.string().optional(),
+  location: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  discipline: z.string().nullable().optional(),
   title: z.string().min(1, 'Titel ist erforderlich'),
-  description: z.string().optional(),
-  status: z.string().optional(),
-  priority: z.string().optional(),
-  assignedTo: z.string().optional(),
-  dueDate: z.string().optional(),
+  description: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+  priority: z.string().nullable().optional(),
+  assignedTo: z.string().nullable().optional(),
+  assignedUsers: z.array(z.string()).optional(),
+  dueDate: z.string().nullable().optional(),
 });
 
 export const updateActionSchema = createActionSchema.partial();
