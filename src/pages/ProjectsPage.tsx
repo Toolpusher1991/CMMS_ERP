@@ -58,6 +58,14 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -2871,436 +2879,507 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-2 pt-2">
-                        {filteredProjects.map((project) => {
-                          const isExpanded = expandedProjects.has(project.id);
-                          const progress = getProjectProgress(project);
-                          const flowOrderMap = getFlowchartTaskOrder(project);
-                          const tasks = sortTasksByFlowOrder(
-                            project.tasks || [],
-                            flowOrderMap,
-                          );
-                          const completedTasks = tasks.filter(
-                            (t) => t.status === "DONE",
-                          ).length;
+                      <div className="pt-2">
+                        <div className="rounded-md border overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[48px] py-3 text-base" />
+                                <TableHead className="py-3 text-base">
+                                  Status
+                                </TableHead>
+                                <TableHead className="py-3 text-base">
+                                  Projekt
+                                </TableHead>
+                                <TableHead className="py-3 text-base">
+                                  Priorität
+                                </TableHead>
+                                <TableHead className="py-3 text-base">
+                                  Fortschritt
+                                </TableHead>
+                                <TableHead className="py-3 text-base">
+                                  Verantwortlich
+                                </TableHead>
+                                <TableHead className="py-3 text-base">
+                                  Fällig
+                                </TableHead>
+                                <TableHead className="text-right py-3 text-base">
+                                  Aktionen
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {filteredProjects.map((project) => {
+                                const isExpanded = expandedProjects.has(
+                                  project.id,
+                                );
+                                const progress = getProjectProgress(project);
+                                const flowOrderMap =
+                                  getFlowchartTaskOrder(project);
+                                const tasks = sortTasksByFlowOrder(
+                                  project.tasks || [],
+                                  flowOrderMap,
+                                );
+                                const completedTasks = tasks.filter(
+                                  (t) => t.status === "DONE",
+                                ).length;
 
-                          return (
-                            <div
-                              key={project.id}
-                              id={`project-${project.id}`}
-                              className="mb-2"
-                            >
-                              {/* Project Card */}
-                              <div
-                                className={`bg-white border border-gray-200 hover:shadow-md transition-all cursor-pointer group ${
-                                  project.priority === "URGENT"
-                                    ? "border-l-[3px] border-l-[#C8102E]"
-                                    : project.priority === "HIGH"
-                                      ? "border-l-[3px] border-l-[#E37222]"
-                                      : project.priority === "NORMAL"
-                                        ? "border-l-[3px] border-l-[#2B5597]"
-                                        : "border-l-[3px] border-l-[#24C26B]"
-                                } ${project.status === "COMPLETED" ? "opacity-60" : ""}`}
-                                onClick={() =>
-                                  toggleProjectExpanded(project.id)
-                                }
-                              >
-                                <div className="px-5 py-3.5">
-                                  <div className="flex items-start gap-3">
-                                    {/* Expand Icon */}
-                                    <div className="flex-shrink-0 mt-0.5">
-                                      {isExpanded ? (
-                                        <ChevronDown className="h-5 w-5 text-[#64646E]" />
-                                      ) : (
-                                        <ChevronRight className="h-5 w-5 text-[#64646E]" />
-                                      )}
-                                    </div>
+                                const getProjectStatusBadge = (
+                                  status: string,
+                                ) => {
+                                  const map: Record<
+                                    string,
+                                    { label: string; cls: string }
+                                  > = {
+                                    PLANNED: {
+                                      label: "Geplant",
+                                      cls: "bg-[#64646E]/10 text-[#64646E] border border-[#64646E]/20",
+                                    },
+                                    IN_PROGRESS: {
+                                      label: "In Arbeit",
+                                      cls: "bg-[#00B2E3]/10 text-[#00B2E3] border border-[#00B2E3]/20",
+                                    },
+                                    ON_HOLD: {
+                                      label: "Pausiert",
+                                      cls: "bg-[#E37222]/10 text-[#E37222] border border-[#E37222]/20",
+                                    },
+                                    COMPLETED: {
+                                      label: "Abgeschlossen",
+                                      cls: "bg-[#24C26B]/10 text-[#24C26B] border border-[#24C26B]/20",
+                                    },
+                                    CANCELLED: {
+                                      label: "Abgebrochen",
+                                      cls: "bg-[#C8102E]/10 text-[#C8102E] border border-[#C8102E]/20",
+                                    },
+                                  };
+                                  const s = map[status] || map.PLANNED;
+                                  return (
+                                    <Badge
+                                      variant="outline"
+                                      className={`${s.cls} text-[11px] px-2 py-0.5 font-medium`}
+                                    >
+                                      {s.label}
+                                    </Badge>
+                                  );
+                                };
 
-                                    {/* Title + Description */}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <span
-                                          className={`font-medium text-sm text-[#143269] leading-tight ${
-                                            project.status === "COMPLETED"
-                                              ? "line-through text-[#64646E]"
-                                              : ""
-                                          }`}
-                                        >
-                                          {project.name}
-                                        </span>
-                                        {/* Status Badge */}
-                                        <span
-                                          className={`inline-block text-[10px] uppercase tracking-[1px] font-medium px-2 py-0.5 ${
-                                            project.status === "IN_PROGRESS"
-                                              ? "bg-[#00B2E3]/10 text-[#00B2E3]"
-                                              : project.status === "PLANNED"
-                                                ? "bg-[#64646E]/10 text-[#64646E]"
-                                                : project.status === "ON_HOLD"
-                                                  ? "bg-[#E37222]/10 text-[#E37222]"
-                                                  : project.status ===
-                                                      "COMPLETED"
-                                                    ? "bg-[#24C26B]/10 text-[#24C26B]"
-                                                    : "bg-[#C8102E]/10 text-[#C8102E]"
-                                          }`}
-                                        >
-                                          {project.status === "PLANNED" &&
-                                            "Geplant"}
-                                          {project.status === "IN_PROGRESS" &&
-                                            "In Arbeit"}
-                                          {project.status === "ON_HOLD" &&
-                                            "Pausiert"}
-                                          {project.status === "COMPLETED" &&
-                                            "Abgeschlossen"}
-                                          {project.status === "CANCELLED" &&
-                                            "Abgebrochen"}
-                                        </span>
-                                        {/* Priority Badge */}
-                                        <span
-                                          className={`inline-block text-[10px] uppercase tracking-[1px] font-medium px-2 py-0.5 ${
-                                            project.priority === "URGENT"
-                                              ? "bg-[#C8102E]/10 text-[#C8102E]"
-                                              : project.priority === "HIGH"
-                                                ? "bg-[#E37222]/10 text-[#E37222]"
-                                                : project.priority === "NORMAL"
-                                                  ? "bg-[#2B5597]/10 text-[#2B5597]"
-                                                  : "bg-[#24C26B]/10 text-[#24C26B]"
-                                          }`}
-                                        >
-                                          {project.priority === "URGENT"
-                                            ? "Dringend"
-                                            : project.priority === "HIGH"
-                                              ? "Hoch"
-                                              : project.priority === "NORMAL"
-                                                ? "Normal"
-                                                : "Niedrig"}
-                                        </span>
-                                        {/* Progress */}
-                                        <span className="text-[10px] text-[#64646E] flex items-center gap-1.5">
-                                          <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                            <div
-                                              className={`h-full transition-all ${progress === 100 ? "bg-[#24C26B]" : progress >= 50 ? "bg-[#2B5597]" : progress > 0 ? "bg-[#E37222]" : "bg-gray-300"}`}
-                                              style={{ width: `${progress}%` }}
-                                            />
-                                          </div>
-                                          {progress}%
-                                        </span>
-                                        {tasks.length > 0 && (
-                                          <span className="text-[10px] text-[#64646E] flex items-center gap-1">
-                                            <ListTodo className="h-3 w-3" />
-                                            {completedTasks}/{tasks.length}
-                                          </span>
+                                const getProjectPriorityBadge = (
+                                  priority: string,
+                                ) => {
+                                  const map: Record<
+                                    string,
+                                    { label: string; cls: string }
+                                  > = {
+                                    URGENT: {
+                                      label: "Dringend",
+                                      cls: "bg-[#C8102E] text-white",
+                                    },
+                                    HIGH: {
+                                      label: "Hoch",
+                                      cls: "bg-[#E37222] text-white",
+                                    },
+                                    NORMAL: {
+                                      label: "Normal",
+                                      cls: "bg-[#2B5597] text-white",
+                                    },
+                                    LOW: {
+                                      label: "Niedrig",
+                                      cls: "bg-[#64646E] text-white",
+                                    },
+                                  };
+                                  const p = map[priority] || map.NORMAL;
+                                  return (
+                                    <Badge
+                                      className={`${p.cls} text-[11px] px-2 py-0.5 font-medium`}
+                                    >
+                                      {p.label}
+                                    </Badge>
+                                  );
+                                };
+
+                                return (
+                                  <React.Fragment key={project.id}>
+                                    <TableRow
+                                      id={`project-${project.id}`}
+                                      className={`cursor-pointer hover:bg-[#FAFBFE] transition-colors ${
+                                        project.status === "COMPLETED"
+                                          ? "opacity-60"
+                                          : ""
+                                      }`}
+                                      onClick={() =>
+                                        toggleProjectExpanded(project.id)
+                                      }
+                                    >
+                                      {/* Expand Icon */}
+                                      <TableCell className="py-3 w-[48px]">
+                                        {isExpanded ? (
+                                          <ChevronDown className="h-5 w-5 text-[#64646E]" />
+                                        ) : (
+                                          <ChevronRight className="h-5 w-5 text-[#64646E]" />
                                         )}
-                                      </div>
-                                      {project.description && (
-                                        <p className="text-xs text-[#64646E] mt-1 line-clamp-1">
-                                          {project.description}
-                                        </p>
-                                      )}
-                                    </div>
-
-                                    {/* Right side: Manager + Date + Actions */}
-                                    <div className="flex items-center gap-5 flex-shrink-0">
-                                      {/* Manager */}
-                                      {project.manager ? (
-                                        <div className="flex items-center gap-2">
-                                          <div className="h-7 w-7 rounded-full bg-[#143269]/10 flex items-center justify-center text-[#143269] font-medium text-[10px] flex-shrink-0 border border-[#143269]/20">
-                                            {project.manager.firstName[0]}
-                                            {project.manager.lastName[0]}
+                                      </TableCell>
+                                      {/* Status */}
+                                      <TableCell className="py-3">
+                                        {getProjectStatusBadge(project.status)}
+                                      </TableCell>
+                                      {/* Projekt Name + Description */}
+                                      <TableCell className="py-3">
+                                        <div>
+                                          <div
+                                            className={`font-medium text-base ${
+                                              project.status === "COMPLETED"
+                                                ? "line-through text-[#64646E]"
+                                                : "text-[#143269]"
+                                            }`}
+                                          >
+                                            {project.name}
                                           </div>
-                                          <span className="text-xs text-[#64646E] hidden xl:inline max-w-[100px] truncate">
-                                            {project.manager.firstName}{" "}
-                                            {project.manager.lastName}
-                                          </span>
+                                          {project.description && (
+                                            <div className="text-sm text-muted-foreground mt-0.5 line-clamp-1">
+                                              {project.description}
+                                            </div>
+                                          )}
                                         </div>
-                                      ) : (
-                                        <span className="text-xs text-[#C8C8D2]">
-                                          —
-                                        </span>
-                                      )}
-
-                                      {/* Due Date */}
-                                      {project.endDate ? (
-                                        <div className="flex items-center gap-1.5 text-xs text-[#64646E]">
-                                          <Calendar className="h-3.5 w-3.5" />
-                                          {new Date(
-                                            project.endDate,
-                                          ).toLocaleDateString("de-DE", {
-                                            day: "numeric",
-                                            month: "short",
-                                          })}
-                                        </div>
-                                      ) : (
-                                        <span className="text-xs text-[#C8C8D2]">
-                                          —
-                                        </span>
-                                      )}
-
-                                      {/* Action buttons */}
-                                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-7 w-7 text-[#64646E] hover:text-[#143269]"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openFlowDialog(project);
-                                          }}
-                                          title="Flowchart"
-                                        >
-                                          <Workflow className="h-3.5 w-3.5" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-7 w-7 text-[#64646E] hover:text-[#143269]"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openEditProjectDialog(project);
-                                          }}
-                                          title="Bearbeiten"
-                                        >
-                                          <Edit className="h-3.5 w-3.5" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-7 w-7 text-[#64646E] hover:text-[#C8102E]"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedProject(project);
-                                            setShowDeleteProjectDialog(true);
-                                          }}
-                                          title="Löschen"
-                                        >
-                                          <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Expanded Content: Task List */}
-                              {isExpanded && (
-                                <div className="bg-[#F0F0FA] border border-gray-200 border-t-0">
-                                  <div className="px-5 py-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                      <div className="flex items-center gap-3">
-                                        <h4 className="font-semibold text-sm flex items-center gap-2">
-                                          <ListTodo className="h-4 w-4" />
-                                          Aufgaben ({tasks.length})
-                                        </h4>
-                                        {/* Progress Bar */}
+                                      </TableCell>
+                                      {/* Priorität */}
+                                      <TableCell className="py-3">
+                                        {getProjectPriorityBadge(
+                                          project.priority,
+                                        )}
+                                      </TableCell>
+                                      {/* Fortschritt */}
+                                      <TableCell className="py-3">
                                         <div className="flex items-center gap-2">
-                                          <div className="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                          <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
                                             <div
                                               className={`h-full transition-all ${getProgressColor(progress)}`}
                                               style={{ width: `${progress}%` }}
                                             />
                                           </div>
-                                          <span className="text-xs text-muted-foreground">
-                                            {completedTasks}/{tasks.length}
+                                          <span className="text-sm text-muted-foreground">
+                                            {progress}%
                                           </span>
+                                          {tasks.length > 0 && (
+                                            <span className="text-xs text-muted-foreground">
+                                              ({completedTasks}/{tasks.length})
+                                            </span>
+                                          )}
                                         </div>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openFlowDialog(project);
-                                          }}
-                                        >
-                                          <Workflow className="h-4 w-4 mr-1" />
-                                          Flowchart
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() =>
-                                            openNewTaskDialog(project)
-                                          }
-                                        >
-                                          <Plus className="h-4 w-4 mr-1" />
-                                          Aufgabe
-                                        </Button>
-                                      </div>
-                                    </div>
-
-                                    {tasks.length === 0 ? (
-                                      <p className="text-sm text-muted-foreground text-center py-4">
-                                        Noch keine Aufgaben vorhanden
-                                      </p>
-                                    ) : (
-                                      <div className="space-y-1">
-                                        {tasks.map((task) => {
-                                          const priorityConfig: Record<
-                                            string,
-                                            { border: string; flag: string }
-                                          > = {
-                                            URGENT: {
-                                              border: "border-l-red-500",
-                                              flag: "🔴",
-                                            },
-                                            HIGH: {
-                                              border: "border-l-orange-500",
-                                              flag: "🟡",
-                                            },
-                                            NORMAL: {
-                                              border: "border-l-blue-500",
-                                              flag: "🟢",
-                                            },
-                                            LOW: {
-                                              border: "border-l-slate-400",
-                                              flag: "⚪",
-                                            },
-                                          };
-                                          const priority =
-                                            priorityConfig[
-                                              task.priority || "NORMAL"
-                                            ];
-
-                                          return (
-                                            <div
-                                              key={task.id}
-                                              className={`flex items-center justify-between px-3 py-2.5 rounded-md transition-all border-l-4 group/task ${priority.border} ${
-                                                task.status === "DONE"
-                                                  ? "opacity-60 bg-muted/30"
-                                                  : "hover:bg-muted/40"
-                                              }`}
-                                            >
-                                              <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <button
-                                                  onClick={() =>
-                                                    toggleTaskStatus(
-                                                      project,
-                                                      task,
-                                                    )
-                                                  }
-                                                  className="hover:scale-110 transition-transform flex-shrink-0"
-                                                >
-                                                  {task.status === "DONE" ? (
-                                                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                                                  ) : task.status ===
-                                                    "IN_PROGRESS" ? (
-                                                    <Clock className="h-5 w-5 text-blue-500" />
-                                                  ) : task.status ===
-                                                    "REVIEW" ? (
-                                                    <Eye className="h-5 w-5 text-yellow-500" />
-                                                  ) : (
-                                                    <Circle className="h-5 w-5 text-gray-300" />
-                                                  )}
-                                                </button>
-                                                <div className="min-w-0 flex-1">
-                                                  <p
-                                                    className={`text-sm font-medium truncate ${task.status === "DONE" ? "line-through text-muted-foreground" : ""}`}
-                                                  >
-                                                    {task.title}
-                                                  </p>
-                                                </div>
-                                                {task.assignedTo && (
-                                                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                                                    <div className="h-6 w-6 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-[9px] ring-1 ring-primary/20">
-                                                      {task.assignedTo
-                                                        .split(" ")
-                                                        .map(
-                                                          (n: string) => n[0],
-                                                        )
-                                                        .join("")
-                                                        .slice(0, 2)}
-                                                    </div>
-                                                  </div>
-                                                )}
-                                              </div>
-                                              <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                                                <Badge
-                                                  className={`text-[10px] font-semibold px-2 py-0 h-5 border-0 ${
-                                                    task.status === "DONE"
-                                                      ? "bg-emerald-600 text-white"
-                                                      : task.status ===
-                                                          "IN_PROGRESS"
-                                                        ? "bg-blue-600 text-white"
-                                                        : task.status ===
-                                                            "REVIEW"
-                                                          ? "bg-amber-400 text-white"
-                                                          : "bg-slate-500 text-white"
-                                                  }`}
-                                                >
-                                                  {task.status === "DONE"
-                                                    ? "Erledigt"
-                                                    : task.status ===
-                                                        "IN_PROGRESS"
-                                                      ? "In Arbeit"
-                                                      : task.status === "REVIEW"
-                                                        ? "Review"
-                                                        : "Offen"}
-                                                </Badge>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  className="h-7 w-7 opacity-0 group-hover/task:opacity-100 transition-opacity"
-                                                  onClick={() =>
-                                                    openEditTaskDialog(
-                                                      project,
-                                                      task,
-                                                    )
-                                                  }
-                                                >
-                                                  <Edit className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  className="h-7 w-7 opacity-0 group-hover/task:opacity-100 transition-opacity text-red-500"
-                                                  onClick={() => {
-                                                    setTaskToDelete({
-                                                      projectId: project.id,
-                                                      taskId: task.id,
-                                                    });
-                                                    setShowDeleteTaskDialog(
-                                                      true,
-                                                    );
-                                                  }}
-                                                >
-                                                  <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                              </div>
+                                      </TableCell>
+                                      {/* Verantwortlich */}
+                                      <TableCell className="py-3">
+                                        {project.manager ? (
+                                          <div className="text-base">
+                                            <div>
+                                              {project.manager.firstName}{" "}
+                                              {project.manager.lastName}
                                             </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-
-                                    {/* Dates */}
-                                    {(project.startDate || project.endDate) && (
-                                      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs text-muted-foreground">
-                                        {project.startDate && (
-                                          <span className="flex items-center gap-1">
-                                            <Calendar className="h-3 w-3" />
-                                            Start:{" "}
-                                            {new Date(
-                                              project.startDate,
-                                            ).toLocaleDateString("de-DE")}
+                                          </div>
+                                        ) : (
+                                          <span className="text-muted-foreground text-sm">
+                                            —
                                           </span>
                                         )}
-                                        {project.endDate && (
-                                          <span className="flex items-center gap-1">
-                                            <Target className="h-3 w-3" />
-                                            Ende:{" "}
+                                      </TableCell>
+                                      {/* Fällig */}
+                                      <TableCell className="py-3">
+                                        {project.endDate ? (
+                                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                            <Calendar className="h-3 w-3" />
                                             {new Date(
                                               project.endDate,
                                             ).toLocaleDateString("de-DE")}
+                                          </div>
+                                        ) : (
+                                          <span className="text-muted-foreground text-sm">
+                                            —
                                           </span>
                                         )}
-                                      </div>
+                                      </TableCell>
+                                      {/* Aktionen */}
+                                      <TableCell className="text-right py-3">
+                                        <div className="flex items-center justify-end gap-2">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openFlowDialog(project);
+                                            }}
+                                          >
+                                            <Workflow className="h-4 w-4 mr-1" />
+                                            Flow
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openEditProjectDialog(project);
+                                            }}
+                                          >
+                                            <Edit className="h-4 w-4 mr-1" />
+                                            Bearbeiten
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedProject(project);
+                                              setShowDeleteProjectDialog(true);
+                                            }}
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+
+                                    {/* Expanded Task List Row */}
+                                    {isExpanded && (
+                                      <TableRow>
+                                        <TableCell
+                                          colSpan={8}
+                                          className="p-0 bg-[#F0F0FA]"
+                                        >
+                                          <div className="px-5 py-4">
+                                            <div className="flex items-center justify-between mb-3">
+                                              <div className="flex items-center gap-3">
+                                                <h4 className="font-semibold text-sm flex items-center gap-2">
+                                                  <ListTodo className="h-4 w-4" />
+                                                  Aufgaben ({tasks.length})
+                                                </h4>
+                                                <div className="flex items-center gap-2">
+                                                  <div className="w-24 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                    <div
+                                                      className={`h-full transition-all ${getProgressColor(progress)}`}
+                                                      style={{
+                                                        width: `${progress}%`,
+                                                      }}
+                                                    />
+                                                  </div>
+                                                  <span className="text-xs text-muted-foreground">
+                                                    {completedTasks}/
+                                                    {tasks.length}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openFlowDialog(project);
+                                                  }}
+                                                >
+                                                  <Workflow className="h-4 w-4 mr-1" />
+                                                  Flowchart
+                                                </Button>
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                  onClick={() =>
+                                                    openNewTaskDialog(project)
+                                                  }
+                                                >
+                                                  <Plus className="h-4 w-4 mr-1" />
+                                                  Aufgabe
+                                                </Button>
+                                              </div>
+                                            </div>
+
+                                            {tasks.length === 0 ? (
+                                              <p className="text-sm text-muted-foreground text-center py-4">
+                                                Noch keine Aufgaben vorhanden
+                                              </p>
+                                            ) : (
+                                              <div className="space-y-1">
+                                                {tasks.map((task) => {
+                                                  const priorityConfig: Record<
+                                                    string,
+                                                    {
+                                                      border: string;
+                                                      flag: string;
+                                                    }
+                                                  > = {
+                                                    URGENT: {
+                                                      border:
+                                                        "border-l-red-500",
+                                                      flag: "🔴",
+                                                    },
+                                                    HIGH: {
+                                                      border:
+                                                        "border-l-orange-500",
+                                                      flag: "🟡",
+                                                    },
+                                                    NORMAL: {
+                                                      border:
+                                                        "border-l-blue-500",
+                                                      flag: "🟢",
+                                                    },
+                                                    LOW: {
+                                                      border:
+                                                        "border-l-slate-400",
+                                                      flag: "⚪",
+                                                    },
+                                                  };
+                                                  const priority =
+                                                    priorityConfig[
+                                                      task.priority || "NORMAL"
+                                                    ];
+
+                                                  return (
+                                                    <div
+                                                      key={task.id}
+                                                      className={`flex items-center justify-between px-3 py-2.5 rounded-md transition-all border-l-4 group/task ${priority.border} ${task.status === "DONE" ? "opacity-60 bg-muted/30" : "hover:bg-muted/40"}`}
+                                                    >
+                                                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                        <button
+                                                          onClick={() =>
+                                                            toggleTaskStatus(
+                                                              project,
+                                                              task,
+                                                            )
+                                                          }
+                                                          className="hover:scale-110 transition-transform flex-shrink-0"
+                                                        >
+                                                          {task.status ===
+                                                          "DONE" ? (
+                                                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                                          ) : task.status ===
+                                                            "IN_PROGRESS" ? (
+                                                            <Clock className="h-5 w-5 text-blue-500" />
+                                                          ) : task.status ===
+                                                            "REVIEW" ? (
+                                                            <Eye className="h-5 w-5 text-yellow-500" />
+                                                          ) : (
+                                                            <Circle className="h-5 w-5 text-gray-300" />
+                                                          )}
+                                                        </button>
+                                                        <div className="min-w-0 flex-1">
+                                                          <p
+                                                            className={`text-sm font-medium truncate ${task.status === "DONE" ? "line-through text-muted-foreground" : ""}`}
+                                                          >
+                                                            {task.title}
+                                                          </p>
+                                                        </div>
+                                                        {task.assignedTo && (
+                                                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-[9px] ring-1 ring-primary/20">
+                                                              {task.assignedTo
+                                                                .split(" ")
+                                                                .map(
+                                                                  (n: string) =>
+                                                                    n[0],
+                                                                )
+                                                                .join("")
+                                                                .slice(0, 2)}
+                                                            </div>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                                                        <Badge
+                                                          className={`text-[10px] font-semibold px-2 py-0 h-5 border-0 ${
+                                                            task.status ===
+                                                            "DONE"
+                                                              ? "bg-emerald-600 text-white"
+                                                              : task.status ===
+                                                                  "IN_PROGRESS"
+                                                                ? "bg-blue-600 text-white"
+                                                                : task.status ===
+                                                                    "REVIEW"
+                                                                  ? "bg-amber-400 text-white"
+                                                                  : "bg-slate-500 text-white"
+                                                          }`}
+                                                        >
+                                                          {task.status ===
+                                                          "DONE"
+                                                            ? "Erledigt"
+                                                            : task.status ===
+                                                                "IN_PROGRESS"
+                                                              ? "In Arbeit"
+                                                              : task.status ===
+                                                                  "REVIEW"
+                                                                ? "Review"
+                                                                : "Offen"}
+                                                        </Badge>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="icon"
+                                                          className="h-7 w-7 opacity-0 group-hover/task:opacity-100 transition-opacity"
+                                                          onClick={() =>
+                                                            openEditTaskDialog(
+                                                              project,
+                                                              task,
+                                                            )
+                                                          }
+                                                        >
+                                                          <Edit className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="icon"
+                                                          className="h-7 w-7 opacity-0 group-hover/task:opacity-100 transition-opacity text-red-500"
+                                                          onClick={() => {
+                                                            setTaskToDelete({
+                                                              projectId:
+                                                                project.id,
+                                                              taskId: task.id,
+                                                            });
+                                                            setShowDeleteTaskDialog(
+                                                              true,
+                                                            );
+                                                          }}
+                                                        >
+                                                          <Trash2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                      </div>
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                            )}
+
+                                            {(project.startDate ||
+                                              project.endDate) && (
+                                              <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs text-muted-foreground">
+                                                {project.startDate && (
+                                                  <span className="flex items-center gap-1">
+                                                    <Calendar className="h-3 w-3" />
+                                                    Start:{" "}
+                                                    {new Date(
+                                                      project.startDate,
+                                                    ).toLocaleDateString(
+                                                      "de-DE",
+                                                    )}
+                                                  </span>
+                                                )}
+                                                {project.endDate && (
+                                                  <span className="flex items-center gap-1">
+                                                    <Target className="h-3 w-3" />
+                                                    Ende:{" "}
+                                                    {new Date(
+                                                      project.endDate,
+                                                    ).toLocaleDateString(
+                                                      "de-DE",
+                                                    )}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </TableCell>
+                                      </TableRow>
                                     )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                                  </React.Fragment>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
                       </div>
                     )}
                   </TabsContent>

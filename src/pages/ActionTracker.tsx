@@ -2170,33 +2170,83 @@ const ActionTracker = ({
                           );
                         }
 
-                        const renderActionCard = (action: Action) => (
-                          <div
-                            key={action.id}
-                            id={`action-${action.id}`}
-                            className="mb-2"
-                          >
-                            {/* Action Card */}
-                            <div
-                              className={`bg-white border border-gray-200 hover:shadow-md transition-all cursor-pointer group ${
-                                isOverdue(action.dueDate, action.status)
-                                  ? "border-l-[3px] border-l-[#C8102E] bg-red-50/30"
-                                  : action.priority === "URGENT"
-                                    ? "border-l-[3px] border-l-[#C8102E]"
-                                    : action.priority === "HIGH"
-                                      ? "border-l-[3px] border-l-[#E37222]"
-                                      : action.priority === "MEDIUM"
-                                        ? "border-l-[3px] border-l-[#2B5597]"
-                                        : "border-l-[3px] border-l-[#24C26B]"
-                              } ${action.status === "COMPLETED" ? "opacity-70" : ""}`}
-                              onClick={() => toggleRow(action.id)}
+                        const getPriorityBadge = (priority: string) => {
+                          const map: Record<
+                            string,
+                            { label: string; cls: string }
+                          > = {
+                            URGENT: {
+                              label: "Dringend",
+                              cls: "bg-[#C8102E] text-white",
+                            },
+                            HIGH: {
+                              label: "Hoch",
+                              cls: "bg-[#E37222] text-white",
+                            },
+                            MEDIUM: {
+                              label: "Mittel",
+                              cls: "bg-[#2B5597] text-white",
+                            },
+                            LOW: {
+                              label: "Niedrig",
+                              cls: "bg-[#64646E] text-white",
+                            },
+                          };
+                          const p = map[priority] || map.MEDIUM;
+                          return (
+                            <Badge
+                              className={`${p.cls} text-[11px] px-2 py-0.5 font-medium`}
                             >
-                              <div className="px-5 py-3.5">
-                                {/* Top Row: Status + Title + Badges */}
-                                <div className="flex items-start gap-3">
-                                  {/* Status Toggle */}
+                              {p.label}
+                            </Badge>
+                          );
+                        };
+
+                        const getStatusBadgeAction = (status: string) => {
+                          const map: Record<
+                            string,
+                            { label: string; cls: string }
+                          > = {
+                            OPEN: {
+                              label: "Offen",
+                              cls: "bg-[#64646E]/10 text-[#64646E] border border-[#64646E]/20",
+                            },
+                            IN_PROGRESS: {
+                              label: "In Arbeit",
+                              cls: "bg-[#00B2E3]/10 text-[#00B2E3] border border-[#00B2E3]/20",
+                            },
+                            COMPLETED: {
+                              label: "Erledigt",
+                              cls: "bg-[#24C26B]/10 text-[#24C26B] border border-[#24C26B]/20",
+                            },
+                          };
+                          const s = map[status] || map.OPEN;
+                          return (
+                            <Badge
+                              variant="outline"
+                              className={`${s.cls} text-[11px] px-2 py-0.5 font-medium`}
+                            >
+                              {s.label}
+                            </Badge>
+                          );
+                        };
+
+                        const renderActionRows = (actions: Action[]) =>
+                          actions.map((action) => (
+                            <React.Fragment key={action.id}>
+                              <TableRow
+                                id={`action-${action.id}`}
+                                className={`cursor-pointer hover:bg-[#FAFBFE] transition-colors ${
+                                  action.status === "COMPLETED"
+                                    ? "opacity-60"
+                                    : ""
+                                } ${isOverdue(action.dueDate, action.status) ? "bg-red-50/40" : ""}`}
+                                onClick={() => toggleRow(action.id)}
+                              >
+                                {/* Status */}
+                                <TableCell className="py-3 w-[48px]">
                                   <button
-                                    className="flex-shrink-0 mt-0.5"
+                                    className="flex-shrink-0"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleToggleComplete(action);
@@ -2212,58 +2262,49 @@ const ActionTracker = ({
                                       <div className="h-5 w-5 rounded-full border-2 border-gray-300" />
                                     )}
                                   </button>
-
-                                  {/* Title + Description */}
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span
-                                        className={`font-medium text-sm text-[#143269] leading-tight ${
-                                          action.status === "COMPLETED"
-                                            ? "line-through text-[#64646E]"
-                                            : ""
-                                        }`}
-                                      >
-                                        {action.title}
-                                      </span>
-                                      {/* Priority Badge */}
-                                      <span
-                                        className={`inline-block text-[10px] uppercase tracking-[1px] font-medium px-2 py-0.5 ${
-                                          action.priority === "URGENT"
-                                            ? "bg-[#C8102E]/10 text-[#C8102E]"
-                                            : action.priority === "HIGH"
-                                              ? "bg-[#E37222]/10 text-[#E37222]"
-                                              : action.priority === "MEDIUM"
-                                                ? "bg-[#2B5597]/10 text-[#2B5597]"
-                                                : "bg-[#24C26B]/10 text-[#24C26B]"
-                                        }`}
-                                      >
-                                        {action.priority === "URGENT"
-                                          ? "Dringend"
-                                          : action.priority === "HIGH"
-                                            ? "Hoch"
-                                            : action.priority === "MEDIUM"
-                                              ? "Mittel"
-                                              : "Niedrig"}
-                                      </span>
-                                      {/* Status Badge */}
-                                      <span
-                                        className={`inline-block text-[10px] uppercase tracking-[1px] font-medium px-2 py-0.5 ${
-                                          action.status === "COMPLETED"
-                                            ? "bg-[#24C26B]/10 text-[#24C26B]"
-                                            : action.status === "IN_PROGRESS"
-                                              ? "bg-[#00B2E3]/10 text-[#00B2E3]"
-                                              : "bg-[#64646E]/10 text-[#64646E]"
-                                        }`}
-                                      >
-                                        {action.status === "OPEN"
-                                          ? "Offen"
-                                          : action.status === "IN_PROGRESS"
-                                            ? "In Arbeit"
-                                            : "Erledigt"}
-                                      </span>
-                                      {/* Task progress indicator */}
+                                </TableCell>
+                                {/* Status Badge */}
+                                <TableCell className="py-3">
+                                  {getStatusBadgeAction(action.status)}
+                                </TableCell>
+                                {/* Titel */}
+                                <TableCell className="py-3">
+                                  <div>
+                                    <div
+                                      className={`font-medium text-base ${
+                                        action.status === "COMPLETED"
+                                          ? "line-through text-[#64646E]"
+                                          : "text-[#143269]"
+                                      }`}
+                                    >
+                                      {action.title}
+                                    </div>
+                                    {action.description && (
+                                      <div className="text-sm text-muted-foreground mt-0.5 line-clamp-1">
+                                        {
+                                          action.description
+                                            .split("--- Materialien ---")[0]
+                                            .split("\n")[0]
+                                        }
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                      {action.location && (
+                                        <span className="text-[10px] text-[#143269] bg-[#143269]/5 px-2 py-0.5 font-medium rounded-sm">
+                                          {COMPONENT_CARDS.find(
+                                            (c) => c.id === action.location,
+                                          )?.label || action.location}
+                                        </span>
+                                      )}
+                                      {action.discipline && (
+                                        <span className="text-[10px] text-[#2B5597] bg-[#2B5597]/5 px-2 py-0.5 font-medium rounded-sm">
+                                          {DISCIPLINE_CARDS.find(
+                                            (c) => c.id === action.discipline,
+                                          )?.label || action.discipline}
+                                        </span>
+                                      )}
                                       {action.tasks.length > 0 && (
-                                        <span className="text-[10px] text-[#64646E] flex items-center gap-1">
+                                        <span className="text-[11px] text-[#64646E] flex items-center gap-1">
                                           <ListTodo className="h-3 w-3" />
                                           {
                                             action.tasks.filter(
@@ -2273,568 +2314,579 @@ const ActionTracker = ({
                                           /{action.tasks.length}
                                         </span>
                                       )}
-                                      {/* Component / Discipline info */}
-                                      {action.location && (
-                                        <span className="text-[10px] text-[#143269] bg-[#143269]/5 px-2 py-0.5 font-medium">
-                                          {COMPONENT_CARDS.find(
-                                            (c) => c.id === action.location,
-                                          )?.label || action.location}
-                                        </span>
-                                      )}
-                                      {action.discipline && (
-                                        <span className="text-[10px] text-[#2B5597] bg-[#2B5597]/5 px-2 py-0.5 font-medium">
-                                          {DISCIPLINE_CARDS.find(
-                                            (c) => c.id === action.discipline,
-                                          )?.label || action.discipline}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {action.description && (
-                                      <p className="text-xs text-[#64646E] mt-1 line-clamp-1">
-                                        {
-                                          action.description
-                                            .split("--- Materialien ---")[0]
-                                            .split("\n")[0]
-                                        }
-                                      </p>
-                                    )}
-                                  </div>
-
-                                  {/* Right side: Assignee + Date + Actions */}
-                                  <div className="flex items-center gap-5 flex-shrink-0">
-                                    {/* Assignee */}
-                                    {action.assignedTo ? (
-                                      <div className="flex items-center gap-2">
-                                        <div className="h-7 w-7 rounded-full bg-[#143269]/10 flex items-center justify-center text-[#143269] font-medium text-[10px] flex-shrink-0 border border-[#143269]/20">
-                                          {action.assignedTo
-                                            .split(" ")
-                                            .map((n: string) => n[0])
-                                            .join("")
-                                            .slice(0, 2)
-                                            .toUpperCase()}
-                                        </div>
-                                        <span className="text-xs text-[#64646E] hidden xl:inline max-w-[100px] truncate">
-                                          {action.assignedTo.split("@")[0]}
-                                        </span>
-                                      </div>
-                                    ) : (
-                                      <span className="text-xs text-[#C8C8D2]">
-                                        —
-                                      </span>
-                                    )}
-
-                                    {/* Due Date */}
-                                    {action.dueDate ? (
-                                      <div
-                                        className={`flex items-center gap-1.5 text-xs ${
-                                          isOverdue(
-                                            action.dueDate,
-                                            action.status,
-                                          )
-                                            ? "text-[#C8102E] font-medium"
-                                            : "text-[#64646E]"
-                                        }`}
-                                      >
-                                        <Calendar className="h-3.5 w-3.5" />
-                                        {new Date(
-                                          action.dueDate,
-                                        ).toLocaleDateString("de-DE", {
-                                          day: "numeric",
-                                          month: "short",
-                                        })}
-                                        {isOverdue(
-                                          action.dueDate,
-                                          action.status,
-                                        ) && (
-                                          <span className="text-[10px] uppercase tracking-[1px] bg-[#C8102E]/10 text-[#C8102E] px-1.5 py-0.5 font-medium">
-                                            Überfällig
-                                          </span>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <span className="text-xs text-[#C8C8D2]">
-                                        —
-                                      </span>
-                                    )}
-
-                                    {/* Edit/Delete Actions */}
-                                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 text-[#64646E] hover:text-[#143269]"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openEditDialog(action);
-                                        }}
-                                        title="Bearbeiten"
-                                      >
-                                        <Edit className="h-3.5 w-3.5" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 text-[#64646E] hover:text-[#C8102E]"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDelete(action.id);
-                                        }}
-                                        title="Löschen"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
                                     </div>
                                   </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Expanded Detail Section */}
-                            {expandedRows.has(action.id) && (
-                              <div className="bg-[#F0F0FA] border border-gray-200 border-t-0">
-                                <div className="p-6 space-y-6">
-                                  {/* Beschreibung & Aufgaben Grid */}
-                                  <div className="grid grid-cols-2 gap-6">
-                                    {/* Beschreibung Card */}
-                                    <Card>
-                                      <CardHeader className="pb-3">
-                                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                          <AlertCircle className="h-4 w-4" />
-                                          Beschreibung
-                                        </CardTitle>
-                                      </CardHeader>
-                                      <CardContent className="space-y-3">
-                                        <p className="text-sm whitespace-pre-wrap">
-                                          {action.description
-                                            .split("--- Materialien ---")[0]
-                                            .split("\n")
-                                            .filter(
-                                              (line: string) =>
-                                                !line.startsWith("📷 Photo:"),
-                                            )
-                                            .join("\n")
-                                            .trim()}
-                                        </p>
-                                        {(() => {
-                                          const photoUrl =
-                                            extractPhotoFromDescription(
-                                              action.description,
-                                            );
-                                          if (
-                                            photoUrl &&
-                                            (photoUrl.startsWith("http://") ||
-                                              photoUrl.startsWith("https://"))
-                                          ) {
-                                            return (
-                                              <div className="pt-3 border-t">
-                                                <p className="text-xs font-medium text-muted-foreground mb-2">
-                                                  Foto
-                                                </p>
-                                                <img
-                                                  src={photoUrl}
-                                                  alt="Schadensbericht Foto"
-                                                  className="w-32 h-32 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
-                                                  onClick={() => {
-                                                    setSelectedPhoto(photoUrl);
-                                                    setPhotoViewDialogOpen(
-                                                      true,
-                                                    );
-                                                  }}
-                                                />
-                                              </div>
-                                            );
-                                          }
-                                          return null;
-                                        })()}
-                                        {(() => {
-                                          const photoFilename =
-                                            extractPhotoFromDescription(
-                                              action.description,
-                                            );
-                                          if (
-                                            photoFilename &&
-                                            !photoFilename.startsWith(
-                                              "http://",
-                                            ) &&
-                                            !photoFilename.startsWith(
-                                              "https://",
-                                            )
-                                          ) {
-                                            return (
-                                              <div className="pt-3 border-t">
-                                                <Button
-                                                  variant="outline"
-                                                  size="sm"
-                                                  onClick={async () => {
-                                                    try {
-                                                      const blob =
-                                                        await apiClient.request<Blob>(
-                                                          `/failure-reports/photo/${photoFilename}`,
-                                                          {
-                                                            responseType:
-                                                              "blob",
-                                                          },
-                                                        );
-                                                      const pUrl =
-                                                        URL.createObjectURL(
-                                                          blob,
-                                                        );
-                                                      setSelectedPhoto(pUrl);
-                                                      setPhotoViewDialogOpen(
-                                                        true,
-                                                      );
-                                                      setTimeout(
-                                                        () =>
-                                                          URL.revokeObjectURL(
-                                                            pUrl,
-                                                          ),
-                                                        10000,
-                                                      );
-                                                    } catch (error) {
-                                                      console.error(
-                                                        "Error loading photo:",
-                                                        error,
-                                                      );
-                                                      toast({
-                                                        title: "Fehler",
-                                                        description:
-                                                          "Foto konnte nicht geladen werden.",
-                                                        variant: "destructive",
-                                                      });
-                                                    }
-                                                  }}
-                                                >
-                                                  <Camera className="h-4 w-4 mr-2" />
-                                                  Foto anzeigen
-                                                </Button>
-                                              </div>
-                                            );
-                                          }
-                                          return null;
-                                        })()}
-                                      </CardContent>
-                                    </Card>
-
-                                    {/* Aufgaben Card */}
-                                    <Card>
-                                      <CardHeader className="pb-3">
-                                        <div className="flex items-center justify-between">
-                                          <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                            <ListTodo className="h-4 w-4" />
-                                            Aufgaben ({action.tasks.length})
-                                          </CardTitle>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-7"
-                                            onClick={() =>
-                                              handleOpenTaskDialog(action.id)
-                                            }
-                                          >
-                                            <Plus className="h-3 w-3 mr-1" />
-                                            Neu
-                                          </Button>
+                                </TableCell>
+                                {/* Priorität */}
+                                <TableCell className="py-3">
+                                  {getPriorityBadge(action.priority)}
+                                </TableCell>
+                                {/* Zugewiesen an */}
+                                <TableCell className="py-3">
+                                  {action.assignedTo ? (
+                                    <div className="text-base">
+                                      <div>
+                                        {action.assignedTo.split("@")[0]}
+                                      </div>
+                                      {action.assignedTo.includes("@") && (
+                                        <div className="text-muted-foreground text-sm">
+                                          {action.assignedTo}
                                         </div>
-                                      </CardHeader>
-                                      <CardContent>
-                                        {action.tasks.length === 0 ? (
-                                          <p className="text-sm text-muted-foreground text-center py-4">
-                                            Keine Aufgaben vorhanden
-                                          </p>
-                                        ) : (
-                                          <div className="space-y-2 max-h-64 overflow-y-auto">
-                                            {action.tasks.map((task) => (
-                                              <div
-                                                key={task.id}
-                                                className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border"
-                                              >
-                                                <input
-                                                  type="checkbox"
-                                                  checked={task.completed}
-                                                  onChange={() =>
-                                                    handleToggleTask(
-                                                      action.id,
-                                                      task.id,
-                                                    )
-                                                  }
-                                                  className="mt-1 h-4 w-4 rounded border-gray-300"
-                                                />
-                                                <div className="flex-1 min-w-0">
-                                                  <div
-                                                    className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : ""}`}
-                                                  >
-                                                    {task.title}
-                                                  </div>
-                                                  {task.description && (
-                                                    <div className="text-xs text-muted-foreground mt-1">
-                                                      {task.description}
-                                                    </div>
-                                                  )}
-                                                  <div className="flex items-center gap-2 mt-1">
-                                                    {task.assignedUser && (
-                                                      <span className="text-xs flex items-center gap-1">
-                                                        <Users className="h-3 w-3" />
-                                                        {(() => {
-                                                          const user =
-                                                            availableUsers.find(
-                                                              (u) =>
-                                                                u.id ===
-                                                                task.assignedUser,
-                                                            );
-                                                          return user
-                                                            ? `${user.firstName} ${user.lastName}`
-                                                            : task.assignedUser;
-                                                        })()}
-                                                      </span>
-                                                    )}
-                                                    {task.dueDate && (
-                                                      <span className="text-xs text-muted-foreground">
-                                                        Fällig:{" "}
-                                                        {new Date(
-                                                          task.dueDate,
-                                                        ).toLocaleDateString(
-                                                          "de-DE",
-                                                        )}
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-6 w-6 p-0"
-                                                    onClick={() => {
-                                                      setCurrentTask({
-                                                        ...task,
-                                                      });
-                                                      setCurrentTaskActionId(
-                                                        action.id,
-                                                      );
-                                                      setTaskDialogOpen(true);
-                                                    }}
-                                                    title="Bearbeiten"
-                                                  >
-                                                    <Edit className="h-3 w-3" />
-                                                  </Button>
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                                                    onClick={() =>
-                                                      handleDeleteTask(
-                                                        action.id,
-                                                        task.id,
-                                                      )
-                                                    }
-                                                    title="Löschen"
-                                                  >
-                                                    <X className="h-3 w-3" />
-                                                  </Button>
-                                                </div>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
-                                      </CardContent>
-                                    </Card>
-                                  </div>
-
-                                  {/* Angehängte Dateien */}
-                                  {action.files.length > 0 && (
-                                    <Card>
-                                      <CardHeader className="pb-3">
-                                        <CardTitle className="text-base flex items-center gap-2">
-                                          📁 Angehängte Dateien
-                                          <Badge
-                                            variant="secondary"
-                                            className="ml-2"
-                                          >
-                                            {action.files.length}
-                                          </Badge>
-                                        </CardTitle>
-                                      </CardHeader>
-                                      <CardContent>
-                                        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                                          {action.files.map((file) => (
-                                            <div
-                                              key={file.id}
-                                              className="relative group"
-                                            >
-                                              <Card className="overflow-hidden hover:shadow-md transition-shadow">
-                                                {file.isPhoto ? (
-                                                  <img
-                                                    src={file.url}
-                                                    alt={file.name}
-                                                    className="w-full aspect-square object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                                                    onClick={() => {
-                                                      setSelectedPhoto(
-                                                        file.url,
-                                                      );
-                                                      setPhotoViewDialogOpen(
-                                                        true,
-                                                      );
-                                                    }}
-                                                  />
-                                                ) : (
-                                                  <div className="w-full aspect-square flex items-center justify-center bg-muted">
-                                                    <Paperclip className="h-8 w-8 text-muted-foreground" />
-                                                  </div>
-                                                )}
-                                              </Card>
-                                              <p
-                                                className="text-xs truncate mt-1 text-center"
-                                                title={file.name}
-                                              >
-                                                {file.name}
-                                              </p>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </CardContent>
-                                    </Card>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground text-sm">
+                                      —
+                                    </span>
                                   )}
+                                </TableCell>
+                                {/* Datum */}
+                                <TableCell className="py-3">
+                                  {action.dueDate ? (
+                                    <div
+                                      className={`flex items-center gap-1 text-sm ${
+                                        isOverdue(action.dueDate, action.status)
+                                          ? "text-[#C8102E] font-medium"
+                                          : "text-muted-foreground"
+                                      }`}
+                                    >
+                                      <Calendar className="h-3 w-3" />
+                                      {new Date(
+                                        action.dueDate,
+                                      ).toLocaleDateString("de-DE")}
+                                      {isOverdue(
+                                        action.dueDate,
+                                        action.status,
+                                      ) && (
+                                        <Badge
+                                          variant="destructive"
+                                          className="ml-1 text-[10px] px-1.5 py-0"
+                                        >
+                                          Überfällig
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground text-sm">
+                                      —
+                                    </span>
+                                  )}
+                                </TableCell>
+                                {/* Aktionen */}
+                                <TableCell className="text-right py-3">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openEditDialog(action);
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4 mr-1" />
+                                      Bearbeiten
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete(action.id);
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
 
-                                  {/* Material-Liste */}
-                                  {(() => {
-                                    const materials =
-                                      parseMaterialsFromDescription(
-                                        action.description,
-                                      );
-                                    if (materials.length === 0) return null;
-                                    return (
-                                      <Card className="border">
-                                        <CardHeader className="bg-muted/50 pb-2 pt-3">
-                                          <div className="flex items-center justify-between">
-                                            <CardTitle className="text-base flex items-center gap-2">
-                                              📦 Bestellte Materialien
+                              {/* Expanded Detail Row */}
+                              {expandedRows.has(action.id) && (
+                                <TableRow>
+                                  <TableCell
+                                    colSpan={7}
+                                    className="p-0 bg-[#F0F0FA]"
+                                  >
+                                    <div className="p-6 space-y-6">
+                                      <div className="grid grid-cols-2 gap-6">
+                                        {/* Beschreibung Card */}
+                                        <Card>
+                                          <CardHeader className="pb-3">
+                                            <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                              <AlertCircle className="h-4 w-4" />
+                                              Beschreibung
                                             </CardTitle>
-                                            <Badge
-                                              variant="secondary"
-                                              className="text-xs"
-                                            >
-                                              {materials.length}{" "}
-                                              {materials.length === 1
-                                                ? "Material"
-                                                : "Materialien"}
-                                            </Badge>
-                                          </div>
-                                        </CardHeader>
-                                        <CardContent className="pt-3">
-                                          <div className="space-y-1.5">
-                                            {materials.map((material) => {
-                                              const getStatusBadge = (
-                                                status?: string,
-                                              ) => {
-                                                switch (status) {
-                                                  case "GELIEFERT":
-                                                    return (
-                                                      <Badge className="bg-green-600 hover:bg-green-700 text-white">
-                                                        ✅ Geliefert
-                                                      </Badge>
-                                                    );
-                                                  case "UNTERWEGS":
-                                                    return (
-                                                      <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
-                                                        🚚 Unterwegs
-                                                      </Badge>
-                                                    );
-                                                  case "BESTELLT":
-                                                    return (
-                                                      <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
-                                                        ⚠️ Bestellt
-                                                      </Badge>
-                                                    );
-                                                  default:
-                                                    return (
-                                                      <Badge
-                                                        variant="outline"
-                                                        className="border-2"
-                                                      >
-                                                        ❌ Nicht bestellt
-                                                      </Badge>
-                                                    );
+                                          </CardHeader>
+                                          <CardContent className="space-y-3">
+                                            <p className="text-sm whitespace-pre-wrap">
+                                              {action.description
+                                                .split("--- Materialien ---")[0]
+                                                .split("\n")
+                                                .filter(
+                                                  (line: string) =>
+                                                    !line.startsWith(
+                                                      "📷 Photo:",
+                                                    ),
+                                                )
+                                                .join("\n")
+                                                .trim()}
+                                            </p>
+                                            {(() => {
+                                              const photoUrl =
+                                                extractPhotoFromDescription(
+                                                  action.description,
+                                                );
+                                              if (
+                                                photoUrl &&
+                                                (photoUrl.startsWith(
+                                                  "http://",
+                                                ) ||
+                                                  photoUrl.startsWith(
+                                                    "https://",
+                                                  ))
+                                              ) {
+                                                return (
+                                                  <div className="pt-3 border-t">
+                                                    <p className="text-xs font-medium text-muted-foreground mb-2">
+                                                      Foto
+                                                    </p>
+                                                    <img
+                                                      src={photoUrl}
+                                                      alt="Schadensbericht Foto"
+                                                      className="w-32 h-32 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                                                      onClick={() => {
+                                                        setSelectedPhoto(
+                                                          photoUrl,
+                                                        );
+                                                        setPhotoViewDialogOpen(
+                                                          true,
+                                                        );
+                                                      }}
+                                                    />
+                                                  </div>
+                                                );
+                                              }
+                                              return null;
+                                            })()}
+                                            {(() => {
+                                              const photoFilename =
+                                                extractPhotoFromDescription(
+                                                  action.description,
+                                                );
+                                              if (
+                                                photoFilename &&
+                                                !photoFilename.startsWith(
+                                                  "http://",
+                                                ) &&
+                                                !photoFilename.startsWith(
+                                                  "https://",
+                                                )
+                                              ) {
+                                                return (
+                                                  <div className="pt-3 border-t">
+                                                    <Button
+                                                      variant="outline"
+                                                      size="sm"
+                                                      onClick={async () => {
+                                                        try {
+                                                          const blob =
+                                                            await apiClient.request<Blob>(
+                                                              `/failure-reports/photo/${photoFilename}`,
+                                                              {
+                                                                responseType:
+                                                                  "blob",
+                                                              },
+                                                            );
+                                                          const pUrl =
+                                                            URL.createObjectURL(
+                                                              blob,
+                                                            );
+                                                          setSelectedPhoto(
+                                                            pUrl,
+                                                          );
+                                                          setPhotoViewDialogOpen(
+                                                            true,
+                                                          );
+                                                          setTimeout(
+                                                            () =>
+                                                              URL.revokeObjectURL(
+                                                                pUrl,
+                                                              ),
+                                                            10000,
+                                                          );
+                                                        } catch (error) {
+                                                          console.error(
+                                                            "Error loading photo:",
+                                                            error,
+                                                          );
+                                                          toast({
+                                                            title: "Fehler",
+                                                            description:
+                                                              "Foto konnte nicht geladen werden.",
+                                                            variant:
+                                                              "destructive",
+                                                          });
+                                                        }
+                                                      }}
+                                                    >
+                                                      <Camera className="h-4 w-4 mr-2" />
+                                                      Foto anzeigen
+                                                    </Button>
+                                                  </div>
+                                                );
+                                              }
+                                              return null;
+                                            })()}
+                                          </CardContent>
+                                        </Card>
+
+                                        {/* Aufgaben Card */}
+                                        <Card>
+                                          <CardHeader className="pb-3">
+                                            <div className="flex items-center justify-between">
+                                              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                                <ListTodo className="h-4 w-4" />
+                                                Aufgaben ({action.tasks.length})
+                                              </CardTitle>
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-7"
+                                                onClick={() =>
+                                                  handleOpenTaskDialog(
+                                                    action.id,
+                                                  )
                                                 }
-                                              };
-                                              return (
-                                                <div
-                                                  key={material.id}
-                                                  className="group p-2.5 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
-                                                >
-                                                  <div className="flex items-center justify-between gap-3">
+                                              >
+                                                <Plus className="h-3 w-3 mr-1" />
+                                                Neu
+                                              </Button>
+                                            </div>
+                                          </CardHeader>
+                                          <CardContent>
+                                            {action.tasks.length === 0 ? (
+                                              <p className="text-sm text-muted-foreground text-center py-4">
+                                                Keine Aufgaben vorhanden
+                                              </p>
+                                            ) : (
+                                              <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                {action.tasks.map((task) => (
+                                                  <div
+                                                    key={task.id}
+                                                    className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border"
+                                                  >
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={task.completed}
+                                                      onChange={() =>
+                                                        handleToggleTask(
+                                                          action.id,
+                                                          task.id,
+                                                        )
+                                                      }
+                                                      className="mt-1 h-4 w-4 rounded border-gray-300"
+                                                    />
                                                     <div className="flex-1 min-w-0">
-                                                      <div className="flex items-center gap-2 mb-1">
-                                                        <span className="font-mono text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">
-                                                          {material.mmNumber}
-                                                        </span>
-                                                        {getStatusBadge(
-                                                          material.status,
+                                                      <div
+                                                        className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                                                      >
+                                                        {task.title}
+                                                      </div>
+                                                      {task.description && (
+                                                        <div className="text-xs text-muted-foreground mt-1">
+                                                          {task.description}
+                                                        </div>
+                                                      )}
+                                                      <div className="flex items-center gap-2 mt-1">
+                                                        {task.assignedUser && (
+                                                          <span className="text-xs flex items-center gap-1">
+                                                            <Users className="h-3 w-3" />
+                                                            {(() => {
+                                                              const user =
+                                                                availableUsers.find(
+                                                                  (u) =>
+                                                                    u.id ===
+                                                                    task.assignedUser,
+                                                                );
+                                                              return user
+                                                                ? `${user.firstName} ${user.lastName}`
+                                                                : task.assignedUser;
+                                                            })()}
+                                                          </span>
+                                                        )}
+                                                        {task.dueDate && (
+                                                          <span className="text-xs text-muted-foreground">
+                                                            Fällig:{" "}
+                                                            {new Date(
+                                                              task.dueDate,
+                                                            ).toLocaleDateString(
+                                                              "de-DE",
+                                                            )}
+                                                          </span>
                                                         )}
                                                       </div>
-                                                      <p className="text-xs line-clamp-1">
-                                                        {material.description}
-                                                      </p>
                                                     </div>
-                                                    <div className="flex flex-col items-end justify-center bg-muted/50 px-2.5 py-2 rounded min-w-[60px]">
-                                                      <p className="text-lg font-bold text-primary">
-                                                        {material.quantity}
-                                                      </p>
-                                                      <p className="text-[10px] font-medium text-muted-foreground uppercase">
-                                                        {material.unit}
-                                                      </p>
+                                                    <div className="flex items-center gap-1">
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 w-6 p-0"
+                                                        onClick={() => {
+                                                          setCurrentTask({
+                                                            ...task,
+                                                          });
+                                                          setCurrentTaskActionId(
+                                                            action.id,
+                                                          );
+                                                          setTaskDialogOpen(
+                                                            true,
+                                                          );
+                                                        }}
+                                                        title="Bearbeiten"
+                                                      >
+                                                        <Edit className="h-3 w-3" />
+                                                      </Button>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                                        onClick={() =>
+                                                          handleDeleteTask(
+                                                            action.id,
+                                                            task.id,
+                                                          )
+                                                        }
+                                                        title="Löschen"
+                                                      >
+                                                        <X className="h-3 w-3" />
+                                                      </Button>
                                                     </div>
                                                   </div>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </CardContent>
+                                        </Card>
+                                      </div>
+
+                                      {/* Angehängte Dateien */}
+                                      {action.files.length > 0 && (
+                                        <Card>
+                                          <CardHeader className="pb-3">
+                                            <CardTitle className="text-base flex items-center gap-2">
+                                              📁 Angehängte Dateien
+                                              <Badge
+                                                variant="secondary"
+                                                className="ml-2"
+                                              >
+                                                {action.files.length}
+                                              </Badge>
+                                            </CardTitle>
+                                          </CardHeader>
+                                          <CardContent>
+                                            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                                              {action.files.map((file) => (
+                                                <div
+                                                  key={file.id}
+                                                  className="relative group"
+                                                >
+                                                  <Card className="overflow-hidden hover:shadow-md transition-shadow">
+                                                    {file.isPhoto ? (
+                                                      <img
+                                                        src={file.url}
+                                                        alt={file.name}
+                                                        className="w-full aspect-square object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                                        onClick={() => {
+                                                          setSelectedPhoto(
+                                                            file.url,
+                                                          );
+                                                          setPhotoViewDialogOpen(
+                                                            true,
+                                                          );
+                                                        }}
+                                                      />
+                                                    ) : (
+                                                      <div className="w-full aspect-square flex items-center justify-center bg-muted">
+                                                        <Paperclip className="h-8 w-8 text-muted-foreground" />
+                                                      </div>
+                                                    )}
+                                                  </Card>
+                                                  <p
+                                                    className="text-xs truncate mt-1 text-center"
+                                                    title={file.name}
+                                                  >
+                                                    {file.name}
+                                                  </p>
                                                 </div>
-                                              );
-                                            })}
-                                          </div>
-                                        </CardContent>
-                                      </Card>
-                                    );
-                                  })()}
-                                </div>
+                                              ))}
+                                            </div>
+                                          </CardContent>
+                                        </Card>
+                                      )}
+
+                                      {/* Material-Liste */}
+                                      {(() => {
+                                        const materials =
+                                          parseMaterialsFromDescription(
+                                            action.description,
+                                          );
+                                        if (materials.length === 0) return null;
+                                        return (
+                                          <Card className="border">
+                                            <CardHeader className="bg-muted/50 pb-2 pt-3">
+                                              <div className="flex items-center justify-between">
+                                                <CardTitle className="text-base flex items-center gap-2">
+                                                  📦 Bestellte Materialien
+                                                </CardTitle>
+                                                <Badge
+                                                  variant="secondary"
+                                                  className="text-xs"
+                                                >
+                                                  {materials.length}{" "}
+                                                  {materials.length === 1
+                                                    ? "Material"
+                                                    : "Materialien"}
+                                                </Badge>
+                                              </div>
+                                            </CardHeader>
+                                            <CardContent className="pt-3">
+                                              <div className="space-y-1.5">
+                                                {materials.map((material) => {
+                                                  const getMaterialStatusBadge =
+                                                    (status?: string) => {
+                                                      switch (status) {
+                                                        case "GELIEFERT":
+                                                          return (
+                                                            <Badge className="bg-green-600 hover:bg-green-700 text-white">
+                                                              ✅ Geliefert
+                                                            </Badge>
+                                                          );
+                                                        case "UNTERWEGS":
+                                                          return (
+                                                            <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
+                                                              🚚 Unterwegs
+                                                            </Badge>
+                                                          );
+                                                        case "BESTELLT":
+                                                          return (
+                                                            <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                                                              ⚠️ Bestellt
+                                                            </Badge>
+                                                          );
+                                                        default:
+                                                          return (
+                                                            <Badge
+                                                              variant="outline"
+                                                              className="border-2"
+                                                            >
+                                                              ❌ Nicht bestellt
+                                                            </Badge>
+                                                          );
+                                                      }
+                                                    };
+                                                  return (
+                                                    <div
+                                                      key={material.id}
+                                                      className="group p-2.5 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+                                                    >
+                                                      <div className="flex items-center justify-between gap-3">
+                                                        <div className="flex-1 min-w-0">
+                                                          <div className="flex items-center gap-2 mb-1">
+                                                            <span className="font-mono text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">
+                                                              {
+                                                                material.mmNumber
+                                                              }
+                                                            </span>
+                                                            {getMaterialStatusBadge(
+                                                              material.status,
+                                                            )}
+                                                          </div>
+                                                          <p className="text-xs line-clamp-1">
+                                                            {
+                                                              material.description
+                                                            }
+                                                          </p>
+                                                        </div>
+                                                        <div className="flex flex-col items-end justify-center bg-muted/50 px-2.5 py-2 rounded min-w-[60px]">
+                                                          <p className="text-lg font-bold text-primary">
+                                                            {material.quantity}
+                                                          </p>
+                                                          <p className="text-[10px] font-medium text-muted-foreground uppercase">
+                                                            {material.unit}
+                                                          </p>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                            </CardContent>
+                                          </Card>
+                                        );
+                                      })()}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </React.Fragment>
+                          ));
+
+                        const renderActionTable = (
+                          actions: Action[],
+                          sectionLabel: string,
+                        ) => {
+                          if (actions.length === 0) return null;
+                          return (
+                            <div className="mb-6">
+                              <div className="flex items-center gap-2 px-1 py-2.5">
+                                <span className="text-[11px] font-medium text-[#00B2E3] uppercase tracking-[1.4px]">
+                                  ›
+                                </span>
+                                <span className="text-[11px] font-medium text-[#143269] uppercase tracking-[1.4px]">
+                                  {sectionLabel}
+                                </span>
+                                <span className="text-[11px] text-[#64646E]">
+                                  ({actions.length})
+                                </span>
                               </div>
-                            )}
-                          </div>
-                        );
+                              <div className="rounded-md border overflow-x-auto">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="w-[48px] py-3 text-base" />
+                                      <TableHead className="py-3 text-base">
+                                        Status
+                                      </TableHead>
+                                      <TableHead className="py-3 text-base">
+                                        Titel
+                                      </TableHead>
+                                      <TableHead className="py-3 text-base">
+                                        Priorität
+                                      </TableHead>
+                                      <TableHead className="py-3 text-base">
+                                        Zugewiesen an
+                                      </TableHead>
+                                      <TableHead className="py-3 text-base">
+                                        Fällig
+                                      </TableHead>
+                                      <TableHead className="text-right py-3 text-base">
+                                        Aktionen
+                                      </TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {renderActionRows(actions)}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </div>
+                          );
+                        };
 
                         return (
                           <div className="space-y-1">
-                            {/* Allgemein Section */}
-                            {allgemeinActions.length > 0 && (
-                              <div>
-                                <div className="flex items-center gap-2 px-1 py-2.5">
-                                  <span className="text-[11px] font-medium text-[#00B2E3] uppercase tracking-[1.4px]">
-                                    ›
-                                  </span>
-                                  <span className="text-[11px] font-medium text-[#143269] uppercase tracking-[1.4px]">
-                                    Allgemein
-                                  </span>
-                                  <span className="text-[11px] text-[#64646E]">
-                                    ({allgemeinActions.length})
-                                  </span>
-                                </div>
-                                {allgemeinActions.map(renderActionCard)}
-                              </div>
-                            )}
-
-                            {/* Rigmoves Section */}
-                            {rigmoveActions.length > 0 && (
-                              <div className="mt-4">
-                                <div className="flex items-center gap-2 px-1 py-2.5">
-                                  <span className="text-[11px] font-medium text-[#00B2E3] uppercase tracking-[1.4px]">
-                                    ›
-                                  </span>
-                                  <span className="text-[11px] font-medium text-[#143269] uppercase tracking-[1.4px]">
-                                    Rigmoves
-                                  </span>
-                                  <span className="text-[11px] text-[#64646E]">
-                                    ({rigmoveActions.length})
-                                  </span>
-                                </div>
-                                {rigmoveActions.map(renderActionCard)}
-                              </div>
-                            )}
+                            {renderActionTable(allgemeinActions, "Allgemein")}
+                            {renderActionTable(rigmoveActions, "Rigmoves")}
                           </div>
                         );
                       })()}
