@@ -1565,7 +1565,7 @@ const ActionTracker = ({
               ]}
               finalStepTitle="Details eingeben"
               finalStepSubtitle="Titel, Beschreibung und Zuweisung"
-              finalStepContent={(selections) => (
+              finalStepContent={() => (
                 <div className="space-y-4">
                   {/* Title */}
                   <div className="space-y-2">
@@ -2014,7 +2014,7 @@ const ActionTracker = ({
                 Abbrechen
               </Button>
               <Button
-                onClick={handleSave}
+                onClick={() => handleSave()}
                 className="h-12"
                 disabled={isUploadingFiles}
               >
@@ -3752,7 +3752,7 @@ const ActionTracker = ({
             >
               Abbrechen
             </Button>
-            <Button onClick={handleSave} disabled={isUploadingFiles}>
+            <Button onClick={() => handleSave()} disabled={isUploadingFiles}>
               {isUploadingFiles ? (
                 <>
                   <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />

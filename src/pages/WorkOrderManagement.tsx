@@ -32,7 +32,6 @@ import {
   Plus,
   ArrowLeft,
 } from "lucide-react";
-import { PageHeader } from "@/components/shared/PageHeader";
 import { useToast } from "@/components/ui/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 

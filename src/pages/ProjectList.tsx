@@ -106,7 +106,6 @@ import {
   Workflow,
   ArrowLeft,
 } from "lucide-react";
-import { PageHeader } from "@/components/shared/PageHeader";
 
 // Fallback Demo-Daten
 const initialProjects: Project[] = [

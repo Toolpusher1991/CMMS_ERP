@@ -19,9 +19,6 @@ import "./FailureReporting.mobile.css";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 // Tabs removed - using custom dropdown selector instead
 import { Button } from "@/components/ui/button";

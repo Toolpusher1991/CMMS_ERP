@@ -3,9 +3,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Terminal, Users, MapPin, ArrowLeft, Settings } from "lucide-react";
 import { PageErrorBoundary } from "@/components/ErrorBoundary";

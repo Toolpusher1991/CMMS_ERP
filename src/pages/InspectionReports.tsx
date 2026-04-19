@@ -69,7 +69,6 @@ import {
   Camera,
   ArrowLeft,
 } from "lucide-react";
-import { PageHeader } from "@/components/shared/PageHeader";
 
 interface InspectionItem {
   id: string;

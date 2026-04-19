@@ -4042,7 +4042,7 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
             ]}
             finalStepTitle="Projektdetails eingeben"
             finalStepSubtitle="Name, Beschreibung und Zeitraum"
-            finalStepContent={(selections) => (
+            finalStepContent={() => (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Name *</Label>
