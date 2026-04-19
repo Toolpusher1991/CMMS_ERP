@@ -10,8 +10,17 @@ import {
   MessageSquare,
   Download,
   Trash2,
-  FileText,
   Plus,
+  Wifi,
+  Cog,
+  HardDrive,
+  Layers,
+  Box,
+  Triangle,
+  Shield,
+  Circle,
+  RotateCw,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -139,10 +148,52 @@ export default function RigInspection() {
   );
 
   // ─── RENDER SCREEN ───
+  const isHome = screen === "home";
+
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* gradient bar */}
-      <div className="h-0.5 w-full bg-gradient-to-r from-[#2B5597] to-[#24C26B] mb-6" />
+    <div className={isHome ? "" : "max-w-7xl mx-auto"}>
+      {isHome && (
+        <>
+          {/* ─── Navy Header Bar ─── */}
+          <div className="bg-[#143269] text-white">
+            <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-white/20 rounded flex items-center justify-center font-bold text-sm">
+                  H&P
+                </div>
+                <div>
+                  <div className="font-semibold text-sm tracking-wide">
+                    Equipment Maintenance
+                  </div>
+                  <div className="text-[11px] text-white/60">
+                    CAT I – IV · API 7K / RP 7L / RP 8B
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <button
+                  className="text-sm font-medium text-white/90 hover:text-white border-b-2 border-white pb-0.5"
+                  onClick={() => go("home")}
+                >
+                  Equipment
+                </button>
+                <button
+                  className="text-sm font-medium text-white/60 hover:text-white"
+                  onClick={() => go("archive")}
+                >
+                  Archive
+                </button>
+              </div>
+            </div>
+            {/* gradient accent line */}
+            <div className="h-1 w-full bg-gradient-to-r from-[#2B5597] via-[#24C26B] to-[#24C26B]" />
+          </div>
+        </>
+      )}
+
+      {!isHome && (
+        <div className="h-0.5 w-full bg-gradient-to-r from-[#2B5597] to-[#24C26B] mb-6" />
+      )}
 
       {screen === "home" && (
         <HomeScreen
@@ -150,7 +201,6 @@ export default function RigInspection() {
             setSelectedEquip(eqId);
             go("frequency");
           }}
-          onArchive={() => go("archive")}
           onResume={resumeInspection}
         />
       )}
@@ -202,16 +252,34 @@ export default function RigInspection() {
   );
 }
 
+// ─── Equipment icon mapping ───
+const equipmentIcons: Record<string, React.ReactNode> = {
+  drawworks: <Cog className="h-10 w-10 text-[#2B5597]" strokeWidth={1.5} />,
+  topdrive: (
+    <HardDrive className="h-10 w-10 text-[#2B5597]" strokeWidth={1.5} />
+  ),
+  mudpumps: <Layers className="h-10 w-10 text-[#2B5597]" strokeWidth={1.5} />,
+  travelblock: <Box className="h-10 w-10 text-[#2B5597]" strokeWidth={1.5} />,
+  tanks: <Box className="h-10 w-10 text-[#8898aa]" strokeWidth={1.5} />,
+  mast: <Triangle className="h-10 w-10 text-[#8898aa]" strokeWidth={1.5} />,
+  bop: <Shield className="h-10 w-10 text-[#8898aa]" strokeWidth={1.5} />,
+  crownblock: <Circle className="h-10 w-10 text-[#8898aa]" strokeWidth={1.5} />,
+  rotarytable: (
+    <RotateCw className="h-10 w-10 text-[#8898aa]" strokeWidth={1.5} />
+  ),
+  ironroughneck: (
+    <Wrench className="h-10 w-10 text-[#8898aa]" strokeWidth={1.5} />
+  ),
+};
+
 // ────────────────────────────────────────────
-// HOME SCREEN — Equipment grid
+// HOME SCREEN — H&P-style Equipment Dashboard
 // ────────────────────────────────────────────
 function HomeScreen({
   onSelectEquipment,
-  onArchive,
   onResume,
 }: {
   onSelectEquipment: (id: string) => void;
-  onArchive: () => void;
   onResume: (id: string) => void;
 }) {
   const drafts = useMemo(
@@ -222,44 +290,89 @@ function HomeScreen({
     [],
   );
 
+  const activeEquipment = Object.values(EQUIPMENT).filter(
+    (eq) => !eq.placeholder,
+  );
+  const placeholderEquipment = Object.values(EQUIPMENT).filter(
+    (eq) => eq.placeholder,
+  );
+
   return (
     <div>
-      <h1 className="text-3xl font-medium text-[#143269] dark:text-blue-300 tracking-tight">
-        Rig Equipment Maintenance
-      </h1>
-      <p className="text-[#2B5597] dark:text-blue-400 text-lg font-light mt-2 mb-6">
-        Choose a piece of equipment to start a CAT I–IV inspection.
-        <br className="hidden sm:block" />
-        Checklists follow KCA Deutag equipment &amp; maintenance strategy
-        documents and API RP 8B / 7K / 7L.
-      </p>
-
-      <div className="flex items-center gap-3 mb-6">
-        <Button variant="outline" size="sm" onClick={onArchive}>
-          <FileText className="h-4 w-4 mr-1" /> Archive
-        </Button>
+      {/* ─── Hero Section ─── */}
+      <div className="bg-[#f7f9fc] dark:bg-slate-900 py-14 px-6">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-bold text-[#143269] dark:text-blue-200 leading-tight tracking-tight">
+            Rig equipment maintenance.
+            <br />
+            Field-ready, offline-first.
+          </h1>
+          <p className="text-[#4a6fa5] dark:text-blue-400 text-lg mt-4 max-w-2xl leading-relaxed">
+            Choose a piece of equipment to start a CAT I–IV inspection.
+            Checklists follow KCA Deutag equipment &amp; maintenance strategy
+            documents and API RP 8B / 7K / 7L.
+          </p>
+        </div>
       </div>
 
-      {/* Drafts */}
-      {drafts.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
-            Continue inspection
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {drafts.map((ins) => {
-              const eq = EQUIPMENT[ins.equipmentType];
-              const freq = eq?.frequencies.find((f) => f.id === ins.frequency);
-              const stats = calcStats(ins);
-              return (
-                <Card
-                  key={ins.id}
-                  className="cursor-pointer hover:border-[#2B5597] transition-colors"
-                  onClick={() => onResume(ins.id)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-sm">{eq?.name}</span>
+      <div className="max-w-7xl mx-auto px-6 pb-12">
+        {/* ─── RFID Scanner Banner ─── */}
+        <div className="mt-10 bg-[#1e3a6e] rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
+              <Wifi className="h-6 w-6 text-white/80" />
+            </div>
+            <div>
+              <div className="text-[#24C26B] text-xs font-bold uppercase tracking-widest">
+                Phase 2 Preview
+              </div>
+              <div className="text-white font-semibold mt-0.5">
+                Tap to scan equipment tag
+              </div>
+              <div className="text-white/60 text-sm mt-0.5 max-w-md">
+                Hold the tablet against the equipment's RFID / NFC tag. We'll
+                identify the unit, pull its history, and jump you straight to
+                the due inspection.
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <Button
+              variant="outline"
+              className="border-white/30 text-white hover:bg-white/10 hover:text-white font-semibold px-6"
+              onClick={() => {}}
+            >
+              Simulate Scan
+            </Button>
+            <span className="text-white/40 text-[10px] uppercase tracking-wider">
+              Demo only
+            </span>
+          </div>
+        </div>
+
+        {/* ─── Drafts / Continue ─── */}
+        {drafts.length > 0 && (
+          <div className="mt-10">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-4">
+              Continue inspection
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {drafts.map((ins) => {
+                const eq = EQUIPMENT[ins.equipmentType];
+                const freq = eq?.frequencies.find(
+                  (f) => f.id === ins.frequency,
+                );
+                const stats = calcStats(ins);
+                return (
+                  <div
+                    key={ins.id}
+                    className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-[#2B5597] hover:shadow-lg transition-all"
+                    onClick={() => onResume(ins.id)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-[#143269] dark:text-blue-300">
+                        {eq?.name}
+                      </span>
                       {freq && (
                         <Badge className={catColor[freq.cat]}>
                           CAT {freq.cat}
@@ -269,64 +382,102 @@ function HomeScreen({
                     <div className="text-xs text-muted-foreground">
                       {ins.header.reportNo || ins.id}
                     </div>
-                    <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="mt-3 h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-[#2B5597] transition-all"
+                        className="h-full bg-gradient-to-r from-[#2B5597] to-[#24C26B] rounded-full transition-all"
                         style={{ width: `${stats.pct}%` }}
                       />
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {stats.pct}% — {stats.done}/{stats.total}
+                    <div className="text-xs text-muted-foreground mt-1.5">
+                      {stats.pct}% — {stats.done}/{stats.total} items
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Equipment grid */}
-      <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
-        Main equipment
-      </h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {Object.values(EQUIPMENT).map((eq) => (
-          <Card
-            key={eq.id}
-            className={`transition-all ${eq.placeholder ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-[#2B5597] hover:shadow-md"}`}
-            onClick={() => !eq.placeholder && onSelectEquipment(eq.id)}
-          >
-            <CardContent className="p-5">
-              <h3 className="font-medium text-[#143269] dark:text-blue-300">
-                {eq.name}
-              </h3>
-              <div className="text-xs text-muted-foreground mt-1">
-                {eq.docRef}
-                {eq.equipmentCode ? ` · ${eq.equipmentCode}` : ""}
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                {eq.placeholder ? (
-                  <span className="text-xs text-muted-foreground italic">
-                    Coming soon
-                  </span>
-                ) : (
-                  <>
-                    <span className="text-xs text-muted-foreground">
+        {/* ─── Main Equipment ─── */}
+        <div className="mt-10">
+          <details open>
+            <summary className="cursor-pointer text-sm font-semibold text-[#143269] dark:text-blue-300 uppercase tracking-widest mb-1 list-none flex items-center gap-1.5">
+              <ChevronRight className="h-4 w-4" />
+              Main equipment
+            </summary>
+            <p className="text-sm text-muted-foreground mb-5 ml-5.5">
+              Drawworks is active. Other equipment will be rolled out in the
+              same pattern.
+            </p>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {activeEquipment.map((eq) => (
+                <div
+                  key={eq.id}
+                  className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6 cursor-pointer hover:border-[#2B5597] hover:shadow-lg transition-all group"
+                  onClick={() => onSelectEquipment(eq.id)}
+                >
+                  <div className="mb-5">
+                    {equipmentIcons[eq.id] || (
+                      <Cog
+                        className="h-10 w-10 text-[#2B5597]"
+                        strokeWidth={1.5}
+                      />
+                    )}
+                  </div>
+                  <h3 className="font-bold text-[#143269] dark:text-blue-300 text-lg group-hover:text-[#2B5597] transition-colors">
+                    {eq.name}
+                  </h3>
+                  <div className="text-xs text-muted-foreground mt-1.5">
+                    {eq.docRef}
+                    {eq.equipmentCode ? ` · ${eq.equipmentCode}` : ""}
+                  </div>
+                  <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100 dark:border-slate-700">
+                    <span className="text-xs text-[#4a6fa5]">
                       {eq.frequencies.length} inspection types
                     </span>
-                    <Badge
-                      variant="outline"
-                      className="text-emerald-600 border-emerald-600 text-[10px]"
-                    >
+                    <Badge className="bg-[#24C26B] hover:bg-[#1ea856] text-white text-[10px] font-bold px-2.5 py-0.5">
                       ACTIVE
                     </Badge>
-                  </>
-                )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
+        </div>
+
+        {/* ─── Placeholder Equipment ─── */}
+        {placeholderEquipment.length > 0 && (
+          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {placeholderEquipment.map((eq) => (
+              <div
+                key={eq.id}
+                className="bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl p-6 opacity-60"
+              >
+                <div className="mb-5">
+                  {equipmentIcons[eq.id] || (
+                    <Cog
+                      className="h-10 w-10 text-[#8898aa]"
+                      strokeWidth={1.5}
+                    />
+                  )}
+                </div>
+                <h3 className="font-bold text-[#8898aa] text-lg">{eq.name}</h3>
+                <div className="text-xs text-muted-foreground mt-1.5">—</div>
+                <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100 dark:border-slate-700">
+                  <Badge
+                    variant="outline"
+                    className="text-[#8898aa] border-[#8898aa] text-[10px] font-bold px-2.5 py-0.5"
+                  >
+                    COMING SOON
+                  </Badge>
+                  <span className="text-xs text-muted-foreground italic">
+                    Placeholder
+                  </span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -594,6 +745,7 @@ function InspectionWizard({
   const freq = eq?.frequencies.find((f) => f.id === inspection.frequency);
   const secs = useMemo(() => applicableSections(inspection), [inspection]);
   const stats = useMemo(() => calcStats(inspection), [inspection]);
+  const tabsRef = useRef<HTMLDivElement>(null);
 
   // Build steps
   type StepDef = {
@@ -632,135 +784,231 @@ function InspectionWizard({
     return false;
   };
 
+  // Count incomplete items per step
+  const stepItemCount = (i: number) => {
+    const s = steps[i];
+    if (s.kind === "section" && s.secRef) {
+      const incomplete = s.secRef.items.filter(
+        (it) => !inspection.results[it.id]?.status,
+      ).length;
+      return incomplete;
+    }
+    return 0;
+  };
+
   const currentStep = steps[step];
   if (!eq || !freq) return null;
 
   return (
-    <div>
-      <Breadcrumbs
-        items={[
-          { label: "Equipment", onClick: onExit },
-          { label: eq.name },
-          { label: `${freq.label} (Cat ${freq.cat})` },
-        ]}
-      />
-
-      {/* Wizard header */}
-      <div className="flex items-start justify-between mb-2">
-        <div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wider">
-            {eq.name} · {freq.label} · {eq.docRef}
+    <div className="min-h-screen flex flex-col">
+      {/* ─── Navy Header ─── */}
+      <div className="bg-[#143269] text-white">
+        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-white/20 rounded flex items-center justify-center font-bold text-sm">
+              H&P
+            </div>
+            <div>
+              <div className="font-semibold text-sm tracking-wide">
+                Equipment Maintenance
+              </div>
+              <div className="text-[11px] text-white/60">
+                CAT I – IV · API 7K / RP 7L / RP 8B
+              </div>
+            </div>
           </div>
-          <h2 className="text-xl font-medium text-[#143269] dark:text-blue-300 mt-1">
-            {inspection.header.reportNo || `Report ${inspection.id}`}
-          </h2>
-          {inspection.cumulativeMode === "cumulative" && (
-            <Badge
-              variant="outline"
-              className="mt-1 border-amber-500 text-amber-600 text-[10px]"
-            >
-              Cumulative · includes lower tasks
-            </Badge>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge className={catColor[freq.cat]}>CAT {freq.cat}</Badge>
-          <Badge variant="outline">{inspection.status}</Badge>
-        </div>
-      </div>
-
-      {/* Progress */}
-      <div className="mb-4">
-        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-[#2B5597] to-[#24C26B] transition-all"
-            style={{ width: `${stats.pct}%` }}
-          />
-        </div>
-        <div className="text-xs text-muted-foreground mt-1">
-          {stats.done}/{stats.total} · {stats.pct}%
-        </div>
-      </div>
-
-      {stats.critOpen > 0 && (
-        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 px-4 py-2 rounded-md text-sm mb-4">
-          <AlertTriangle className="h-4 w-4 inline mr-1" />
-          {stats.critOpen} critical item{stats.critOpen === 1 ? "" : "s"}{" "}
-          flagged as observation or defect.
-        </div>
-      )}
-
-      {/* Step tabs */}
-      <div className="flex flex-wrap gap-1 mb-6 overflow-x-auto pb-1">
-        {steps.map((s, i) => {
-          const complete = isStepComplete(i);
-          return (
+          <div className="flex items-center gap-6">
             <button
-              key={s.id}
-              onClick={() => setStep(i)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-sm border transition-all whitespace-nowrap
-                ${i === step ? "border-[#2B5597] bg-[#2B5597] text-white" : complete ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "border-border hover:border-[#2B5597]/50"}`}
+              className="text-sm font-medium text-white/90 hover:text-white border-b-2 border-white pb-0.5"
+              onClick={onExit}
             >
-              <span className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-medium">
-                {complete ? <Check className="h-3 w-3" /> : i + 1}
-              </span>
-              {s.label}
+              Equipment
             </button>
-          );
-        })}
+            <button
+              className="text-sm font-medium text-white/60 hover:text-white"
+              onClick={onExit}
+            >
+              Archive
+            </button>
+          </div>
+        </div>
+        <div className="h-1 w-full bg-gradient-to-r from-[#2B5597] via-[#24C26B] to-[#24C26B]" />
       </div>
 
-      {/* Step content */}
-      {currentStep?.kind === "header" && (
-        <HeaderStep inspection={inspection} eq={eq} onSave={onSave} />
-      )}
-      {currentStep?.kind === "section" && currentStep.secRef && (
-        <SectionStep
-          section={currentStep.secRef}
-          inspection={inspection}
-          onSave={onSave}
-        />
-      )}
-      {currentStep?.kind === "signoff" && (
-        <SignoffStep
-          inspection={inspection}
-          stats={stats}
-          secs={secs}
-          onSave={onSave}
-        />
-      )}
+      {/* ─── Content ─── */}
+      <div className="flex-1 bg-[#f7f9fc] dark:bg-slate-950">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          {/* Breadcrumbs */}
+          <div className="text-sm mb-6 flex items-center gap-1.5">
+            <button className="text-[#2B5597] hover:underline" onClick={onExit}>
+              Equipment
+            </button>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground">{eq.name}</span>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground">
+              {freq.label} (Cat {freq.cat})
+            </span>
+          </div>
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between mt-6 pt-4 border-t">
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onExit}>
-            Save & exit
-          </Button>
-          <Button variant="destructive" size="sm" onClick={onDelete}>
-            <Trash2 className="h-3.5 w-3.5 mr-1" />
-            Delete
-          </Button>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={step === 0}
-            onClick={() => setStep(step - 1)}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
-          </Button>
-          {step < steps.length - 1 && (
-            <Button
-              size="sm"
-              className="bg-gradient-to-r from-[#2B5597] to-[#24C26B] text-white"
-              onClick={() => setStep(step + 1)}
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
+          {/* ─── Report header bar ─── */}
+          <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-6 py-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                  {eq.name.toUpperCase()} · {freq.label.toUpperCase()} ·{" "}
+                  {eq.docRef}
+                </div>
+                <div className="flex items-center gap-3 mt-1.5">
+                  <h2 className="text-xl font-bold text-[#143269] dark:text-blue-300">
+                    Report {inspection.header.reportNo || inspection.id}
+                  </h2>
+                  <Badge className={catColor[freq.cat]}>CAT {freq.cat}</Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-xs uppercase font-semibold tracking-wider"
+                  >
+                    {inspection.status}
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex-1 min-w-[180px] sm:w-48">
+                  <div className="h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#2B5597] to-[#24C26B] rounded-full transition-all"
+                      style={{ width: `${stats.pct}%` }}
+                    />
+                  </div>
+                </div>
+                <span className="text-sm text-muted-foreground whitespace-nowrap font-medium">
+                  {stats.done}/{stats.total} · {stats.pct}%
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {stats.critOpen > 0 && (
+            <div className="bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 px-4 py-2.5 rounded-lg text-sm mb-6">
+              <AlertTriangle className="h-4 w-4 inline mr-1.5" />
+              {stats.critOpen} critical item{stats.critOpen === 1 ? "" : "s"}{" "}
+              flagged as observation or defect.
+            </div>
           )}
+
+          {/* ─── Horizontal step tabs ─── */}
+          <div className="relative mb-8">
+            <div
+              ref={tabsRef}
+              className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-thin"
+            >
+              {steps.map((s, i) => {
+                const complete = isStepComplete(i);
+                const active = i === step;
+                const incomplete = stepItemCount(i);
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setStep(i)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap border transition-all
+                      ${
+                        active
+                          ? "bg-[#2B5597] text-white border-[#2B5597] shadow-md"
+                          : complete
+                            ? "bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700"
+                            : "bg-white dark:bg-slate-800 text-muted-foreground border-gray-200 dark:border-slate-700 hover:border-[#2B5597]/50"
+                      }`}
+                  >
+                    <span
+                      className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0
+                        ${
+                          active
+                            ? "bg-white text-[#2B5597]"
+                            : complete
+                              ? "bg-emerald-500 text-white"
+                              : "bg-gray-200 dark:bg-slate-600 text-gray-600 dark:text-gray-300"
+                        }`}
+                    >
+                      {complete ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                    </span>
+                    <span className="uppercase tracking-wide text-xs">
+                      {s.label}
+                    </span>
+                    {!complete && incomplete > 0 && (
+                      <span
+                        className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold
+                          ${active ? "bg-white/20 text-white" : "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400"}`}
+                      >
+                        {incomplete}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ─── Step content ─── */}
+          <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden">
+            {currentStep?.kind === "header" && (
+              <HeaderStep inspection={inspection} eq={eq} onSave={onSave} />
+            )}
+            {currentStep?.kind === "section" && currentStep.secRef && (
+              <SectionStep
+                section={currentStep.secRef}
+                inspection={inspection}
+                onSave={onSave}
+              />
+            )}
+            {currentStep?.kind === "signoff" && (
+              <SignoffStep
+                inspection={inspection}
+                stats={stats}
+                secs={secs}
+                onSave={onSave}
+              />
+            )}
+          </div>
+
+          {/* ─── Bottom Navigation ─── */}
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                className="text-[#143269] dark:text-blue-300 font-bold uppercase tracking-wider text-sm hover:bg-[#143269]/5"
+                onClick={onExit}
+              >
+                Save & Exit
+              </Button>
+              <Button
+                variant="outline"
+                className="border-red-400 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 font-bold uppercase tracking-wider text-sm"
+                onClick={onDelete}
+              >
+                Delete
+              </Button>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                className="font-medium text-sm"
+                disabled={step === 0}
+                onClick={() => setStep(step - 1)}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              {step < steps.length - 1 && (
+                <Button
+                  className="bg-[#2B8A8A] hover:bg-[#247777] text-white font-medium text-sm px-6"
+                  onClick={() => setStep(step + 1)}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -964,29 +1212,31 @@ function SectionStep({
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div>
-          <CardTitle className="text-[#143269] dark:text-blue-300">
-            {section.name}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground mt-1">
-            <strong className="text-[#143269] dark:text-blue-300">
-              {section.freqLabel} · Cat {section.freqCat}
-            </strong>
-            {section.requires && (
-              <span>
-                {" "}
-                · Applies because:{" "}
-                {Object.entries(section.requires)
-                  .map(([k, v]) => `${k}: ${v}`)
-                  .join(", ")}
-              </span>
-            )}
-          </p>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
+    <div className="p-6">
+      <details open>
+        <summary className="cursor-pointer list-none">
+          <div className="flex items-center gap-2">
+            <ChevronRight className="h-5 w-5 text-[#2B5597]" />
+            <h2 className="text-2xl font-bold text-[#143269] dark:text-blue-300">
+              {section.name}
+            </h2>
+          </div>
+        </summary>
+        <p className="text-sm font-semibold text-[#2B5597] mt-1 ml-7">
+          {section.freqLabel} · Cat {section.freqCat}
+          {section.requires && (
+            <span className="font-normal text-muted-foreground">
+              {" "}
+              · Applies because:{" "}
+              {Object.entries(section.requires)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join(", ")}
+            </span>
+          )}
+        </p>
+      </details>
+
+      <div className="mt-6 divide-y divide-gray-100 dark:divide-slate-700">
         {section.items.map((item) => (
           <InspectionItemRow
             key={item.id}
@@ -995,8 +1245,8 @@ function SectionStep({
             onSetResult={(key, value) => setResult(item.id, key, value)}
           />
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -1022,93 +1272,139 @@ function InspectionItemRow({
     status: ItemStatus;
     label: string;
     icon: React.ReactNode;
-    cls: string;
+    activeClass: string;
   }[] = [
     {
       status: "ok",
       label: "OK",
-      icon: <Check className="h-3.5 w-3.5" />,
-      cls: "bg-emerald-600 text-white",
+      icon: <Check className="h-5 w-5" />,
+      activeClass: "bg-emerald-600 text-white border-emerald-600",
     },
     {
       status: "obs",
-      label: "Obs",
-      icon: <AlertTriangle className="h-3.5 w-3.5" />,
-      cls: "bg-amber-500 text-white",
+      label: "OBS",
+      icon: <AlertTriangle className="h-5 w-5" />,
+      activeClass: "bg-amber-500 text-white border-amber-500",
     },
     {
       status: "def",
-      label: "Defect",
-      icon: <X className="h-3.5 w-3.5" />,
-      cls: "bg-red-600 text-white",
+      label: "DEFECT",
+      icon: <X className="h-5 w-5" />,
+      activeClass: "bg-red-600 text-white border-red-600",
     },
     {
       status: "na",
       label: "N/A",
-      icon: <Minus className="h-3.5 w-3.5" />,
-      cls: "bg-gray-500 text-white",
+      icon: <Minus className="h-5 w-5" />,
+      activeClass: "bg-gray-500 text-white border-gray-500",
     },
   ];
 
   const tc = tolClass(result);
   const rowBg =
     result.status === "def"
-      ? "bg-red-50 dark:bg-red-950/20"
+      ? "bg-red-50/50 dark:bg-red-950/10"
       : result.status === "obs"
-        ? "bg-amber-50 dark:bg-amber-950/20"
+        ? "bg-amber-50/50 dark:bg-amber-950/10"
         : "";
 
   return (
-    <div className={`border-b last:border-b-0 px-5 py-4 ${rowBg}`}>
-      <div className="flex items-start justify-between gap-4">
+    <div className={`py-6 px-1 ${rowBg}`}>
+      <div className="flex items-start justify-between gap-6">
+        {/* Left: description + tags */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-800 dark:text-gray-200">
             {item.description}
             {item.critical && (
-              <span className="ml-2 text-[10px] font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide bg-red-100 dark:bg-red-900/40 px-1.5 py-0.5 rounded-sm">
+              <Badge className="ml-2 bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold px-2 py-0.5">
                 Critical
-              </span>
+              </Badge>
             )}
             {item.ndt && (
-              <span className="ml-1 text-[10px] font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide bg-purple-100 dark:bg-purple-900/40 px-1.5 py-0.5 rounded-sm">
+              <Badge className="ml-1.5 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold px-2 py-0.5">
                 NDT
-              </span>
+              </Badge>
             )}
           </p>
-          <div className="flex flex-wrap gap-1 mt-1.5">
+          {/* Method tags */}
+          <div className="flex flex-wrap gap-1.5 mt-2">
             {item.methods.map((m) => (
               <span
                 key={m}
-                className="text-[10px] px-1.5 py-0.5 bg-muted rounded-sm text-muted-foreground font-medium"
+                className="text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-950/30 text-[#2B5597] dark:text-blue-400 rounded font-medium border border-blue-100 dark:border-blue-900"
               >
                 {m}
               </span>
             ))}
           </div>
-        </div>
-        <div className="flex gap-1 shrink-0">
-          {statusButtons.map((sb) => (
+
+          {/* Action buttons */}
+          <div className="flex gap-3 mt-3">
             <button
-              key={sb.status}
-              onClick={() =>
-                onSetResult(
-                  "status",
-                  result.status === sb.status ? null : sb.status,
-                )
-              }
-              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-sm border transition-all
-                ${result.status === sb.status ? sb.cls + " border-transparent" : "bg-background border-border hover:border-muted-foreground text-muted-foreground"}`}
+              className={`text-xs flex items-center gap-1.5 px-3 py-1.5 rounded border transition-all
+                ${
+                  showComment
+                    ? "border-[#2B5597] text-[#2B5597] bg-blue-50 dark:bg-blue-950/30"
+                    : "border-gray-200 dark:border-slate-600 text-muted-foreground hover:border-[#2B5597] hover:text-[#2B5597]"
+                }`}
+              onClick={() => setShowComment(!showComment)}
             >
-              {sb.icon}
-              {sb.label}
+              <MessageSquare className="h-3.5 w-3.5" />
+              <span className="uppercase tracking-wider font-semibold">
+                {result.comment ? "Comment" : "Add Comment"}
+              </span>
             </button>
-          ))}
+            <button
+              className={`text-xs flex items-center gap-1.5 px-3 py-1.5 rounded border transition-all
+                ${
+                  showPhotos
+                    ? "border-[#2B5597] text-[#2B5597] bg-blue-50 dark:bg-blue-950/30"
+                    : "border-gray-200 dark:border-slate-600 text-muted-foreground hover:border-[#2B5597] hover:text-[#2B5597]"
+                }`}
+              onClick={() => setShowPhotos(!showPhotos)}
+            >
+              <Camera className="h-3.5 w-3.5" />
+              <span className="uppercase tracking-wider font-semibold">
+                Photos
+                {result.photos.length > 0 ? ` (${result.photos.length})` : ""}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Right: Status buttons — box layout */}
+        <div className="flex shrink-0 border border-gray-200 dark:border-slate-600 rounded-lg overflow-hidden divide-x divide-gray-200 dark:divide-slate-600">
+          {statusButtons.map((sb) => {
+            const isActive = result.status === sb.status;
+            return (
+              <button
+                key={sb.status}
+                onClick={() =>
+                  onSetResult(
+                    "status",
+                    result.status === sb.status ? null : sb.status,
+                  )
+                }
+                className={`flex flex-col items-center justify-center w-16 h-16 transition-all
+                  ${
+                    isActive
+                      ? sb.activeClass
+                      : "bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700"
+                  }`}
+              >
+                {sb.icon}
+                <span className="text-[10px] font-bold mt-0.5 tracking-wide">
+                  {sb.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Measurement */}
       {item.measurement && (
-        <div className="mt-3 flex items-center gap-2 flex-wrap">
+        <div className="mt-4 flex items-center gap-2 flex-wrap ml-0">
           <Input
             className="w-24 h-8 text-xs"
             placeholder="Nominal"
@@ -1151,27 +1447,9 @@ function InspectionItemRow({
         </div>
       )}
 
-      {/* Extra buttons */}
-      <div className="flex gap-2 mt-2">
-        <button
-          className={`text-xs flex items-center gap-1 ${showComment ? "text-[#2B5597]" : "text-muted-foreground"} hover:text-[#2B5597]`}
-          onClick={() => setShowComment(!showComment)}
-        >
-          <MessageSquare className="h-3.5 w-3.5" />
-          {result.comment ? "Comment" : showComment ? "Hide" : "Add comment"}
-        </button>
-        <button
-          className={`text-xs flex items-center gap-1 ${showPhotos ? "text-[#2B5597]" : "text-muted-foreground"} hover:text-[#2B5597]`}
-          onClick={() => setShowPhotos(!showPhotos)}
-        >
-          <Camera className="h-3.5 w-3.5" />
-          Photos {result.photos.length > 0 && `(${result.photos.length})`}
-        </button>
-      </div>
-
       {showComment && (
         <Textarea
-          className="mt-2 text-xs"
+          className="mt-3 text-sm"
           rows={2}
           placeholder="Comment, observation, recommendation…"
           value={result.comment}
@@ -1180,13 +1458,13 @@ function InspectionItemRow({
       )}
 
       {showPhotos && (
-        <div className="mt-2 flex flex-wrap gap-2 items-center">
+        <div className="mt-3 flex flex-wrap gap-2 items-center">
           {result.photos.map((p, i) => (
             <div key={i} className="relative group">
               <img
                 src={p.data}
                 alt=""
-                className="h-16 w-16 object-cover rounded-sm border"
+                className="h-16 w-16 object-cover rounded border"
               />
               <button
                 className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full h-4 w-4 text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"

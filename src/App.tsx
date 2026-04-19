@@ -25,7 +25,6 @@ const ProjectsPage = lazy(() => import("@/pages/ProjectsPage"));
 const ActionTracker = lazy(() => import("@/pages/ActionTracker"));
 const RigConfigurator = lazy(() => import("@/pages/RigConfigurator"));
 const FailureReporting = lazy(() => import("@/pages/FailureReporting"));
-const ShiftPlanner = lazy(() => import("@/pages/ShiftPlanner"));
 const AssetIntegrityManagement = lazy(
   () => import("@/pages/AssetIntegrityManagement"),
 );
@@ -40,7 +39,6 @@ type AppPage =
   | "tender"
   | "failures"
   | "cspl"
-  | "shifts"
   | "integrity"
   | "inspections"
   | "admin";
@@ -203,20 +201,28 @@ function App() {
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Top Header - Minimal */}
-              <header className="h-16 border-b bg-card flex items-center justify-end px-4 gap-3">
-                <span className="text-sm text-muted-foreground mr-auto ml-4">
+              {/* Top Header */}
+              <header className="h-14 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-end px-6 gap-3">
+                <span className="text-sm font-medium text-[#143269] dark:text-blue-300 mr-auto">
                   {user.firstName} {user.lastName}
                 </span>
                 <NotificationBell onNavigate={setCurrentPage} />
                 <ModeToggle />
-                <Button onClick={handleLogout} variant="outline" size="sm">
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs font-medium"
+                >
                   Abmelden
                 </Button>
               </header>
 
+              {/* Gradient accent line */}
+              <div className="h-0.5 w-full bg-gradient-to-r from-[#2B5597] to-[#24C26B]" />
+
               {/* Content Area with Scroll */}
-              <main className="flex-1 overflow-y-auto bg-background">
+              <main className="flex-1 overflow-y-auto bg-[#f7f9fc] dark:bg-slate-950">
                 <div className="container mx-auto max-w-full p-4 sm:p-6 lg:p-8">
                   <ErrorBoundary>
                     <Suspense
@@ -252,11 +258,6 @@ function App() {
                       {currentPage === "cspl" && (
                         <PageErrorBoundary>
                           <CSPLGapAnalysis />
-                        </PageErrorBoundary>
-                      )}
-                      {currentPage === "shifts" && (
-                        <PageErrorBoundary>
-                          <ShiftPlanner />
                         </PageErrorBoundary>
                       )}
                       {currentPage === "tender" && (
@@ -320,7 +321,6 @@ function App() {
                         "actions",
                         "failures",
                         "cspl",
-                        "shifts",
                         "tender",
                         "integrity",
                         "inspections",

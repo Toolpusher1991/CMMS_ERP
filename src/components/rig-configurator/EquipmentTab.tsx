@@ -1,20 +1,5 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   Plus,
   Edit,
@@ -53,34 +38,6 @@ const CATEGORY_ICONS: Record<
   misc: Package,
 };
 
-// Category colors for visual distinction
-const CATEGORY_COLORS: Record<string, string> = {
-  drillPipe:
-    "from-orange-500/10 to-orange-500/5 border-orange-200 dark:border-orange-800",
-  tanks: "from-cyan-500/10 to-cyan-500/5 border-cyan-200 dark:border-cyan-800",
-  power:
-    "from-yellow-500/10 to-yellow-500/5 border-yellow-200 dark:border-yellow-800",
-  camps:
-    "from-purple-500/10 to-purple-500/5 border-purple-200 dark:border-purple-800",
-  safety: "from-red-500/10 to-red-500/5 border-red-200 dark:border-red-800",
-  mud: "from-emerald-500/10 to-emerald-500/5 border-emerald-200 dark:border-emerald-800",
-  bop: "from-rose-500/10 to-rose-500/5 border-rose-200 dark:border-rose-800",
-  cranes: "from-blue-500/10 to-blue-500/5 border-blue-200 dark:border-blue-800",
-  misc: "from-gray-500/10 to-gray-500/5 border-gray-200 dark:border-gray-800",
-};
-
-const CATEGORY_ICON_COLORS: Record<string, string> = {
-  drillPipe: "text-orange-600",
-  tanks: "text-cyan-600",
-  power: "text-yellow-600",
-  camps: "text-purple-600",
-  safety: "text-red-600",
-  mud: "text-emerald-600",
-  bop: "text-rose-600",
-  cranes: "text-blue-600",
-  misc: "text-gray-600",
-};
-
 interface EquipmentTabProps {
   equipmentCategories: EquipmentCatalog;
   selectedEquipment: Record<string, EquipmentItem[]>;
@@ -104,7 +61,6 @@ export function EquipmentTab({
   onBack,
   onNext,
 }: EquipmentTabProps) {
-  // Track which categories are expanded — start with all expanded
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>(
     () =>
       Object.keys(equipmentCategories).reduce(
@@ -119,255 +75,220 @@ export function EquipmentTab({
     .reduce((sum, item) => sum + parseFloat(item.price), 0);
 
   return (
-    <div className="space-y-4">
-      {/* Summary bar */}
-      <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-3 border">
-        <div className="flex items-center gap-6">
+    <div className="space-y-5">
+      {/* Summary bar — H&P style */}
+      <div className="bg-[#143269] rounded-xl px-5 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-8">
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+            <p className="text-[10px] uppercase tracking-widest text-white/60 font-semibold">
               Ausgewählt
             </p>
-            <p className="text-lg font-bold">{totalSelected} Positionen</p>
+            <p className="text-xl font-bold text-white">{totalSelected} Positionen</p>
           </div>
-          <div className="h-8 w-px bg-border" />
+          <div className="h-10 w-px bg-white/20" />
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+            <p className="text-[10px] uppercase tracking-widest text-white/60 font-semibold">
               Equipment-Kosten
             </p>
-            <p className="text-lg font-bold text-green-600">
+            <p className="text-xl font-bold text-[#24C26B]">
               € {totalEquipmentCost.toLocaleString("de-DE")}/Tag
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const allOpen = Object.values(openCategories).every(Boolean);
-              setOpenCategories(
-                Object.keys(equipmentCategories).reduce(
-                  (acc, key) => ({ ...acc, [key]: !allOpen }),
-                  {},
-                ),
-              );
-            }}
-          >
-            {Object.values(openCategories).every(Boolean)
-              ? "Alle zuklappen"
-              : "Alle aufklappen"}
-          </Button>
-        </div>
+        <button
+          onClick={() => {
+            const allOpen = Object.values(openCategories).every(Boolean);
+            setOpenCategories(
+              Object.keys(equipmentCategories).reduce(
+                (acc, key) => ({ ...acc, [key]: !allOpen }),
+                {},
+              ),
+            );
+          }}
+          className="text-xs font-semibold text-white/80 hover:text-white border border-white/30 rounded-lg px-3 py-1.5 transition-colors"
+        >
+          {Object.values(openCategories).every(Boolean)
+            ? "Alle zuklappen"
+            : "Alle aufklappen"}
+        </button>
       </div>
 
       {/* Equipment categories */}
-      <ScrollArea className="h-[calc(100vh-380px)]">
-        <div className="space-y-3 pr-4">
-          {Object.entries(equipmentCategories).map(([key, category]) => {
-            const Icon = CATEGORY_ICONS[key] || Package;
-            const selected = selectedEquipment[key] || [];
-            const isOpen = openCategories[key] ?? true;
-            const colorClass = CATEGORY_COLORS[key] || CATEGORY_COLORS.misc;
-            const iconColor = CATEGORY_ICON_COLORS[key] || "text-gray-600";
-            const categoryTotal = selected.reduce(
-              (sum, item) => sum + parseFloat(item.price),
-              0,
-            );
+      <div className="space-y-4 max-h-[calc(100vh-380px)] overflow-y-auto pr-1">
+        {Object.entries(equipmentCategories).map(([key, category]) => {
+          const Icon = CATEGORY_ICONS[key] || Package;
+          const selected = selectedEquipment[key] || [];
+          const isOpen = openCategories[key] ?? true;
+          const categoryTotal = selected.reduce(
+            (sum, item) => sum + parseFloat(item.price),
+            0,
+          );
 
-            return (
-              <Collapsible
-                key={key}
-                open={isOpen}
-                onOpenChange={(open) =>
-                  setOpenCategories((prev) => ({ ...prev, [key]: open }))
+          return (
+            <div key={key} className="rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+              {/* Category header */}
+              <button
+                onClick={() =>
+                  setOpenCategories((prev) => ({ ...prev, [key]: !prev[key] }))
                 }
+                className="w-full flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-[#143269] to-[#2B5597] hover:from-[#1a3d7a] hover:to-[#3366aa] transition-colors"
               >
-                <Card
-                  className={`border bg-gradient-to-r ${colorClass} overflow-hidden`}
-                >
-                  {/* Category header — always visible */}
-                  <CollapsibleTrigger asChild>
-                    <div className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`p-2 rounded-lg bg-background/80 shadow-sm ${iconColor}`}
-                        >
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-semibold">
-                            {category.name}
-                          </h3>
-                          <p className="text-xs text-muted-foreground">
-                            {category.items.length} verfügbar
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {selected.length > 0 && (
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-primary/90 text-primary-foreground text-xs px-2">
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
-                              {selected.length} gewählt
-                            </Badge>
-                            <span className="text-sm font-semibold text-green-600">
-                              € {categoryTotal.toLocaleString("de-DE")}
-                            </span>
-                          </div>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onAddEquipment(key);
-                          }}
-                          className="h-7 gap-1 text-xs"
-                          title="Equipment hinzufügen"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                        <ChevronDown
-                          className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
-                            isOpen ? "rotate-180" : ""
-                          }`}
-                        />
-                      </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center">
+                    <Icon className="h-4.5 w-4.5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-sm font-bold text-white tracking-wide">
+                      {category.name}
+                    </h3>
+                    <p className="text-[11px] text-white/60">
+                      {category.items.length} verfügbar
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {selected.length > 0 && (
+                    <div className="flex items-center gap-2.5">
+                      <span className="inline-flex items-center gap-1 bg-[#24C26B] text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
+                        <CheckCircle2 className="h-3 w-3" />
+                        {selected.length}
+                      </span>
+                      <span className="text-sm font-bold text-[#24C26B]">
+                        € {categoryTotal.toLocaleString("de-DE")}
+                      </span>
                     </div>
-                  </CollapsibleTrigger>
+                  )}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddEquipment(key);
+                    }}
+                    className="w-7 h-7 rounded-md bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <ChevronDown
+                    className={`h-4 w-4 text-white/70 transition-transform duration-200 ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
+              </button>
 
-                  {/* Collapsible equipment items */}
-                  <CollapsibleContent>
-                    <CardContent className="px-4 pb-3 pt-0">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <TooltipProvider delayDuration={300}>
-                          {category.items.map((item) => {
-                            const isSelected = selected.some(
-                              (s) => s.id === item.id,
-                            );
-                            const specs = Object.entries(item)
-                              .filter(
-                                ([k]) =>
-                                  k !== "id" && k !== "name" && k !== "price",
-                              )
-                              .map(([, value]) => value)
-                              .join(" • ");
+              {/* Collapsible items */}
+              {isOpen && (
+                <div className="p-4 bg-[#f7f9fc]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {category.items.map((item) => {
+                      const isSelected = selected.some(
+                        (s) => s.id === item.id,
+                      );
+                      const specs = Object.entries(item)
+                        .filter(
+                          ([k]) =>
+                            k !== "id" && k !== "name" && k !== "price",
+                        )
+                        .map(([, value]) => value)
+                        .join(" · ");
 
-                            return (
-                              <div
-                                key={item.id}
-                                className={`group relative flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                                  isSelected
-                                    ? "bg-primary/10 border-primary shadow-sm"
-                                    : "bg-background/60 hover:bg-background hover:border-muted-foreground/30 hover:shadow-sm"
-                                }`}
-                                onClick={() => onToggleEquipment(key, item)}
-                              >
-                                <Checkbox
-                                  checked={isSelected}
-                                  className="flex-shrink-0"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm leading-tight truncate">
-                                    {item.name}
-                                  </p>
-                                  {specs && (
-                                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                                      {specs}
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                  <div className="text-right mr-1">
-                                    <p className="font-bold text-green-600 text-sm whitespace-nowrap">
-                                      €{" "}
-                                      {parseFloat(item.price).toLocaleString(
-                                        "de-DE",
-                                      )}
-                                    </p>
-                                    <p className="text-[10px] text-muted-foreground">
-                                      /Tag
-                                    </p>
-                                  </div>
-                                  {/* Action buttons — visible on hover */}
-                                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            onQuickAction(key, item);
-                                          }}
-                                          className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                        >
-                                          <ClipboardList className="h-3.5 w-3.5" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top">
-                                        Tender-Aufgabe
-                                      </TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            onEditEquipment(key, item);
-                                          }}
-                                          className="h-7 w-7 p-0 hover:bg-muted"
-                                        >
-                                          <Edit className="h-3.5 w-3.5" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top">
-                                        Bearbeiten
-                                      </TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            onDeleteEquipment(key, item.id);
-                                          }}
-                                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                        >
-                                          <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top">
-                                        Löschen
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                </div>
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => onToggleEquipment(key, item)}
+                          className={`group relative rounded-xl border-2 p-4 cursor-pointer transition-all duration-150 ${
+                            isSelected
+                              ? "bg-white border-[#24C26B] shadow-md ring-1 ring-[#24C26B]/20"
+                              : "bg-white border-transparent hover:border-[#2B5597]/30 hover:shadow-md shadow-sm"
+                          }`}
+                        >
+                          {/* Selected indicator */}
+                          {isSelected && (
+                            <div className="absolute top-3 right-3">
+                              <div className="w-6 h-6 rounded-full bg-[#24C26B] flex items-center justify-center">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-white" />
                               </div>
-                            );
-                          })}
-                        </TooltipProvider>
-                      </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
-            );
-          })}
-        </div>
-      </ScrollArea>
+                            </div>
+                          )}
 
-      {/* Wizard navigation */}
+                          {/* Equipment icon */}
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${
+                            isSelected
+                              ? "bg-[#24C26B]/10"
+                              : "bg-[#143269]/8"
+                          }`}>
+                            <Icon className={`h-5 w-5 ${
+                              isSelected ? "text-[#24C26B]" : "text-[#143269]"
+                            }`} />
+                          </div>
+
+                          {/* Name & specs */}
+                          <h4 className="font-semibold text-sm text-[#143269] leading-tight mb-1 pr-6">
+                            {item.name}
+                          </h4>
+                          {specs && (
+                            <p className="text-[11px] text-gray-500 leading-snug mb-3 line-clamp-2">
+                              {specs}
+                            </p>
+                          )}
+
+                          {/* Price */}
+                          <div className="flex items-baseline gap-1 mb-3">
+                            <span className="text-lg font-bold text-[#24C26B]">
+                              € {parseFloat(item.price).toLocaleString("de-DE")}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-medium">/Tag</span>
+                          </div>
+
+                          {/* Action buttons */}
+                          <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity pt-2 border-t border-gray-100">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onQuickAction(key, item);
+                              }}
+                              className="flex items-center gap-1 text-[11px] font-medium text-[#2B5597] hover:bg-[#2B5597]/10 px-2 py-1 rounded-md transition-colors"
+                            >
+                              <ClipboardList className="h-3 w-3" />
+                              Aufgabe
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEditEquipment(key, item);
+                              }}
+                              className="flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:bg-gray-100 px-2 py-1 rounded-md transition-colors"
+                            >
+                              <Edit className="h-3 w-3" />
+                              Edit
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteEquipment(key, item.id);
+                              }}
+                              className="flex items-center gap-1 text-[11px] font-medium text-red-500 hover:bg-red-50 px-2 py-1 rounded-md transition-colors ml-auto"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Wizard navigation — H&P style */}
       <div className="flex justify-between pt-2">
-        <Button variant="ghost" size="sm" onClick={onBack}>
+        <Button variant="ghost" size="sm" onClick={onBack} className="text-[#143269] hover:bg-[#143269]/5">
           <ChevronLeft className="mr-1 h-4 w-4" />
           Zurück: Anlagen
         </Button>
-        <Button variant="ghost" size="sm" onClick={onNext}>
+        <Button variant="ghost" size="sm" onClick={onNext} className="text-[#143269] hover:bg-[#143269]/5">
           Weiter: Zusammenfassung
           <ChevronRight className="ml-1 h-4 w-4" />
         </Button>

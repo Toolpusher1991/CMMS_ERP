@@ -2804,91 +2804,90 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Back Button */}
-      <Button
-        variant="ghost"
-        onClick={() => window.history.back()}
-        className="mb-2"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Zurück
-      </Button>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <FolderKanban className="h-6 w-6" />
-                Projekte
-              </CardTitle>
-              <CardDescription>
-                Projektverwaltung für alle Anlagen
-              </CardDescription>
+    <div className="-m-4 sm:-m-6 lg:-m-8">
+      {/* H&P Navy Header */}
+      <div className="bg-gradient-to-r from-[#143269] to-[#2B5597] px-6 py-6">
+        <button
+          onClick={() => window.history.back()}
+          className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm mb-4 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Zurück
+        </button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
+              <FolderKanban className="h-5.5 w-5.5 text-white" />
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Projekt suchen..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-64"
-                />
-              </div>
-
-              {/* Status Filter */}
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px] h-10">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Alle Status</SelectItem>
-                  <SelectItem value="PLANNED">Geplant</SelectItem>
-                  <SelectItem value="IN_PROGRESS">In Arbeit</SelectItem>
-                  <SelectItem value="ON_HOLD">Pausiert</SelectItem>
-                  <SelectItem value="COMPLETED">Abgeschlossen</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Sort */}
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[140px] h-10">
-                  <SelectValue placeholder="Sortieren" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="progress">Fortschritt</SelectItem>
-                  <SelectItem value="dueDate">Fälligkeit</SelectItem>
-                  <SelectItem value="priority">Priorität</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button
-                onClick={openNewProjectDialog}
-                className="h-10 min-w-[44px] min-h-[44px] touch-manipulation"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Neues Projekt
-              </Button>
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-wide">Projekte</h1>
+              <p className="text-sm text-white/60">Projektverwaltung für alle Anlagen</p>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
+          <button
+            onClick={openNewProjectDialog}
+            className="flex items-center gap-2 bg-[#24C26B] hover:bg-[#1da55a] text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors shadow-lg shadow-[#24C26B]/20"
+          >
+            <Plus className="h-4 w-4" />
+            Neues Projekt
+          </button>
+        </div>
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="bg-white border-b px-6 py-3.5 flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Projekt suchen..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-9 bg-[#f7f9fc] border-gray-200 focus:border-[#2B5597] focus:ring-[#2B5597]/20"
+          />
+        </div>
+
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[140px] h-9 bg-[#f7f9fc] border-gray-200">
+            <SelectValue placeholder="Alle Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Alle Status</SelectItem>
+            <SelectItem value="PLANNED">Geplant</SelectItem>
+            <SelectItem value="IN_PROGRESS">In Arbeit</SelectItem>
+            <SelectItem value="ON_HOLD">Pausiert</SelectItem>
+            <SelectItem value="COMPLETED">Abgeschlossen</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[140px] h-9 bg-[#f7f9fc] border-gray-200">
+            <SelectValue placeholder="Name" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">Name</SelectItem>
+            <SelectItem value="progress">Fortschritt</SelectItem>
+            <SelectItem value="dueDate">Fälligkeit</SelectItem>
+            <SelectItem value="priority">Priorität</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Main Content */}
+      <div className="p-6 bg-[#f7f9fc] min-h-[60vh]">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           {loading ? (
             <ProjectsPageSkeleton />
           ) : (
             <>
               {/* Rig Selector - Custom dropdown (no Radix Popover) */}
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-4 px-5 pt-4">
                 <div className="relative w-full sm:w-80" ref={rigDropdownRef}>
                   <Button
                     variant="outline"
                     role="combobox"
                     aria-expanded={rigSelectorOpen}
                     onClick={() => setRigSelectorOpen(!rigSelectorOpen)}
-                    className="w-full h-12 justify-between bg-muted/30 hover:bg-muted/50 border-border/50"
+                    className="w-full h-11 justify-between bg-[#f7f9fc] hover:bg-[#edf1f7] border-gray-200"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Building2 className="h-4 w-4 shrink-0 text-primary" />
@@ -3150,35 +3149,40 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
                     className="space-y-4"
                   >
                     {filteredProjects.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <FolderKanban className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold">
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-[#143269]/10 flex items-center justify-center mb-4">
+                          <FolderKanban className="h-8 w-8 text-[#143269]" />
+                        </div>
+                        <h3 className="text-lg font-bold text-[#143269]">
                           Keine Projekte
                         </h3>
-                        <p className="text-sm text-muted-foreground mb-4">
+                        <p className="text-sm text-gray-500 mb-4">
                           Erstellen Sie das erste Projekt für {rig.name}
                         </p>
-                        <Button onClick={openNewProjectDialog}>
-                          <Plus className="mr-2 h-4 w-4" />
+                        <button
+                          onClick={openNewProjectDialog}
+                          className="flex items-center gap-2 bg-[#24C26B] hover:bg-[#1da55a] text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors"
+                        >
+                          <Plus className="h-4 w-4" />
                           Projekt erstellen
-                        </Button>
+                        </button>
                       </div>
                     ) : (
-                      <div className="border rounded-lg overflow-hidden bg-card">
+                      <div className="overflow-hidden">
                         {/* Column Headers */}
-                        <div className="grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 px-4 py-2.5 border-b bg-muted/30">
+                        <div className="grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 px-5 py-3 bg-gradient-to-r from-[#143269] to-[#2B5597]">
                           <span></span>
-                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider"></span>
-                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">Projekt</span>
+                          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
                             Verantwortlich
                           </span>
-                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
                             Fällig
                           </span>
-                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
                             Priorität
                           </span>
-                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
                             Fortschritt
                           </span>
                           <span></span>
@@ -3201,9 +3205,9 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
                               {/* Project Row */}
                               <div
                                 id={`project-${project.id}`}
-                                className={`grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 items-center px-4 py-3 border-b hover:bg-muted/40 transition-colors cursor-pointer group ${
+                                className={`grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 items-center px-5 py-3.5 border-b border-gray-100 hover:bg-[#f7f9fc] transition-colors cursor-pointer group ${
                                   project.status === "COMPLETED"
-                                    ? "opacity-70"
+                                    ? "opacity-60"
                                     : ""
                                 }`}
                                 onClick={() =>
@@ -3371,8 +3375,8 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
 
                               {/* Expanded Content: Task List */}
                               {isExpanded && (
-                                <div className="border-b bg-muted/20">
-                                  <div className="px-4 py-4">
+                                <div className="border-b border-gray-100 bg-[#f7f9fc]">
+                                  <div className="px-5 py-4">
                                     <div className="flex items-center justify-between mb-3">
                                       <div className="flex items-center gap-3">
                                         <h4 className="font-semibold text-sm flex items-center gap-2">
@@ -3597,8 +3601,8 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
               </Tabs>
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Flow Dialog */}
       <Dialog open={showFlowDialog} onOpenChange={setShowFlowDialog}>

@@ -1835,67 +1835,72 @@ const ActionTracker = ({
 
   // Desktop View: Full functionality
   return (
-    <div className="space-y-6">
-      {/* Back Button */}
-      <Button
-        variant="ghost"
-        onClick={() =>
-          onNavigateBack ? onNavigateBack() : window.history.back()
-        }
-        className="mb-2"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Zur�ck
-      </Button>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <ClipboardList className="h-6 w-6" />
-                Action Tracker
-              </CardTitle>
-              <CardDescription>
-                Aufgabenverfolgung f�r alle Anlagen
-              </CardDescription>
+    <div className="-m-4 sm:-m-6 lg:-m-8">
+      {/* H&P Navy Header */}
+      <div className="bg-gradient-to-r from-[#143269] to-[#2B5597] px-6 py-6">
+        <button
+          onClick={() =>
+            onNavigateBack ? onNavigateBack() : window.history.back()
+          }
+          className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm mb-4 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Zurück
+        </button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
+              <ClipboardList className="h-5 w-5 text-white" />
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={downloadActionTemplate}
-                variant="outline"
-                size="sm"
-              >
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Template
-              </Button>
-              <Button onClick={handleExport} variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                Export
-              </Button>
-              <Button
-                onClick={() => document.getElementById("excel-upload")?.click()}
-                variant="outline"
-                size="sm"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Import
-              </Button>
-              <input
-                id="excel-upload"
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleImport}
-                className="hidden"
-              />
-              <Button onClick={openNewDialog}>
-                <Plus className="mr-2 h-4 w-4" />
-                Neue Action
-              </Button>
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-wide">Action Tracker</h1>
+              <p className="text-sm text-white/60">Aufgabenverfolgung für alle Anlagen</p>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={downloadActionTemplate}
+              className="flex items-center gap-1.5 text-white/80 hover:text-white border border-white/30 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              Template
+            </button>
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1.5 text-white/80 hover:text-white border border-white/30 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </button>
+            <button
+              onClick={() => document.getElementById("excel-upload")?.click()}
+              className="flex items-center gap-1.5 text-white/80 hover:text-white border border-white/30 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Import
+            </button>
+            <input
+              id="excel-upload"
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleImport}
+              className="hidden"
+            />
+            <button
+              onClick={openNewDialog}
+              className="flex items-center gap-2 bg-[#24C26B] hover:bg-[#1da55a] text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors shadow-lg shadow-[#24C26B]/20"
+            >
+              <Plus className="h-4 w-4" />
+              Neue Action
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="p-6 bg-[#f7f9fc] min-h-[60vh]">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-5">
           {isLoading ? (
             <ActionTrackerSkeleton />
           ) : (
@@ -1926,7 +1931,7 @@ const ActionTracker = ({
                 {/* Rig Selector Dropdown - scales for 20+ rigs */}
                 <div className="flex items-center gap-3">
                   <Select value={activeTab} onValueChange={setActiveTab}>
-                    <SelectTrigger className="w-full sm:w-72 h-12 bg-muted/30">
+                    <SelectTrigger className="w-full sm:w-72 h-11 bg-[#f7f9fc] border-gray-200">
                       <SelectValue placeholder="Anlage ausw�hlen..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -1986,18 +1991,23 @@ const ActionTracker = ({
                         rigmoveActions.length === 0
                       ) {
                         return (
-                          <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <ClipboardList className="h-12 w-12 text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-semibold">
+                          <div className="flex flex-col items-center justify-center py-16 text-center">
+                            <div className="w-16 h-16 rounded-2xl bg-[#143269]/10 flex items-center justify-center mb-4">
+                              <ClipboardList className="h-8 w-8 text-[#143269]" />
+                            </div>
+                            <h3 className="text-lg font-bold text-[#143269]">
                               Keine Actions
                             </h3>
-                            <p className="text-sm text-muted-foreground mb-4">
+                            <p className="text-sm text-gray-500 mb-4">
                               Erstellen Sie die erste Action für {rig.name}
                             </p>
-                            <Button onClick={openNewDialog}>
-                              <Plus className="mr-2 h-4 w-4" />
+                            <button
+                              onClick={openNewDialog}
+                              className="flex items-center gap-2 bg-[#24C26B] hover:bg-[#1da55a] text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors"
+                            >
+                              <Plus className="h-4 w-4" />
                               Action erstellen
-                            </Button>
+                            </button>
                           </div>
                         );
                       }
@@ -2006,9 +2016,9 @@ const ActionTracker = ({
                         <React.Fragment key={action.id}>
                           <div
                             id={`action-${action.id}`}
-                            className={`grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 items-center px-4 py-3 border-b hover:bg-muted/40 transition-colors cursor-pointer group ${
+                            className={`grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 items-center px-5 py-3.5 border-b border-gray-100 hover:bg-[#f7f9fc] transition-colors cursor-pointer group ${
                               isOverdue(action.dueDate, action.status)
-                                ? "bg-red-50/50 dark:bg-red-950/20"
+                                ? "bg-red-50/50"
                                 : ""
                             }`}
                             onClick={() => toggleRow(action.id)}
@@ -2158,7 +2168,7 @@ const ActionTracker = ({
 
                           {/* Expanded Detail Section */}
                           {expandedRows.has(action.id) && (
-                            <div className="border-b bg-muted/20">
+                            <div className="border-b border-gray-100 bg-[#f7f9fc]">
                               <div className="p-6 space-y-6">
                                 {/* Beschreibung & Aufgaben Grid */}
                                 <div className="grid grid-cols-2 gap-6">
@@ -2555,21 +2565,21 @@ const ActionTracker = ({
                       );
 
                       return (
-                        <div className="border rounded-lg overflow-hidden bg-card">
+                        <div className="overflow-hidden">
                           {/* Column Headers */}
-                          <div className="grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 px-4 py-2.5 border-b bg-muted/30">
+                          <div className="grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 px-5 py-3 bg-gradient-to-r from-[#143269] to-[#2B5597]">
                             <span></span>
-                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider"></span>
-                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">Action</span>
+                            <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
                               Zugewiesen
                             </span>
-                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
                               Fällig
                             </span>
-                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
                               Priorität
                             </span>
-                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
                               Status
                             </span>
                             <span></span>
@@ -2578,8 +2588,8 @@ const ActionTracker = ({
                           {/* Allgemein Section */}
                           {allgemeinActions.length > 0 && (
                             <>
-                              <div className="px-4 py-2.5 border-b bg-muted/10">
-                                <h3 className="font-bold text-sm tracking-tight">
+                              <div className="px-5 py-2.5 border-b border-gray-100 bg-[#f7f9fc]">
+                                <h3 className="font-bold text-sm text-[#143269] tracking-tight">
                                   Allgemein
                                 </h3>
                               </div>
@@ -2590,8 +2600,8 @@ const ActionTracker = ({
                           {/* Rigmoves Section */}
                           {rigmoveActions.length > 0 && (
                             <>
-                              <div className="px-4 py-2.5 border-b bg-muted/10">
-                                <h3 className="font-bold text-sm tracking-tight">
+                              <div className="px-5 py-2.5 border-b border-gray-100 bg-[#f7f9fc]">
+                                <h3 className="font-bold text-sm text-[#143269] tracking-tight">
                                   Rigmoves
                                 </h3>
                               </div>
@@ -2606,8 +2616,9 @@ const ActionTracker = ({
               </Tabs>
             </>
           )}
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </div>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
