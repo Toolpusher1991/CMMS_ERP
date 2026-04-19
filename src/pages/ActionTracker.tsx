@@ -2170,163 +2170,213 @@ const ActionTracker = ({
                           );
                         }
 
-                        const renderActionRow = (action: Action) => (
-                          <React.Fragment key={action.id}>
+                        const renderActionCard = (action: Action) => (
+                          <div
+                            key={action.id}
+                            id={`action-${action.id}`}
+                            className="mb-2"
+                          >
+                            {/* Action Card */}
                             <div
-                              id={`action-${action.id}`}
-                              className={`grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 items-center px-5 py-3.5 border-b border-gray-100 hover:bg-[#f7f9fc] transition-colors cursor-pointer group ${
+                              className={`bg-white border border-gray-200 hover:shadow-md transition-all cursor-pointer group ${
                                 isOverdue(action.dueDate, action.status)
-                                  ? "bg-red-50/50"
-                                  : ""
-                              }`}
+                                  ? "border-l-[3px] border-l-[#C8102E] bg-red-50/30"
+                                  : action.priority === "URGENT"
+                                    ? "border-l-[3px] border-l-[#C8102E]"
+                                    : action.priority === "HIGH"
+                                      ? "border-l-[3px] border-l-[#E37222]"
+                                      : action.priority === "MEDIUM"
+                                        ? "border-l-[3px] border-l-[#2B5597]"
+                                        : "border-l-[3px] border-l-[#24C26B]"
+                              } ${action.status === "COMPLETED" ? "opacity-70" : ""}`}
                               onClick={() => toggleRow(action.id)}
                             >
-                              {/* Status Icon */}
-                              <button
-                                className="flex-shrink-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleComplete(action);
-                                }}
-                              >
-                                {action.status === "COMPLETED" ? (
-                                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                                ) : action.status === "IN_PROGRESS" ? (
-                                  <div className="h-5 w-5 rounded-full border-2 border-blue-400 flex items-center justify-center">
-                                    <div className="h-2.5 w-2.5 rounded-full bg-blue-400" />
-                                  </div>
-                                ) : (
-                                  <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" />
-                                )}
-                              </button>
+                              <div className="px-5 py-3.5">
+                                {/* Top Row: Status + Title + Badges */}
+                                <div className="flex items-start gap-3">
+                                  {/* Status Toggle */}
+                                  <button
+                                    className="flex-shrink-0 mt-0.5"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleComplete(action);
+                                    }}
+                                  >
+                                    {action.status === "COMPLETED" ? (
+                                      <CheckCircle2 className="h-5 w-5 text-[#24C26B]" />
+                                    ) : action.status === "IN_PROGRESS" ? (
+                                      <div className="h-5 w-5 rounded-full border-2 border-[#2B5597] flex items-center justify-center">
+                                        <div className="h-2.5 w-2.5 rounded-full bg-[#2B5597]" />
+                                      </div>
+                                    ) : (
+                                      <div className="h-5 w-5 rounded-full border-2 border-gray-300" />
+                                    )}
+                                  </button>
 
-                              {/* Title & Description */}
-                              <div className="min-w-0">
-                                <div
-                                  className={`font-medium text-sm leading-tight ${
-                                    action.status === "COMPLETED"
-                                      ? "line-through text-muted-foreground"
-                                      : ""
-                                  }`}
-                                >
-                                  {action.title}
-                                </div>
-                                {action.description && (
-                                  <div className="text-xs text-muted-foreground truncate mt-0.5">
-                                    {
-                                      action.description
-                                        .split("--- Materialien ---")[0]
-                                        .split("\n")[0]
-                                    }
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Assignee */}
-                              <div className="flex items-center gap-2">
-                                {action.assignedTo ? (
-                                  <>
-                                    <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-[10px] flex-shrink-0 ring-1 ring-primary/20">
-                                      {action.assignedTo
-                                        .split(" ")
-                                        .map((n: string) => n[0])
-                                        .join("")
-                                        .slice(0, 2)}
+                                  {/* Title + Description */}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span
+                                        className={`font-medium text-sm text-[#143269] leading-tight ${
+                                          action.status === "COMPLETED"
+                                            ? "line-through text-[#64646E]"
+                                            : ""
+                                        }`}
+                                      >
+                                        {action.title}
+                                      </span>
+                                      {/* Priority Badge */}
+                                      <span
+                                        className={`inline-block text-[10px] uppercase tracking-[1px] font-medium px-2 py-0.5 ${
+                                          action.priority === "URGENT"
+                                            ? "bg-[#C8102E]/10 text-[#C8102E]"
+                                            : action.priority === "HIGH"
+                                              ? "bg-[#E37222]/10 text-[#E37222]"
+                                              : action.priority === "MEDIUM"
+                                                ? "bg-[#2B5597]/10 text-[#2B5597]"
+                                                : "bg-[#24C26B]/10 text-[#24C26B]"
+                                        }`}
+                                      >
+                                        {action.priority === "URGENT"
+                                          ? "Dringend"
+                                          : action.priority === "HIGH"
+                                            ? "Hoch"
+                                            : action.priority === "MEDIUM"
+                                              ? "Mittel"
+                                              : "Niedrig"}
+                                      </span>
+                                      {/* Status Badge */}
+                                      <span
+                                        className={`inline-block text-[10px] uppercase tracking-[1px] font-medium px-2 py-0.5 ${
+                                          action.status === "COMPLETED"
+                                            ? "bg-[#24C26B]/10 text-[#24C26B]"
+                                            : action.status === "IN_PROGRESS"
+                                              ? "bg-[#00B2E3]/10 text-[#00B2E3]"
+                                              : "bg-[#64646E]/10 text-[#64646E]"
+                                        }`}
+                                      >
+                                        {action.status === "OPEN"
+                                          ? "Offen"
+                                          : action.status === "IN_PROGRESS"
+                                            ? "In Arbeit"
+                                            : "Erledigt"}
+                                      </span>
+                                      {/* Task progress indicator */}
+                                      {action.tasks.length > 0 && (
+                                        <span className="text-[10px] text-[#64646E] flex items-center gap-1">
+                                          <ListTodo className="h-3 w-3" />
+                                          {
+                                            action.tasks.filter(
+                                              (t: ActionTask) => t.completed,
+                                            ).length
+                                          }
+                                          /{action.tasks.length}
+                                        </span>
+                                      )}
                                     </div>
-                                  </>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">
-                                    —
-                                  </span>
-                                )}
-                              </div>
+                                    {action.description && (
+                                      <p className="text-xs text-[#64646E] mt-1 line-clamp-1">
+                                        {
+                                          action.description
+                                            .split("--- Materialien ---")[0]
+                                            .split("\n")[0]
+                                        }
+                                      </p>
+                                    )}
+                                  </div>
 
-                              {/* Due Date */}
-                              <span
-                                className={`text-xs ${
-                                  isOverdue(action.dueDate, action.status)
-                                    ? "text-red-600 dark:text-red-400 font-semibold"
-                                    : "text-muted-foreground"
-                                }`}
-                              >
-                                {action.dueDate
-                                  ? new Date(action.dueDate).toLocaleDateString(
-                                      "de-DE",
-                                      { day: "numeric", month: "short" },
-                                    )
-                                  : "—"}
-                              </span>
+                                  {/* Right side: Assignee + Date + Actions */}
+                                  <div className="flex items-center gap-5 flex-shrink-0">
+                                    {/* Assignee */}
+                                    {action.assignedTo ? (
+                                      <div className="flex items-center gap-2">
+                                        <div className="h-7 w-7 rounded-full bg-[#143269]/10 flex items-center justify-center text-[#143269] font-medium text-[10px] flex-shrink-0 border border-[#143269]/20">
+                                          {action.assignedTo
+                                            .split(" ")
+                                            .map((n: string) => n[0])
+                                            .join("")
+                                            .slice(0, 2)
+                                            .toUpperCase()}
+                                        </div>
+                                        <span className="text-xs text-[#64646E] hidden xl:inline max-w-[100px] truncate">
+                                          {action.assignedTo.split("@")[0]}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-[#C8C8D2]">
+                                        —
+                                      </span>
+                                    )}
 
-                              {/* Priority Badge */}
-                              <Badge
-                                className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
-                                  action.priority === "URGENT"
-                                    ? "bg-red-500 hover:bg-red-600 text-white"
-                                    : action.priority === "HIGH"
-                                      ? "bg-orange-500 hover:bg-orange-600 text-white"
-                                      : action.priority === "MEDIUM"
-                                        ? "bg-amber-400 hover:bg-amber-500 text-white"
-                                        : "bg-emerald-500 hover:bg-emerald-600 text-white"
-                                }`}
-                              >
-                                {action.priority === "URGENT"
-                                  ? "Urgent"
-                                  : action.priority === "HIGH"
-                                    ? "Hoch"
-                                    : action.priority === "MEDIUM"
-                                      ? "Mittel"
-                                      : "Niedrig"}
-                              </Badge>
+                                    {/* Due Date */}
+                                    {action.dueDate ? (
+                                      <div
+                                        className={`flex items-center gap-1.5 text-xs ${
+                                          isOverdue(
+                                            action.dueDate,
+                                            action.status,
+                                          )
+                                            ? "text-[#C8102E] font-medium"
+                                            : "text-[#64646E]"
+                                        }`}
+                                      >
+                                        <Calendar className="h-3.5 w-3.5" />
+                                        {new Date(
+                                          action.dueDate,
+                                        ).toLocaleDateString("de-DE", {
+                                          day: "numeric",
+                                          month: "short",
+                                        })}
+                                        {isOverdue(
+                                          action.dueDate,
+                                          action.status,
+                                        ) && (
+                                          <span className="text-[10px] uppercase tracking-[1px] bg-[#C8102E]/10 text-[#C8102E] px-1.5 py-0.5 font-medium">
+                                            Überfällig
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-[#C8C8D2]">
+                                        —
+                                      </span>
+                                    )}
 
-                              {/* Status Badge */}
-                              <Badge
-                                className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
-                                  action.status === "COMPLETED"
-                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                                    : action.status === "IN_PROGRESS"
-                                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                      : "bg-slate-500 hover:bg-slate-600 text-white"
-                                }`}
-                              >
-                                {action.status === "OPEN"
-                                  ? "Offen"
-                                  : action.status === "IN_PROGRESS"
-                                    ? "In Arbeit"
-                                    : "Erledigt"}
-                              </Badge>
-
-                              {/* Hover Actions */}
-                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openEditDialog(action);
-                                  }}
-                                  title="Bearbeiten"
-                                >
-                                  <Edit className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(action.id);
-                                  }}
-                                  title="Löschen"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                                </Button>
+                                    {/* Edit/Delete Actions */}
+                                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 text-[#64646E] hover:text-[#143269]"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openEditDialog(action);
+                                        }}
+                                        title="Bearbeiten"
+                                      >
+                                        <Edit className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 text-[#64646E] hover:text-[#C8102E]"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDelete(action.id);
+                                        }}
+                                        title="Löschen"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             </div>
 
                             {/* Expanded Detail Section */}
                             {expandedRows.has(action.id) && (
-                              <div className="border-b border-gray-100 bg-[#f7f9fc]">
+                              <div className="bg-[#F0F0FA] border border-gray-200 border-t-0">
                                 <div className="p-6 space-y-6">
                                   {/* Beschreibung & Aufgaben Grid */}
                                   <div className="grid grid-cols-2 gap-6">
@@ -2730,54 +2780,45 @@ const ActionTracker = ({
                                 </div>
                               </div>
                             )}
-                          </React.Fragment>
+                          </div>
                         );
 
                         return (
-                          <div className="overflow-hidden">
-                            {/* Column Headers */}
-                            <div className="grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 px-5 py-3 bg-gradient-to-r from-[#143269] to-[#2B5597]">
-                              <span></span>
-                              <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                                Action
-                              </span>
-                              <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                                Zugewiesen
-                              </span>
-                              <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                                Fällig
-                              </span>
-                              <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                                Priorität
-                              </span>
-                              <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                                Status
-                              </span>
-                              <span></span>
-                            </div>
-
+                          <div className="space-y-1">
                             {/* Allgemein Section */}
                             {allgemeinActions.length > 0 && (
-                              <>
-                                <div className="px-5 py-2.5 border-b border-gray-100 bg-[#f7f9fc]">
-                                  <h3 className="font-bold text-sm text-[#143269] tracking-tight">
+                              <div>
+                                <div className="flex items-center gap-2 px-1 py-2.5">
+                                  <span className="text-[11px] font-medium text-[#00B2E3] uppercase tracking-[1.4px]">
+                                    ›
+                                  </span>
+                                  <span className="text-[11px] font-medium text-[#143269] uppercase tracking-[1.4px]">
                                     Allgemein
-                                  </h3>
+                                  </span>
+                                  <span className="text-[11px] text-[#64646E]">
+                                    ({allgemeinActions.length})
+                                  </span>
                                 </div>
-                                {allgemeinActions.map(renderActionRow)}
-                              </>
+                                {allgemeinActions.map(renderActionCard)}
+                              </div>
                             )}
 
                             {/* Rigmoves Section */}
                             {rigmoveActions.length > 0 && (
-                              <>
-                                <div className="px-5 py-2.5 border-b border-gray-100 bg-[#f7f9fc]">
-                                  <h3 className="font-bold text-sm text-[#143269] tracking-tight">
+                              <div className="mt-4">
+                                <div className="flex items-center gap-2 px-1 py-2.5">
+                                  <span className="text-[11px] font-medium text-[#00B2E3] uppercase tracking-[1.4px]">
+                                    ›
+                                  </span>
+                                  <span className="text-[11px] font-medium text-[#143269] uppercase tracking-[1.4px]">
                                     Rigmoves
-                                  </h3>
+                                  </span>
+                                  <span className="text-[11px] text-[#64646E]">
+                                    ({rigmoveActions.length})
+                                  </span>
                                 </div>
-                                {rigmoveActions.map(renderActionRow)}
-                              </>
+                                {rigmoveActions.map(renderActionCard)}
+                              </div>
                             )}
                           </div>
                         );
@@ -3009,13 +3050,13 @@ const ActionTracker = ({
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>
+          <DialogHeader className="flex-shrink-0 border-b border-gray-200 pb-4">
+            <DialogTitle className="text-[#143269] text-lg font-medium">
               {isEditMode ? "Action bearbeiten" : "Neue Action erstellen"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-[#64646E] text-sm">
               {isEditMode
-                ? "�ndern Sie die Action-Details"
+                ? "Ändern Sie die Action-Details"
                 : "Erstellen Sie eine neue Action"}
             </DialogDescription>
           </DialogHeader>
@@ -3038,7 +3079,7 @@ const ActionTracker = ({
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Anlage ausw�hlen..." />
+                        <SelectValue placeholder="Anlage auswählen..." />
                       </SelectTrigger>
                       <SelectContent>
                         {availableRigs.map((rig) => (
@@ -3092,7 +3133,7 @@ const ActionTracker = ({
 
                   <div className="space-y-2">
                     <Label htmlFor="discipline">Fachbereich</Label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-5 gap-2">
                       <Button
                         type="button"
                         variant={
@@ -3144,37 +3185,58 @@ const ActionTracker = ({
                       >
                         Anlage
                       </Button>
+                      <Button
+                        type="button"
+                        variant={
+                          currentAction.discipline === "WELL_CONTROL"
+                            ? "default"
+                            : "outline"
+                        }
+                        onClick={() =>
+                          setCurrentAction({
+                            ...currentAction,
+                            discipline: "WELL_CONTROL",
+                          })
+                        }
+                        className="w-full"
+                      >
+                        Well Control
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={
+                          currentAction.discipline === "HYDRAULIK"
+                            ? "default"
+                            : "outline"
+                        }
+                        onClick={() =>
+                          setCurrentAction({
+                            ...currentAction,
+                            discipline: "HYDRAULIK",
+                          })
+                        }
+                        className="w-full"
+                      >
+                        Hydraulik
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={
+                          currentAction.discipline === "SONSTIGES"
+                            ? "default"
+                            : "outline"
+                        }
+                        onClick={() =>
+                          setCurrentAction({
+                            ...currentAction,
+                            discipline: "SONSTIGES",
+                          })
+                        }
+                        className="w-full"
+                      >
+                        Sonstiges
+                      </Button>
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="location">Standort</Label>
-                    <Select
-                      value={currentAction.location || ""}
-                      onValueChange={(value) =>
-                        setCurrentAction({
-                          ...currentAction,
-                          location: value,
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Standort ausw�hlen" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="TD">TD</SelectItem>
-                        <SelectItem value="DW">DW</SelectItem>
-                        <SelectItem value="MP1">MP1</SelectItem>
-                        <SelectItem value="MP2">MP2</SelectItem>
-                        <SelectItem value="MP3">MP3</SelectItem>
-                        <SelectItem value="PCR">PCR</SelectItem>
-                        <SelectItem value="Generatoren">Generatoren</SelectItem>
-                        <SelectItem value="Grid Container">
-                          Grid Container
-                        </SelectItem>
-                        <SelectItem value="Mud System">Mud System</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
 
                   <div className="space-y-2">
@@ -3211,7 +3273,7 @@ const ActionTracker = ({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="priority">Priorit�t</Label>
+                      <Label htmlFor="priority">Priorität</Label>
                       <Select
                         value={currentAction.priority}
                         onValueChange={(value: Action["priority"]) =>
@@ -3272,14 +3334,14 @@ const ActionTracker = ({
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="User ausw�hlen" />
+                          <SelectValue placeholder="User auswählen" />
                         </SelectTrigger>
                         <SelectContent>
                           {users
                             .filter((user) => {
-                              // Admins und Manager k�nnen immer ausgew�hlt werden
+                              // Admins und Manager können immer ausgewählt werden
                               if (!user.assignedPlant) return true;
-                              // User muss zur ausgew�hlten Anlage geh�ren
+                              // User muss zur ausgewählten Anlage gehören
                               return user.assignedPlant === currentAction.plant;
                             })
                             .map((user) => (
@@ -3297,7 +3359,7 @@ const ActionTracker = ({
                     <div className="space-y-2">
                       <Label htmlFor="assignedUsers">
                         <Users className="w-4 h-4 inline mr-2" />
-                        Zus�tzliche Zust�ndige
+                        Zusätzliche Zuständige
                       </Label>
                       <div className="space-y-2">
                         <Popover>
@@ -3308,8 +3370,8 @@ const ActionTracker = ({
                               className="w-full justify-between"
                             >
                               {selectedAssignees.length > 0
-                                ? `${selectedAssignees.length} User ausgew�hlt`
-                                : "User ausw�hlen..."}
+                                ? `${selectedAssignees.length} User ausgewählt`
+                                : "User auswählen..."}
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </PopoverTrigger>
@@ -3388,7 +3450,7 @@ const ActionTracker = ({
                           </PopoverContent>
                         </Popover>
 
-                        {/* Ausgew�hlte User anzeigen */}
+                        {/* Ausgewählte User anzeigen */}
                         {selectedAssignees.length > 0 && (
                           <div className="flex flex-wrap gap-2">
                             {selectedAssignees.map((userId) => {
@@ -3412,7 +3474,7 @@ const ActionTracker = ({
                                     }}
                                     className="ml-1 hover:bg-red-500 rounded-full w-4 h-4 flex items-center justify-center"
                                   >
-                                    �
+                                    ×
                                   </button>
                                 </Badge>
                               ) : null;
@@ -3423,7 +3485,7 @@ const ActionTracker = ({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="dueDate">F�lligkeitsdatum *</Label>
+                      <Label htmlFor="dueDate">Fälligkeitsdatum *</Label>
                       <DatePicker
                         date={
                           currentAction.dueDate
@@ -3436,13 +3498,13 @@ const ActionTracker = ({
                             dueDate: date ? formatDateForInput(date) : "",
                           })
                         }
-                        placeholder="F�lligkeitsdatum w�hlen"
+                        placeholder="Fälligkeitsdatum wählen"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Dateien anh�ngen</Label>
+                    <Label>Dateien anhängen</Label>
                     <div className="flex gap-2">
                       <Button
                         type="button"
@@ -3453,7 +3515,7 @@ const ActionTracker = ({
                         className="flex-1"
                       >
                         <Paperclip className="mr-2 h-4 w-4" />
-                        Dateien ausw�hlen
+                        Dateien auswählen
                       </Button>
                       <Button
                         type="button"
@@ -3539,13 +3601,13 @@ const ActionTracker = ({
                       }}
                     >
                       <Plus className="h-4 w-4 mr-1" />
-                      Material hinzuf�gen
+                      Material hinzufügen
                     </Button>
                   </div>
 
                   {materials.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      Noch keine Materialien hinzugef�gt
+                      Noch keine Materialien hinzugefügt
                     </div>
                   ) : (
                     <div className="border rounded-lg">
@@ -3626,8 +3688,8 @@ const ActionTracker = ({
                                     <SelectItem value="L">L</SelectItem>
                                     <SelectItem value="kg">kg</SelectItem>
                                     <SelectItem value="m">m</SelectItem>
-                                    <SelectItem value="m�">m�</SelectItem>
-                                    <SelectItem value="m�">m�</SelectItem>
+                                    <SelectItem value="m²">m²</SelectItem>
+                                    <SelectItem value="m³">m³</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </TableCell>
@@ -3709,7 +3771,7 @@ const ActionTracker = ({
               {isUploadingFiles ? (
                 <>
                   <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  L�dt hoch...
+                  Lädt hoch...
                 </>
               ) : isEditMode ? (
                 "Speichern"
@@ -3727,19 +3789,19 @@ const ActionTracker = ({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-red-600">
               <Trash2 className="h-5 w-5" />
-              Action wirklich l�schen?
+              Action wirklich löschen?
             </AlertDialogTitle>
             <AlertDialogDescription>
               {actionToDelete && (
                 <>
                   <p className="mb-2">
-                    Sie sind dabei, die folgende Action zu l�schen:
+                    Sie sind dabei, die folgende Action zu löschen:
                   </p>
                   <p className="font-semibold text-foreground">
                     "{actions.find((a) => a.id === actionToDelete)?.title}"
                   </p>
                   <p className="mt-3">
-                    Diese Aktion kann nicht r�ckg�ngig gemacht werden. Die
+                    Diese Aktion kann nicht rückgängig gemacht werden. Die
                     Action wird dauerhaft aus der Datenbank entfernt.
                   </p>
                 </>

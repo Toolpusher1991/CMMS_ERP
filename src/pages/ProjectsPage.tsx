@@ -2871,28 +2871,7 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
                         </button>
                       </div>
                     ) : (
-                      <div className="overflow-hidden">
-                        {/* Column Headers */}
-                        <div className="grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 px-5 py-3 bg-gradient-to-r from-[#143269] to-[#2B5597]">
-                          <span></span>
-                          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                            Projekt
-                          </span>
-                          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                            Verantwortlich
-                          </span>
-                          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                            Fällig
-                          </span>
-                          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                            Priorität
-                          </span>
-                          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                            Fortschritt
-                          </span>
-                          <span></span>
-                        </div>
-
+                      <div className="space-y-2 pt-2">
                         {filteredProjects.map((project) => {
                           const isExpanded = expandedProjects.has(project.id);
                           const progress = getProjectProgress(project);
@@ -2906,181 +2885,204 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
                           ).length;
 
                           return (
-                            <React.Fragment key={project.id}>
-                              {/* Project Row */}
+                            <div
+                              key={project.id}
+                              id={`project-${project.id}`}
+                              className="mb-2"
+                            >
+                              {/* Project Card */}
                               <div
-                                id={`project-${project.id}`}
-                                className={`grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 items-center px-5 py-3.5 border-b border-gray-100 hover:bg-[#f7f9fc] transition-colors cursor-pointer group ${
-                                  project.status === "COMPLETED"
-                                    ? "opacity-60"
-                                    : ""
-                                }`}
+                                className={`bg-white border border-gray-200 hover:shadow-md transition-all cursor-pointer group ${
+                                  project.priority === "URGENT"
+                                    ? "border-l-[3px] border-l-[#C8102E]"
+                                    : project.priority === "HIGH"
+                                      ? "border-l-[3px] border-l-[#E37222]"
+                                      : project.priority === "NORMAL"
+                                        ? "border-l-[3px] border-l-[#2B5597]"
+                                        : "border-l-[3px] border-l-[#24C26B]"
+                                } ${project.status === "COMPLETED" ? "opacity-60" : ""}`}
                                 onClick={() =>
                                   toggleProjectExpanded(project.id)
                                 }
                               >
-                                {/* Expand Icon */}
-                                <div className="flex-shrink-0">
-                                  {isExpanded ? (
-                                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                                  ) : (
-                                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                                  )}
-                                </div>
-
-                                {/* Title & Description */}
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span
-                                      className={`font-medium text-sm leading-tight ${
-                                        project.status === "COMPLETED"
-                                          ? "line-through text-muted-foreground"
-                                          : ""
-                                      }`}
-                                    >
-                                      {project.name}
-                                    </span>
-                                    <Badge
-                                      className={`text-[10px] font-semibold px-1.5 py-0 border-0 h-5 ${
-                                        project.status === "IN_PROGRESS"
-                                          ? "bg-blue-600 text-white"
-                                          : project.status === "PLANNED"
-                                            ? "bg-slate-500 text-white"
-                                            : project.status === "ON_HOLD"
-                                              ? "bg-amber-400 text-white"
-                                              : project.status === "COMPLETED"
-                                                ? "bg-emerald-600 text-white"
-                                                : "bg-red-500 text-white"
-                                      }`}
-                                    >
-                                      {project.status === "PLANNED" &&
-                                        "Geplant"}
-                                      {project.status === "IN_PROGRESS" &&
-                                        "In Arbeit"}
-                                      {project.status === "ON_HOLD" &&
-                                        "Pausiert"}
-                                      {project.status === "COMPLETED" &&
-                                        "Abgeschlossen"}
-                                      {project.status === "CANCELLED" &&
-                                        "Abgebrochen"}
-                                    </Badge>
-                                  </div>
-                                  {project.description && (
-                                    <div className="text-xs text-muted-foreground truncate mt-0.5">
-                                      {project.description}
+                                <div className="px-5 py-3.5">
+                                  <div className="flex items-start gap-3">
+                                    {/* Expand Icon */}
+                                    <div className="flex-shrink-0 mt-0.5">
+                                      {isExpanded ? (
+                                        <ChevronDown className="h-5 w-5 text-[#64646E]" />
+                                      ) : (
+                                        <ChevronRight className="h-5 w-5 text-[#64646E]" />
+                                      )}
                                     </div>
-                                  )}
-                                </div>
 
-                                {/* Manager */}
-                                <div className="flex items-center gap-2">
-                                  {project.manager ? (
-                                    <>
-                                      <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-[10px] flex-shrink-0 ring-1 ring-primary/20">
-                                        {project.manager.firstName[0]}
-                                        {project.manager.lastName[0]}
+                                    {/* Title + Description */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span
+                                          className={`font-medium text-sm text-[#143269] leading-tight ${
+                                            project.status === "COMPLETED"
+                                              ? "line-through text-[#64646E]"
+                                              : ""
+                                          }`}
+                                        >
+                                          {project.name}
+                                        </span>
+                                        {/* Status Badge */}
+                                        <span
+                                          className={`inline-block text-[10px] uppercase tracking-[1px] font-medium px-2 py-0.5 ${
+                                            project.status === "IN_PROGRESS"
+                                              ? "bg-[#00B2E3]/10 text-[#00B2E3]"
+                                              : project.status === "PLANNED"
+                                                ? "bg-[#64646E]/10 text-[#64646E]"
+                                                : project.status === "ON_HOLD"
+                                                  ? "bg-[#E37222]/10 text-[#E37222]"
+                                                  : project.status ===
+                                                      "COMPLETED"
+                                                    ? "bg-[#24C26B]/10 text-[#24C26B]"
+                                                    : "bg-[#C8102E]/10 text-[#C8102E]"
+                                          }`}
+                                        >
+                                          {project.status === "PLANNED" &&
+                                            "Geplant"}
+                                          {project.status === "IN_PROGRESS" &&
+                                            "In Arbeit"}
+                                          {project.status === "ON_HOLD" &&
+                                            "Pausiert"}
+                                          {project.status === "COMPLETED" &&
+                                            "Abgeschlossen"}
+                                          {project.status === "CANCELLED" &&
+                                            "Abgebrochen"}
+                                        </span>
+                                        {/* Priority Badge */}
+                                        <span
+                                          className={`inline-block text-[10px] uppercase tracking-[1px] font-medium px-2 py-0.5 ${
+                                            project.priority === "URGENT"
+                                              ? "bg-[#C8102E]/10 text-[#C8102E]"
+                                              : project.priority === "HIGH"
+                                                ? "bg-[#E37222]/10 text-[#E37222]"
+                                                : project.priority === "NORMAL"
+                                                  ? "bg-[#2B5597]/10 text-[#2B5597]"
+                                                  : "bg-[#24C26B]/10 text-[#24C26B]"
+                                          }`}
+                                        >
+                                          {project.priority === "URGENT"
+                                            ? "Dringend"
+                                            : project.priority === "HIGH"
+                                              ? "Hoch"
+                                              : project.priority === "NORMAL"
+                                                ? "Normal"
+                                                : "Niedrig"}
+                                        </span>
+                                        {/* Progress */}
+                                        <span className="text-[10px] text-[#64646E] flex items-center gap-1.5">
+                                          <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                            <div
+                                              className={`h-full transition-all ${progress === 100 ? "bg-[#24C26B]" : progress >= 50 ? "bg-[#2B5597]" : progress > 0 ? "bg-[#E37222]" : "bg-gray-300"}`}
+                                              style={{ width: `${progress}%` }}
+                                            />
+                                          </div>
+                                          {progress}%
+                                        </span>
+                                        {tasks.length > 0 && (
+                                          <span className="text-[10px] text-[#64646E] flex items-center gap-1">
+                                            <ListTodo className="h-3 w-3" />
+                                            {completedTasks}/{tasks.length}
+                                          </span>
+                                        )}
                                       </div>
-                                    </>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">
-                                      —
-                                    </span>
-                                  )}
-                                </div>
+                                      {project.description && (
+                                        <p className="text-xs text-[#64646E] mt-1 line-clamp-1">
+                                          {project.description}
+                                        </p>
+                                      )}
+                                    </div>
 
-                                {/* Due Date */}
-                                <span className="text-xs text-muted-foreground">
-                                  {project.endDate
-                                    ? new Date(
-                                        project.endDate,
-                                      ).toLocaleDateString("de-DE", {
-                                        day: "numeric",
-                                        month: "short",
-                                      })
-                                    : "—"}
-                                </span>
+                                    {/* Right side: Manager + Date + Actions */}
+                                    <div className="flex items-center gap-5 flex-shrink-0">
+                                      {/* Manager */}
+                                      {project.manager ? (
+                                        <div className="flex items-center gap-2">
+                                          <div className="h-7 w-7 rounded-full bg-[#143269]/10 flex items-center justify-center text-[#143269] font-medium text-[10px] flex-shrink-0 border border-[#143269]/20">
+                                            {project.manager.firstName[0]}
+                                            {project.manager.lastName[0]}
+                                          </div>
+                                          <span className="text-xs text-[#64646E] hidden xl:inline max-w-[100px] truncate">
+                                            {project.manager.firstName}{" "}
+                                            {project.manager.lastName}
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-xs text-[#C8C8D2]">
+                                          —
+                                        </span>
+                                      )}
 
-                                {/* Priority Badge */}
-                                <Badge
-                                  className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
-                                    project.priority === "URGENT"
-                                      ? "bg-red-500 hover:bg-red-600 text-white"
-                                      : project.priority === "HIGH"
-                                        ? "bg-orange-500 hover:bg-orange-600 text-white"
-                                        : project.priority === "NORMAL"
-                                          ? "bg-amber-400 hover:bg-amber-500 text-white"
-                                          : "bg-emerald-500 hover:bg-emerald-600 text-white"
-                                  }`}
-                                >
-                                  {project.priority === "URGENT"
-                                    ? "Urgent"
-                                    : project.priority === "HIGH"
-                                      ? "Hoch"
-                                      : project.priority === "NORMAL"
-                                        ? "Normal"
-                                        : "Niedrig"}
-                                </Badge>
+                                      {/* Due Date */}
+                                      {project.endDate ? (
+                                        <div className="flex items-center gap-1.5 text-xs text-[#64646E]">
+                                          <Calendar className="h-3.5 w-3.5" />
+                                          {new Date(
+                                            project.endDate,
+                                          ).toLocaleDateString("de-DE", {
+                                            day: "numeric",
+                                            month: "short",
+                                          })}
+                                        </div>
+                                      ) : (
+                                        <span className="text-xs text-[#C8C8D2]">
+                                          —
+                                        </span>
+                                      )}
 
-                                {/* Progress Badge */}
-                                <Badge
-                                  className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
-                                    progress === 100
-                                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                                      : progress >= 50
-                                        ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                        : progress > 0
-                                          ? "bg-amber-400 hover:bg-amber-500 text-white"
-                                          : "bg-slate-500 hover:bg-slate-600 text-white"
-                                  }`}
-                                >
-                                  {progress}%
-                                </Badge>
-
-                                {/* Hover Actions */}
-                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openFlowDialog(project);
-                                    }}
-                                    title="Flowchart"
-                                  >
-                                    <Workflow className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openEditProjectDialog(project);
-                                    }}
-                                    title="Bearbeiten"
-                                  >
-                                    <Edit className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedProject(project);
-                                      setShowDeleteProjectDialog(true);
-                                    }}
-                                    title="Löschen"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                                  </Button>
+                                      {/* Action buttons */}
+                                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 text-[#64646E] hover:text-[#143269]"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openFlowDialog(project);
+                                          }}
+                                          title="Flowchart"
+                                        >
+                                          <Workflow className="h-3.5 w-3.5" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 text-[#64646E] hover:text-[#143269]"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openEditProjectDialog(project);
+                                          }}
+                                          title="Bearbeiten"
+                                        >
+                                          <Edit className="h-3.5 w-3.5" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 text-[#64646E] hover:text-[#C8102E]"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedProject(project);
+                                            setShowDeleteProjectDialog(true);
+                                          }}
+                                          title="Löschen"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
 
                               {/* Expanded Content: Task List */}
                               {isExpanded && (
-                                <div className="border-b border-gray-100 bg-[#f7f9fc]">
+                                <div className="bg-[#F0F0FA] border border-gray-200 border-t-0">
                                   <div className="px-5 py-4">
                                     <div className="flex items-center justify-between mb-3">
                                       <div className="flex items-center gap-3">
@@ -3296,7 +3298,7 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
                                   </div>
                                 </div>
                               )}
-                            </React.Fragment>
+                            </div>
                           );
                         })}
                       </div>
