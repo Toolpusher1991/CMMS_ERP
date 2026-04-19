@@ -366,10 +366,13 @@ export function CreationWizard({
                       </div>
                     )}
                     {/* Icon */}
-                    {card.icon && !isCompact && (
+                    {card.icon && (
                       <div
                         className={cn(
-                          "w-12 h-12 rounded-sm flex items-center justify-center mb-1",
+                          "rounded-sm flex items-center justify-center",
+                          isCompact
+                            ? "w-8 h-8 mb-0.5 [&_svg]:h-4 [&_svg]:w-4"
+                            : "w-12 h-12 mb-1 ",
                           selected
                             ? "bg-[#00B2E3]/15 text-[#00B2E3]"
                             : "bg-[#F0F0FA] text-[#143269]",

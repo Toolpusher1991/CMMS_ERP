@@ -2276,12 +2276,16 @@ const ActionTracker = ({
                                       {/* Component / Discipline info */}
                                       {action.location && (
                                         <span className="text-[10px] text-[#143269] bg-[#143269]/5 px-2 py-0.5 font-medium">
-                                          {COMPONENT_CARDS.find(c => c.id === action.location)?.label || action.location}
+                                          {COMPONENT_CARDS.find(
+                                            (c) => c.id === action.location,
+                                          )?.label || action.location}
                                         </span>
                                       )}
                                       {action.discipline && (
                                         <span className="text-[10px] text-[#2B5597] bg-[#2B5597]/5 px-2 py-0.5 font-medium">
-                                          {DISCIPLINE_CARDS.find(c => c.id === action.discipline)?.label || action.discipline}
+                                          {DISCIPLINE_CARDS.find(
+                                            (c) => c.id === action.discipline,
+                                          )?.label || action.discipline}
                                         </span>
                                       )}
                                     </div>
@@ -3084,7 +3088,9 @@ const ActionTracker = ({
                   {/* Row 1: Anlage + Status */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Anlage *</Label>
+                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">
+                        Anlage *
+                      </Label>
                       <Select
                         value={currentAction.plant}
                         onValueChange={(v) =>
@@ -3104,7 +3110,9 @@ const ActionTracker = ({
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Status</Label>
+                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">
+                        Status
+                      </Label>
                       <Select
                         value={currentAction.status}
                         onValueChange={(value: Action["status"]) =>
@@ -3116,8 +3124,12 @@ const ActionTracker = ({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="OPEN">Offen</SelectItem>
-                          <SelectItem value="IN_PROGRESS">In Bearbeitung</SelectItem>
-                          <SelectItem value="COMPLETED">Abgeschlossen</SelectItem>
+                          <SelectItem value="IN_PROGRESS">
+                            In Bearbeitung
+                          </SelectItem>
+                          <SelectItem value="COMPLETED">
+                            Abgeschlossen
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -3125,7 +3137,9 @@ const ActionTracker = ({
 
                   {/* Titel */}
                   <div className="space-y-2">
-                    <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Titel *</Label>
+                    <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">
+                      Titel *
+                    </Label>
                     <Input
                       id="title"
                       value={currentAction.title}
@@ -3141,7 +3155,9 @@ const ActionTracker = ({
 
                   {/* Beschreibung */}
                   <div className="space-y-2">
-                    <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Beschreibung</Label>
+                    <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">
+                      Beschreibung
+                    </Label>
                     <Textarea
                       value={currentAction.description}
                       onChange={(e) =>
@@ -3159,7 +3175,9 @@ const ActionTracker = ({
                   {/* Row 2: Priorität + Zugewiesen */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Priorität</Label>
+                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">
+                        Priorität
+                      </Label>
                       <Select
                         value={currentAction.priority}
                         onValueChange={(value: Action["priority"]) =>
@@ -3181,7 +3199,9 @@ const ActionTracker = ({
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Zugewiesen an *</Label>
+                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">
+                        Zugewiesen an *
+                      </Label>
                       <Select
                         value={currentAction.assignedTo}
                         onValueChange={(value) =>
@@ -3342,7 +3362,9 @@ const ActionTracker = ({
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Fälligkeitsdatum *</Label>
+                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">
+                        Fälligkeitsdatum *
+                      </Label>
                       <DatePicker
                         date={
                           currentAction.dueDate
@@ -3361,7 +3383,9 @@ const ActionTracker = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Dateien anhängen</Label>
+                    <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">
+                      Dateien anhängen
+                    </Label>
                     <div className="flex gap-2">
                       <Button
                         type="button"
