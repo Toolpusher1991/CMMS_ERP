@@ -2273,6 +2273,17 @@ const ActionTracker = ({
                                           /{action.tasks.length}
                                         </span>
                                       )}
+                                      {/* Component / Discipline info */}
+                                      {action.location && (
+                                        <span className="text-[10px] text-[#143269] bg-[#143269]/5 px-2 py-0.5 font-medium">
+                                          {COMPONENT_CARDS.find(c => c.id === action.location)?.label || action.location}
+                                        </span>
+                                      )}
+                                      {action.discipline && (
+                                        <span className="text-[10px] text-[#2B5597] bg-[#2B5597]/5 px-2 py-0.5 font-medium">
+                                          {DISCIPLINE_CARDS.find(c => c.id === action.discipline)?.label || action.discipline}
+                                        </span>
+                                      )}
                                     </div>
                                     {action.description && (
                                       <p className="text-xs text-[#64646E] mt-1 line-clamp-1">
@@ -3049,7 +3060,7 @@ const ActionTracker = ({
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0 border-b border-gray-200 pb-4">
             <DialogTitle className="text-[#143269] text-lg font-medium">
               {isEditMode ? "Action bearbeiten" : "Neue Action erstellen"}
@@ -3070,177 +3081,51 @@ const ActionTracker = ({
 
               <TabsContent value="details">
                 <div className="space-y-4 py-4 pr-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="plant">Anlage *</Label>
-                    <Select
-                      value={currentAction.plant}
-                      onValueChange={(v) =>
-                        setCurrentAction({ ...currentAction, plant: v })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Anlage auswählen..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableRigs.map((rig) => (
-                          <SelectItem key={rig.id} value={rig.name}>
-                            {rig.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Phasen *</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        variant={
-                          currentAction.category === "ALLGEMEIN"
-                            ? "default"
-                            : "outline"
+                  {/* Row 1: Anlage + Status */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Anlage *</Label>
+                      <Select
+                        value={currentAction.plant}
+                        onValueChange={(v) =>
+                          setCurrentAction({ ...currentAction, plant: v })
                         }
-                        onClick={() =>
-                          setCurrentAction({
-                            ...currentAction,
-                            category: "ALLGEMEIN",
-                          })
-                        }
-                        className="w-full"
                       >
-                        Allgemein
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={
-                          currentAction.category === "RIGMOVE"
-                            ? "default"
-                            : "outline"
+                        <SelectTrigger>
+                          <SelectValue placeholder="Anlage auswählen..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableRigs.map((rig) => (
+                            <SelectItem key={rig.id} value={rig.name}>
+                              {rig.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Status</Label>
+                      <Select
+                        value={currentAction.status}
+                        onValueChange={(value: Action["status"]) =>
+                          setCurrentAction({ ...currentAction, status: value })
                         }
-                        onClick={() =>
-                          setCurrentAction({
-                            ...currentAction,
-                            category: "RIGMOVE",
-                          })
-                        }
-                        className="w-full"
                       >
-                        Rigmove
-                      </Button>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="OPEN">Offen</SelectItem>
+                          <SelectItem value="IN_PROGRESS">In Bearbeitung</SelectItem>
+                          <SelectItem value="COMPLETED">Abgeschlossen</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
+                  {/* Titel */}
                   <div className="space-y-2">
-                    <Label htmlFor="discipline">Fachbereich</Label>
-                    <div className="grid grid-cols-5 gap-2">
-                      <Button
-                        type="button"
-                        variant={
-                          currentAction.discipline === "MECHANIK"
-                            ? "default"
-                            : "outline"
-                        }
-                        onClick={() =>
-                          setCurrentAction({
-                            ...currentAction,
-                            discipline: "MECHANIK",
-                          })
-                        }
-                        className="w-full"
-                      >
-                        Mechanik
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={
-                          currentAction.discipline === "ELEKTRIK"
-                            ? "default"
-                            : "outline"
-                        }
-                        onClick={() =>
-                          setCurrentAction({
-                            ...currentAction,
-                            discipline: "ELEKTRIK",
-                          })
-                        }
-                        className="w-full"
-                      >
-                        Elektrik
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={
-                          currentAction.discipline === "ANLAGE"
-                            ? "default"
-                            : "outline"
-                        }
-                        onClick={() =>
-                          setCurrentAction({
-                            ...currentAction,
-                            discipline: "ANLAGE",
-                          })
-                        }
-                        className="w-full"
-                      >
-                        Anlage
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={
-                          currentAction.discipline === "WELL_CONTROL"
-                            ? "default"
-                            : "outline"
-                        }
-                        onClick={() =>
-                          setCurrentAction({
-                            ...currentAction,
-                            discipline: "WELL_CONTROL",
-                          })
-                        }
-                        className="w-full"
-                      >
-                        Well Control
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={
-                          currentAction.discipline === "HYDRAULIK"
-                            ? "default"
-                            : "outline"
-                        }
-                        onClick={() =>
-                          setCurrentAction({
-                            ...currentAction,
-                            discipline: "HYDRAULIK",
-                          })
-                        }
-                        className="w-full"
-                      >
-                        Hydraulik
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={
-                          currentAction.discipline === "SONSTIGES"
-                            ? "default"
-                            : "outline"
-                        }
-                        onClick={() =>
-                          setCurrentAction({
-                            ...currentAction,
-                            discipline: "SONSTIGES",
-                          })
-                        }
-                        className="w-full"
-                      >
-                        Sonstiges
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Titel *</Label>
+                    <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Titel *</Label>
                     <Input
                       id="title"
                       value={currentAction.title}
@@ -3254,10 +3139,10 @@ const ActionTracker = ({
                     />
                   </div>
 
+                  {/* Beschreibung */}
                   <div className="space-y-2">
-                    <Label htmlFor="description">Beschreibung</Label>
+                    <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Beschreibung</Label>
                     <Textarea
-                      id="description"
                       value={currentAction.description}
                       onChange={(e) =>
                         setCurrentAction({
@@ -3266,14 +3151,15 @@ const ActionTracker = ({
                         })
                       }
                       placeholder="Detaillierte Beschreibung der Aufgabe..."
-                      rows={6}
+                      rows={4}
                       className="resize-none"
                     />
                   </div>
 
+                  {/* Row 2: Priorität + Zugewiesen */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="priority">Priorität</Label>
+                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Priorität</Label>
                       <Select
                         value={currentAction.priority}
                         onValueChange={(value: Action["priority"]) =>
@@ -3295,35 +3181,7 @@ const ActionTracker = ({
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="status">Status</Label>
-                      <Select
-                        value={currentAction.status}
-                        onValueChange={(value: Action["status"]) =>
-                          setCurrentAction({
-                            ...currentAction,
-                            status: value,
-                          })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="OPEN">Offen</SelectItem>
-                          <SelectItem value="IN_PROGRESS">
-                            In Bearbeitung
-                          </SelectItem>
-                          <SelectItem value="COMPLETED">
-                            Abgeschlossen
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="assignedTo">Zugewiesen an *</Label>
+                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Zugewiesen an *</Label>
                       <Select
                         value={currentAction.assignedTo}
                         onValueChange={(value) =>
@@ -3357,8 +3215,7 @@ const ActionTracker = ({
 
                     {/* Multi-User Zuweisung */}
                     <div className="space-y-2">
-                      <Label htmlFor="assignedUsers">
-                        <Users className="w-4 h-4 inline mr-2" />
+                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">
                         Zusätzliche Zuständige
                       </Label>
                       <div className="space-y-2">
@@ -3485,7 +3342,7 @@ const ActionTracker = ({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="dueDate">Fälligkeitsdatum *</Label>
+                      <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Fälligkeitsdatum *</Label>
                       <DatePicker
                         date={
                           currentAction.dueDate
@@ -3504,7 +3361,7 @@ const ActionTracker = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Dateien anhängen</Label>
+                    <Label className="text-[11px] uppercase tracking-[1.4px] font-medium text-[#64646E]">Dateien anhängen</Label>
                     <div className="flex gap-2">
                       <Button
                         type="button"
