@@ -83,7 +83,9 @@ export function EquipmentTab({
             <p className="text-[10px] uppercase tracking-widest text-white/60 font-semibold">
               Ausgewählt
             </p>
-            <p className="text-xl font-bold text-white">{totalSelected} Positionen</p>
+            <p className="text-xl font-bold text-white">
+              {totalSelected} Positionen
+            </p>
           </div>
           <div className="h-10 w-px bg-white/20" />
           <div>
@@ -125,7 +127,10 @@ export function EquipmentTab({
           );
 
           return (
-            <div key={key} className="rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+            <div
+              key={key}
+              className="rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm"
+            >
               {/* Category header */}
               <button
                 onClick={() =>
@@ -180,13 +185,10 @@ export function EquipmentTab({
                 <div className="p-4 bg-[#f7f9fc]">
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                     {category.items.map((item) => {
-                      const isSelected = selected.some(
-                        (s) => s.id === item.id,
-                      );
+                      const isSelected = selected.some((s) => s.id === item.id);
                       const specs = Object.entries(item)
                         .filter(
-                          ([k]) =>
-                            k !== "id" && k !== "name" && k !== "price",
+                          ([k]) => k !== "id" && k !== "name" && k !== "price",
                         )
                         .map(([, value]) => value)
                         .join(" · ");
@@ -211,14 +213,16 @@ export function EquipmentTab({
                           )}
 
                           {/* Equipment icon */}
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${
-                            isSelected
-                              ? "bg-[#24C26B]/10"
-                              : "bg-[#143269]/8"
-                          }`}>
-                            <Icon className={`h-5 w-5 ${
-                              isSelected ? "text-[#24C26B]" : "text-[#143269]"
-                            }`} />
+                          <div
+                            className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${
+                              isSelected ? "bg-[#24C26B]/10" : "bg-[#143269]/8"
+                            }`}
+                          >
+                            <Icon
+                              className={`h-5 w-5 ${
+                                isSelected ? "text-[#24C26B]" : "text-[#143269]"
+                              }`}
+                            />
                           </div>
 
                           {/* Name & specs */}
@@ -236,7 +240,9 @@ export function EquipmentTab({
                             <span className="text-lg font-bold text-[#24C26B]">
                               € {parseFloat(item.price).toLocaleString("de-DE")}
                             </span>
-                            <span className="text-[10px] text-gray-400 font-medium">/Tag</span>
+                            <span className="text-[10px] text-gray-400 font-medium">
+                              /Tag
+                            </span>
                           </div>
 
                           {/* Action buttons */}
@@ -284,11 +290,21 @@ export function EquipmentTab({
 
       {/* Wizard navigation — H&P style */}
       <div className="flex justify-between pt-2">
-        <Button variant="ghost" size="sm" onClick={onBack} className="text-[#143269] hover:bg-[#143269]/5">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onBack}
+          className="text-[#143269] hover:bg-[#143269]/5"
+        >
           <ChevronLeft className="mr-1 h-4 w-4" />
           Zurück: Anlagen
         </Button>
-        <Button variant="ghost" size="sm" onClick={onNext} className="text-[#143269] hover:bg-[#143269]/5">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onNext}
+          className="text-[#143269] hover:bg-[#143269]/5"
+        >
           Weiter: Zusammenfassung
           <ChevronRight className="ml-1 h-4 w-4" />
         </Button>

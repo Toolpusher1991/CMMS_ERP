@@ -34,13 +34,6 @@ import {
 import type { User } from "@/services/auth.service";
 import { useRigs } from "@/hooks/useRigs";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -2820,8 +2813,12 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
               <FolderKanban className="h-5.5 w-5.5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-wide">Projekte</h1>
-              <p className="text-sm text-white/60">Projektverwaltung für alle Anlagen</p>
+              <h1 className="text-xl font-bold text-white tracking-wide">
+                Projekte
+              </h1>
+              <p className="text-sm text-white/60">
+                Projektverwaltung für alle Anlagen
+              </p>
             </div>
           </div>
           <button
@@ -3172,7 +3169,9 @@ export default function ProjectsPage({ initialProjectId }: ProjectsPageProps) {
                         {/* Column Headers */}
                         <div className="grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 px-5 py-3 bg-gradient-to-r from-[#143269] to-[#2B5597]">
                           <span></span>
-                          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">Projekt</span>
+                          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
+                            Projekt
+                          </span>
                           <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
                             Verantwortlich
                           </span>

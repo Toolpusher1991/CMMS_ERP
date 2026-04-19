@@ -5,7 +5,6 @@ import {
   Package,
   BarChart3,
   Calculator,
-  Check,
   ChevronRight,
 } from "lucide-react";
 import { useRigConfigurator } from "@/hooks/useRigConfigurator";
@@ -28,7 +27,12 @@ const tabDefs = [
   { id: "rigs", label: "Anlagen", icon: Building2, countKey: "rigs" as const },
   { id: "equipment", label: "Equipment", icon: Package, needsRig: true },
   { id: "summary", label: "Zusammenfassung", icon: BarChart3, needsRig: true },
-  { id: "tender", label: "Tender", icon: Calculator, countKey: "tender" as const },
+  {
+    id: "tender",
+    label: "Tender",
+    icon: Calculator,
+    countKey: "tender" as const,
+  },
 ];
 
 const RigConfigurator = () => {
@@ -49,8 +53,12 @@ const RigConfigurator = () => {
               <Building2 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="font-bold text-lg tracking-wide">Rig Configurator</h1>
-              <p className="text-[11px] text-white/60">Professionelle Anlagenkonfiguration für Commerce</p>
+              <h1 className="font-bold text-lg tracking-wide">
+                Rig Configurator
+              </h1>
+              <p className="text-[11px] text-white/60">
+                Professionelle Anlagenkonfiguration für Commerce
+              </p>
             </div>
           </div>
           <Card className="px-5 py-3 bg-white/10 border-white/20 backdrop-blur-sm">
@@ -82,20 +90,22 @@ const RigConfigurator = () => {
                   onClick={() => !isDisabled && state.setActiveTab(tab.id)}
                   disabled={isDisabled}
                   className={`flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-medium whitespace-nowrap border transition-all
-                    ${isActive
-                      ? "bg-[#2B5597] text-white border-[#2B5597] shadow-md"
-                      : isDisabled
-                        ? "bg-white dark:bg-slate-800 text-gray-300 dark:text-gray-600 border-gray-100 dark:border-slate-700 cursor-not-allowed"
-                        : "bg-white dark:bg-slate-800 text-muted-foreground border-gray-200 dark:border-slate-700 hover:border-[#2B5597]/50"
+                    ${
+                      isActive
+                        ? "bg-[#2B5597] text-white border-[#2B5597] shadow-md"
+                        : isDisabled
+                          ? "bg-white dark:bg-slate-800 text-gray-300 dark:text-gray-600 border-gray-100 dark:border-slate-700 cursor-not-allowed"
+                          : "bg-white dark:bg-slate-800 text-muted-foreground border-gray-200 dark:border-slate-700 hover:border-[#2B5597]/50"
                     }`}
                 >
                   <span
                     className={`inline-flex items-center justify-center w-7 h-7 rounded-full shrink-0
-                      ${isActive
-                        ? "bg-white text-[#2B5597]"
-                        : isDisabled
-                          ? "bg-gray-100 dark:bg-slate-700 text-gray-300 dark:text-gray-600"
-                          : "bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400"
+                      ${
+                        isActive
+                          ? "bg-white text-[#2B5597]"
+                          : isDisabled
+                            ? "bg-gray-100 dark:bg-slate-700 text-gray-300 dark:text-gray-600"
+                            : "bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400"
                       }`}
                   >
                     <Icon className="h-4 w-4" />

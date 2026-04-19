@@ -1853,8 +1853,12 @@ const ActionTracker = ({
               <ClipboardList className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-wide">Action Tracker</h1>
-              <p className="text-sm text-white/60">Aufgabenverfolgung für alle Anlagen</p>
+              <h1 className="text-xl font-bold text-white tracking-wide">
+                Action Tracker
+              </h1>
+              <p className="text-sm text-white/60">
+                Aufgabenverfolgung für alle Anlagen
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -1901,721 +1905,734 @@ const ActionTracker = ({
       <div className="p-6 bg-[#f7f9fc] min-h-[60vh]">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-5">
-          {isLoading ? (
-            <ActionTrackerSkeleton />
-          ) : (
-            <>
-              {/* Filter Card */}
-              <ActionFilterCard
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                statusFilter={statusFilter}
-                onStatusChange={setStatusFilter}
-                disciplineFilter={disciplineFilter}
-                onDisciplineChange={setDisciplineFilter}
-                priorityFilter={priorityFilter}
-                onPriorityChange={setPriorityFilter}
-                locationFilter={locationFilter}
-                onLocationChange={setLocationFilter}
-                userFilter={userFilter}
-                onUserChange={setUserFilter}
-                users={users}
-                availableLocations={availableLocations}
-              />
+            {isLoading ? (
+              <ActionTrackerSkeleton />
+            ) : (
+              <>
+                {/* Filter Card */}
+                <ActionFilterCard
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  statusFilter={statusFilter}
+                  onStatusChange={setStatusFilter}
+                  disciplineFilter={disciplineFilter}
+                  onDisciplineChange={setDisciplineFilter}
+                  priorityFilter={priorityFilter}
+                  onPriorityChange={setPriorityFilter}
+                  locationFilter={locationFilter}
+                  onLocationChange={setLocationFilter}
+                  userFilter={userFilter}
+                  onUserChange={setUserFilter}
+                  users={users}
+                  availableLocations={availableLocations}
+                />
 
-              <Tabs
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="space-y-4"
-              >
-                {/* Rig Selector Dropdown - scales for 20+ rigs */}
-                <div className="flex items-center gap-3">
-                  <Select value={activeTab} onValueChange={setActiveTab}>
-                    <SelectTrigger className="w-full sm:w-72 h-11 bg-[#f7f9fc] border-gray-200">
-                      <SelectValue placeholder="Anlage ausw�hlen..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableRigs.map((rig) => {
-                        const stats = getActionStats(rig.name);
-                        const openCount = stats.open + stats.inProgress;
-                        return (
-                          <SelectItem key={rig.id} value={rig.name}>
-                            <div className="flex items-center gap-3 py-1">
-                              <span className="font-bold">{rig.name}</span>
-                              {openCount > 0 && (
-                                <Badge
-                                  variant="destructive"
-                                  className="px-1.5 py-0 text-[10px] font-bold h-4"
-                                >
-                                  {openCount} Offen
-                                </Badge>
-                              )}
-                              {openCount === 0 && stats.total > 0 && (
-                                <Badge
-                                  variant="outline"
-                                  className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 h-4"
-                                >
-                                  Alle erledigt
-                                </Badge>
-                              )}
-                              {stats.total === 0 && (
-                                <span className="text-[10px] text-muted-foreground">
-                                  Keine Actions
-                                </span>
-                              )}
-                            </div>
-                          </SelectItem>
+                <Tabs
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  className="space-y-4"
+                >
+                  {/* Rig Selector Dropdown - scales for 20+ rigs */}
+                  <div className="flex items-center gap-3">
+                    <Select value={activeTab} onValueChange={setActiveTab}>
+                      <SelectTrigger className="w-full sm:w-72 h-11 bg-[#f7f9fc] border-gray-200">
+                        <SelectValue placeholder="Anlage ausw�hlen..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableRigs.map((rig) => {
+                          const stats = getActionStats(rig.name);
+                          const openCount = stats.open + stats.inProgress;
+                          return (
+                            <SelectItem key={rig.id} value={rig.name}>
+                              <div className="flex items-center gap-3 py-1">
+                                <span className="font-bold">{rig.name}</span>
+                                {openCount > 0 && (
+                                  <Badge
+                                    variant="destructive"
+                                    className="px-1.5 py-0 text-[10px] font-bold h-4"
+                                  >
+                                    {openCount} Offen
+                                  </Badge>
+                                )}
+                                {openCount === 0 && stats.total > 0 && (
+                                  <Badge
+                                    variant="outline"
+                                    className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 h-4"
+                                  >
+                                    Alle erledigt
+                                  </Badge>
+                                )}
+                                {stats.total === 0 && (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    Keine Actions
+                                  </span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-sm text-muted-foreground hidden sm:inline">
+                      {availableRigs.length} Anlagen
+                    </span>
+                  </div>
+
+                  {availableRigs.map((rig) => (
+                    <TabsContent key={rig.id} value={rig.name}>
+                      {(() => {
+                        const allgemeinActions = getFilteredActionsForCategory(
+                          rig.name,
+                          "allgemein",
                         );
-                      })}
-                    </SelectContent>
-                  </Select>
-                  <span className="text-sm text-muted-foreground hidden sm:inline">
-                    {availableRigs.length} Anlagen
-                  </span>
-                </div>
-
-                {availableRigs.map((rig) => (
-                  <TabsContent key={rig.id} value={rig.name}>
-                    {(() => {
-                      const allgemeinActions = getFilteredActionsForCategory(
-                        rig.name,
-                        "allgemein",
-                      );
-                      const rigmoveActions = getFilteredActionsForCategory(
-                        rig.name,
-                        "rigmoves",
-                      );
-
-                      if (
-                        allgemeinActions.length === 0 &&
-                        rigmoveActions.length === 0
-                      ) {
-                        return (
-                          <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <div className="w-16 h-16 rounded-2xl bg-[#143269]/10 flex items-center justify-center mb-4">
-                              <ClipboardList className="h-8 w-8 text-[#143269]" />
-                            </div>
-                            <h3 className="text-lg font-bold text-[#143269]">
-                              Keine Actions
-                            </h3>
-                            <p className="text-sm text-gray-500 mb-4">
-                              Erstellen Sie die erste Action für {rig.name}
-                            </p>
-                            <button
-                              onClick={openNewDialog}
-                              className="flex items-center gap-2 bg-[#24C26B] hover:bg-[#1da55a] text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors"
-                            >
-                              <Plus className="h-4 w-4" />
-                              Action erstellen
-                            </button>
-                          </div>
+                        const rigmoveActions = getFilteredActionsForCategory(
+                          rig.name,
+                          "rigmoves",
                         );
-                      }
 
-                      const renderActionRow = (action: Action) => (
-                        <React.Fragment key={action.id}>
-                          <div
-                            id={`action-${action.id}`}
-                            className={`grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 items-center px-5 py-3.5 border-b border-gray-100 hover:bg-[#f7f9fc] transition-colors cursor-pointer group ${
-                              isOverdue(action.dueDate, action.status)
-                                ? "bg-red-50/50"
-                                : ""
-                            }`}
-                            onClick={() => toggleRow(action.id)}
-                          >
-                            {/* Status Icon */}
-                            <button
-                              className="flex-shrink-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleComplete(action);
-                              }}
+                        if (
+                          allgemeinActions.length === 0 &&
+                          rigmoveActions.length === 0
+                        ) {
+                          return (
+                            <div className="flex flex-col items-center justify-center py-16 text-center">
+                              <div className="w-16 h-16 rounded-2xl bg-[#143269]/10 flex items-center justify-center mb-4">
+                                <ClipboardList className="h-8 w-8 text-[#143269]" />
+                              </div>
+                              <h3 className="text-lg font-bold text-[#143269]">
+                                Keine Actions
+                              </h3>
+                              <p className="text-sm text-gray-500 mb-4">
+                                Erstellen Sie die erste Action für {rig.name}
+                              </p>
+                              <button
+                                onClick={openNewDialog}
+                                className="flex items-center gap-2 bg-[#24C26B] hover:bg-[#1da55a] text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors"
+                              >
+                                <Plus className="h-4 w-4" />
+                                Action erstellen
+                              </button>
+                            </div>
+                          );
+                        }
+
+                        const renderActionRow = (action: Action) => (
+                          <React.Fragment key={action.id}>
+                            <div
+                              id={`action-${action.id}`}
+                              className={`grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 items-center px-5 py-3.5 border-b border-gray-100 hover:bg-[#f7f9fc] transition-colors cursor-pointer group ${
+                                isOverdue(action.dueDate, action.status)
+                                  ? "bg-red-50/50"
+                                  : ""
+                              }`}
+                              onClick={() => toggleRow(action.id)}
                             >
-                              {action.status === "COMPLETED" ? (
-                                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                              ) : action.status === "IN_PROGRESS" ? (
-                                <div className="h-5 w-5 rounded-full border-2 border-blue-400 flex items-center justify-center">
-                                  <div className="h-2.5 w-2.5 rounded-full bg-blue-400" />
+                              {/* Status Icon */}
+                              <button
+                                className="flex-shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleComplete(action);
+                                }}
+                              >
+                                {action.status === "COMPLETED" ? (
+                                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                ) : action.status === "IN_PROGRESS" ? (
+                                  <div className="h-5 w-5 rounded-full border-2 border-blue-400 flex items-center justify-center">
+                                    <div className="h-2.5 w-2.5 rounded-full bg-blue-400" />
+                                  </div>
+                                ) : (
+                                  <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" />
+                                )}
+                              </button>
+
+                              {/* Title & Description */}
+                              <div className="min-w-0">
+                                <div
+                                  className={`font-medium text-sm leading-tight ${
+                                    action.status === "COMPLETED"
+                                      ? "line-through text-muted-foreground"
+                                      : ""
+                                  }`}
+                                >
+                                  {action.title}
                                 </div>
-                              ) : (
-                                <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" />
-                              )}
-                            </button>
+                                {action.description && (
+                                  <div className="text-xs text-muted-foreground truncate mt-0.5">
+                                    {
+                                      action.description
+                                        .split("--- Materialien ---")[0]
+                                        .split("\n")[0]
+                                    }
+                                  </div>
+                                )}
+                              </div>
 
-                            {/* Title & Description */}
-                            <div className="min-w-0">
-                              <div
-                                className={`font-medium text-sm leading-tight ${
-                                  action.status === "COMPLETED"
-                                    ? "line-through text-muted-foreground"
-                                    : ""
+                              {/* Assignee */}
+                              <div className="flex items-center gap-2">
+                                {action.assignedTo ? (
+                                  <>
+                                    <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-[10px] flex-shrink-0 ring-1 ring-primary/20">
+                                      {action.assignedTo
+                                        .split(" ")
+                                        .map((n: string) => n[0])
+                                        .join("")
+                                        .slice(0, 2)}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">
+                                    —
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Due Date */}
+                              <span
+                                className={`text-xs ${
+                                  isOverdue(action.dueDate, action.status)
+                                    ? "text-red-600 dark:text-red-400 font-semibold"
+                                    : "text-muted-foreground"
                                 }`}
                               >
-                                {action.title}
-                              </div>
-                              {action.description && (
-                                <div className="text-xs text-muted-foreground truncate mt-0.5">
-                                  {
-                                    action.description
-                                      .split("--- Materialien ---")[0]
-                                      .split("\n")[0]
-                                  }
-                                </div>
-                              )}
-                            </div>
+                                {action.dueDate
+                                  ? new Date(action.dueDate).toLocaleDateString(
+                                      "de-DE",
+                                      { day: "numeric", month: "short" },
+                                    )
+                                  : "—"}
+                              </span>
 
-                            {/* Assignee */}
-                            <div className="flex items-center gap-2">
-                              {action.assignedTo ? (
-                                <>
-                                  <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-[10px] flex-shrink-0 ring-1 ring-primary/20">
-                                    {action.assignedTo
-                                      .split(" ")
-                                      .map((n: string) => n[0])
-                                      .join("")
-                                      .slice(0, 2)}
-                                  </div>
-                                </>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">
-                                  —
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Due Date */}
-                            <span
-                              className={`text-xs ${
-                                isOverdue(action.dueDate, action.status)
-                                  ? "text-red-600 dark:text-red-400 font-semibold"
-                                  : "text-muted-foreground"
-                              }`}
-                            >
-                              {action.dueDate
-                                ? new Date(action.dueDate).toLocaleDateString(
-                                    "de-DE",
-                                    { day: "numeric", month: "short" },
-                                  )
-                                : "—"}
-                            </span>
-
-                            {/* Priority Badge */}
-                            <Badge
-                              className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
-                                action.priority === "URGENT"
-                                  ? "bg-red-500 hover:bg-red-600 text-white"
+                              {/* Priority Badge */}
+                              <Badge
+                                className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
+                                  action.priority === "URGENT"
+                                    ? "bg-red-500 hover:bg-red-600 text-white"
+                                    : action.priority === "HIGH"
+                                      ? "bg-orange-500 hover:bg-orange-600 text-white"
+                                      : action.priority === "MEDIUM"
+                                        ? "bg-amber-400 hover:bg-amber-500 text-white"
+                                        : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                                }`}
+                              >
+                                {action.priority === "URGENT"
+                                  ? "Urgent"
                                   : action.priority === "HIGH"
-                                    ? "bg-orange-500 hover:bg-orange-600 text-white"
+                                    ? "Hoch"
                                     : action.priority === "MEDIUM"
-                                      ? "bg-amber-400 hover:bg-amber-500 text-white"
-                                      : "bg-emerald-500 hover:bg-emerald-600 text-white"
-                              }`}
-                            >
-                              {action.priority === "URGENT"
-                                ? "Urgent"
-                                : action.priority === "HIGH"
-                                  ? "Hoch"
-                                  : action.priority === "MEDIUM"
-                                    ? "Mittel"
-                                    : "Niedrig"}
-                            </Badge>
+                                      ? "Mittel"
+                                      : "Niedrig"}
+                              </Badge>
 
-                            {/* Status Badge */}
-                            <Badge
-                              className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
-                                action.status === "COMPLETED"
-                                  ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                              {/* Status Badge */}
+                              <Badge
+                                className={`text-[11px] font-semibold px-2 py-0.5 w-fit border-0 ${
+                                  action.status === "COMPLETED"
+                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    : action.status === "IN_PROGRESS"
+                                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                      : "bg-slate-500 hover:bg-slate-600 text-white"
+                                }`}
+                              >
+                                {action.status === "OPEN"
+                                  ? "Offen"
                                   : action.status === "IN_PROGRESS"
-                                    ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                    : "bg-slate-500 hover:bg-slate-600 text-white"
-                              }`}
-                            >
-                              {action.status === "OPEN"
-                                ? "Offen"
-                                : action.status === "IN_PROGRESS"
-                                  ? "In Arbeit"
-                                  : "Erledigt"}
-                            </Badge>
+                                    ? "In Arbeit"
+                                    : "Erledigt"}
+                              </Badge>
 
-                            {/* Hover Actions */}
-                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openEditDialog(action);
-                                }}
-                                title="Bearbeiten"
-                              >
-                                <Edit className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDelete(action.id);
-                                }}
-                                title="Löschen"
-                              >
-                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                              </Button>
+                              {/* Hover Actions */}
+                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditDialog(action);
+                                  }}
+                                  title="Bearbeiten"
+                                >
+                                  <Edit className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(action.id);
+                                  }}
+                                  title="Löschen"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                </Button>
+                              </div>
                             </div>
-                          </div>
 
-                          {/* Expanded Detail Section */}
-                          {expandedRows.has(action.id) && (
-                            <div className="border-b border-gray-100 bg-[#f7f9fc]">
-                              <div className="p-6 space-y-6">
-                                {/* Beschreibung & Aufgaben Grid */}
-                                <div className="grid grid-cols-2 gap-6">
-                                  {/* Beschreibung Card */}
-                                  <Card>
-                                    <CardHeader className="pb-3">
-                                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                        <AlertCircle className="h-4 w-4" />
-                                        Beschreibung
-                                      </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                      <p className="text-sm whitespace-pre-wrap">
-                                        {action.description
-                                          .split("--- Materialien ---")[0]
-                                          .split("\n")
-                                          .filter(
-                                            (line: string) =>
-                                              !line.startsWith("📷 Photo:"),
-                                          )
-                                          .join("\n")
-                                          .trim()}
-                                      </p>
-                                      {(() => {
-                                        const photoUrl =
-                                          extractPhotoFromDescription(
-                                            action.description,
-                                          );
-                                        if (
-                                          photoUrl &&
-                                          (photoUrl.startsWith("http://") ||
-                                            photoUrl.startsWith("https://"))
-                                        ) {
-                                          return (
-                                            <div className="pt-3 border-t">
-                                              <p className="text-xs font-medium text-muted-foreground mb-2">
-                                                Foto
-                                              </p>
-                                              <img
-                                                src={photoUrl}
-                                                alt="Schadensbericht Foto"
-                                                className="w-32 h-32 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
-                                                onClick={() => {
-                                                  setSelectedPhoto(photoUrl);
-                                                  setPhotoViewDialogOpen(true);
-                                                }}
-                                              />
-                                            </div>
-                                          );
-                                        }
-                                        return null;
-                                      })()}
-                                      {(() => {
-                                        const photoFilename =
-                                          extractPhotoFromDescription(
-                                            action.description,
-                                          );
-                                        if (
-                                          photoFilename &&
-                                          !photoFilename.startsWith(
-                                            "http://",
-                                          ) &&
-                                          !photoFilename.startsWith("https://")
-                                        ) {
-                                          return (
-                                            <div className="pt-3 border-t">
-                                              <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={async () => {
-                                                  try {
-                                                    const blob =
-                                                      await apiClient.request<Blob>(
-                                                        `/failure-reports/photo/${photoFilename}`,
-                                                        {
-                                                          responseType: "blob",
-                                                        },
-                                                      );
-                                                    const pUrl =
-                                                      URL.createObjectURL(blob);
-                                                    setSelectedPhoto(pUrl);
-                                                    setPhotoViewDialogOpen(
-                                                      true,
-                                                    );
-                                                    setTimeout(
-                                                      () =>
-                                                        URL.revokeObjectURL(
-                                                          pUrl,
-                                                        ),
-                                                      10000,
-                                                    );
-                                                  } catch (error) {
-                                                    console.error(
-                                                      "Error loading photo:",
-                                                      error,
-                                                    );
-                                                    toast({
-                                                      title: "Fehler",
-                                                      description:
-                                                        "Foto konnte nicht geladen werden.",
-                                                      variant: "destructive",
-                                                    });
-                                                  }
-                                                }}
-                                              >
-                                                <Camera className="h-4 w-4 mr-2" />
-                                                Foto anzeigen
-                                              </Button>
-                                            </div>
-                                          );
-                                        }
-                                        return null;
-                                      })()}
-                                    </CardContent>
-                                  </Card>
-
-                                  {/* Aufgaben Card */}
-                                  <Card>
-                                    <CardHeader className="pb-3">
-                                      <div className="flex items-center justify-between">
+                            {/* Expanded Detail Section */}
+                            {expandedRows.has(action.id) && (
+                              <div className="border-b border-gray-100 bg-[#f7f9fc]">
+                                <div className="p-6 space-y-6">
+                                  {/* Beschreibung & Aufgaben Grid */}
+                                  <div className="grid grid-cols-2 gap-6">
+                                    {/* Beschreibung Card */}
+                                    <Card>
+                                      <CardHeader className="pb-3">
                                         <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                          <ListTodo className="h-4 w-4" />
-                                          Aufgaben ({action.tasks.length})
+                                          <AlertCircle className="h-4 w-4" />
+                                          Beschreibung
                                         </CardTitle>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-7"
-                                          onClick={() =>
-                                            handleOpenTaskDialog(action.id)
-                                          }
-                                        >
-                                          <Plus className="h-3 w-3 mr-1" />
-                                          Neu
-                                        </Button>
-                                      </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                      {action.tasks.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground text-center py-4">
-                                          Keine Aufgaben vorhanden
+                                      </CardHeader>
+                                      <CardContent className="space-y-3">
+                                        <p className="text-sm whitespace-pre-wrap">
+                                          {action.description
+                                            .split("--- Materialien ---")[0]
+                                            .split("\n")
+                                            .filter(
+                                              (line: string) =>
+                                                !line.startsWith("📷 Photo:"),
+                                            )
+                                            .join("\n")
+                                            .trim()}
                                         </p>
-                                      ) : (
-                                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                                          {action.tasks.map((task) => (
-                                            <div
-                                              key={task.id}
-                                              className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border"
-                                            >
-                                              <input
-                                                type="checkbox"
-                                                checked={task.completed}
-                                                onChange={() =>
-                                                  handleToggleTask(
-                                                    action.id,
-                                                    task.id,
-                                                  )
-                                                }
-                                                className="mt-1 h-4 w-4 rounded border-gray-300"
-                                              />
-                                              <div className="flex-1 min-w-0">
-                                                <div
-                                                  className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : ""}`}
-                                                >
-                                                  {task.title}
-                                                </div>
-                                                {task.description && (
-                                                  <div className="text-xs text-muted-foreground mt-1">
-                                                    {task.description}
-                                                  </div>
-                                                )}
-                                                <div className="flex items-center gap-2 mt-1">
-                                                  {task.assignedUser && (
-                                                    <span className="text-xs flex items-center gap-1">
-                                                      <Users className="h-3 w-3" />
-                                                      {(() => {
-                                                        const user =
-                                                          availableUsers.find(
-                                                            (u) =>
-                                                              u.id ===
-                                                              task.assignedUser,
-                                                          );
-                                                        return user
-                                                          ? `${user.firstName} ${user.lastName}`
-                                                          : task.assignedUser;
-                                                      })()}
-                                                    </span>
-                                                  )}
-                                                  {task.dueDate && (
-                                                    <span className="text-xs text-muted-foreground">
-                                                      Fällig:{" "}
-                                                      {new Date(
-                                                        task.dueDate,
-                                                      ).toLocaleDateString(
-                                                        "de-DE",
-                                                      )}
-                                                    </span>
-                                                  )}
-                                                </div>
-                                              </div>
-                                              <div className="flex items-center gap-1">
-                                                <Button
-                                                  variant="ghost"
-                                                  size="sm"
-                                                  className="h-6 w-6 p-0"
-                                                  onClick={() => {
-                                                    setCurrentTask({ ...task });
-                                                    setCurrentTaskActionId(
-                                                      action.id,
-                                                    );
-                                                    setTaskDialogOpen(true);
-                                                  }}
-                                                  title="Bearbeiten"
-                                                >
-                                                  <Edit className="h-3 w-3" />
-                                                </Button>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="sm"
-                                                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                                                  onClick={() =>
-                                                    handleDeleteTask(
-                                                      action.id,
-                                                      task.id,
-                                                    )
-                                                  }
-                                                  title="Löschen"
-                                                >
-                                                  <X className="h-3 w-3" />
-                                                </Button>
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </CardContent>
-                                  </Card>
-                                </div>
-
-                                {/* Angehängte Dateien */}
-                                {action.files.length > 0 && (
-                                  <Card>
-                                    <CardHeader className="pb-3">
-                                      <CardTitle className="text-base flex items-center gap-2">
-                                        📁 Angehängte Dateien
-                                        <Badge
-                                          variant="secondary"
-                                          className="ml-2"
-                                        >
-                                          {action.files.length}
-                                        </Badge>
-                                      </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                                        {action.files.map((file) => (
-                                          <div
-                                            key={file.id}
-                                            className="relative group"
-                                          >
-                                            <Card className="overflow-hidden hover:shadow-md transition-shadow">
-                                              {file.isPhoto ? (
+                                        {(() => {
+                                          const photoUrl =
+                                            extractPhotoFromDescription(
+                                              action.description,
+                                            );
+                                          if (
+                                            photoUrl &&
+                                            (photoUrl.startsWith("http://") ||
+                                              photoUrl.startsWith("https://"))
+                                          ) {
+                                            return (
+                                              <div className="pt-3 border-t">
+                                                <p className="text-xs font-medium text-muted-foreground mb-2">
+                                                  Foto
+                                                </p>
                                                 <img
-                                                  src={file.url}
-                                                  alt={file.name}
-                                                  className="w-full aspect-square object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                                  src={photoUrl}
+                                                  alt="Schadensbericht Foto"
+                                                  className="w-32 h-32 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
                                                   onClick={() => {
-                                                    setSelectedPhoto(file.url);
+                                                    setSelectedPhoto(photoUrl);
                                                     setPhotoViewDialogOpen(
                                                       true,
                                                     );
                                                   }}
                                                 />
-                                              ) : (
-                                                <div className="w-full aspect-square flex items-center justify-center bg-muted">
-                                                  <Paperclip className="h-8 w-8 text-muted-foreground" />
-                                                </div>
-                                              )}
-                                            </Card>
-                                            <p
-                                              className="text-xs truncate mt-1 text-center"
-                                              title={file.name}
-                                            >
-                                              {file.name}
-                                            </p>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                )}
-
-                                {/* Material-Liste */}
-                                {(() => {
-                                  const materials =
-                                    parseMaterialsFromDescription(
-                                      action.description,
-                                    );
-                                  if (materials.length === 0) return null;
-                                  return (
-                                    <Card className="border">
-                                      <CardHeader className="bg-muted/50 pb-2 pt-3">
-                                        <div className="flex items-center justify-between">
-                                          <CardTitle className="text-base flex items-center gap-2">
-                                            📦 Bestellte Materialien
-                                          </CardTitle>
-                                          <Badge
-                                            variant="secondary"
-                                            className="text-xs"
-                                          >
-                                            {materials.length}{" "}
-                                            {materials.length === 1
-                                              ? "Material"
-                                              : "Materialien"}
-                                          </Badge>
-                                        </div>
-                                      </CardHeader>
-                                      <CardContent className="pt-3">
-                                        <div className="space-y-1.5">
-                                          {materials.map((material) => {
-                                            const getStatusBadge = (
-                                              status?: string,
-                                            ) => {
-                                              switch (status) {
-                                                case "GELIEFERT":
-                                                  return (
-                                                    <Badge className="bg-green-600 hover:bg-green-700 text-white">
-                                                      ✅ Geliefert
-                                                    </Badge>
-                                                  );
-                                                case "UNTERWEGS":
-                                                  return (
-                                                    <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
-                                                      🚚 Unterwegs
-                                                    </Badge>
-                                                  );
-                                                case "BESTELLT":
-                                                  return (
-                                                    <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
-                                                      ⚠️ Bestellt
-                                                    </Badge>
-                                                  );
-                                                default:
-                                                  return (
-                                                    <Badge
-                                                      variant="outline"
-                                                      className="border-2"
-                                                    >
-                                                      ❌ Nicht bestellt
-                                                    </Badge>
-                                                  );
-                                              }
-                                            };
-                                            return (
-                                              <div
-                                                key={material.id}
-                                                className="group p-2.5 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
-                                              >
-                                                <div className="flex items-center justify-between gap-3">
-                                                  <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                      <span className="font-mono text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">
-                                                        {material.mmNumber}
-                                                      </span>
-                                                      {getStatusBadge(
-                                                        material.status,
-                                                      )}
-                                                    </div>
-                                                    <p className="text-xs line-clamp-1">
-                                                      {material.description}
-                                                    </p>
-                                                  </div>
-                                                  <div className="flex flex-col items-end justify-center bg-muted/50 px-2.5 py-2 rounded min-w-[60px]">
-                                                    <p className="text-lg font-bold text-primary">
-                                                      {material.quantity}
-                                                    </p>
-                                                    <p className="text-[10px] font-medium text-muted-foreground uppercase">
-                                                      {material.unit}
-                                                    </p>
-                                                  </div>
-                                                </div>
                                               </div>
                                             );
-                                          })}
+                                          }
+                                          return null;
+                                        })()}
+                                        {(() => {
+                                          const photoFilename =
+                                            extractPhotoFromDescription(
+                                              action.description,
+                                            );
+                                          if (
+                                            photoFilename &&
+                                            !photoFilename.startsWith(
+                                              "http://",
+                                            ) &&
+                                            !photoFilename.startsWith(
+                                              "https://",
+                                            )
+                                          ) {
+                                            return (
+                                              <div className="pt-3 border-t">
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                  onClick={async () => {
+                                                    try {
+                                                      const blob =
+                                                        await apiClient.request<Blob>(
+                                                          `/failure-reports/photo/${photoFilename}`,
+                                                          {
+                                                            responseType:
+                                                              "blob",
+                                                          },
+                                                        );
+                                                      const pUrl =
+                                                        URL.createObjectURL(
+                                                          blob,
+                                                        );
+                                                      setSelectedPhoto(pUrl);
+                                                      setPhotoViewDialogOpen(
+                                                        true,
+                                                      );
+                                                      setTimeout(
+                                                        () =>
+                                                          URL.revokeObjectURL(
+                                                            pUrl,
+                                                          ),
+                                                        10000,
+                                                      );
+                                                    } catch (error) {
+                                                      console.error(
+                                                        "Error loading photo:",
+                                                        error,
+                                                      );
+                                                      toast({
+                                                        title: "Fehler",
+                                                        description:
+                                                          "Foto konnte nicht geladen werden.",
+                                                        variant: "destructive",
+                                                      });
+                                                    }
+                                                  }}
+                                                >
+                                                  <Camera className="h-4 w-4 mr-2" />
+                                                  Foto anzeigen
+                                                </Button>
+                                              </div>
+                                            );
+                                          }
+                                          return null;
+                                        })()}
+                                      </CardContent>
+                                    </Card>
+
+                                    {/* Aufgaben Card */}
+                                    <Card>
+                                      <CardHeader className="pb-3">
+                                        <div className="flex items-center justify-between">
+                                          <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                            <ListTodo className="h-4 w-4" />
+                                            Aufgaben ({action.tasks.length})
+                                          </CardTitle>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7"
+                                            onClick={() =>
+                                              handleOpenTaskDialog(action.id)
+                                            }
+                                          >
+                                            <Plus className="h-3 w-3 mr-1" />
+                                            Neu
+                                          </Button>
+                                        </div>
+                                      </CardHeader>
+                                      <CardContent>
+                                        {action.tasks.length === 0 ? (
+                                          <p className="text-sm text-muted-foreground text-center py-4">
+                                            Keine Aufgaben vorhanden
+                                          </p>
+                                        ) : (
+                                          <div className="space-y-2 max-h-64 overflow-y-auto">
+                                            {action.tasks.map((task) => (
+                                              <div
+                                                key={task.id}
+                                                className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border"
+                                              >
+                                                <input
+                                                  type="checkbox"
+                                                  checked={task.completed}
+                                                  onChange={() =>
+                                                    handleToggleTask(
+                                                      action.id,
+                                                      task.id,
+                                                    )
+                                                  }
+                                                  className="mt-1 h-4 w-4 rounded border-gray-300"
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                  <div
+                                                    className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                                                  >
+                                                    {task.title}
+                                                  </div>
+                                                  {task.description && (
+                                                    <div className="text-xs text-muted-foreground mt-1">
+                                                      {task.description}
+                                                    </div>
+                                                  )}
+                                                  <div className="flex items-center gap-2 mt-1">
+                                                    {task.assignedUser && (
+                                                      <span className="text-xs flex items-center gap-1">
+                                                        <Users className="h-3 w-3" />
+                                                        {(() => {
+                                                          const user =
+                                                            availableUsers.find(
+                                                              (u) =>
+                                                                u.id ===
+                                                                task.assignedUser,
+                                                            );
+                                                          return user
+                                                            ? `${user.firstName} ${user.lastName}`
+                                                            : task.assignedUser;
+                                                        })()}
+                                                      </span>
+                                                    )}
+                                                    {task.dueDate && (
+                                                      <span className="text-xs text-muted-foreground">
+                                                        Fällig:{" "}
+                                                        {new Date(
+                                                          task.dueDate,
+                                                        ).toLocaleDateString(
+                                                          "de-DE",
+                                                        )}
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-6 w-6 p-0"
+                                                    onClick={() => {
+                                                      setCurrentTask({
+                                                        ...task,
+                                                      });
+                                                      setCurrentTaskActionId(
+                                                        action.id,
+                                                      );
+                                                      setTaskDialogOpen(true);
+                                                    }}
+                                                    title="Bearbeiten"
+                                                  >
+                                                    <Edit className="h-3 w-3" />
+                                                  </Button>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                                    onClick={() =>
+                                                      handleDeleteTask(
+                                                        action.id,
+                                                        task.id,
+                                                      )
+                                                    }
+                                                    title="Löschen"
+                                                  >
+                                                    <X className="h-3 w-3" />
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </CardContent>
+                                    </Card>
+                                  </div>
+
+                                  {/* Angehängte Dateien */}
+                                  {action.files.length > 0 && (
+                                    <Card>
+                                      <CardHeader className="pb-3">
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                          📁 Angehängte Dateien
+                                          <Badge
+                                            variant="secondary"
+                                            className="ml-2"
+                                          >
+                                            {action.files.length}
+                                          </Badge>
+                                        </CardTitle>
+                                      </CardHeader>
+                                      <CardContent>
+                                        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                                          {action.files.map((file) => (
+                                            <div
+                                              key={file.id}
+                                              className="relative group"
+                                            >
+                                              <Card className="overflow-hidden hover:shadow-md transition-shadow">
+                                                {file.isPhoto ? (
+                                                  <img
+                                                    src={file.url}
+                                                    alt={file.name}
+                                                    className="w-full aspect-square object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                                    onClick={() => {
+                                                      setSelectedPhoto(
+                                                        file.url,
+                                                      );
+                                                      setPhotoViewDialogOpen(
+                                                        true,
+                                                      );
+                                                    }}
+                                                  />
+                                                ) : (
+                                                  <div className="w-full aspect-square flex items-center justify-center bg-muted">
+                                                    <Paperclip className="h-8 w-8 text-muted-foreground" />
+                                                  </div>
+                                                )}
+                                              </Card>
+                                              <p
+                                                className="text-xs truncate mt-1 text-center"
+                                                title={file.name}
+                                              >
+                                                {file.name}
+                                              </p>
+                                            </div>
+                                          ))}
                                         </div>
                                       </CardContent>
                                     </Card>
-                                  );
-                                })()}
+                                  )}
+
+                                  {/* Material-Liste */}
+                                  {(() => {
+                                    const materials =
+                                      parseMaterialsFromDescription(
+                                        action.description,
+                                      );
+                                    if (materials.length === 0) return null;
+                                    return (
+                                      <Card className="border">
+                                        <CardHeader className="bg-muted/50 pb-2 pt-3">
+                                          <div className="flex items-center justify-between">
+                                            <CardTitle className="text-base flex items-center gap-2">
+                                              📦 Bestellte Materialien
+                                            </CardTitle>
+                                            <Badge
+                                              variant="secondary"
+                                              className="text-xs"
+                                            >
+                                              {materials.length}{" "}
+                                              {materials.length === 1
+                                                ? "Material"
+                                                : "Materialien"}
+                                            </Badge>
+                                          </div>
+                                        </CardHeader>
+                                        <CardContent className="pt-3">
+                                          <div className="space-y-1.5">
+                                            {materials.map((material) => {
+                                              const getStatusBadge = (
+                                                status?: string,
+                                              ) => {
+                                                switch (status) {
+                                                  case "GELIEFERT":
+                                                    return (
+                                                      <Badge className="bg-green-600 hover:bg-green-700 text-white">
+                                                        ✅ Geliefert
+                                                      </Badge>
+                                                    );
+                                                  case "UNTERWEGS":
+                                                    return (
+                                                      <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
+                                                        🚚 Unterwegs
+                                                      </Badge>
+                                                    );
+                                                  case "BESTELLT":
+                                                    return (
+                                                      <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                                                        ⚠️ Bestellt
+                                                      </Badge>
+                                                    );
+                                                  default:
+                                                    return (
+                                                      <Badge
+                                                        variant="outline"
+                                                        className="border-2"
+                                                      >
+                                                        ❌ Nicht bestellt
+                                                      </Badge>
+                                                    );
+                                                }
+                                              };
+                                              return (
+                                                <div
+                                                  key={material.id}
+                                                  className="group p-2.5 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+                                                >
+                                                  <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                      <div className="flex items-center gap-2 mb-1">
+                                                        <span className="font-mono text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">
+                                                          {material.mmNumber}
+                                                        </span>
+                                                        {getStatusBadge(
+                                                          material.status,
+                                                        )}
+                                                      </div>
+                                                      <p className="text-xs line-clamp-1">
+                                                        {material.description}
+                                                      </p>
+                                                    </div>
+                                                    <div className="flex flex-col items-end justify-center bg-muted/50 px-2.5 py-2 rounded min-w-[60px]">
+                                                      <p className="text-lg font-bold text-primary">
+                                                        {material.quantity}
+                                                      </p>
+                                                      <p className="text-[10px] font-medium text-muted-foreground uppercase">
+                                                        {material.unit}
+                                                      </p>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    );
+                                  })()}
+                                </div>
                               </div>
+                            )}
+                          </React.Fragment>
+                        );
+
+                        return (
+                          <div className="overflow-hidden">
+                            {/* Column Headers */}
+                            <div className="grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 px-5 py-3 bg-gradient-to-r from-[#143269] to-[#2B5597]">
+                              <span></span>
+                              <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
+                                Action
+                              </span>
+                              <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
+                                Zugewiesen
+                              </span>
+                              <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
+                                Fällig
+                              </span>
+                              <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
+                                Priorität
+                              </span>
+                              <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
+                                Status
+                              </span>
+                              <span></span>
                             </div>
-                          )}
-                        </React.Fragment>
-                      );
 
-                      return (
-                        <div className="overflow-hidden">
-                          {/* Column Headers */}
-                          <div className="grid grid-cols-[28px_1fr_140px_90px_90px_110px_70px] gap-3 px-5 py-3 bg-gradient-to-r from-[#143269] to-[#2B5597]">
-                            <span></span>
-                            <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">Action</span>
-                            <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                              Zugewiesen
-                            </span>
-                            <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                              Fällig
-                            </span>
-                            <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                              Priorität
-                            </span>
-                            <span className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">
-                              Status
-                            </span>
-                            <span></span>
+                            {/* Allgemein Section */}
+                            {allgemeinActions.length > 0 && (
+                              <>
+                                <div className="px-5 py-2.5 border-b border-gray-100 bg-[#f7f9fc]">
+                                  <h3 className="font-bold text-sm text-[#143269] tracking-tight">
+                                    Allgemein
+                                  </h3>
+                                </div>
+                                {allgemeinActions.map(renderActionRow)}
+                              </>
+                            )}
+
+                            {/* Rigmoves Section */}
+                            {rigmoveActions.length > 0 && (
+                              <>
+                                <div className="px-5 py-2.5 border-b border-gray-100 bg-[#f7f9fc]">
+                                  <h3 className="font-bold text-sm text-[#143269] tracking-tight">
+                                    Rigmoves
+                                  </h3>
+                                </div>
+                                {rigmoveActions.map(renderActionRow)}
+                              </>
+                            )}
                           </div>
-
-                          {/* Allgemein Section */}
-                          {allgemeinActions.length > 0 && (
-                            <>
-                              <div className="px-5 py-2.5 border-b border-gray-100 bg-[#f7f9fc]">
-                                <h3 className="font-bold text-sm text-[#143269] tracking-tight">
-                                  Allgemein
-                                </h3>
-                              </div>
-                              {allgemeinActions.map(renderActionRow)}
-                            </>
-                          )}
-
-                          {/* Rigmoves Section */}
-                          {rigmoveActions.length > 0 && (
-                            <>
-                              <div className="px-5 py-2.5 border-b border-gray-100 bg-[#f7f9fc]">
-                                <h3 className="font-bold text-sm text-[#143269] tracking-tight">
-                                  Rigmoves
-                                </h3>
-                              </div>
-                              {rigmoveActions.map(renderActionRow)}
-                            </>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </>
-          )}
+                        );
+                      })()}
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </>
+            )}
           </div>
         </div>
       </div>

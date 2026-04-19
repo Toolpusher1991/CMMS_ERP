@@ -22,8 +22,8 @@ interface NotificationBellProps {
       | "tender"
       | "failures"
       | "cspl"
-      | "shifts"
       | "integrity"
+      | "inspections"
       | "admin",
   ) => void;
 }
