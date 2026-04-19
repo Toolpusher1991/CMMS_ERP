@@ -172,7 +172,7 @@ export function ProjectFilterCard({
                           onPlantChange(rig.name);
                           setPlantOpen(false);
                         }}
-                        className="flex items-center gap-2 py-2"
+                        className="flex items-center gap-2 py-2 cursor-pointer"
                       >
                         <Check
                           className={cn(
