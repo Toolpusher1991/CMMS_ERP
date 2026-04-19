@@ -1,9 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Terminal, Users, MapPin, ArrowLeft, Settings } from "lucide-react";
 import { PageErrorBoundary } from "@/components/ErrorBoundary";
 

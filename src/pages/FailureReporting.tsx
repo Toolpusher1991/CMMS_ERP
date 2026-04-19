@@ -16,10 +16,7 @@ import { cn } from "@/lib/utils";
 import { SEVERITY_CONFIG, FAILURE_STATUS_CONFIG } from "@/lib/constants";
 import { useUserList } from "@/hooks/useQueryHooks";
 import "./FailureReporting.mobile.css";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 // Tabs removed - using custom dropdown selector instead
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

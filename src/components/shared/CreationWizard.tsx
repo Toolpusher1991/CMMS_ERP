@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -19,6 +19,7 @@ import {
   Minus,
   ArrowUp,
   AlertTriangle,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -191,6 +192,7 @@ export function CreationWizard({
 }: CreationWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [selections, setSelections] = useState<WizardSelections>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   const totalSteps = steps.length + (finalStepContent ? 1 : 0);
   const isOnFinalStep = finalStepContent ? currentStep === steps.length : false;
@@ -198,6 +200,24 @@ export function CreationWizard({
 
   const activeStep = isOnCardStep ? steps[currentStep] : null;
   const currentSelection = activeStep ? selections[activeStep.id] : null;
+
+  // Compact mode for steps with many cards (e.g. 30+ plants)
+  const COMPACT_THRESHOLD = 8;
+  const isCompact = activeStep
+    ? activeStep.cards.length > COMPACT_THRESHOLD
+    : false;
+
+  // Filter cards by search query
+  const filteredCards = useMemo(() => {
+    if (!activeStep) return [];
+    if (!searchQuery.trim()) return activeStep.cards;
+    const q = searchQuery.toLowerCase();
+    return activeStep.cards.filter(
+      (card) =>
+        card.label.toLowerCase().includes(q) ||
+        card.description?.toLowerCase().includes(q),
+    );
+  }, [activeStep, searchQuery]);
 
   const canGoNext = isOnCardStep
     ? currentSelection !== undefined &&
@@ -226,6 +246,7 @@ export function CreationWizard({
   const handleNext = () => {
     if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1);
+      setSearchQuery("");
     } else {
       onComplete(selections);
     }
@@ -234,6 +255,7 @@ export function CreationWizard({
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+      setSearchQuery("");
     } else {
       onCancel();
     }
@@ -275,24 +297,50 @@ export function CreationWizard({
             <p className="text-[13px] text-[#64646E] mb-5">
               {activeStep.subtitle}
             </p>
+
+            {/* Search bar for large card sets */}
+            {isCompact && (
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64646E]" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Suchen..."
+                  className="w-full pl-10 pr-4 py-2.5 text-[14px] border border-[#C8C8D2] rounded-sm bg-white focus:outline-none focus:border-[#2B5597] transition-colors placeholder:text-[#C8C8D2]"
+                />
+                {searchQuery && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[#64646E]">
+                    {filteredCards.length} Ergebnis
+                    {filteredCards.length !== 1 ? "se" : ""}
+                  </span>
+                )}
+              </div>
+            )}
+
             <div
               className={cn(
                 "grid gap-3",
-                activeStep.cards.length <= 4
-                  ? "grid-cols-2"
-                  : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
+                isCompact
+                  ? "grid-cols-3 sm:grid-cols-4 lg:grid-cols-6"
+                  : activeStep.cards.length <= 4
+                    ? "grid-cols-2"
+                    : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
               )}
             >
-              {activeStep.cards.map((card) => {
+              {filteredCards.map((card) => {
                 const selected = isSelected(card.id);
                 return (
                   <button
                     key={card.id}
                     onClick={() => handleSelect(card.id)}
                     className={cn(
-                      "relative flex flex-col items-center text-center p-5 border transition-all duration-150",
+                      "relative flex flex-col items-center text-center border transition-all duration-150",
                       "rounded-sm hover:shadow-md focus:outline-none",
-                      "min-h-[130px] justify-center gap-2",
+                      "justify-center gap-1",
+                      isCompact
+                        ? "p-3 min-h-[72px]"
+                        : "p-5 min-h-[130px] gap-2",
                       selected
                         ? "border-[#00B2E3] bg-[#00B2E3]/5 shadow-[0_0_0_1px_#00B2E3]"
                         : "border-[#C8C8D2] bg-white hover:border-[#2B5597]",
@@ -300,12 +348,25 @@ export function CreationWizard({
                   >
                     {/* Selection indicator */}
                     {selected && (
-                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#00B2E3] flex items-center justify-center">
-                        <Check className="h-3 w-3 text-white" />
+                      <div
+                        className={cn(
+                          "absolute rounded-full bg-[#00B2E3] flex items-center justify-center",
+                          isCompact
+                            ? "top-1 right-1 w-4 h-4"
+                            : "top-2 right-2 w-5 h-5",
+                        )}
+                      >
+                        <Check
+                          className={
+                            isCompact
+                              ? "h-2.5 w-2.5 text-white"
+                              : "h-3 w-3 text-white"
+                          }
+                        />
                       </div>
                     )}
                     {/* Icon */}
-                    {card.icon && (
+                    {card.icon && !isCompact && (
                       <div
                         className={cn(
                           "w-12 h-12 rounded-sm flex items-center justify-center mb-1",
@@ -319,13 +380,14 @@ export function CreationWizard({
                     )}
                     <span
                       className={cn(
-                        "text-[14px] font-medium leading-tight",
+                        "font-medium leading-tight",
+                        isCompact ? "text-[13px]" : "text-[14px]",
                         selected ? "text-[#143269]" : "text-[#000]",
                       )}
                     >
                       {card.label}
                     </span>
-                    {card.description && (
+                    {card.description && !isCompact && (
                       <span className="text-[11px] text-[#64646E] leading-snug">
                         {card.description}
                       </span>
@@ -334,6 +396,13 @@ export function CreationWizard({
                 );
               })}
             </div>
+
+            {/* Empty state */}
+            {isCompact && filteredCards.length === 0 && searchQuery && (
+              <p className="text-center text-[13px] text-[#64646E] py-8">
+                Keine Ergebnisse für „{searchQuery}"
+              </p>
+            )}
           </>
         )}
 

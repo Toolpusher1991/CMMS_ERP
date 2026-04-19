@@ -309,8 +309,6 @@ const ActionTracker = ({
     setPriorityFilter,
     userFilter,
     setUserFilter,
-    locationFilter,
-    setLocationFilter,
     getFilteredActionsForCategory,
     getActionStats,
   } = useActionFilters(actions, users);
@@ -2120,12 +2118,13 @@ const ActionTracker = ({
                   onDisciplineChange={setDisciplineFilter}
                   priorityFilter={priorityFilter}
                   onPriorityChange={setPriorityFilter}
-                  locationFilter={locationFilter}
-                  onLocationChange={setLocationFilter}
                   userFilter={userFilter}
                   onUserChange={setUserFilter}
                   users={users}
-                  availableLocations={availableLocations}
+                  activePlant={activeTab}
+                  onPlantChange={setActiveTab}
+                  availableRigs={availableRigs}
+                  getActionStats={getActionStats}
                 />
 
                 <Tabs
@@ -2133,52 +2132,6 @@ const ActionTracker = ({
                   onValueChange={setActiveTab}
                   className="space-y-4"
                 >
-                  {/* Rig Selector Dropdown - scales for 20+ rigs */}
-                  <div className="flex items-center gap-3">
-                    <Select value={activeTab} onValueChange={setActiveTab}>
-                      <SelectTrigger className="w-full sm:w-72 h-11 bg-[#f7f9fc] border-gray-200">
-                        <SelectValue placeholder="Anlage ausw�hlen..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableRigs.map((rig) => {
-                          const stats = getActionStats(rig.name);
-                          const openCount = stats.open + stats.inProgress;
-                          return (
-                            <SelectItem key={rig.id} value={rig.name}>
-                              <div className="flex items-center gap-3 py-1">
-                                <span className="font-bold">{rig.name}</span>
-                                {openCount > 0 && (
-                                  <Badge
-                                    variant="destructive"
-                                    className="px-1.5 py-0 text-[10px] font-bold h-4"
-                                  >
-                                    {openCount} Offen
-                                  </Badge>
-                                )}
-                                {openCount === 0 && stats.total > 0 && (
-                                  <Badge
-                                    variant="outline"
-                                    className="px-1.5 py-0 text-[10px] bg-green-500/10 text-green-600 border-green-500/20 h-4"
-                                  >
-                                    Alle erledigt
-                                  </Badge>
-                                )}
-                                {stats.total === 0 && (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    Keine Actions
-                                  </span>
-                                )}
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                    <span className="text-sm text-muted-foreground hidden sm:inline">
-                      {availableRigs.length} Anlagen
-                    </span>
-                  </div>
-
                   {availableRigs.map((rig) => (
                     <TabsContent key={rig.id} value={rig.name}>
                       {(() => {

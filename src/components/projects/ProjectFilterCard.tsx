@@ -27,27 +27,10 @@ import {
   ChevronDown,
   Check,
   Factory,
-  Zap,
-  Wrench,
-  Shield,
-  Settings,
-  MoreHorizontal,
-  ArrowDown,
-  Minus,
-  ArrowUp,
-  AlertTriangle,
   X,
+  ArrowUpDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role?: string;
-  assignedPlant?: string;
-}
 
 interface RigInfo {
   id: string;
@@ -55,86 +38,40 @@ interface RigInfo {
 }
 
 interface RigStats {
-  open: number;
-  inProgress: number;
   total: number;
+  active: number;
+  completed: number;
 }
 
-interface ActionFilterCardProps {
+interface ProjectFilterCardProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   statusFilter: string;
   onStatusChange: (value: string) => void;
-  disciplineFilter: string;
-  onDisciplineChange: (value: string) => void;
-  priorityFilter: string;
-  onPriorityChange: (value: string) => void;
-  userFilter: string;
-  onUserChange: (value: string) => void;
-  users: User[];
+  sortBy: string;
+  onSortChange: (value: string) => void;
   // Plant selector props
   activePlant: string;
   onPlantChange: (value: string) => void;
   availableRigs: RigInfo[];
-  getActionStats: (rigName: string) => RigStats;
+  getProjectStats: (rigName: string) => RigStats;
 }
 
-// ─── Chip data matching CreationWizard presets ───
+// ─── Chip data matching the project statuses ───
 
 const STATUS_CHIPS = [
-  { id: "all", label: "Alle" },
-  { id: "OPEN", label: "Offen" },
-  { id: "IN_PROGRESS", label: "Aktiv" },
+  { id: "ALL", label: "Alle" },
+  { id: "PLANNED", label: "Geplant" },
+  { id: "IN_PROGRESS", label: "In Arbeit" },
+  { id: "ON_HOLD", label: "Pausiert" },
   { id: "COMPLETED", label: "Erledigt" },
 ];
 
-const DISCIPLINE_CHIPS = [
-  { id: "all", label: "Alle", icon: null },
-  { id: "ELEKTRIK", label: "Elektrik", icon: <Zap className="h-3 w-3" /> },
-  { id: "MECHANIK", label: "Mechanik", icon: <Wrench className="h-3 w-3" /> },
-  {
-    id: "WELL_CONTROL",
-    label: "Well Control",
-    icon: <Shield className="h-3 w-3" />,
-  },
-  {
-    id: "HYDRAULIK",
-    label: "Hydraulik",
-    icon: <Settings className="h-3 w-3" />,
-  },
-  {
-    id: "SONSTIGES",
-    label: "Sonstiges",
-    icon: <MoreHorizontal className="h-3 w-3" />,
-  },
-];
-
-const PRIORITY_CHIPS = [
-  { id: "all", label: "Alle", icon: null, color: "" },
-  {
-    id: "LOW",
-    label: "Niedrig",
-    icon: <ArrowDown className="h-3 w-3" />,
-    color: "text-[#64646E]",
-  },
-  {
-    id: "MEDIUM",
-    label: "Mittel",
-    icon: <Minus className="h-3 w-3" />,
-    color: "text-[#2B5597]",
-  },
-  {
-    id: "HIGH",
-    label: "Hoch",
-    icon: <ArrowUp className="h-3 w-3" />,
-    color: "text-[#E37222]",
-  },
-  {
-    id: "URGENT",
-    label: "Dringend",
-    icon: <AlertTriangle className="h-3 w-3" />,
-    color: "text-[#C8102E]",
-  },
+const SORT_OPTIONS = [
+  { id: "name", label: "Name" },
+  { id: "progress", label: "Fortschritt" },
+  { id: "dueDate", label: "Fälligkeit" },
+  { id: "priority", label: "Priorität" },
 ];
 
 // ─── Chip toggle button ───
@@ -169,35 +106,25 @@ function ChipToggle({
 
 // ─── Main component ───
 
-export function ActionFilterCard({
+export function ProjectFilterCard({
   searchQuery,
   onSearchChange,
   statusFilter,
   onStatusChange,
-  disciplineFilter,
-  onDisciplineChange,
-  priorityFilter,
-  onPriorityChange,
-  userFilter,
-  onUserChange,
-  users,
+  sortBy,
+  onSortChange,
   activePlant,
   onPlantChange,
   availableRigs,
-  getActionStats,
-}: ActionFilterCardProps) {
+  getProjectStats,
+}: ProjectFilterCardProps) {
   const [plantOpen, setPlantOpen] = useState(false);
 
-  const activeCount = [
-    statusFilter,
-    disciplineFilter,
-    priorityFilter,
-    userFilter,
-  ].filter((f) => f !== "all").length;
+  const hasActiveFilters = statusFilter !== "ALL" || searchQuery.trim() !== "";
 
   return (
     <div className="mb-4 border border-[#C8C8D2]/60 bg-white">
-      {/* Header row: Plant selector + Search + Filter count */}
+      {/* Header row: Plant selector + Search */}
       <div className="px-4 py-3 border-b border-[#C8C8D2]/40 flex items-center gap-3">
         {/* Plant Combobox */}
         <Popover open={plantOpen} onOpenChange={setPlantOpen}>
@@ -212,15 +139,14 @@ export function ActionFilterCard({
               </span>
               {(() => {
                 if (!activePlant) return null;
-                const stats = getActionStats(activePlant);
-                const openCount = stats.open + stats.inProgress;
-                if (openCount > 0) {
+                const stats = getProjectStats(activePlant);
+                if (stats.active > 0) {
                   return (
                     <Badge
                       variant="destructive"
                       className="px-1.5 py-0 text-[9px] font-medium h-4 ml-auto"
                     >
-                      {openCount}
+                      {stats.active}
                     </Badge>
                   );
                 }
@@ -236,8 +162,7 @@ export function ActionFilterCard({
                 <CommandEmpty>Keine Anlage gefunden.</CommandEmpty>
                 <CommandGroup>
                   {availableRigs.map((rig) => {
-                    const stats = getActionStats(rig.name);
-                    const openCount = stats.open + stats.inProgress;
+                    const stats = getProjectStats(rig.name);
                     const isActive = activePlant === rig.name;
                     return (
                       <CommandItem
@@ -267,15 +192,15 @@ export function ActionFilterCard({
                         >
                           {rig.name}
                         </span>
-                        {openCount > 0 && (
+                        {stats.active > 0 && (
                           <Badge
                             variant="destructive"
                             className="px-1.5 py-0 text-[9px] font-medium h-4 ml-auto"
                           >
-                            {openCount} Offen
+                            {stats.active} Aktiv
                           </Badge>
                         )}
-                        {openCount === 0 && stats.total > 0 && (
+                        {stats.active === 0 && stats.total > 0 && (
                           <span className="text-[10px] text-[#24C26B] ml-auto">
                             Erledigt
                           </span>
@@ -302,7 +227,7 @@ export function ActionFilterCard({
         <div className="relative flex-1 max-w-xs ml-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#64646E]" />
           <Input
-            placeholder="Action suchen..."
+            placeholder="Projekt suchen..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-9 h-9 text-[13px] border-[#C8C8D2] focus:border-[#2B5597]"
@@ -312,16 +237,16 @@ export function ActionFilterCard({
         {/* Filter indicator */}
         <div className="flex items-center gap-1.5">
           <Filter className="h-3.5 w-3.5 text-[#64646E]" />
-          {activeCount > 0 && (
+          {hasActiveFilters && (
             <Badge className="bg-[#00B2E3] text-white text-[9px] px-1.5 py-0 h-4">
-              {activeCount}
+              !
             </Badge>
           )}
         </div>
       </div>
 
       {/* Chip filters row */}
-      <div className="px-4 py-3 flex flex-wrap items-start gap-x-6 gap-y-3">
+      <div className="px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-3">
         {/* Status chips */}
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] uppercase tracking-[1.2px] font-medium text-[#64646E] mr-1">
@@ -338,69 +263,30 @@ export function ActionFilterCard({
           ))}
         </div>
 
-        {/* Discipline chips */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] uppercase tracking-[1.2px] font-medium text-[#64646E] mr-1">
-            Kategorie
-          </span>
-          {DISCIPLINE_CHIPS.map((chip) => (
-            <ChipToggle
-              key={chip.id}
-              active={disciplineFilter === chip.id}
-              onClick={() => onDisciplineChange(chip.id)}
-            >
-              {chip.icon}
-              {chip.label}
-            </ChipToggle>
-          ))}
-        </div>
-
-        {/* Priority chips */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] uppercase tracking-[1.2px] font-medium text-[#64646E] mr-1">
-            Priorität
-          </span>
-          {PRIORITY_CHIPS.map((chip) => (
-            <ChipToggle
-              key={chip.id}
-              active={priorityFilter === chip.id}
-              onClick={() => onPriorityChange(chip.id)}
-              className={priorityFilter === chip.id ? "" : chip.color}
-            >
-              {chip.icon}
-              {chip.label}
-            </ChipToggle>
-          ))}
-        </div>
-
-        {/* User dropdown */}
+        {/* Sort + Reset */}
         <div className="flex items-center gap-3 ml-auto">
-          <Select value={userFilter} onValueChange={onUserChange}>
-            <SelectTrigger className="h-8 text-[11px] w-[140px] border-[#C8C8D2]">
-              <SelectValue placeholder="User" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Alle User</SelectItem>
-              {users.map((user) => {
-                const fullName = `${user.firstName} ${user.lastName}`;
-                return (
-                  <SelectItem key={user.id} value={fullName}>
-                    {fullName}
+          <div className="flex items-center gap-1.5">
+            <ArrowUpDown className="h-3 w-3 text-[#64646E]" />
+            <Select value={sortBy} onValueChange={onSortChange}>
+              <SelectTrigger className="h-8 text-[11px] w-[130px] border-[#C8C8D2]">
+                <SelectValue placeholder="Sortierung" />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.id} value={opt.id}>
+                    {opt.label}
                   </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Reset all filters */}
-          {activeCount > 0 && (
+          {hasActiveFilters && (
             <button
               type="button"
               onClick={() => {
-                onStatusChange("all");
-                onDisciplineChange("all");
-                onPriorityChange("all");
-                onUserChange("all");
+                onStatusChange("ALL");
                 onSearchChange("");
               }}
               className="flex items-center gap-1 text-[11px] text-[#C8102E] hover:text-[#C8102E]/80 transition-colors"
