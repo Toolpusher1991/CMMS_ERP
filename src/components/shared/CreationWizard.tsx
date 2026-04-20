@@ -269,9 +269,9 @@ export function CreationWizard({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Progress bar */}
-      <div className="px-6 pt-5 pb-2">
+      <div className="flex-shrink-0 px-6 pt-5 pb-2">
         <div className="flex items-center gap-2 mb-1">
           {Array.from({ length: totalSteps }).map((_, i) => (
             <div
@@ -289,7 +289,10 @@ export function CreationWizard({
       </div>
 
       {/* Step content */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-4"
+        style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+      >
         {isOnCardStep && activeStep && (
           <>
             <h2 className="text-[22px] font-medium text-[#143269] tracking-[-0.2px] mb-1">
@@ -428,7 +431,7 @@ export function CreationWizard({
       </div>
 
       {/* Footer navigation */}
-      <div className="border-t border-[#C8C8D2]/40 px-6 py-4 flex justify-between gap-3">
+      <div className="flex-shrink-0 border-t border-[#C8C8D2]/40 px-6 py-4 flex justify-between gap-3">
         <button
           onClick={handleBack}
           className="flex items-center gap-1.5 px-5 py-2.5 text-[12px] uppercase tracking-[1.4px] font-medium text-[#143269] border border-[#C8C8D2] rounded-sm hover:bg-[#F0F0FA] transition-colors"

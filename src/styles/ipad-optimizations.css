@@ -22,13 +22,14 @@
 
 /* Scrolling auf iOS/iPad verbessern (inkl. iPad Pro Landscape) */
 @media (max-width: 1400px) and (pointer: coarse) {
-  * {
-    -webkit-overflow-scrolling: touch;
-  }
-  
   /* Dialog Scrolling */
   [role="dialog"] {
     overscroll-behavior: contain;
+  }
+
+  /* Scrollable areas within dialogs */
+  [role="dialog"] [style*="touch-action"] {
+    -webkit-overflow-scrolling: touch;
   }
 }
 
