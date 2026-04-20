@@ -1528,7 +1528,7 @@ const ActionTracker = ({
 
         {/* Creation Wizard Dialog */}
         <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
-          <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden">
+          <DialogContent className="max-w-3xl max-h-[90vh] h-[90vh] sm:h-auto p-0 flex flex-col">
             <CreationWizard
               steps={[
                 {
@@ -1640,10 +1640,9 @@ const ActionTracker = ({
                   {/* Photo Upload */}
                   <div className="space-y-2">
                     <Label>Foto hinzufügen</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
                         type="button"
-                        variant="outline"
                         onClick={() => {
                           if (fileInputRef.current) {
                             fileInputRef.current.setAttribute(
@@ -1653,25 +1652,32 @@ const ActionTracker = ({
                             fileInputRef.current.click();
                           }
                         }}
-                        className="w-full h-12"
+                        className="flex flex-col items-center justify-center gap-2 p-5 border border-[#C8C8D2] rounded-sm bg-white hover:border-[#2B5597] hover:shadow-md transition-all"
                       >
-                        <Camera className="h-4 w-4 mr-2" />
-                        Kamera
-                      </Button>
-                      <Button
+                        <div className="w-10 h-10 rounded-sm bg-[#F0F0FA] flex items-center justify-center text-[#143269]">
+                          <Camera className="h-5 w-5" />
+                        </div>
+                        <span className="text-[13px] font-medium text-[#143269]">
+                          Kamera
+                        </span>
+                      </button>
+                      <button
                         type="button"
-                        variant="outline"
                         onClick={() => {
                           if (fileInputRef.current) {
                             fileInputRef.current.removeAttribute("capture");
                             fileInputRef.current.click();
                           }
                         }}
-                        className="w-full h-12"
+                        className="flex flex-col items-center justify-center gap-2 p-5 border border-[#C8C8D2] rounded-sm bg-white hover:border-[#2B5597] hover:shadow-md transition-all"
                       >
-                        <ImageIcon className="h-4 w-4 mr-2" />
-                        Galerie
-                      </Button>
+                        <div className="w-10 h-10 rounded-sm bg-[#F0F0FA] flex items-center justify-center text-[#143269]">
+                          <ImageIcon className="h-5 w-5" />
+                        </div>
+                        <span className="text-[13px] font-medium text-[#143269]">
+                          Galerie
+                        </span>
+                      </button>
                     </div>
                     {photoPreview && (
                       <>
@@ -2901,7 +2907,7 @@ const ActionTracker = ({
 
       {/* Creation Wizard Dialog (Desktop) */}
       <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[90vh] h-[90vh] sm:h-auto p-0 flex flex-col">
           <CreationWizard
             steps={[
               {
@@ -3049,28 +3055,35 @@ const ActionTracker = ({
                 {/* File Upload */}
                 <div className="space-y-2">
                   <Label>Dateien anhängen</Label>
-                  <div className="flex gap-2">
-                    <Button
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
                       type="button"
-                      variant="outline"
                       onClick={() =>
                         document.getElementById("wizard-file-upload")?.click()
                       }
-                      className="flex-1"
+                      className="flex flex-col items-center justify-center gap-2 p-5 border border-[#C8C8D2] rounded-sm bg-white hover:border-[#2B5597] hover:shadow-md transition-all"
                     >
-                      <Paperclip className="mr-2 h-4 w-4" />
-                      Dateien auswählen
-                    </Button>
-                    <Button
+                      <div className="w-10 h-10 rounded-sm bg-[#F0F0FA] flex items-center justify-center text-[#143269]">
+                        <Paperclip className="h-5 w-5" />
+                      </div>
+                      <span className="text-[13px] font-medium text-[#143269]">
+                        Dateien auswählen
+                      </span>
+                    </button>
+                    <button
                       type="button"
-                      variant="outline"
                       onClick={() =>
                         document.getElementById("wizard-camera-upload")?.click()
                       }
+                      className="flex flex-col items-center justify-center gap-2 p-5 border border-[#C8C8D2] rounded-sm bg-white hover:border-[#2B5597] hover:shadow-md transition-all"
                     >
-                      <Camera className="mr-2 h-4 w-4" />
-                      Foto aufnehmen
-                    </Button>
+                      <div className="w-10 h-10 rounded-sm bg-[#F0F0FA] flex items-center justify-center text-[#143269]">
+                        <Camera className="h-5 w-5" />
+                      </div>
+                      <span className="text-[13px] font-medium text-[#143269]">
+                        Foto aufnehmen
+                      </span>
+                    </button>
                   </div>
                   <input
                     id="wizard-file-upload"
