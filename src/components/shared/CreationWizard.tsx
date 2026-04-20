@@ -8,18 +8,19 @@ import {
   Shield,
   MoreHorizontal,
   Settings,
-  Cog,
-  HardDrive,
-  Triangle,
-  RotateCw,
-  Layers,
-  Gauge,
-  Cylinder,
   ArrowDown,
   Minus,
   ArrowUp,
   AlertTriangle,
   Search,
+  Droplets,
+  Power,
+  Disc3,
+  Construction,
+  Grip,
+  Cpu,
+  TowerControl,
+  Container,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -121,25 +122,25 @@ export const COMPONENT_CARDS: WizardCard[] = [
     id: "MUD_PUMPS",
     label: "Mud Pumps",
     description: "Spülungspumpen & Zubehör",
-    icon: <Gauge className="h-7 w-7" />,
+    icon: <Droplets className="h-7 w-7" />,
   },
   {
     id: "GENERATORS",
     label: "Generatoren",
     description: "Stromerzeugung & Verteilung",
-    icon: <Zap className="h-7 w-7" />,
+    icon: <Power className="h-7 w-7" />,
   },
   {
     id: "TOP_DRIVE",
     label: "Top Drive",
     description: "Oberer Antrieb & Spindel",
-    icon: <RotateCw className="h-7 w-7" />,
+    icon: <Disc3 className="h-7 w-7" />,
   },
   {
     id: "DRAWWORKS",
     label: "Hebewerk",
     description: "Drawworks & Bremssysteme",
-    icon: <Layers className="h-7 w-7" />,
+    icon: <Construction className="h-7 w-7" />,
   },
   {
     id: "BOP",
@@ -151,31 +152,31 @@ export const COMPONENT_CARDS: WizardCard[] = [
     id: "ROTARY_TABLE",
     label: "Drehtisch",
     description: "Rotary Table & Master Bushing",
-    icon: <Cog className="h-7 w-7" />,
+    icon: <Settings className="h-7 w-7" />,
   },
   {
     id: "IRON_ROUGHNECK",
     label: "Iron Roughneck",
     description: "Rohrzangen & Drehmoment",
-    icon: <Wrench className="h-7 w-7" />,
+    icon: <Grip className="h-7 w-7" />,
   },
   {
     id: "SCR_HOUSE",
     label: "SCR / VFD House",
     description: "Frequenzumrichter & Steuerung",
-    icon: <HardDrive className="h-7 w-7" />,
+    icon: <Cpu className="h-7 w-7" />,
   },
   {
     id: "MAST_SUBSTRUCTURE",
     label: "Mast / Substruktur",
     description: "Turmaufbau & Unterbau",
-    icon: <Triangle className="h-7 w-7" />,
+    icon: <TowerControl className="h-7 w-7" />,
   },
   {
     id: "PIPE_HANDLING",
     label: "Pipe Handling",
     description: "Rohrhandling & Catwalk",
-    icon: <Cylinder className="h-7 w-7" />,
+    icon: <Container className="h-7 w-7" />,
   },
 ];
 
@@ -202,7 +203,7 @@ export function CreationWizard({
   const currentSelection = activeStep ? selections[activeStep.id] : null;
 
   // Compact mode for steps with many cards (e.g. 30+ plants)
-  const COMPACT_THRESHOLD = 8;
+  const COMPACT_THRESHOLD = 12;
   const isCompact = activeStep
     ? activeStep.cards.length > COMPACT_THRESHOLD
     : false;
