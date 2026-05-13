@@ -30,6 +30,7 @@ const AssetIntegrityManagement = lazy(
 );
 const CSPLGapAnalysis = lazy(() => import("@/pages/CSPLGapAnalysis"));
 const RigInspection = lazy(() => import("@/pages/RigInspection"));
+const DrillSensePage = lazy(() => import("@/pages/DrillSensePage"));
 
 type AuthView = "login" | "register" | "forgot-password";
 type AppPage =
@@ -41,6 +42,7 @@ type AppPage =
   | "cspl"
   | "integrity"
   | "inspections"
+  | "drillsense"
   | "admin";
 
 function App() {
@@ -275,6 +277,11 @@ function App() {
                           <RigInspection />
                         </PageErrorBoundary>
                       )}
+                      {currentPage === "drillsense" && (
+                        <PageErrorBoundary>
+                          <DrillSensePage />
+                        </PageErrorBoundary>
+                      )}
                       {currentPage === "admin" && user.role === "ADMIN" && (
                         <PageErrorBoundary>
                           <AdminPanel />
@@ -324,6 +331,7 @@ function App() {
                         "tender",
                         "integrity",
                         "inspections",
+                        "drillsense",
                         "admin",
                       ].includes(currentPage) && (
                         <div className="flex flex-col items-center justify-center py-24 text-center">

@@ -11,6 +11,7 @@ import {
   Shield,
   Package,
   ClipboardCheck,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,7 @@ type AppPage =
   | "cspl"
   | "integrity"
   | "inspections"
+  | "drillsense"
   | "admin";
 
 interface NavItem {
@@ -47,6 +49,7 @@ const allNavItems: NavItem[] = [
   { title: "Asset Integrity", page: "integrity", icon: Shield },
   { title: "CSPL Gap Analysis", page: "cspl", icon: Package },
   { title: "Inspektionen", page: "inspections", icon: ClipboardCheck },
+  { title: "DrillSense", page: "drillsense", icon: Activity },
   { title: "Bohranlagen", page: "tender", icon: Building2 },
   { title: "Störungsmeldung", page: "failures", icon: AlertTriangle },
   { title: "Admin", page: "admin", icon: Settings, adminOnly: true },
