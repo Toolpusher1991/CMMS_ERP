@@ -113,3 +113,26 @@ export function pumpStatusColor(status: SensorStatus): string {
     default:         return '#24C26B';
   }
 }
+
+// ── MPU-6050 / ESP32 Device ───────────────────────────
+export interface Esp32Device {
+  device_id: string;
+  online: boolean;
+  last_seen_s: number | null;
+  assigned_to: string;       // "drawworks" | "mudpump_1" | …
+  firmware: string;
+  wifi_rssi: number | null;
+  sample_rate: number | null;
+  vibration: {
+    rms_mms?: number;
+    peak_mms?: number;
+    peak2peak_mms?: number;
+    crest_factor?: number;
+    dominant_hz?: number;
+  };
+  accel: {
+    x_rms_g?: number;
+    y_rms_g?: number;
+    z_rms_g?: number;
+  };
+}

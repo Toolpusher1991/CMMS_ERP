@@ -40,11 +40,12 @@ def push_once():
     pumps     = fetch("/api/v1/pumps/") or []
     drawworks = fetch("/api/v1/drawworks/")
     alerts    = fetch("/api/v1/alerts/") or []
+    esp32     = fetch("/api/v1/esp32/") or []
     try:
         r = requests.post(f"{RELAY_URL}/relay/push",
-                          json={"pumps": pumps, "drawworks": drawworks, "alerts": alerts},
+                          json={"pumps": pumps, "drawworks": drawworks, "alerts": alerts, "esp32": esp32},
                           headers=HEADERS, timeout=10)
-        if r.ok: log.info(f"Push OK — {len(pumps)} Pumpen")
+        if r.ok: log.info(f"Push OK — {len(pumps)} Pumpen, {len(esp32)} ESP32-Devices")
         else:    log.warning(f"Relay {r.status_code}: {r.text[:80]}")
     except requests.exceptions.Timeout:
         log.warning("Relay Timeout — Render schläft evtl. (cold start)")

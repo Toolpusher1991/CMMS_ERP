@@ -20,6 +20,7 @@ _state = {
     "standpipe": {"value": 218.0, "threshold": 345.0, "unit": "bar"},
     "pumps": {str(i): {} for i in range(1, 4)},
     "drawworks": {},
+    "esp32_devices": {},   # device_id → live payload
     "last_msg": None,
 }
 _alerts: list[dict] = []
@@ -124,31 +125,70 @@ def _on_message(client, userdata, msg):
     elif f"{ROOT}/drawworks/" in t:
         k = t.split(f"{ROOT}/drawworks/")[1]
         _state["drawworks"][k] = d
+    elif f"{ROOT}/esp32/" in t:
+        parts = t.split(f"{ROOT}/esp32/")[1].split("/")
+        device_id = parts[0]
+        msg_type  = parts[1] if len(parts) > 1 else ""
+        dev = _state["esp32_devices"].setdefault(device_id, {})
+        dev["last_seen"] = time.time()
+        if msg_type == "vibration":
+            dev.update(d)
+            assigned = d.get("assigned_to", "")
+            vib = d.get("vibration", {})
+            rms = float(vib.get("rms_mms", 0.0))
+            if assigned == "drawworks":
+                _state["drawworks"]["vibration"] = {"value": rms}
+            elif assigned.startswith("mudpump_"):
+                pid = assigned.replace("mudpump_", "")
+                wt = _state["pumps"].setdefault(pid, {}).setdefault("wasserteile", {})
+                wt["piston_rod"] = _reading(rms, 7.0, "mm/s")
+        elif msg_type == "status":
+            dev["info"] = d
 
 _mqtt = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 _mqtt.on_connect = _on_connect
 _mqtt.on_message = _on_message
 
 async def _sim_loop():
-    log.info("Simulator aktiv")
+    log.info("Simulator aktiv — schreibt direkt in _state")
     t = 0
     while True:
         t += 1
-        sp = 218 + math.sin(t*0.01)*5 + random.gauss(0,2)
-        _mqtt.publish(f"{ROOT}/manifold/standpipe_bar", json.dumps({"value": round(sp,1), "unit":"bar"}))
-        for pid in [1,2,3]:
-            pp = f"{ROOT}/mudpump/{pid}"
-            _mqtt.publish(f"{pp}/inlet_temp", json.dumps({"value": round(38+3*math.sin(t*0.005+pid)+random.gauss(0,0.3),1), "unit":"C"}))
-            _mqtt.publish(f"{pp}/gear_oil_temp", json.dumps({"value": round(60+random.gauss(0,0.5)+0.0002*t,1), "unit":"C"}))
-            _mqtt.publish(f"{pp}/suction_bar", json.dumps({"value": round(max(0.3,1.8+random.gauss(0,0.1)),2), "unit":"bar"}))
-            _mqtt.publish(f"{pp}/discharge_bar", json.dumps({"value": round(sp+random.gauss(0,0.5),1), "unit":"bar"}))
-            _mqtt.publish(f"{pp}/spm", json.dumps({"value": 112+random.randint(-3,3)}))
-            for part,th in [("valve_seat_in",6.0),("valve_seat_out",6.0),("piston_rod",7.0)]:
-                vib = max(0.3, 1.5+random.gauss(0,0.4)+0.0002*t)
-                _mqtt.publish(f"{pp}/wasserteile/{part}/vibration", json.dumps({"value": round(vib,2), "unit":"mm/s"}))
-        dw = f"{ROOT}/drawworks"
-        for key,val,noise in [("brake/1/temp",130,8),("brake/2/temp",125,8),("gear_oil_temp",62,2),("motor/1/temp",58,5),("motor/2/temp",55,5),("motor/1/power_kw",450,20),("motor/2/power_kw",430,20),("hook_load",95,10),("drum_rpm",50,5),("vibration",1.5,0.3)]:
-            _mqtt.publish(f"{dw}/{key}", json.dumps({"value": round(val+random.gauss(0,noise), 1)}))
+        sp = round(218 + math.sin(t * 0.01) * 5 + random.gauss(0, 2), 1)
+        _state["standpipe"] = {"value": sp, "threshold": 345.0, "unit": "bar"}
+        _state["last_msg"] = time.time()
+
+        for pid in [1, 2, 3]:
+            p = _state["pumps"].setdefault(str(pid), {})
+            vib_base = 1.5 + 0.0002 * t
+            p["inlet_temp"]   = _reading(round(38 + 3 * math.sin(t * 0.005 + pid) + random.gauss(0, 0.3), 1), 65.0, "C")
+            p["gear_oil_temp"]= _reading(round(60 + random.gauss(0, 0.5) + 0.0002 * t, 1), 95.0, "C")
+            p["suction_bar"]  = _reading(round(max(0.3, 1.8 + random.gauss(0, 0.1)), 2), 3.0, "bar")
+            p["discharge_bar"]= _reading(round(sp + random.gauss(0, 0.5), 1), 345.0, "bar")
+            p["spm"]          = 112 + random.randint(-3, 3)
+            p["wasserteile"]  = {
+                "valve_seat_in":  _reading(round(max(0.3, vib_base + random.gauss(0, 0.4)), 2), 6.0, "mm/s"),
+                "valve_seat_out": _reading(round(max(0.3, vib_base + random.gauss(0, 0.4)), 2), 6.0, "mm/s"),
+                "piston_rod":     _reading(round(max(0.3, vib_base + random.gauss(0, 0.5)), 2), 7.0, "mm/s"),
+            }
+
+        _state["drawworks"].update({
+            "brake/1/temp":    {"value": round(130 + random.gauss(0, 8), 1)},
+            "brake/2/temp":    {"value": round(125 + random.gauss(0, 8), 1)},
+            "gear_oil_temp":   {"value": round(62  + random.gauss(0, 2), 1)},
+            "motor/1/temp":    {"value": round(58  + random.gauss(0, 5), 1)},
+            "motor/2/temp":    {"value": round(55  + random.gauss(0, 5), 1)},
+            "motor/1/power_kw":{"value": round(450 + random.gauss(0, 20), 1)},
+            "motor/2/power_kw":{"value": round(430 + random.gauss(0, 20), 1)},
+            "hook_load":       {"value": round(95  + random.gauss(0, 10), 1)},
+            "drum_rpm":        {"value": round(50  + random.gauss(0, 5), 1)},
+            "vibration":       {"value": round(max(0.2, 1.5 + random.gauss(0, 0.3)), 2)},
+        })
+
+        # Auch via MQTT publishen (falls Pi-Backend mit Broker läuft)
+        if _mqtt.is_connected():
+            _mqtt.publish(f"{ROOT}/manifold/standpipe_bar", json.dumps({"value": sp}))
+
         await asyncio.sleep(1.0)
 
 @asynccontextmanager
@@ -191,3 +231,23 @@ async def get_drawworks(x_api_key: str | None = Header(None)):
 @app.get("/api/v1/alerts/")
 async def get_alerts(x_api_key: str | None = Header(None)):
     _ck(x_api_key); return _alerts
+
+@app.get("/api/v1/esp32/")
+async def get_esp32_devices(x_api_key: str | None = Header(None)):
+    _ck(x_api_key)
+    now = time.time()
+    result = []
+    for device_id, dev in _state["esp32_devices"].items():
+        last = dev.get("last_seen")
+        result.append({
+            "device_id":   device_id,
+            "online":      bool(last and (now - last) < 15),
+            "last_seen_s": round(now - last, 1) if last else None,
+            "assigned_to": dev.get("assigned_to", dev.get("info", {}).get("assigned_to", "")),
+            "firmware":    dev.get("firmware", ""),
+            "wifi_rssi":   dev.get("wifi_rssi"),
+            "sample_rate": dev.get("sample_rate"),
+            "vibration":   dev.get("vibration", {}),
+            "accel":       dev.get("accel", {}),
+        })
+    return result

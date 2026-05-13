@@ -4,7 +4,7 @@
  * Prod: VITE_DRILLSENSE_API_URL = https://drillsense-relay.onrender.com/api
  */
 import axios from "axios";
-import type { MudPump, Drawworks, DrillSenseAlert } from "@/types/drillsense";
+import type { MudPump, Drawworks, DrillSenseAlert, Esp32Device } from "@/types/drillsense";
 
 /** Ob DrillSense aktiv ist (lokal immer, Render nur wenn URL gesetzt) */
 export const DRILLSENSE_ENABLED: boolean =
@@ -39,4 +39,7 @@ export const drillsenseApi = {
 
   getAlerts: (): Promise<DrillSenseAlert[]> =>
     http.get("/alerts/").then((r) => r.data),
+
+  getEsp32Devices: (): Promise<Esp32Device[]> =>
+    http.get("/esp32/").then((r) => r.data),
 };

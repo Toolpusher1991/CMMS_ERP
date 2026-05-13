@@ -4,6 +4,7 @@ import { MudPumpStation } from "@/components/drillsense/MudPumpStation";
 import { DrawworksView } from "@/components/drillsense/DrawworksView";
 import { DsAlertPanel } from "@/components/drillsense/DsAlertPanel";
 import { DsThresholdPanel } from "@/components/drillsense/DsThresholdPanel";
+import { DsEsp32Panel } from "@/components/drillsense/DsEsp32Panel";
 import { Activity, WifiOff } from "lucide-react";
 import { DRILLSENSE_ENABLED } from "@/services/drillsense-api";
 
@@ -93,8 +94,9 @@ export default function DrillSensePage() {
               {activeTab === "drawworks" && <DrawworksView />}
             </div>
 
-            {/* Right sidebar: Alerts + Thresholds */}
+            {/* Right sidebar: Sensors + Alerts + Thresholds */}
             <div className="w-80 shrink-0 space-y-4">
+              <DsEsp32Panel />
               <DsAlertPanel />
               <DsThresholdPanel />
             </div>

@@ -24,7 +24,7 @@ app = FastAPI(title="DrillSense Relay", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET","POST","OPTIONS"],
                    allow_headers=["*"], allow_credentials=False)
 
-_store = {"pumps": [], "drawworks": None, "alerts": [], "pushed_at": None}
+_store = {"pumps": [], "drawworks": None, "alerts": [], "esp32": [], "pushed_at": None}
 
 def _ck(k):
     if RELAY_API_KEY and k != RELAY_API_KEY:
@@ -41,7 +41,7 @@ async def health():
 async def push(request: Request, x_api_key: str | None = Header(None)):
     _ck(x_api_key)
     data = await request.json()
-    for k in ("pumps", "drawworks", "alerts"):
+    for k in ("pumps", "drawworks", "alerts", "esp32"):
         if k in data: _store[k] = data[k]
     _store["pushed_at"] = time.time()
     log.info(f"Push: {len(_store['pumps'])} pumps, {len(_store['alerts'])} alerts")
@@ -60,3 +60,7 @@ async def get_drawworks(x_api_key: str | None = Header(None)):
 @app.get("/api/v1/alerts/")
 async def get_alerts(x_api_key: str | None = Header(None)):
     _ck(x_api_key); return _store["alerts"]
+
+@app.get("/api/v1/esp32/")
+async def get_esp32(x_api_key: str | None = Header(None)):
+    _ck(x_api_key); return _store["esp32"]
